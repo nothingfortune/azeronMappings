@@ -98,10 +98,22 @@ Profiles map position to action id, never position to raw key.
   therefore the `dist/` diff — stays stable.
 - `decompile.ts` goes the other way, for edits made in the Azeron app. Anything
   that will not round-trip canonically is kept as `*_raw` or `raw: {types: [...]}`.
-  `azeron editor` writes one page for every game: games and sets are data, chosen from the
-  two selectors. The payload is embedded because a page opened from `file://` cannot fetch
-  a sibling JSON, and `editor-data.json` is written beside it so an open page can be
-  pointed at newer data with the Data button instead of being regenerated.
+  There are two ways to open the editor, and they differ in one thing: whether an edit can
+  get back into the repo.
+
+- `azeron editor` writes a self-contained file. It works offline with no server, and the
+  only way out is a download you then copy in by hand.
+- `azeron serve` serves the same page over HTTP, where it can POST an edit straight into
+  the repo and get the linter's verdict back. The header says which mode the page is in.
+
+Writes go through `resolveSavePath`, which accepts profile YAML, a game's `actions.yaml`
+and device maps, and nothing else — checked on the resolved path, so no spelling of `..`
+escapes.
+
+`azeron editor` writes one page for every game: games and sets are data, chosen from the
+two selectors. The payload is embedded because a page opened from `file://` cannot fetch
+a sibling JSON, and `editor-data.json` is written beside it so an open page can be
+pointed at newer data with the Data button instead of being regenerated.
 
 - `lint.ts` and `model-core.ts` are free of node imports on purpose: **the browser editor
   imports the same compiler, linter and YAML writer the CLI uses.** There is one

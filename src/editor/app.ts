@@ -596,6 +596,38 @@ function renderChecks(): HTMLElement {
   return panel;
 }
 
+/**
+ * Whether this page can write back into the repo.
+ *
+ * Served over HTTP it can POST to the CLI; opened from a file it can only hand back
+ * downloads, so the two are offered as different things rather than one that sometimes
+ * silently does nothing.
+ */
+function canSave(): boolean {
+  return window.location.protocol === "http:" || window.location.protocol === "https:";
+}
+
+let saveNote: string | null = null;
+
+async function saveToRepo(path: string, content: string): Promise<void> {
+  saveNote = `saving ${path}...`;
+  render();
+  try {
+    const response = await fetch("/api/save", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ path, content }),
+    });
+    const result = (await response.json()) as { ok: boolean; verdict?: string; error?: string };
+    saveNote = result.ok
+      ? `${path} — ${result.verdict ?? "saved"}`
+      : `refused: ${result.error ?? ""}`;
+  } catch (error) {
+    saveNote = `could not reach the server: ${(error as Error).message}`;
+  }
+  render();
+}
+
 function download(name: string, text: string, type: string): void {
   const blob = new Blob([text], { type });
   const url = URL.createObjectURL(blob);
@@ -607,7 +639,13 @@ function download(name: string, text: string, type: string): void {
 }
 
 function exportYaml(slug: string): void {
-  download(`${slug}.yaml`, dumpProfile(workingData(slug)), "text/yaml");
+  const yaml = dumpProfile(workingData(slug));
+  const source = currentGame().profiles.find((profile) => profile.slug === slug);
+  if (canSave() && source) {
+    void saveToRepo(source.path, yaml);
+    return;
+  }
+  download(`${slug}.yaml`, yaml, "text/yaml");
 }
 
 function exportJson(slug: string): void {
@@ -678,7 +716,9 @@ function renderHeader(): HTMLElement {
 
   for (const slug of slugsInSet()) {
     const unit = workingData(slug).profile.unit ?? slug;
-    const yaml = el("button", { class: "btn", type: "button" }, [`YAML ${unit}`]);
+    const yaml = el("button", { class: "btn", type: "button" }, [
+      canSave() ? `Save ${unit}` : `YAML ${unit}`,
+    ]);
     yaml.addEventListener("click", () => {
       exportYaml(slug);
     });
@@ -733,6 +773,12 @@ function renderHeader(): HTMLElement {
     picker.click();
   });
   header.append(load, picker);
+
+  header.append(
+    el("span", { class: `pill ${canSave() ? "ok" : ""}` }, [
+      canSave() ? "saves to repo" : "downloads only",
+    ]),
+  );
 
   const theme = el("button", { class: "btn", type: "button" }, ["Theme"]);
   theme.addEventListener("click", () => {
@@ -808,16 +854,19 @@ function renderInGame(): HTMLElement {
   }
   panel.append(table);
 
-  const save = el("button", { class: "btn primary", type: "button" }, ["Export actions.yaml"]);
+  const save = el("button", { class: "btn primary", type: "button" }, [
+    canSave() ? "Save actions.yaml" : "Export actions.yaml",
+  ]);
   save.addEventListener("click", () => {
     const header =
       `# ${game.name} -- every action and the in-game key it is bound to.\n` +
       "# Edited in the editor; save this over the game's actions.yaml and rebuild.\n";
-    download(
-      "actions.yaml",
-      dumpYaml({ game: game.name, actions: actionSetFor(game).actions }, header),
-      "text/yaml",
-    );
+    const yaml = dumpYaml({ game: game.name, actions: actionSetFor(game).actions }, header);
+    if (canSave()) {
+      void saveToRepo(`${game.rel}/actions.yaml`, yaml);
+      return;
+    }
+    download("actions.yaml", yaml, "text/yaml");
   });
   panel.append(save);
   return panel;
@@ -968,6 +1017,9 @@ function render(): void {
   if (!root) return;
   root.replaceChildren();
   root.append(renderHeader());
+  if (saveNote !== null) {
+    root.append(el("div", { class: "save-note" }, [saveNote]));
+  }
 
   if (state.mode === "in-game") {
     const workspace = el("div", { class: "workspace ingame" });

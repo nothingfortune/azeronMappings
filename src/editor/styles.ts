@@ -45,6 +45,8 @@ select, .btn {
 }
 .btn:hover, select:hover { border-color: var(--accent); }
 .btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.save-note { padding: 6px 16px; background: var(--panel); border-bottom: 1px solid var(--line);
+             font-size: 12px; color: var(--muted); }
 .workspace.single { display: block; }
 .press-test { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 12px;
               align-items: start; }

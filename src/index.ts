@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /** azeron -- build, decompile, lint, cheatsheet, editor, install. */
 
+import { createServer } from "node:http";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { parseArgs } from "node:util";
@@ -23,6 +24,7 @@ import { loadDevice, loadTemplate, writeText } from "./lib/io.js";
 import { buildProbeProfile, buildStickCalibrationProfile } from "./lib/probe.js";
 import { compareToGame, gameCollisions, parseInput } from "./lib/ingame.js";
 import { gameConfig, seedActions, unnamedPositions } from "./lib/scaffold.js";
+import { CONTENT_TYPES, SaveRejected, parseSaveRequest, resolveSavePath } from "./lib/serve.js";
 import { dumpYaml } from "./lib/yaml.js";
 import { ERROR, WARNING, formatFinding, lintGame, lintGenre } from "./lib/lint.js";
 import type { LintResult } from "./lib/lint.js";
@@ -363,6 +365,79 @@ function cmdIngame(selector: string | undefined, configPath: string | undefined)
   return failures > 0 ? 1 : 0;
 }
 
+/** Serve the editor and let it write back into the repo. */
+function cmdServe(port: number): number {
+  const bundle = readBundle("editor-app.js");
+  if (bundle === null) {
+    process.stderr.write("error: build/editor-app.js is missing. Run `npm run build` first.\n");
+    return 1;
+  }
+
+  const server = createServer((request, response) => {
+    const send = (status: number, body: string, type = "application/json"): void => {
+      response.writeHead(status, { "content-type": type, "cache-control": "no-store" });
+      response.end(body);
+    };
+
+    const url = request.url ?? "/";
+    if (request.method === "GET" && (url === "/" || url === "/index.html")) {
+      // Built fresh per request, so a file edited on disk shows up on reload.
+      send(200, renderEditorHtml(buildPayload(), bundle), CONTENT_TYPES[".html"]);
+      return;
+    }
+    if (request.method === "GET" && url === "/api/payload") {
+      send(200, JSON.stringify(buildPayload()));
+      return;
+    }
+    if (request.method === "POST" && url === "/api/save") {
+      let body = "";
+      request.on("data", (chunk: Buffer) => {
+        body += chunk.toString("utf8");
+        if (body.length > 2_000_000) request.destroy();
+      });
+      request.on("end", () => {
+        try {
+          const { path, content } = parseSaveRequest(body);
+          const target = resolveSavePath(repoRoot, path);
+          mkdirSync(dirname(target), { recursive: true });
+          writeFileSync(target, content, "utf8");
+
+          // The point of saving into the repo is getting the verdict back.
+          let verdict = "saved";
+          try {
+            for (const game of Game.discover()) {
+              const result = lintGame(game);
+              const errors = result.live.filter((finding) => finding.level === ERROR);
+              if (errors.length > 0) {
+                verdict = `${game.slug}: ${errors.map((f) => formatFinding(f)).join(" | ")}`;
+                break;
+              }
+            }
+          } catch (error) {
+            verdict = `saved, but reloading failed: ${(error as Error).message}`;
+          }
+          send(200, JSON.stringify({ ok: true, path, verdict }));
+        } catch (error) {
+          const rejected = error instanceof SaveRejected;
+          send(
+            rejected ? 400 : 500,
+            JSON.stringify({ ok: false, error: (error as Error).message }),
+          );
+        }
+      });
+      return;
+    }
+    send(404, JSON.stringify({ ok: false, error: "not found" }));
+  });
+
+  server.listen(port, () => {
+    out(`editor on http://localhost:${String(port)}`);
+    out("  Saving writes straight into the repo and reports what the linter says.");
+    out("  Ctrl-C to stop.");
+  });
+  return 0;
+}
+
 function cmdBindings(selector: string | undefined): number {
   for (const game of games(selector)) {
     const sheet = bindingSheet(game.name, game.actions, game.loadedProfiles());
@@ -528,7 +603,8 @@ function usage(): void {
   roundtrip [game]                verify golden profiles rebuild their template
   cheatsheet [game]               per-profile layout diagram + binding checklist
   bindings [game]                 the in-game key list to check against the game
-  editor [--out PATH]             side-by-side WYSIWYG editor (self-contained HTML)
+  editor [--out PATH]             the editor as one self-contained HTML file
+  serve [--port N]                the same editor, able to save back into the repo
   probe [--device D ...]          press-test profile + capture page for the real pin map
   import <export.json> --genre G --game SLUG [--name N] [--device D] [--set S]
          [--export-to DIR]      start a game folder from an export
@@ -567,6 +643,7 @@ export function main(argv: string[]): number {
       name: { type: "string" },
       "export-to": { type: "string" },
       config: { type: "string" },
+      port: { type: "string" },
       out: { type: "string", short: "o" },
     },
   });
@@ -584,6 +661,8 @@ export function main(argv: string[]): number {
       return cmdBindings(positionals[0]);
     case "ingame":
       return cmdIngame(positionals[0], values.config);
+    case "serve":
+      return cmdServe(Number(values.port ?? "4173"));
     case "editor":
       return cmdEditor(values.out ?? join(dataDirs.dist, "editor.html"));
     case "probe": {

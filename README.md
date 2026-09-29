@@ -33,6 +33,16 @@ Any command takes a game: `./bin/azeron build everspace`.
 ## The editor
 
 ```sh
+npm run build && ./bin/azeron serve      # http://localhost:4173, saves into the repo
+./bin/azeron editor                      # one file, works offline, downloads only
+```
+
+Served, the **Save** buttons write straight into `games/…/profiles/*.yaml` and
+`actions.yaml` and report what the linter says. Opened as a file, the same buttons hand
+you a download to copy in — the header says which you are in, so a click never silently
+does nothing.
+
+```sh
 npm run build && ./bin/azeron editor
 ```
 
