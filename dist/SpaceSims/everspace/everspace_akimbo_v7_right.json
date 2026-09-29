@@ -4850,29 +4850,29 @@
             "isPingPongLoop": false
           },
           "analogSettings": {
-            "angle": 180,
+            "angle": 0,
             "lowerLimit": 0,
             "upperLimit": 0,
             "sensitivity": 3,
             "analogKeys": {
               "left": {
                 "up": [
-                  0,
+                  40,
                   0,
                   0
                 ],
                 "right": [
-                  0,
+                  81,
                   0,
                   0
                 ],
                 "down": [
-                  0,
+                  38,
                   0,
                   0
                 ],
                 "left": [
-                  0,
+                  69,
                   0,
                   0
                 ]
@@ -8980,7 +8980,7 @@
           "isSmoothScroll": false
         }
       ],
-      "name": "Everspace 2 akimbo v7 (right)",
+      "name": "Everspace 2 akimbo v6 (right)",
       "isSoftware": true,
       "profileSettings": {
         "profileSensitivitySettings": {

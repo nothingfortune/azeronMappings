@@ -144,10 +144,17 @@ export function nameToMouse(name: string | null | undefined): string | null {
   return MOUSE_BY_NAME[name] ?? null;
 }
 
+/**
+ * Stick directions appear in two encodings: everspace2-v5 holds integer JS keycodes
+ * (87 for W), while a profile edited in 2.0.2 holds `KeyboardEvent.code` strings
+ * ("ArrowUp"). Both resolve to the same name.
+ */
 export function analogToName(code: string | number | null | undefined): string | null {
   if (isEmpty(code)) return null;
   const parsed = Number(code);
-  return Number.isFinite(parsed) ? (ANALOG_BY_CODE[parsed] ?? null) : null;
+  if (Number.isFinite(parsed)) return ANALOG_BY_CODE[parsed] ?? null;
+  const text = String(code);
+  return text in ANALOG_KEYCODES ? text : null;
 }
 
 export function nameToAnalog(name: string | null | undefined): number | null {

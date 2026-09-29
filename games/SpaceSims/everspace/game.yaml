@@ -79,10 +79,6 @@ lint:
     - {profile: akimbo-v7-right, rule: unbound-key, position: index_3,
        reason: "Mouse button code 1, as above -- physical button and in-game action both
                 unconfirmed."}
-    - {profile: akimbo-v7, rule: missing-required,
-       reason: "roll_left and roll_right (Q/E) are bound on neither unit in this layout.
-                Either roll was rebound in game to something the units already send, or
-                it is genuinely unreachable -- confirm before a playtest."}
     - {profile: single-v5, rule: duplicate-output-key, key: Tab,
        reason: "Tab reaches the menu from two places (perks double-tap, ULT long-press).
                 Both are menu actions, so there is no combat ambiguity."}

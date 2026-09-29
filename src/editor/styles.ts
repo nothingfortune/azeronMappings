@@ -5,6 +5,7 @@ export const CSS = `
   --accent: #2f6f8f; --accent-fg: #ffffff;
   --combat: #b8433a; --movement: #2f7d4f; --menu: #6a4fb3; --travel: #b1701c; --utility: #4a5568;
   --error: #b8433a; --warn: #b1701c; --ok: #2f7d4f;
+  --key-w: 104px;
 }
 :root[data-theme="dark"], :root:not([data-theme="light"]) {
   color-scheme: light;
@@ -45,51 +46,109 @@ select, .btn {
 .btn:hover, select:hover { border-color: var(--accent); }
 .btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
 .workspace.single { display: block; }
+.workspace.wide { grid-template-columns: minmax(0, 1fr); }
+/* Boards on the left, the in-game half on the right, so the two can be read together. */
+.workspace.ingame { grid-template-columns: minmax(0, 1fr) 420px; }
+@media (max-width: 1200px) { .workspace.ingame { grid-template-columns: 1fr; } }
+.ingame-list { display: flex; flex-direction: column; gap: 2px; max-height: 70vh;
+               overflow: auto; margin-bottom: 10px; }
+.ingame-row { display: grid; grid-template-columns: minmax(0, 1fr) 190px; gap: 8px;
+              align-items: center; padding: 3px 4px; border-radius: 6px; }
+.ingame-row:nth-child(odd) { background: var(--bg); }
+.ingame-row.unbound { opacity: .55; }
+.ingame-row .who { min-width: 0; }
+.ingame-row .who b { display: block; font-size: 12px; font-weight: 600; }
+.ingame-row .who small { display: block; color: var(--muted); font-size: 10px;
+                         overflow-wrap: anywhere; }
+.ingame-row .field { margin-bottom: 0; }
+.ingame-row .field label { font-size: 8.5px; }
+.ingame-row .field input { padding: 2px 5px; font-size: 11px; }
+.ingame-row .row2 { gap: 5px; }
+.note { font-size: 11.5px; color: var(--muted); margin-bottom: 10px; }
 .sheet-frame { width: 100%; min-height: 78vh; border: 1px solid var(--line); border-radius: 10px;
                background: var(--panel); }
-.workspace { display: grid; grid-template-columns: 250px minmax(0, 1fr) 290px; gap: 14px; padding: 14px 16px; align-items: start; }
+.workspace { display: grid; grid-template-columns: 200px minmax(0, 1fr) 250px; gap: 12px;
+             padding: 12px 14px; align-items: start; }
 @media (max-width: 1200px) { .workspace { grid-template-columns: 1fr; } }
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
 .panel h2 {
   font-size: 10.5px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted);
   margin: 0 0 9px;
 }
-.stage { display: flex; gap: 26px; justify-content: center; flex-wrap: wrap; align-items: flex-start; }
-.hand { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+/* Both units stay on one row; the stage scales down rather than wrapping one under the
+   other, because a pair is read as a pair. */
+.stage-wrap { overflow: hidden; }
+.stage { display: flex; gap: 14px; align-items: flex-start; flex-wrap: nowrap;
+         transform-origin: top left; width: max-content; }
+.hand { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+        padding: 10px; }
 .hand > .title { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
 .hand > .title b { font-size: 13px; }
 .hand > .title span { color: var(--muted); font-size: 11.5px; }
 .hand-body { display: flex; gap: 7px; align-items: flex-start; }
-.col { display: flex; flex-direction: column; gap: 6px; }
-.col .head {
-  font-size: 9.5px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted);
-  text-align: center; height: 13px;
+.col { display: flex; flex-direction: column; gap: 4px; }
+.col.side { margin-top: 22px; }
+.col .head, .hand .head {
+  font-size: 8.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted);
+  text-align: center; height: 12px; white-space: nowrap;
 }
 .key {
-  width: 118px; min-height: 52px; border: 1px solid var(--line); border-radius: 8px;
-  background: var(--bg); padding: 5px 7px; cursor: pointer; text-align: left; display: block;
-  border-left-width: 3px; border-left-color: var(--line);
+  width: var(--key-w); min-height: 46px; border: 1px solid var(--line); border-radius: 7px;
+  background: var(--bg); padding: 4px 6px; cursor: pointer; text-align: left; display: flex;
+  flex-direction: column; gap: 1px; border-left-width: 3px; border-left-color: var(--line);
+  overflow: hidden;
 }
 .key:hover { border-color: var(--accent); }
 .key.selected { outline: 2px solid var(--accent); outline-offset: 1px; }
-.key.empty { opacity: .45; }
-.key .pos { font-size: 9px; color: var(--muted); letter-spacing: .03em; }
-.key .name { font-weight: 600; font-size: 12px; line-height: 1.25; }
-.key .sub { font-size: 10.5px; color: var(--muted); }
-.key .flag { font-size: 10px; color: var(--warn); }
+.key.empty { opacity: .3; border-style: dashed; border-left-style: dashed; min-height: 30px;
+             justify-content: center; }
+.key.empty .name { display: none; }
+/* Each line is its own block; as inline spans they ran together into one string. */
+.key .pos { display: block; font-size: 8.5px; color: var(--muted); letter-spacing: .04em;
+            text-transform: uppercase; line-height: 1.2; }
+.key .name { display: block; font-weight: 600; font-size: 11px; line-height: 1.2;
+             overflow-wrap: anywhere; }
+.key .sub { display: block; font-size: 9.5px; color: var(--muted); line-height: 1.25;
+            overflow-wrap: anywhere; }
+.key .flag { display: block; font-size: 9px; color: var(--warn); line-height: 1.2; }
 .key.combat { border-left-color: var(--combat); }
 .key.movement { border-left-color: var(--movement); }
 .key.menu { border-left-color: var(--menu); }
 .key.travel { border-left-color: var(--travel); }
 .key.utility { border-left-color: var(--utility); }
-.thumb { display: grid; grid-template-columns: repeat(3, 118px); gap: 6px; }
+.thumb { display: grid; grid-template-columns: repeat(3, var(--key-w)); gap: 4px;
+         align-content: start; }
 .thumb .stickwrap { grid-column: 1 / span 3; }
+/* The stick reads as a compass rose: each direction occupies the cell it points to. */
+.stick-dial {
+  grid-column: 1 / span 3; display: grid; gap: 3px;
+  grid-template-columns: repeat(3, var(--key-w)); grid-template-rows: repeat(3, auto);
+  margin-bottom: 4px;
+}
+.stick-dial.selected { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px; }
+.stick-dial .dir {
+  border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: inherit;
+  padding: 4px 5px; cursor: pointer; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 1px; min-height: 40px; text-align: center; overflow: hidden;
+}
+.stick-dial .dir:hover { border-color: var(--accent); }
+.stick-dial .dir.empty { opacity: .3; border-style: dashed; }
+.stick-dial .glyph { font-size: 13px; line-height: 1; color: var(--movement); }
+.stick-dial .dir .name { font-size: 9.5px; font-weight: 600; line-height: 1.15;
+                         overflow-wrap: anywhere; }
+.stick-dial .dir .pos { font-size: 8.5px; color: var(--muted); text-transform: uppercase;
+                        letter-spacing: .04em; }
+.stick-dial .up { grid-area: 1 / 2; }
+.stick-dial .left { grid-area: 2 / 1; }
+.stick-dial .hub { grid-area: 2 / 2; border-style: solid; background: var(--panel); }
+.stick-dial .right { grid-area: 2 / 3; }
+.stick-dial .down { grid-area: 3 / 2; }
 .thumb .up { grid-column: 2; grid-row: 2; }
 .thumb .left { grid-column: 1; grid-row: 3; }
 .thumb .center { grid-column: 2; grid-row: 3; }
 .thumb .right { grid-column: 3; grid-row: 3; }
 .thumb .down { grid-column: 2; grid-row: 4; }
-.thumb .aux { grid-column: 1 / span 3; display: flex; gap: 6px; }
+.thumb .aux { grid-column: 1 / span 3; display: flex; gap: 4px; }
 .action-list { display: flex; flex-direction: column; gap: 3px; max-height: 62vh; overflow: auto; }
 .action {
   display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 6px;

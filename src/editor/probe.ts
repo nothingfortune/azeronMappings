@@ -23,6 +23,13 @@ declare global {
 }
 
 const STORAGE_KEY = "azeron-probe-v1";
+const DIR_GLYPH: Record<string, string> = {
+  up: "\u2191",
+  right: "\u2192",
+  down: "\u2193",
+  left: "\u2190",
+};
+
 const STICK_PROMPTS: Record<StickDirection, string> = {
   up: "hold the stick AWAY from you",
   right: "hold the stick RIGHT",
@@ -347,18 +354,26 @@ function renderDiagram(unitIndex: number): HTMLElement {
 
   const thumb = el("div", { class: "thumb" });
   if (layout.stick) {
-    const active = isActive && prompt.direction !== null;
-    thumb.append(
-      el("div", { class: `cell stickwrap ${active ? "active" : ""}` }, [
+    // The measured mapping is directional, so it is drawn directionally: each cell is a
+    // physical push, and its label is the direction the firmware reported for it.
+    const dial = el("div", { class: "stick-dial" });
+    for (const direction of STICK_DIRECTIONS) {
+      const mapped = capture.stick[direction];
+      const active = isActive && prompt.direction === direction;
+      const cell = el("div", {
+        class: `dir ${direction}${mapped ? " done" : ""}${active ? " active" : ""}`,
+      });
+      cell.append(el("span", { class: "glyph" }, [DIR_GLYPH[direction] ?? ""]));
+      cell.append(el("span", { class: "pin" }, [mapped ?? ""]));
+      dial.append(cell);
+    }
+    dial.append(
+      el("div", { class: "dir hub" }, [
         el("span", { class: "pos" }, ["stick"]),
-        el("span", { class: "pin" }, [
-          STICK_DIRECTIONS.map((direction) => {
-            const mapped = capture.stick[direction];
-            return mapped ? `${direction}->${mapped}` : direction;
-          }).join("  "),
-        ]),
+        el("span", { class: "pin" }, [String(device.positions[layout.stick]?.pin ?? "")]),
       ]),
     );
+    thumb.append(dial);
   }
   for (const [position, css] of layout.pad) thumb.append(cell(position, css));
   thumb.append(

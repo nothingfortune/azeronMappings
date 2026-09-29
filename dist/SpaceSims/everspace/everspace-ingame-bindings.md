@@ -9,10 +9,10 @@ If a key here does not match the game, fix `actions.yaml` -- not the profile.
 | Consumable 2 | `Digit6` | left:pinky_2, left:middle_4 | combat, required |
 | Consumable 3 | `Digit7` | left:pinky_3, left:ring_4 | combat, required |
 | Consumable 4 | `Digit8` | left:pinky_4 | combat, required |
-| Cycle weapon (down) | `ArrowDown` | right:stick.down, left:thumb_down | combat |
+| Cycle weapon (down) | `ArrowDown` | right:stick.down, left:stick.down, right:stick.up, left:thumb_down | combat |
 | Cycle weapon (left) | `ArrowLeft` | right:pinky_1, right:ring_2, left:thumb_left | combat |
 | Cycle weapon (right) | `ArrowRight` | right:pinky_2, left:thumb_right | combat |
-| Cycle weapon (up) | `ArrowUp` | right:stick.up, left:thumb_up | combat |
+| Cycle weapon (up) | `ArrowUp` | right:stick.up, left:stick.up, right:stick.down, left:thumb_up | combat |
 | Device 1 | `Digit1` | right:thumb_up, right:pinky_1, left:ring_1 | combat, required |
 | Device 2 | `Digit2` | right:thumb_left, right:ring_1, left:ring_2 | combat, required |
 | Device 3 | `Digit3` | right:thumb_right, right:middle_1, left:ring_3 | combat, required |
@@ -27,8 +27,8 @@ If a key here does not match the game, fix `actions.yaml` -- not the profile.
 | Hover down | `F10` | right:index_2, right:index_4, left:index_4 | movement, required |
 | Hover up | `F9` | right:index_1, right:index_2, left:index_1 | movement, required |
 | Inertia dampeners | `AltLeft` | right:index_3, right:index_side, left:stick_press | movement, required |
-| Roll left | `KeyQ` | right:stick.left, left:pinky_side | movement, required |
-| Roll right | `KeyE` | right:stick.right, left:index_side | movement, required |
+| Roll left | `KeyQ` | right:stick.left, left:stick.left, right:stick.right, left:pinky_side | movement, required |
+| Roll right | `KeyE` | right:stick.right, left:stick.right, right:stick.left, left:index_side | movement, required |
 | Strafe left | `KeyA` | left:stick.left, right:thumb_left | movement, required |
 | Strafe right | `KeyD` | left:stick.right, right:thumb_right | movement, required |
 | Throttle down | `KeyS` | left:stick.down, right:thumb_down | movement, required |

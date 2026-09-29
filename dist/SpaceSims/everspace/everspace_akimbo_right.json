@@ -4844,7 +4844,7 @@
             "isPingPongLoop": false
           },
           "analogSettings": {
-            "angle": 180,
+            "angle": 0,
             "lowerLimit": 0,
             "upperLimit": 0,
             "sensitivity": 3,

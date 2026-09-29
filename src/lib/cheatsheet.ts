@@ -51,6 +51,22 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
 .utility { border-left-color: var(--utility); }
 .thumb { display: grid; grid-template-columns: repeat(3, 132px); gap: 8px; }
 .thumb .stickwrap { grid-column: 1 / span 3; }
+.stick-dial { grid-column: 1 / span 3; display: grid; gap: 4px; margin-bottom: 6px;
+              grid-template-columns: repeat(3, 132px); grid-template-rows: repeat(3, auto); }
+.stick-dial .dir { border: 1px solid var(--line); border-radius: 8px; background: var(--card);
+                   padding: 6px; min-height: 48px; display: flex; flex-direction: column;
+                   align-items: center; justify-content: center; gap: 1px; text-align: center; }
+.stick-dial .dir.empty { opacity: .35; border-style: dashed; }
+.stick-dial .glyph { font-size: 15px; line-height: 1; color: var(--movement); }
+.stick-dial .dir .name { font-size: 11px; font-weight: 600; line-height: 1.2; }
+.stick-dial .dir .k { font-size: 10px; color: var(--muted);
+                      font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.stick-dial .dir .pos { font-size: 10px; color: var(--muted); }
+.stick-dial .up { grid-area: 1 / 2; }
+.stick-dial .left { grid-area: 2 / 1; }
+.stick-dial .hub { grid-area: 2 / 2; }
+.stick-dial .right { grid-area: 2 / 3; }
+.stick-dial .down { grid-area: 3 / 2; }
 .thumb .up { grid-column: 2; } .thumb .left { grid-column: 1; }
 .thumb .center { grid-column: 2; } .thumb .right { grid-column: 3; }
 .thumb .down { grid-column: 2; }
@@ -95,6 +111,39 @@ function describe(actions: ActionSet, value: SlotSpec | undefined): Described {
   return { label: "(raw)", key: key ?? null, role: null };
 }
 
+const DIR_GLYPH: Record<string, string> = {
+  up: "&#8593;",
+  right: "&#8594;",
+  down: "&#8595;",
+  left: "&#8592;",
+};
+
+/** The stick drawn as a compass, so each direction sits where it points. */
+function stickDial(
+  profile: Profile,
+  actions: ActionSet,
+  position: string,
+  spec: PositionSpec,
+): string {
+  const cells = STICK_DIRECTIONS.map((direction) => {
+    const value = spec.directions?.[direction];
+    const described = describe(actions, typeof value === "string" ? value : (value ?? null));
+    const empty = described.label === null ? " empty" : "";
+    return (
+      `<div class="dir ${direction}${empty}">` +
+      `<span class="glyph">${DIR_GLYPH[direction] ?? ""}</span>` +
+      `<span class="name">${esc(described.label ?? "")}</span>` +
+      `<span class="k">${esc(described.key ?? "")}</span></div>`
+    );
+  }).join("");
+
+  return (
+    `<div class="stick-dial">${cells}` +
+    `<div class="dir hub"><span class="pos">${esc(position)}</span>` +
+    `<span class="name">${esc(spec.mode ?? "unbound")}</span></div></div>`
+  );
+}
+
 function keyCard(profile: Profile, actions: ActionSet, position: string, extraClass = ""): string {
   const spec: PositionSpec | undefined = profile.positions[position];
   if (!spec) {
@@ -102,18 +151,7 @@ function keyCard(profile: Profile, actions: ActionSet, position: string, extraCl
   }
 
   if (profile.device.isStick(position)) {
-    const rows = STICK_DIRECTIONS.filter((direction) => spec.directions?.[direction] !== undefined)
-      .map((direction) => {
-        const value = spec.directions?.[direction];
-        const described = describe(actions, typeof value === "string" ? value : (value ?? null));
-        return `<div class="row">${esc(direction)} <span class="k">${esc(described.key ?? "")}</span></div>`;
-      })
-      .join("");
-    return (
-      `<div class="key stickwrap movement ${extraClass}">` +
-      `<div class="pos">${esc(position)} (${esc(spec.mode)} mode)</div>` +
-      `<div class="tap">Stick</div>${rows}</div>`
-    );
+    return stickDial(profile, actions, position, spec);
   }
 
   const tap = describe(actions, spec.tap);

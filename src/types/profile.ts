@@ -134,6 +134,12 @@ export interface GameConfig {
   slug?: string;
   genre?: string;
   template?: string;
+  /**
+   * A directory outside the repo that built profiles are copied to, in addition to
+   * dist/. dist/ stays the committed copy; this is for wherever the game or the app
+   * wants to find them.
+   */
+  export_to?: string;
   lint?: LintConfig;
 }
 

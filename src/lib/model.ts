@@ -46,6 +46,11 @@ export class Game implements GameLike {
     return this.profilePaths().map((path) => loadProfile(path, this));
   }
 
+  /** Absolute directory outside the repo to mirror builds into, if configured. */
+  exportDir(): string | undefined {
+    return this.config.export_to;
+  }
+
   distDir(): string {
     return join(dataDirs.dist, relative(dataDirs.games, this.rel));
   }

@@ -17,6 +17,7 @@ import type { Slot } from "../types/azeron.js";
 import type { EditorGame, EditorPayload } from "../types/editor.js";
 import type { ActionSpec, PositionSpec, ProfileData } from "../types/profile.js";
 import { removeKey } from "../lib/object.js";
+import { dumpYaml } from "../lib/yaml.js";
 import { buildProbeProfile, buildStickCalibrationProfile } from "../lib/probe.js";
 import type { ProbePayload } from "../types/probe.js";
 import { start as startProbe, stop as stopProbe } from "./probe.js";
@@ -28,11 +29,18 @@ declare global {
   }
 }
 
-type Mode = "edit" | "press-test" | "sheet";
+type Mode = "edit" | "in-game" | "press-test" | "sheet";
 
 interface State {
   payload: EditorPayload;
   mode: Mode;
+  /** Hide the side rails so the pair gets the full width. */
+  wide: boolean;
+  /**
+   * Working copy of the game's action vocabulary -- the in-game half of the mapping.
+   * Editing a key here re-runs the linter, so a collision shows up immediately.
+   */
+  workingActions: Record<string, ActionSpec> | null;
   gameIndex: number;
   setName: string;
   /** Working copies, keyed by profile slug. Edits live here until exported. */
@@ -103,7 +111,19 @@ function currentGame(): EditorGame {
 }
 
 function actionSetFor(game: EditorGame): ActionSet {
-  return new ActionSet(game.actions);
+  if (state.workingActions === null) return new ActionSet(game.actions);
+  return new ActionSet({
+    actions: state.workingActions,
+    ...(game.actions.duplicate_key_allowlist
+      ? { duplicate_key_allowlist: game.actions.duplicate_key_allowlist }
+      : {}),
+  });
+}
+
+/** Clone the vocabulary on first edit, so the embedded payload stays pristine. */
+function editableActions(): Record<string, ActionSpec> {
+  state.workingActions ??= structuredClone(currentGame().actions.actions ?? {});
+  return state.workingActions;
 }
 
 function setsOf(game: EditorGame): Map<string, string[]> {
@@ -181,26 +201,28 @@ function keyCard(slug: string, position: string, extraClass = ""): HTMLElement {
   card.append(el("span", { class: "pos" }, [position]));
 
   if (!spec) {
-    card.append(el("span", { class: "name muted" }, ["—"]));
+    card.classList.add("empty");
   } else if (isStick) {
     card.append(el("span", { class: "name" }, [`Stick (${spec.mode ?? "?"})`]));
     for (const direction of STICK_DIRECTIONS) {
       const value = spec.directions?.[direction];
       if (value === undefined) continue;
       const label = typeof value === "string" ? actions.label(value) : (value.key ?? "raw");
-      card.append(el("span", { class: "sub" }, [`${direction}: ${label}`]));
+      card.append(el("span", { class: "sub" }, [`${direction}  ${label}`]));
     }
   } else {
-    card.append(
-      el("span", { class: "name" }, [spec.label ?? describeSlotValue(actions, spec.tap) ?? "—"]),
-    );
+    const tap = describeSlotValue(actions, spec.tap);
+    card.append(el("span", { class: "name" }, [spec.label ?? tap ?? "—"]));
     for (const slot of SLOTS) {
       const text = describeSlotValue(actions, spec[slot]);
       if (!text) continue;
-      card.append(el("span", { class: "sub" }, [`${slot}: ${text}`]));
+      // The label usually repeats the tap action; only the extra slots need spelling out.
+      if (slot === "tap" && spec.label === undefined) continue;
+      if (slot === "tap" && text === spec.label) continue;
+      card.append(el("span", { class: "sub" }, [`${slot === "tap" ? "" : `${slot} `}${text}`]));
     }
     if (spec.feature_delay && (spec.long ?? spec.double)) {
-      card.append(el("span", { class: "flag" }, [`tap waits ${String(spec.feature_delay)} ms`]));
+      card.append(el("span", { class: "flag" }, [`waits ${String(spec.feature_delay)} ms`]));
     }
     if (spec.hold) card.append(el("span", { class: "flag" }, ["latches"]));
   }
@@ -210,6 +232,53 @@ function keyCard(slug: string, position: string, extraClass = ""): HTMLElement {
     render();
   });
   return card;
+}
+
+const DIR_GLYPH: Record<string, string> = {
+  up: "\u2191",
+  right: "\u2192",
+  down: "\u2193",
+  left: "\u2190",
+};
+
+/** The stick as a compass: each direction sits where it points. */
+function stickDial(slug: string, position: string): HTMLElement {
+  const actions = actionSetFor(currentGame());
+  const spec = workingData(slug).positions[position];
+  const selected =
+    state.selected?.slug === slug && state.selected.position === position ? " selected" : "";
+  const dial = el("div", { class: `stick-dial${selected}` });
+
+  const select = (): void => {
+    state.selected = { slug, position };
+    render();
+  };
+
+  for (const direction of STICK_DIRECTIONS) {
+    const value = spec?.directions?.[direction];
+    const label =
+      value === undefined
+        ? null
+        : typeof value === "string"
+          ? actions.label(value)
+          : (value.key ?? "raw");
+    const cell = el("button", {
+      class: `dir ${direction}${label === null ? " empty" : ""}`,
+      type: "button",
+      title: `stick ${direction}`,
+    });
+    cell.append(el("span", { class: "glyph" }, [DIR_GLYPH[direction] ?? ""]));
+    if (label !== null) cell.append(el("span", { class: "name" }, [label]));
+    cell.addEventListener("click", select);
+    dial.append(cell);
+  }
+
+  const hub = el("button", { class: "dir hub", type: "button", title: "stick" });
+  hub.append(el("span", { class: "pos" }, ["stick"]));
+  hub.append(el("span", { class: "name" }, [spec?.mode ?? "unbound"]));
+  hub.addEventListener("click", select);
+  dial.append(hub);
+  return dial;
 }
 
 function renderHand(slug: string): HTMLElement {
@@ -234,9 +303,7 @@ function renderHand(slug: string): HTMLElement {
   );
 
   const thumb = el("div", { class: "thumb" });
-  if (layout.stick) {
-    thumb.append(el("div", { class: "stickwrap" }, [keyCard(slug, "stick")]));
-  }
+  if (layout.stick) thumb.append(stickDial(slug, layout.stick));
   for (const [position, cell] of layout.pad) thumb.append(keyCard(slug, position, cell));
   thumb.append(
     el(
@@ -540,9 +607,10 @@ function renderHeader(): HTMLElement {
     state.setName = [...setsOf(currentGame()).keys()][0] ?? "";
     render();
   });
-  for (const mode of ["edit", "press-test", "sheet"] as Mode[]) {
+  for (const mode of ["edit", "in-game", "press-test", "sheet"] as Mode[]) {
     const names: Record<Mode, string> = {
       edit: "Edit",
+      "in-game": "In-game",
       "press-test": "Press test",
       sheet: "Sheet",
     };
@@ -588,6 +656,15 @@ function renderHeader(): HTMLElement {
     header.append(yaml, json);
   }
 
+  const wide = el("button", { class: `btn ${state.wide ? "primary" : ""}`, type: "button" }, [
+    state.wide ? "Show panels" : "Wide",
+  ]);
+  wide.addEventListener("click", () => {
+    state.wide = !state.wide;
+    render();
+  });
+  header.append(wide);
+
   const reset = el("button", { class: "btn", type: "button" }, ["Reset"]);
   reset.addEventListener("click", () => {
     state.working.clear();
@@ -603,6 +680,86 @@ function renderHeader(): HTMLElement {
   });
   header.append(theme);
   return header;
+}
+
+function actionKeyField(id: string): HTMLElement {
+  const actions = editableActions();
+  const spec = (actions[id] ??= {});
+  const row = el("div", { class: "row2" });
+
+  const key = el("input", { type: "text", value: spec.key ?? "", placeholder: "KeyF" });
+  key.addEventListener("change", () => {
+    const value = key.value.trim();
+    if (value) spec.key = value;
+    else removeKey(spec, "key");
+    render();
+  });
+  const meta = el("input", { type: "text", value: spec.meta ?? "", placeholder: "modifier" });
+  meta.addEventListener("change", () => {
+    const value = meta.value.trim();
+    if (value) spec.meta = value;
+    else removeKey(spec, "meta");
+    render();
+  });
+  row.append(
+    el("div", { class: "field" }, [el("label", {}, ["key in game"]), key]),
+    el("div", { class: "field" }, [el("label", {}, ["modifier"]), meta]),
+  );
+  return row;
+}
+
+function renderInGame(): HTMLElement {
+  const game = currentGame();
+  const actions = actionSetFor(game);
+  const bound = boundActions();
+  const panel = el("div", { class: "panel" });
+  panel.append(el("h2", {}, [`${game.name} — in-game bindings`]));
+  panel.append(
+    el("div", { class: "note" }, [
+      "What each action is bound to inside the game. Changing a key here re-runs the " +
+        "checks, so a collision shows up before it costs a fight. Export actions.yaml " +
+        "and rebuild to keep it.",
+    ]),
+  );
+
+  const table = el("div", { class: "ingame-list" });
+  for (const [id, spec] of Object.entries(actions.actions)) {
+    const where = bound.get(id);
+    const item = el("div", { class: `ingame-row${where ? "" : " unbound"}` });
+    item.append(
+      el("div", { class: "who" }, [
+        el("b", {}, [spec.label ?? id]),
+        el("small", {}, [
+          spec.provided_by
+            ? `${spec.provided_by} — not a keypad key`
+            : (where?.join(", ") ?? "not sent by any unit"),
+        ]),
+      ]),
+    );
+    if (spec.mouse) {
+      item.append(el("div", { class: "muted" }, [`mouse ${spec.mouse}`]));
+    } else if (spec.provided_by) {
+      item.append(el("div", { class: "muted" }, [spec.provided_by]));
+    } else {
+      item.append(actionKeyField(id));
+    }
+    table.append(item);
+  }
+  panel.append(table);
+
+  const save = el("button", { class: "btn primary", type: "button" }, ["Export actions.yaml"]);
+  save.addEventListener("click", () => {
+    const header =
+      `# ${game.name} -- every action and the in-game key it is bound to.\n` +
+      "# Edited in the editor; save this over the game's actions.yaml and rebuild.\n";
+    download(
+      "actions.yaml",
+      dumpYaml({ game: game.name, actions: actionSetFor(game).actions }, header),
+      "text/yaml",
+    );
+  });
+  panel.append(save);
+  return panel;
 }
 
 function renderPressTest(): HTMLElement {
@@ -644,11 +801,42 @@ function renderSheet(): HTMLElement {
   return frame;
 }
 
+/**
+ * Fit both units into the stage width.
+ *
+ * Two Cyborg IIs side by side are wider than most windows, and wrapping puts one hand
+ * under the other, which defeats the point of drawing the pair. The stage is scaled down
+ * instead, and the wrapper takes the scaled height so nothing overlaps below it.
+ */
+function fitStage(wrap: HTMLElement, stage: HTMLElement): void {
+  const available = wrap.clientWidth;
+  const needed = stage.scrollWidth;
+  if (available <= 0 || needed <= 0) return;
+  const scale = Math.min(1, available / needed);
+  stage.style.transform = scale < 1 ? `scale(${String(scale)})` : "";
+  wrap.style.height = `${String(Math.ceil(stage.scrollHeight * scale))}px`;
+}
+
+let resizeBound = false;
+
 function render(): void {
   const root = document.getElementById("app");
   if (!root) return;
   root.replaceChildren();
   root.append(renderHeader());
+
+  if (state.mode === "in-game") {
+    const workspace = el("div", { class: "workspace ingame" });
+    const stage = el("div", { class: "stage" });
+    for (const slug of slugsInSet()) stage.append(renderHand(slug));
+    const stageWrap = el("div", { class: "stage-wrap" }, [stage]);
+    workspace.append(stageWrap, renderInGame());
+    root.append(workspace);
+    requestAnimationFrame(() => {
+      fitStage(stageWrap, stage);
+    });
+    return;
+  }
 
   if (state.mode === "press-test") {
     root.append(el("div", { class: "workspace single" }, [renderPressTest()]));
@@ -659,8 +847,8 @@ function render(): void {
     return;
   }
 
-  const workspace = el("div", { class: "workspace" });
-  workspace.append(renderPalette());
+  const workspace = el("div", { class: `workspace ${state.wide ? "wide" : ""}` });
+  if (!state.wide) workspace.append(renderPalette());
 
   const stage = el("div", { class: "stage" });
   const slugs = slugsInSet();
@@ -672,13 +860,28 @@ function render(): void {
       ]),
     );
   }
-  workspace.append(stage);
+  const stageWrap = el("div", { class: "stage-wrap" }, [stage]);
+  workspace.append(stageWrap);
 
-  const right = el("div", {});
-  right.append(renderInspector(), el("div", { style: "height:14px" }), renderChecks());
-  workspace.append(right);
+  if (!state.wide) {
+    const right = el("div", {});
+    right.append(renderInspector(), el("div", { style: "height:14px" }), renderChecks());
+    workspace.append(right);
+  }
 
   root.append(workspace);
+
+  requestAnimationFrame(() => {
+    fitStage(stageWrap, stage);
+  });
+  if (!resizeBound) {
+    resizeBound = true;
+    window.addEventListener("resize", () => {
+      const wrap = document.querySelector<HTMLElement>(".stage-wrap");
+      const inner = wrap?.querySelector<HTMLElement>(".stage");
+      if (wrap && inner) fitStage(wrap, inner);
+    });
+  }
 }
 
 /** Mount the editor into #app. Exported so tests can drive it against a real DOM. */
@@ -692,6 +895,8 @@ export function start(payload = window.AZERON_PAYLOAD): void {
   state = {
     payload,
     mode: "edit",
+    wide: false,
+    workingActions: null,
     gameIndex: 0,
     setName: firstGame ? ([...setsOf(firstGame).keys()][0] ?? "") : "",
     working: new Map(),

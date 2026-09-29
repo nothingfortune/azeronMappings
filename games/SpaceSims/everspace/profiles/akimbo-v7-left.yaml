@@ -7,7 +7,7 @@
 # Built against the press-tested map in devices/cyborg2-left.yaml.
 profile:
   id: 52ea554b-bdb5-4cb4-9347-8451c44e7864
-  name: Everspace 2 akimbo v7 (left)
+  name: Everspace 2 akimbo v6 (left)
   device: cyborg2-left
   unit: left
   template: templates/everspace2-v5.json
@@ -85,3 +85,4 @@ positions:
     tap: place_marker
   stick:
     mode: keyboard
+    directions: { up: weapon_cycle_up, right: roll_right, down: weapon_cycle_down, left: roll_left }

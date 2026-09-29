@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /** azeron -- build, decompile, lint, cheatsheet, editor, install. */
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { parseArgs } from "node:util";
 
@@ -21,6 +21,8 @@ import {
 } from "./lib/install.js";
 import { loadDevice, loadTemplate, writeText } from "./lib/io.js";
 import { buildProbeProfile, buildStickCalibrationProfile } from "./lib/probe.js";
+import { gameConfig, seedActions, unnamedPositions } from "./lib/scaffold.js";
+import { dumpYaml } from "./lib/yaml.js";
 import { ERROR, WARNING, formatFinding, lintGame, lintGenre } from "./lib/lint.js";
 import type { LintResult } from "./lib/lint.js";
 import { Game, Genre } from "./lib/model.js";
@@ -84,6 +86,15 @@ function cmdBuild(selector: string | undefined, check: boolean): number {
       }
       writeText(outPath, text);
       out(`${previous === text ? "unchanged" : "wrote    "} ${outPath}`);
+
+      // dist/ is the committed copy; export_to is wherever the game wants them.
+      const mirror = game.exportDir();
+      if (mirror) {
+        const target = join(mirror, profile.outputName);
+        mkdirSync(mirror, { recursive: true });
+        writeFileSync(target, text, "utf8");
+        out(`           -> ${target}`);
+      }
     }
   }
   return failures > 0 ? 1 : 0;
@@ -207,6 +218,90 @@ function cmdProbe(devices: string[], templatePath: string, outDir: string): numb
   out("");
   out("  `azeron editor` can download both profiles itself -- this command is for");
   out("  getting them without opening a browser.");
+  return 0;
+}
+
+interface ImportFlags {
+  genre: string;
+  game: string;
+  name?: string | undefined;
+  device: string;
+  set?: string | undefined;
+  exportTo?: string | undefined;
+}
+
+/** Start a game folder from an Azeron export. */
+function cmdImport(exportPath: string, flags: ImportFlags): number {
+  const slug = flags.game;
+  const gameDir = join(dataDirs.games, flags.genre, slug);
+  if (existsSync(repoPath(join(gameDir, "actions.yaml")))) {
+    process.stderr.write(`error: ${gameDir} already has an actions.yaml.\n`);
+    return 1;
+  }
+
+  const device = loadDevice(flags.device);
+  const setName = flags.set ?? "v1";
+  const exported = loadTemplate(exportPath);
+
+  // The export is kept verbatim as the compiler's template and the round-trip reference.
+  const templateRel = join(dataDirs.templates, `${slug}-${setName}-${device.hand ?? "left"}.json`);
+  writeText(templateRel, `${JSON.stringify(exported, null, 2)}\n`);
+
+  const actions = seedActions(exported);
+  writeText(
+    join(gameDir, "actions.yaml"),
+    dumpYaml(
+      {
+        extends: join(dataDirs.genres, flags.genre, "actions.yaml"),
+        game: flags.name ?? slug,
+        actions,
+      },
+      `# ${flags.name ?? slug} -- every action and the in-game key it is bound to.\n` +
+        "#\n# Seeded by `azeron import` from the keys the export sends. Each action is named\n" +
+        "# after its key because an export cannot say what a key does in game. Rename and\n" +
+        "# tag them as you learn them; the genre vocabulary is inherited above.\n",
+    ),
+  );
+
+  writeText(
+    join(gameDir, "game.yaml"),
+    dumpYaml(
+      gameConfig({
+        name: flags.name ?? slug,
+        slug,
+        genre: flags.genre,
+        template: templateRel,
+        exportTo: flags.exportTo,
+      }),
+      `# ${flags.name ?? slug}\n`,
+    ),
+  );
+
+  const game = new Game(gameDir);
+  const data = decompile(exported, device, {
+    actions: game.actions,
+    meta: {
+      set: setName,
+      template: templateRel,
+      output: `${slug}_${device.hand ?? "left"}.json`,
+    },
+  });
+  const profileRel = join(gameDir, "profiles", `${setName}-${device.hand ?? "left"}.yaml`);
+  writeText(profileRel, dumpProfile(data));
+
+  writeText(join(gameDir, "playtests.md"), `# ${flags.name ?? slug} playtests\n`);
+
+  const unnamed = unnamedPositions(data, device.data);
+  out(`created ${gameDir}`);
+  out(`  ${templateRel}`);
+  out(`  ${profileRel}`);
+  out(`  ${String(Object.keys(actions).length)} action(s) seeded from the keys it sends`);
+  if (unnamed.length > 0) {
+    out(`  ${String(unnamed.length)} position(s) still raw: ${unnamed.join(", ")}`);
+  }
+  if (flags.exportTo) out(`  builds will also be written to ${flags.exportTo}`);
+  out("");
+  out("  Next: name the actions in actions.yaml, then `azeron build` and `azeron lint`.");
   return 0;
 }
 
@@ -370,6 +465,8 @@ function usage(): void {
   bindings [game]                 the in-game key list to check against the game
   editor [--out PATH]             side-by-side WYSIWYG editor (self-contained HTML)
   probe [--device D ...]          press-test profile + capture page for the real pin map
+  import <export.json> --genre G --game SLUG [--name N] [--device D] [--set S]
+         [--export-to DIR]      start a game folder from an export
   decompile <export.json> [--device D] [--game G] [--set S] [--template T]
             [--output-name N] [--profile-index N] [--golden] [-o OUT]
   install [game] --device-id ID [--store PATH] [--yes] [--dry-run]
@@ -401,6 +498,9 @@ export function main(argv: string[]): number {
       "profile-index": { type: "string", default: "0" },
       store: { type: "string" },
       "device-id": { type: "string" },
+      genre: { type: "string" },
+      name: { type: "string" },
+      "export-to": { type: "string" },
       out: { type: "string", short: "o" },
     },
   });
@@ -438,6 +538,21 @@ export function main(argv: string[]): number {
         profileIndex: Number(values["profile-index"]),
         golden: values.golden,
         out: values.out,
+      });
+    }
+    case "import": {
+      const target = positionals[0];
+      if (!target) throw new Error("import needs an export path");
+      if (!values.genre || !values.game) {
+        throw new Error("import needs --genre and --game");
+      }
+      return cmdImport(target, {
+        genre: values.genre,
+        game: values.game,
+        name: values.name,
+        device: values.device,
+        set: values.set,
+        exportTo: values["export-to"],
       });
     }
     case "install":

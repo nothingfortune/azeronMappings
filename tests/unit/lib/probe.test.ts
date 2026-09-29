@@ -5,7 +5,8 @@
 
 import { describe, expect, it } from "vitest";
 
-import { loadDevice, loadTemplate } from "../../../src/lib/io.js";
+import { loadDevice, loadProfile, loadTemplate } from "../../../src/lib/io.js";
+import { Game } from "../../../src/lib/model.js";
 import type { DeviceData } from "../../../src/types/profile.js";
 import {
   buildProbeProfile,
@@ -217,5 +218,26 @@ describe("device identity", () => {
   it("records the id the Azeron software files each unit under", () => {
     expect(loadDevice("cyborg2-left").softwareDeviceId).toBe("49229");
     expect(loadDevice("cyborg2-right").softwareDeviceId).toBe("29993");
+  });
+});
+
+describe("stick key encodings", () => {
+  it("reads both the integer keycodes and the code strings the app writes", () => {
+    // everspace2-v5 holds 87 for W; a profile edited in 2.0.2 holds "ArrowUp".
+    expect(keys.analogToName(87)).toBe("KeyW");
+    expect(keys.analogToName("ArrowUp")).toBe("ArrowUp");
+    expect(keys.analogToName("not-a-key")).toBeNull();
+  });
+
+  it("keeps the stick bindings from an app-edited export", () => {
+    // These were silently dropped when only integer keycodes were understood.
+    const game = new Game("games/SpaceSims/everspace");
+    const profile = loadProfile("games/SpaceSims/everspace/profiles/akimbo-v7-left.yaml", game);
+    expect(profile.positions.stick?.directions).toEqual({
+      up: "weapon_cycle_up",
+      right: "roll_right",
+      down: "weapon_cycle_down",
+      left: "roll_left",
+    });
   });
 });

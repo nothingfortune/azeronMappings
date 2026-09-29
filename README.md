@@ -121,6 +121,24 @@ Edits made in the app are welcome; they just have to come home as a diff.
 Anything the YAML schema cannot express canonically comes back as a `*_raw` value or a
 `raw: {types: [...]}` block, so unknown fields are preserved rather than guessed at.
 
+## Starting a new game
+
+```sh
+./bin/azeron import path/to/export.json \
+    --genre FPS --game hellDivers --name "Helldivers" \
+    --device cyborg2-left --set v1 \
+    --export-to "C:/Users/you/Documents/Helldivers"
+```
+
+Creates `games/FPS/hellDivers/` with `game.yaml`, `actions.yaml` and a decompiled
+profile, and keeps the export in `templates/` as the compiler's template. The vocabulary
+is seeded with one action per distinct key the export sends, each named after its key and
+marked `(unnamed)` — an export says which keys are pressed, not what they do in the game,
+so naming them is the first job.
+
+`--export-to` records a directory outside the repo that `azeron build` copies profiles
+into as well. `dist/` stays the committed copy.
+
 ## Genre defaults
 
 `genres/<Genre>/` holds a shared action vocabulary and a default layout for a kind of

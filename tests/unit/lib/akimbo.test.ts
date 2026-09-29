@@ -76,13 +76,14 @@ describe("the akimbo pair", () => {
     // The right unit is not a 1:1 mirror -- its thumb cluster is rotated half a turn --
     // so this profile is only meaningful against a map someone actually pressed.
     expect(profiles[1]?.device.verified).toBe(true);
-    expect(profiles[1]?.device.stickAngle).toBe(180);
   });
 
-  it("corrects the rotated stick once, not twice", () => {
-    const device = profiles[1]?.device;
-    const bothSet =
-      device?.stickAngle !== undefined && Object.keys(device.stickDirections).length > 0;
-    expect(bothSet, "stick_angle and stick_directions cancel each other out").toBe(false);
+  it("never applies two corrections for the same stick rotation", () => {
+    for (const profile of profiles) {
+      const device = profile.device;
+      const bothSet =
+        device.stickAngle !== undefined && Object.keys(device.stickDirections).length > 0;
+      expect(bothSet, `${device.name}: the two cancel each other out`).toBe(false);
+    }
   });
 });

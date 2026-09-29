@@ -39,17 +39,18 @@ mean to work in.
 The CLI is `bin/azeron` (also `npm run azeron -- <command>`), and it runs the built
 output, so `npm run build` first:
 
-| Command                                   | Purpose                                                |
-| ----------------------------------------- | ------------------------------------------------------ |
-| `azeron build [game] [--check]`           | compile profile YAML into `dist/`                      |
-| `azeron lint [game] [--strict]`           | the constraint rules; `--show-acknowledged` too        |
-| `azeron roundtrip [game]`                 | golden profiles must rebuild their template exactly    |
-| `azeron cheatsheet [game]`                | per-profile layout diagram + binding checklist         |
-| `azeron bindings [game]`                  | the in-game key list, to check against the game        |
-| `azeron editor`                           | the side-by-side editor, one self-contained HTML       |
-| `azeron probe [--device D]`               | press-test profile + capture page for the real pin map |
-| `azeron decompile <export.json> [-o ...]` | an app export back into profile YAML                   |
-| `azeron install [game] --device-id ID`    | write straight into the Azeron app's profile store     |
+| Command                                             | Purpose                                                |
+| --------------------------------------------------- | ------------------------------------------------------ |
+| `azeron build [game] [--check]`                     | compile profile YAML into `dist/`                      |
+| `azeron lint [game] [--strict]`                     | the constraint rules; `--show-acknowledged` too        |
+| `azeron roundtrip [game]`                           | golden profiles must rebuild their template exactly    |
+| `azeron cheatsheet [game]`                          | per-profile layout diagram + binding checklist         |
+| `azeron bindings [game]`                            | the in-game key list, to check against the game        |
+| `azeron editor`                                     | the side-by-side editor, one self-contained HTML       |
+| `azeron probe [--device D]`                         | press-test profile + capture page for the real pin map |
+| `azeron import <export.json> --genre G --game SLUG` | start a game folder from an export                     |
+| `azeron decompile <export.json> [-o ...]`           | an app export back into profile YAML                   |
+| `azeron install [game] --device-id ID`              | write straight into the Azeron app's profile store     |
 
 ## Layout
 
@@ -80,6 +81,11 @@ Three inputs meet in the compiler, and are kept separate:
    `movement`, `travel`, `menu`, `utility`, `required`). The in-game bindings are part of
    the source of truth, so rebinding something in game is a one-line edit. A game
    inherits its vocabulary from its genre with `extends:` and supplies only the keys.
+   `azeron import` starts a game from an export: it stores the export in `templates/`,
+   seeds an action per distinct key it sends (named after the key, since an export
+   cannot say what a key does in game), and decompiles the profile. `export_to` in
+   `game.yaml` names a directory outside the repo that builds are copied to as well;
+   `dist/` stays the committed copy.
 3. **`templates/*.json`** — a real export. The compiler deep-clones it and writes only the
    fields the YAML speaks about, so unknown and unverified fields (macros, turbo,
    `subType`, analog tuning, the records for unidentified pins) survive untouched.
@@ -135,9 +141,10 @@ These came from real play sessions; each one is a lint rule now.
    180° on the right unit, while the finger columns and side keys match. Never infer one
    unit's map from the other. A device carries `verified: true` only once it has been
    press-tested with `azeron probe`; anything else raises `unverified-device`.
-   `stick_angle` corrects the rotation in firmware and `stick_directions` corrects it at
-   compile time. They are alternatives, not a pair — setting both cancels out, and
-   `stick-double-correction` errors on it.
+   How the rotation is absorbed is unsettled: the working profiles use the direction
+   assignment plus `invertXAxis`/`invertYAxis`, not a rotation value. `stick_angle` and
+   `stick_directions` both exist as corrections but neither is in use; they are
+   alternatives, and `stick-double-correction` errors if both are set.
 
 See `docs/guides/analog-input.md` for the standing question of how to get real analog axes
 into Everspace 2 without the gamepad-mode stutter.
@@ -162,8 +169,12 @@ array of per-key records.
   seen in app-edited profiles but which physical button each is has not been confirmed, so
   they stay raw. The compiler refuses to emit a button it cannot confirm.
 - Keyboard-mode stick directions live in `analogSettings.analogKeys.left.<direction>[0]`
-  as **integer** JS keyCodes. `analogSettings.angle` rotates the stick's zero and is in
-  **degrees**, set absolutely -- verified on 2026-09-28, when the right unit needed 180.
+  as **integer** JS keyCodes in the v5 export, and as `KeyboardEvent.code` strings in a
+  profile edited by 2.0.2; both are read, and integers are emitted.
+  `analogSettings.angle` is **not** understood. Working profiles carry -1 and 11 with
+  `invertXAxis`/`invertYAxis` both true, so the right unit's half turn is absorbed by the
+  direction assignment and the inversion, and `angle` looks like a small trim. It is only
+  written when a device sets `stick_angle`, which no device currently does.
 - Keep profile `id` (UUID) **stable in YAML**. Note that the app assigns a fresh UUID on
   import, so an id only survives when a profile is written into the store by
   `azeron install`.

@@ -58,6 +58,20 @@ select, .btn { background: var(--panel); border: 1px solid var(--line); border-r
 .cell.active { outline: 3px solid var(--accent); outline-offset: 1px; background: var(--panel); }
 .thumb { display: grid; grid-template-columns: repeat(3, 116px); gap: 6px; }
 .thumb .stickwrap { grid-column: 1 / span 3; }
+.stick-dial { grid-column: 1 / span 3; display: grid; gap: 4px; margin-bottom: 5px;
+              grid-template-columns: repeat(3, 116px); grid-template-rows: repeat(3, auto); }
+.stick-dial .dir { border: 1px solid var(--line); border-radius: 8px; background: var(--bg);
+                   padding: 5px; min-height: 40px; display: flex; flex-direction: column;
+                   align-items: center; justify-content: center; gap: 1px; }
+.stick-dial .dir.done { border-color: var(--ok); }
+.stick-dial .dir.done .pin { color: var(--ok); }
+.stick-dial .dir.active { outline: 3px solid var(--accent); outline-offset: 1px; }
+.stick-dial .glyph { font-size: 14px; line-height: 1; color: var(--muted); }
+.stick-dial .up { grid-area: 1 / 2; }
+.stick-dial .left { grid-area: 2 / 1; }
+.stick-dial .hub { grid-area: 2 / 2; }
+.stick-dial .right { grid-area: 2 / 3; }
+.stick-dial .down { grid-area: 3 / 2; }
 .thumb .up { grid-column: 2; grid-row: 2; }
 .thumb .left { grid-column: 1; grid-row: 3; }
 .thumb .center { grid-column: 2; grid-row: 3; }
