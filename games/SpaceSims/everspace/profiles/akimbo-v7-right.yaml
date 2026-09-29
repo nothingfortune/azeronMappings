@@ -71,6 +71,23 @@ positions:
   dpad_right:
     label: Strafe Right
     tap: strafe_right
+  # EXPERIMENT (2026-09-29): pulsed thrust, to answer whether a repeated key reads as
+  # part power or as judder. Both send the same action as dpad_up; the only difference is
+  # that the key repeats while held, so it is down part of the time.
+  #
+  # Two intervals because the units of turbo_interval are unverified: flying both says
+  # whether a larger number means slower pulsing or a longer hold, and whether either is
+  # usable. dpad_up remains full thrust for a direct comparison with the same thumb.
+  dpad_press:
+    label: Thrust fwd (pulse 40)
+    tap: throttle_up
+    turbo: true
+    turbo_interval: 40
+  middle_2:
+    label: Thrust fwd (pulse 100)
+    tap: throttle_up
+    turbo: true
+    turbo_interval: 100
   dpad_down:
     label: Strafe Back
     tap: throttle_down

@@ -2065,12 +2065,12 @@
           "pinOne": 16,
           "pinTwo": 255,
           "types": [
-            "11",
+            "1",
             "11",
             "11"
           ],
           "keyValues": [
-            "0",
+            "KeyW",
             "0",
             "0",
             "0"
@@ -2125,10 +2125,10 @@
           "holdTime": 0,
           "holdTimeLong": 0,
           "holdTimeDouble": 0,
-          "isTurbo": false,
+          "isTurbo": true,
           "isTurboLong": false,
           "isTurboDouble": false,
-          "turboInterval": 0,
+          "turboInterval": 100,
           "turboIntervalLong": 0,
           "turboIntervalDouble": 0,
           "sequenceTriggerSettings": {
@@ -2263,7 +2263,8 @@
           "y": 0,
           "interval": 0,
           "yInterval": 0,
-          "subType": "11"
+          "subType": "11",
+          "label": "Thrust fwd (pulse 100)"
         },
         {
           "id": 12,
@@ -4349,14 +4350,14 @@
         {
           "id": 22,
           "types": [
-            "11",
+            "1",
             "11",
             "11"
           ],
           "pinOne": 37,
           "pinTwo": 255,
           "keyValues": [
-            "0",
+            "KeyW",
             "0",
             "0",
             "0"
@@ -4403,6 +4404,7 @@
             "steps": [],
             "v": 1
           },
+          "label": "Thrust fwd (pulse 40)",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -4424,10 +4426,10 @@
           "holdTime": 0,
           "holdTimeLong": 0,
           "holdTimeDouble": 0,
-          "isTurbo": false,
+          "isTurbo": true,
           "isTurboLong": false,
           "isTurboDouble": false,
-          "turboInterval": 0,
+          "turboInterval": 40,
           "turboIntervalLong": 0,
           "turboIntervalDouble": 0,
           "sequenceTriggerSettings": {

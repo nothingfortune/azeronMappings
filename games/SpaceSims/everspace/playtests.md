@@ -2,6 +2,31 @@
 
 What each layout actually felt like. Dated, newest first.
 
+## 2026-09-29 — pulsed thrust, not yet flown
+
+On branch `experiment/pulsed-thrust`. Thrust forward sits on three keys of the right
+unit so they can be compared with the same thumb:
+
+| Key | What it sends |
+| --- | --- |
+| `dpad_up` | W held — full thrust, unchanged |
+| `dpad_press` | W repeated every 40 |
+| `middle_2` | W repeated every 100 |
+
+The question is whether a repeated key reads as part power or as judder. Everspace 2's
+`MoveFwd` is a digital half-axis on keyboard — W is 100%, released is 0% — so a key that
+spends part of its time up is the only part-power press available without an analog axis.
+Two intervals because the units of `turbo_interval` are unverified; flying both says
+whether a larger number pulses slower or holds longer, and whether either is usable.
+
+What to record: does either feel like part throttle, or does the ship judder? Is one
+interval clearly better? Does it help at all with the complaint that thrust reads like a
+strafe?
+
+If neither works, delete the two keys and the acknowledgement in `game.yaml` and the
+answer is that notches are not available this way — which leaves the Joystick group,
+since the game has one and `MoveFwd` accepts an axis.
+
 ## 2026-09-28 — akimbo Mode 2 attempt
 
 Awkward, and abandoned during the session. Two distinct causes, worth keeping apart:

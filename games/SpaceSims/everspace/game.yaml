@@ -68,6 +68,11 @@ lint:
        reason: "Next target is reachable from index_2 and pinky_side on the left unit.
                 Harmless as redundancy; check one of the two was not meant to be a
                 different action."}
+    - {profile: akimbo-v7-right, rule: duplicate-output-key, key: KeyW,
+       reason: "EXPERIMENT: thrust forward is on three keys on purpose -- full on
+                dpad_up, pulsed at two intervals on dpad_press and middle_2 -- so the
+                three can be compared with the same thumb. Delete the two pulsed keys
+                and this line together once a playtest has judged them."}
     # --- akimbo v7: imported from the units on 2026-09-28, questions still open ---
     - {profile: akimbo-v7-left, rule: unbound-key, position: middle_2,
        reason: "Sends F5. What F5 does in Everspace 2 is not recorded; add an action for
