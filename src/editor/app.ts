@@ -18,6 +18,8 @@ import type { EditorGame, EditorPayload } from "../types/editor.js";
 import type { ActionSpec, PositionSpec, ProfileData } from "../types/profile.js";
 import { removeKey } from "../lib/object.js";
 import { dumpYaml } from "../lib/yaml.js";
+import { alreadyGranted, hex4, requestUnits } from "../lib/hid.js";
+import type { DetectionState, HidLike } from "../lib/hid.js";
 import { buildProbeProfile, buildStickCalibrationProfile } from "../lib/probe.js";
 import type { ProbePayload } from "../types/probe.js";
 import { start as startProbe, stop as stopProbe } from "./probe.js";
@@ -821,6 +823,86 @@ function renderInGame(): HTMLElement {
   return panel;
 }
 
+let detection: DetectionState | null = null;
+let detectionChecked = false;
+
+function hidApi(): HidLike | undefined {
+  return (navigator as unknown as { hid?: HidLike }).hid;
+}
+
+/** What is plugged in, as the browser sees it. */
+function renderDetection(): HTMLElement {
+  const panel = el("div", { class: "panel" });
+  panel.append(el("h2", {}, ["Units"]));
+
+  // Devices already granted can be listed without prompting; only the picker needs a
+  // click. Checked once, so rendering does not loop.
+  if (!detectionChecked) {
+    detectionChecked = true;
+    void alreadyGranted(hidApi()).then((result) => {
+      if (result.status === "found") {
+        detection = result;
+        render();
+      }
+    });
+  }
+
+  const body = el("div", { class: "note" });
+  if (detection === null) {
+    body.append(
+      document.createTextNode(
+        "Not checked yet. The browser only reports devices you have granted it, so this " +
+          "needs a click.",
+      ),
+    );
+  } else if (detection.status === "unsupported") {
+    body.append(document.createTextNode(detection.reason));
+  } else if (detection.status === "none") {
+    body.append(
+      document.createTextNode(
+        "Nothing granted. Either the units are unplugged, or the picker was dismissed -- " +
+          "the browser cannot tell those apart.",
+      ),
+    );
+  } else {
+    for (const found of detection.units) {
+      body.append(
+        el("div", {}, [
+          `${found.productName} — vid ${hex4(found.vendorId)} pid ${hex4(found.productId)}, ` +
+            `${String(found.collections)} interface(s)`,
+        ]),
+      );
+    }
+    if (detection.units.length === 1) {
+      body.append(
+        el("div", { class: "muted" }, [
+          "Both units report the same product id, so one connection cannot be told apart " +
+            "from the other by USB alone.",
+        ]),
+      );
+    }
+  }
+  panel.append(body);
+
+  const check = el("button", { class: "btn", type: "button" }, ["Detect units"]);
+  check.addEventListener("click", () => {
+    void requestUnits(hidApi()).then((result) => {
+      detection = result;
+      render();
+    });
+  });
+  panel.append(check);
+  panel.append(
+    el("div", { class: "muted" }, [
+      el("small", {}, [
+        "Detection only reports what is connected. Writing profiles still goes through " +
+          "the Azeron software, which speaks its own protocol on one of these interfaces.",
+      ]),
+    ]),
+  );
+  return panel;
+}
+
 function renderPressTest(): HTMLElement {
   const panel = el("div", { class: "panel" });
   const controls = el("div", { class: "field" });
@@ -849,7 +931,10 @@ function renderPressTest(): HTMLElement {
   const host = el("div", {});
   panel.append(host);
   startProbe(probePayload(), host);
-  return panel;
+
+  const wrap = el("div", { class: "press-test" });
+  wrap.append(panel, renderDetection());
+  return wrap;
 }
 
 function renderSheet(): HTMLElement {

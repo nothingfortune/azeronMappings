@@ -27,7 +27,9 @@
 
 device: cyborg2-right
 # The id the Azeron software files this unit under, in
-# Storage/DevicesStorage/<id>/ProfileStorage. Both units report USB PID 12f7.
+# Storage/DevicesStorage/<id>/ProfileStorage. Both units report USB PID 0x12f7, which is
+# 4855 in decimal -- the folder holding the profiles that were filed before the units
+# were told apart.
 software_device_id: "29993"
 hand: right
 mirrored: true
@@ -40,6 +42,10 @@ verified: true
 # Pins that exist in exports but whose physical key is unidentified. The compiler
 # never writes to these -- their records pass through from the template untouched.
 # The press test never saw them fire, which is why they are still here.
+#
+# Pin 0 is not a key at all: it carries type "2" and is the profile switch. A probe that
+# rebound it produced a profile the Azeron software repaired on import, which is how it
+# was identified. 28 and 29 are still unknown.
 unknown_pins: [0, 28, 29]
 
 positions:

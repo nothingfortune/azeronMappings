@@ -169,8 +169,11 @@ Top level is `{ "version": "2.0.2", "profiles": [ … ] }`; each profile has an 
 array of per-key records.
 
 - `types` codes: `"1"` keyboard, `"11"` none, `"15"` mouse button, `"4"` keyboard-mode
-  stick. Codes `"2"`, `"6"`, `"0"` and `subType: "29"` are **unknown — preserved via
-  `raw.types` and template passthrough, never invented.**
+  stick. `"2"` is the profile switch, on pin 0 — identified when a probe that rebound it
+  produced a profile the software repaired on import. Codes `"6"`, `"0"`, `"29"`, `"30"`
+  and `subType: "29"`/`"31"` are still **unknown — preserved via `raw.types` and template
+  passthrough, never invented.** Only records whose type is a plain key, mouse button or
+  stick are ever rewritten.
 - Key values mix `KeyboardEvent.code` strings (`KeyF`, `Digit1`, `Escape`) with legacy
   numeric JS keyCodes (arrows as `"37"`–`"40"`, Shift as `"16"`). `keys.ts` records which
   encoding the app actually uses per key; a token that does not survive name→token→name
@@ -190,6 +193,15 @@ array of per-key records.
   `azeron install`.
 - Emit 2-space-indented JSON; the template's key order is preserved by mutating a deep
   clone in place.
+
+## Detecting the units
+
+The editor's press test reports what is connected over WebHID (Chrome and Edge only).
+Both Cyborg II units report product id `0x12f7` — 4855 in decimal, which is the
+`DevicesStorage` folder holding the profiles filed before the units were told apart — so
+a single connection cannot be attributed to one unit from USB alone, and the UI says so
+rather than guessing. Detection reports only; writing profiles still goes through the
+Azeron software.
 
 ## The Azeron app's own profile store
 

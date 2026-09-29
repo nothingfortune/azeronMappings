@@ -43,9 +43,13 @@ describe("buildProbeProfile", () => {
     expect(used.every((key) => PROBE_KEYS.includes(key))).toBe(true);
   });
 
-  it("covers every input that has a real pin", () => {
+  it("covers every input that has a real pin and is an ordinary key", () => {
     const { doc, assignments } = probe();
-    const real = doc.profiles[0]?.inputs.filter((record) => record.pinOne !== 255) ?? [];
+    const real =
+      doc.profiles[0]?.inputs.filter(
+        (record) =>
+          record.pinOne !== 255 && ["1", "11", "15", "4"].includes(String(record.types[0])),
+      ) ?? [];
     expect(new Set(assignments.map((entry) => entry.pin)).size).toBe(real.length);
   });
 
@@ -61,6 +65,26 @@ describe("buildProbeProfile", () => {
     const { doc } = probe();
     const stick = doc.profiles[0]?.inputs.find((record) => record.pinTwo === 30);
     expect(stick?.types[0]).toBe(TYPE_STICK_KEYBOARD);
+  });
+
+  it("leaves the profile switch alone", () => {
+    // Pin 0 carries type "2" and is the profile switch, not a key. Rebinding it produced
+    // a profile the Azeron software repaired on import.
+    const { doc, assignments } = probe();
+    const record = doc.profiles[0]?.inputs.find((input) => input.pinOne === 0);
+    expect(record?.types[0]).toBe("2");
+    expect(assignments.some((entry) => entry.pin === 0)).toBe(false);
+  });
+
+  it("only rebinds records that are ordinary keys", () => {
+    const { doc } = probe();
+    const template = loadTemplate(TEMPLATE).profiles[0];
+    const byId = new Map(template?.inputs.map((input) => [input.id, input]));
+    for (const record of doc.profiles[0]?.inputs ?? []) {
+      const before = byId.get(record.id);
+      const wasPlain = ["1", "11", "15", "4"].includes(String(before?.types[0]));
+      if (!wasPlain) expect(record.types).toEqual(before?.types);
+    }
   });
 
   it("saves the least reliable keys for pins nobody has identified", () => {
@@ -157,7 +181,11 @@ describe("stick zero calibration", () => {
   it("silences every other key so a stray finger is not read as a push", () => {
     const { doc } = calibration();
     const live = doc.profiles[0]?.inputs.filter(
-      (record) => record.types[0] !== TYPE_NONE && record.types[0] !== TYPE_STICK_KEYBOARD,
+      (record) =>
+        record.types[0] !== TYPE_NONE &&
+        record.types[0] !== TYPE_STICK_KEYBOARD &&
+        // The profile switch is not a key and is left exactly as the template has it.
+        record.pinOne !== 0,
     );
     expect(live).toEqual([]);
   });

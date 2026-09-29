@@ -4,6 +4,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { start } from "../../../src/editor/probe.js";
+import { start as startEditor } from "../../../src/editor/app.js";
+import { buildPayload as buildEditorPayload } from "../../../src/lib/editor/payload.js";
 import { loadDevice, loadTemplate } from "../../../src/lib/io.js";
 import { buildProbeProfile, buildStickCalibrationProfile } from "../../../src/lib/probe.js";
 import type { ProbePayload } from "../../../src/types/probe.js";
@@ -263,5 +265,44 @@ describe("button presses", () => {
     vi.advanceTimersByTime(400);
     expect(document.querySelectorAll(".hand.active-hand .cell.done").length).toBe(1);
     expect(document.querySelector(".prompt b")?.textContent).toBe("press pinky_1");
+  });
+});
+
+describe("unit detection", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    document.body.innerHTML = '<div id="app"></div>';
+    probePayload = payload();
+  });
+
+  function openPressTest(): void {
+    startEditor(buildEditorPayload());
+    const tab = [...document.querySelectorAll("header button")].find(
+      (button) => button.textContent === "Press test",
+    );
+    (tab as HTMLButtonElement).click();
+  }
+
+  it("does not claim anything before it has been asked", () => {
+    openPressTest();
+    const panel = [...document.querySelectorAll(".panel")].find(
+      (node) => node.querySelector("h2")?.textContent === "Units",
+    );
+    expect(panel?.textContent).toContain("Not checked yet");
+    expect([...(panel?.querySelectorAll("button") ?? [])][0]?.textContent).toBe("Detect units");
+  });
+
+  it("says plainly when the browser cannot do it", async () => {
+    openPressTest();
+    const button = [...document.querySelectorAll("button")].find(
+      (node) => node.textContent === "Detect units",
+    );
+    // happy-dom has no navigator.hid, which is the same situation as Firefox.
+    button?.click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const panel = [...document.querySelectorAll(".panel")].find(
+      (node) => node.querySelector("h2")?.textContent === "Units",
+    );
+    expect(panel?.textContent).toContain("no WebHID");
   });
 });
