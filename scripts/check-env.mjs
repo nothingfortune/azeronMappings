@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Fail early and clearly when node_modules was installed for a different platform.
  *
@@ -21,18 +22,31 @@ if (!existsSync(modules)) {
   process.exit(1);
 }
 
-/** Platform packages, and the platform-arch token each name implies. */
+/**
+ * Platform packages, and the platform-arch token each name implies.
+ *
+ * This file stays JavaScript because it runs before anything is compiled -- it is the
+ * guard that explains a node_modules built for the wrong platform, and a guard that
+ * needs a build to run is no guard. `checkJs` type-checks it all the same.
+ *
+ * @returns {Map<string, string>}
+ */
 function installedPlatforms() {
+  /** @type {Map<string, string>} */
   const found = new Map();
+  /**
+   * @param {string} scope
+   * @param {string} prefix
+   */
   const scan = (scope, prefix) => {
     const dir = join(modules, scope);
     if (!existsSync(dir)) return;
     for (const name of readdirSync(dir)) {
       if (!name.startsWith(prefix)) continue;
       const rest = name.slice(prefix.length);
-      const parts = rest.split("-");
-      if (parts.length < 2) continue;
-      found.set(`${scope}/${name}`, `${parts[0]}-${parts[1]}`);
+      const [platform, arch] = rest.split("-");
+      if (platform === undefined || arch === undefined) continue;
+      found.set(`${scope}/${name}`, `${platform}-${arch}`);
     }
   };
   scan("@esbuild", "");

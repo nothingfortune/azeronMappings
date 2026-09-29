@@ -19,6 +19,8 @@ export default tseslint.config(
       "no-console": ["warn", { allow: ["warn", "error"] }],
     },
   },
-  { files: ["**/*.js", "**/*.mjs"], ...tseslint.configs.disableTypeChecked },
+  // Only this file and scripts/check-env.mjs are JavaScript, and both are type-checked
+  // by tsc via checkJs. ESLint's own config cannot be type-aware about itself.
+  { files: ["eslint.config.js"], ...tseslint.configs.disableTypeChecked },
   prettier,
 );

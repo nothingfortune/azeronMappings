@@ -10,7 +10,7 @@ import console from "node:console";
 import { existsSync } from "node:fs";
 import process from "node:process";
 
-const candidates = [
+const candidates: string[] = [
   "bash",
   "C:/Program Files/Git/bin/bash.exe",
   "C:/Program Files (x86)/Git/bin/bash.exe",

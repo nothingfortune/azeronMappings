@@ -8,7 +8,12 @@ import process from "node:process";
 
 import { build } from "esbuild";
 
-const bundles = [
+interface Bundle {
+  entry: string;
+  outfile: string;
+}
+
+const bundles: Bundle[] = [
   { entry: "src/editor/main.ts", outfile: "build/editor-app.js" },
   { entry: "src/editor/probe-main.ts", outfile: "build/probe-app.js" },
 ];

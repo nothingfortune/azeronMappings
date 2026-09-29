@@ -119,6 +119,11 @@ This repo follows the `nothingfortune/base` conventions.
 - No non-null assertions (`!`). Handle the null case.
 - Named exports, not default exports. `import type` for type-only imports.
 - `delete obj[computed]` is banned by the lint config; use `removeKey` from `lib/object.ts`.
+- Everything is TypeScript except three files, and `allowJs`/`checkJs` type-check two of
+  them anyway: `scripts/check-env.mjs` stays JavaScript because it runs before anything
+  is compiled (a guard that needs a build is no guard), `eslint.config.js` is ESLint's own
+  config, and `bin/azeron` is a nine-line npm bin shim. Build tooling under `scripts/` is
+  TypeScript, compiled by `tsconfig.scripts.json` into `build/scripts/`.
 
 ## Hard-won constraints — do not relearn these
 
