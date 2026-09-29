@@ -15,6 +15,8 @@ export interface PageOptions {
   globalName: string;
   payload: unknown;
   bundle: string;
+  /** True only when served by `azeron serve`, which is what backs the save API. */
+  served?: boolean;
 }
 
 export function renderPage(options: PageOptions): string {
@@ -30,6 +32,7 @@ export function renderPage(options: PageOptions): string {
 <script type="application/json" id="payload">${embed(options.payload)}</script>
 <script>
   window.${options.globalName} = JSON.parse(document.getElementById("payload").textContent);
+  window.AZERON_SERVED = ${String(options.served === true)};
 </script>
 <script>
 ${options.bundle}
@@ -39,11 +42,12 @@ ${options.bundle}
 `;
 }
 
-export function renderEditorHtml(payload: EditorPayload, bundle: string): string {
+export function renderEditorHtml(payload: EditorPayload, bundle: string, served = false): string {
   return renderPage({
     title: "Azeron profile editor",
     globalName: "AZERON_PAYLOAD",
     payload,
     bundle,
+    served,
   });
 }

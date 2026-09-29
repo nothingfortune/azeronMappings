@@ -31,7 +31,7 @@ declare global {
   }
 }
 
-type Mode = "edit" | "in-game" | "press-test" | "sheet";
+type Mode = "edit" | "in-game" | "press-test" | "sheet" | "repo";
 
 interface State {
   payload: EditorPayload;
@@ -599,12 +599,12 @@ function renderChecks(): HTMLElement {
 /**
  * Whether this page can write back into the repo.
  *
- * Served over HTTP it can POST to the CLI; opened from a file it can only hand back
- * downloads, so the two are offered as different things rather than one that sometimes
- * silently does nothing.
+ * Set by `azeron serve`, which is what actually backs the save API. Sniffing the
+ * protocol would claim the same of a static file served by any web server, and the
+ * buttons would then silently do nothing.
  */
 function canSave(): boolean {
-  return window.location.protocol === "http:" || window.location.protocol === "https:";
+  return (window as unknown as { AZERON_SERVED?: boolean }).AZERON_SERVED === true;
 }
 
 let saveNote: string | null = null;
@@ -678,12 +678,13 @@ function renderHeader(): HTMLElement {
     state.setName = [...setsOf(currentGame()).keys()][0] ?? "";
     render();
   });
-  for (const mode of ["edit", "in-game", "press-test", "sheet"] as Mode[]) {
+  for (const mode of ["edit", "in-game", "press-test", "sheet", "repo"] as Mode[]) {
     const names: Record<Mode, string> = {
       edit: "Edit",
       "in-game": "In-game",
       "press-test": "Press test",
       sheet: "Sheet",
+      repo: "Repo",
     };
     const tab = el(
       "button",
@@ -952,6 +953,179 @@ function renderDetection(): HTMLElement {
   return panel;
 }
 
+interface IngameRow {
+  label: string;
+  ours: string | null;
+  theirs: { display: string; scale: number }[];
+  status: string;
+}
+
+let repoNote: string | null = null;
+let ingameRows: IngameRow[] | null = null;
+let ingameCollisions: { key: string; actions: string[] }[] = [];
+
+async function post(path: string, body: unknown): Promise<Record<string, unknown>> {
+  const response = await fetch(path, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  return (await response.json()) as Record<string, unknown>;
+}
+
+/**
+ * The operations that otherwise need a terminal.
+ *
+ * Only reachable when served: opened as a file there is nothing on the other end, and
+ * the tab says so rather than offering buttons that cannot work.
+ */
+function renderRepo(): HTMLElement {
+  const panel = el("div", { class: "panel" });
+  panel.append(el("h2", {}, ["Repo"]));
+
+  if (!canSave()) {
+    panel.append(
+      el("div", { class: "empty-state" }, [
+        "This page was opened as a file, so there is nothing to talk to. Run " +
+          "`azeron serve` and open the address it prints to build, import and compare " +
+          "from here.",
+      ]),
+    );
+    return panel;
+  }
+
+  if (repoNote !== null) panel.append(el("div", { class: "note" }, [repoNote]));
+
+  const buildRow = el("div", { class: "field" });
+  const build = el("button", { class: "btn primary", type: "button" }, ["Build profiles"]);
+  build.addEventListener("click", () => {
+    repoNote = "building...";
+    render();
+    void post("/api/build", {}).then((result) => {
+      const built = (result.built ?? []) as { output: string; changed: boolean }[];
+      const errors = (result.errors ?? []) as string[];
+      const changed = built.filter((entry) => entry.changed);
+      repoNote =
+        errors.length > 0
+          ? `build failed: ${errors.join(" | ")}`
+          : `${String(changed.length)} of ${String(built.length)} profile(s) changed` +
+            (changed.length > 0 ? `: ${changed.map((e) => e.output).join(", ")}` : "");
+      render();
+    });
+  });
+  buildRow.append(build);
+  buildRow.append(
+    el("div", { class: "muted" }, [
+      el("small", {}, [
+        "Compiles every profile into dist/, and copies to a game's export_to if it sets one.",
+      ]),
+    ]),
+  );
+  panel.append(buildRow);
+
+  // Importing an export: the round trip back from the Azeron app.
+  const importRow = el("div", { class: "field" });
+  importRow.append(el("label", {}, ["Import an Azeron export"]));
+  const setName = el("input", { type: "text", value: "v1", placeholder: "set name" });
+  const deviceSelect = el("select", {});
+  for (const device of Object.values(state.payload.devices)) {
+    deviceSelect.append(el("option", { value: device.device }, [device.device]));
+  }
+  const file = el("input", { type: "file", accept: "application/json,.json" });
+  file.addEventListener("change", () => {
+    const chosen = file.files?.[0];
+    if (!chosen) return;
+    const reader = new FileReader();
+    reader.addEventListener("load", () => {
+      const text = typeof reader.result === "string" ? reader.result : "";
+      let exported: unknown;
+      try {
+        exported = JSON.parse(text);
+      } catch (error) {
+        repoNote = `not JSON: ${(error as Error).message}`;
+        render();
+        return;
+      }
+      repoNote = "importing...";
+      render();
+      void post("/api/import", {
+        game: currentGame().slug,
+        device: deviceSelect.value,
+        set: setName.value.trim() || "v1",
+        exported,
+      }).then((result) => {
+        repoNote = result.ok
+          ? `wrote ${String(result.profilePath)} (${String(result.positions)} positions) ` +
+            `and kept the export at ${String(result.templatePath)}. Reload to see it.`
+          : `import refused: ${String(result.error)}`;
+        render();
+      });
+    });
+    reader.readAsText(chosen);
+  });
+  importRow.append(el("div", { class: "row2" }, [setName, deviceSelect]), file);
+  panel.append(importRow);
+
+  // The game's own bindings, read from its config file.
+  const ingameRow = el("div", { class: "field" });
+  const check = el("button", { class: "btn", type: "button" }, ["Read the game's bindings"]);
+  check.addEventListener("click", () => {
+    repoNote = "reading...";
+    render();
+    void fetch(`/api/ingame?game=${encodeURIComponent(currentGame().slug)}`)
+      .then((response) => response.json())
+      .then((result: Record<string, unknown>) => {
+        if (!result.ok) {
+          repoNote = `could not read it: ${String(result.error)}`;
+          ingameRows = null;
+        } else {
+          const report = result.report as {
+            path: string;
+            rows: IngameRow[];
+            collisions: { key: string; actions: string[] }[];
+          };
+          ingameRows = report.rows.filter((row) => row.status !== "unsendable");
+          ingameCollisions = report.collisions;
+          repoNote = `read ${report.path}`;
+        }
+        render();
+      });
+  });
+  ingameRow.append(check);
+  panel.append(ingameRow);
+
+  if (ingameRows !== null) {
+    const list = el("div", { class: "ingame-list" });
+    for (const row of ingameRows) {
+      const item = el("div", { class: `ingame-row${row.theirs.length === 0 ? " unbound" : ""}` });
+      item.append(
+        el("div", { class: "who" }, [
+          el("b", {}, [row.label]),
+          el("small", {}, [row.ours ?? "sends nothing"]),
+        ]),
+      );
+      item.append(
+        el("div", { class: "muted" }, [
+          row.theirs.length === 0
+            ? "the game has nothing on this key"
+            : row.theirs.map((entry) => entry.display).join(" + "),
+        ]),
+      );
+      list.append(item);
+    }
+    panel.append(list);
+
+    if (ingameCollisions.length > 0) {
+      panel.append(el("h2", {}, ["Keys the game binds twice"]));
+      for (const entry of ingameCollisions) {
+        panel.append(el("div", { class: "note" }, [`${entry.key}: ${entry.actions.join(" + ")}`]));
+      }
+    }
+  }
+
+  return panel;
+}
+
 function renderPressTest(): HTMLElement {
   const panel = el("div", { class: "panel" });
   const controls = el("div", { class: "field" });
@@ -1031,6 +1205,11 @@ function render(): void {
     requestAnimationFrame(() => {
       fitStage(stageWrap, stage);
     });
+    return;
+  }
+
+  if (state.mode === "repo") {
+    root.append(el("div", { class: "workspace single" }, [renderRepo()]));
     return;
   }
 

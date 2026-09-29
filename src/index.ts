@@ -25,6 +25,15 @@ import { buildProbeProfile, buildStickCalibrationProfile } from "./lib/probe.js"
 import { compareToGame, gameCollisions, parseInput } from "./lib/ingame.js";
 import { gameConfig, seedActions, unnamedPositions } from "./lib/scaffold.js";
 import { CONTENT_TYPES, SaveRejected, parseSaveRequest, resolveSavePath } from "./lib/serve.js";
+import {
+  buildAll,
+  importExport,
+  ingameReport,
+  lintAll,
+  profilePathFor,
+  templatePathFor,
+} from "./lib/tasks.js";
+import type { ExportDocument } from "./types/azeron.js";
 import { dumpYaml } from "./lib/yaml.js";
 import { ERROR, WARNING, formatFinding, lintGame, lintGenre } from "./lib/lint.js";
 import type { LintResult } from "./lib/lint.js";
@@ -382,11 +391,62 @@ function cmdServe(port: number): number {
     const url = request.url ?? "/";
     if (request.method === "GET" && (url === "/" || url === "/index.html")) {
       // Built fresh per request, so a file edited on disk shows up on reload.
-      send(200, renderEditorHtml(buildPayload(), bundle), CONTENT_TYPES[".html"]);
+      send(200, renderEditorHtml(buildPayload(), bundle, true), CONTENT_TYPES[".html"]);
       return;
     }
     if (request.method === "GET" && url === "/api/payload") {
       send(200, JSON.stringify(buildPayload()));
+      return;
+    }
+    if (request.method === "GET" && url.startsWith("/api/ingame")) {
+      const slug = new URL(url, "http://localhost").searchParams.get("game");
+      try {
+        const game = games(slug ?? undefined)[0];
+        if (!game) throw new Error("no such game");
+        send(200, JSON.stringify({ ok: true, report: ingameReport(game) }));
+      } catch (error) {
+        send(400, JSON.stringify({ ok: false, error: (error as Error).message }));
+      }
+      return;
+    }
+    if (request.method === "POST" && (url === "/api/build" || url === "/api/import")) {
+      let body = "";
+      request.on("data", (chunk: Buffer) => {
+        body += chunk.toString("utf8");
+        if (body.length > 20_000_000) request.destroy();
+      });
+      request.on("end", () => {
+        try {
+          if (url === "/api/build") {
+            const result = buildAll(Game.discover());
+            send(200, JSON.stringify({ ok: result.errors.length === 0, ...result }));
+            return;
+          }
+          const parsed = JSON.parse(body) as {
+            game?: string;
+            device?: string;
+            set?: string;
+            exported?: ExportDocument;
+          };
+          const game = games(parsed.game)[0];
+          if (!game) throw new Error("no such game");
+          if (!parsed.exported || !parsed.device || !parsed.set) {
+            throw new Error("import needs exported, device and set");
+          }
+          const unit = loadDevice(parsed.device).hand ?? "left";
+          const result = importExport({
+            exported: parsed.exported,
+            game,
+            device: parsed.device,
+            profilePath: profilePathFor(game, parsed.set, unit),
+            templatePath: templatePathFor(game, parsed.set, unit),
+            meta: { set: parsed.set, output: `${game.slug}_${parsed.set}_${unit}.json` },
+          });
+          send(200, JSON.stringify({ ok: true, ...result, yaml: undefined }));
+        } catch (error) {
+          send(400, JSON.stringify({ ok: false, error: (error as Error).message }));
+        }
+      });
       return;
     }
     if (request.method === "POST" && url === "/api/save") {
@@ -402,17 +462,20 @@ function cmdServe(port: number): number {
           mkdirSync(dirname(target), { recursive: true });
           writeFileSync(target, content, "utf8");
 
-          // The point of saving into the repo is getting the verdict back.
+          // The point of saving into the repo is getting the verdict back, and dist/
+          // should not lag behind what was just written.
           let verdict = "saved";
           try {
-            for (const game of Game.discover()) {
-              const result = lintGame(game);
-              const errors = result.live.filter((finding) => finding.level === ERROR);
-              if (errors.length > 0) {
-                verdict = `${game.slug}: ${errors.map((f) => formatFinding(f)).join(" | ")}`;
-                break;
-              }
-            }
+            const discovered = Game.discover();
+            const summaries = lintAll(discovered, Genre.discover());
+            const errors = summaries.flatMap((summary) => summary.errors);
+            const build = buildAll(discovered);
+            const changed = build.built.filter((entry) => entry.changed).length;
+            verdict =
+              errors.length > 0
+                ? `lint: ${errors.join(" | ")}`
+                : `saved, rebuilt ${String(changed)} profile(s), lint clean`;
+            if (build.errors.length > 0) verdict = `build: ${build.errors.join(" | ")}`;
           } catch (error) {
             verdict = `saved, but reloading failed: ${(error as Error).message}`;
           }

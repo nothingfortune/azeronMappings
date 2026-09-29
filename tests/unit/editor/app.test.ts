@@ -213,3 +213,41 @@ describe("data sources", () => {
     expect(document.querySelectorAll(".hand").length).toBe(2);
   });
 });
+
+describe("the repo tab", () => {
+  beforeEach(() => {
+    mount();
+    const tab = [...document.querySelectorAll("header button")].find(
+      (node) => node.textContent === "Repo",
+    );
+    (tab as HTMLButtonElement).click();
+  });
+
+  it("explains itself rather than offering buttons that cannot work", () => {
+    // The save API is only there when `azeron serve` is behind the page.
+    const panel = document.querySelector(".panel");
+    expect(panel?.textContent).toContain("azeron serve");
+    expect(panel?.querySelector("button")).toBeNull();
+  });
+
+  it("offers the operations once a server is behind it", () => {
+    (window as unknown as { AZERON_SERVED?: boolean }).AZERON_SERVED = true;
+    try {
+      mount();
+      const tab = [...document.querySelectorAll("header button")].find(
+        (node) => node.textContent === "Repo",
+      );
+      (tab as HTMLButtonElement).click();
+      const labels = [...document.querySelectorAll(".panel button")].map((n) => n.textContent);
+      expect(labels).toContain("Build profiles");
+      expect(labels).toContain("Read the game's bindings");
+      expect(document.querySelector("header .pill")?.textContent).toBe("saves to repo");
+    } finally {
+      (window as unknown as { AZERON_SERVED?: boolean }).AZERON_SERVED = false;
+    }
+  });
+
+  it("says which mode the page is in", () => {
+    expect(document.querySelector("header .pill")?.textContent).toBe("downloads only");
+  });
+});

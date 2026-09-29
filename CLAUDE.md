@@ -106,6 +106,16 @@ Profiles map position to action id, never position to raw key.
 - `azeron serve` serves the same page over HTTP, where it can POST an edit straight into
   the repo and get the linter's verdict back. The header says which mode the page is in.
 
+`src/lib/tasks.ts` holds the operations — build, lint, import an export, read the game's
+config — as functions rather than commands. The CLI and the served editor both call
+them, so what the UI can do is what the CLI can do rather than a subset that drifts. The
+editor's Repo tab reaches them over `/api/build`, `/api/import` and `/api/ingame`;
+saving a profile rebuilds `dist/` and lints in the same round trip.
+
+Whether the page can save is decided by `window.AZERON_SERVED`, which only `azeron serve`
+sets. Sniffing the protocol would claim as much of a static file served by any web
+server, and the buttons would then silently do nothing.
+
 Writes go through `resolveSavePath`, which accepts profile YAML, a game's `actions.yaml`
 and device maps, and nothing else — checked on the resolved path, so no spelling of `..`
 escapes.

@@ -37,7 +37,9 @@ npm run build && ./bin/azeron serve      # http://localhost:4173, saves into the
 ./bin/azeron editor                      # one file, works offline, downloads only
 ```
 
-Served, the **Save** buttons write straight into `games/…/profiles/*.yaml` and
+Served, the editor is the whole interface: the **Repo** tab builds profiles, imports an
+Azeron export back into the repo, and reads the game's own binding file, so the CLI is
+only needed to start it. The **Save** buttons write straight into `games/…/profiles/*.yaml` and
 `actions.yaml` and report what the linter says. Opened as a file, the same buttons hand
 you a download to copy in — the header says which you are in, so a click never silently
 does nothing.
