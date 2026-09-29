@@ -36,7 +36,13 @@ Any command takes a game: `./bin/azeron build everspace`.
 npm run build && ./bin/azeron editor
 ```
 
-Open `dist/editor.html`. It is a single self-contained file — no server, no network.
+Open `dist/editor.html`. One page covers every game: pick the game and the set from the
+two selectors in the header — they are data, not separate pages.
+
+It is a single self-contained file: no server, no network. The payload is embedded
+because a page opened from `file://` is not allowed to fetch a sibling JSON.
+`azeron editor` also writes `dist/editor-data.json`, so a page you already have open can
+be pointed at newer data with the **Data** button rather than regenerated.
 
 - Both units side by side, laid out like the hardware, facing each other.
 - Click a key to edit its tap / long / double, label, delays and latch.

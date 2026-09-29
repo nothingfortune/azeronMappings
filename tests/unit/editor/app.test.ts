@@ -161,3 +161,42 @@ describe("key cards", () => {
     expect(stage?.querySelectorAll(".hand").length).toBe(2);
   });
 });
+
+describe("data sources", () => {
+  beforeEach(() => {
+    mount();
+  });
+
+  it("lists every game in the payload, not just the first", () => {
+    const select = document.querySelector<HTMLSelectElement>("header select");
+    expect(select?.options.length).toBeGreaterThanOrEqual(1);
+    expect([...(select?.options ?? [])].map((o) => o.textContent)).toContain("Everspace 2");
+  });
+
+  it("lists each set in the selected game", () => {
+    const sets = document.querySelectorAll("header select")[1] as HTMLSelectElement;
+    const names = [...sets.options].map((option) => option.value);
+    expect(names).toContain("akimbo-v6");
+    expect(names).toContain("akimbo-v7");
+    expect(names).toContain("single-v5");
+  });
+
+  it("offers a way to open a different payload", () => {
+    const button = [...document.querySelectorAll("header button")].find(
+      (node) => node.textContent === "Data",
+    );
+    expect(button).toBeDefined();
+    expect(document.querySelector('header input[type="file"]')).not.toBeNull();
+  });
+
+  it("switching set redraws the pair from the same payload", () => {
+    const sets = document.querySelectorAll("header select")[1] as HTMLSelectElement;
+    sets.value = "single-v5";
+    sets.dispatchEvent(new Event("change"));
+    expect(document.querySelectorAll(".hand").length).toBe(1);
+
+    sets.value = "akimbo-v7";
+    sets.dispatchEvent(new Event("change"));
+    expect(document.querySelectorAll(".hand").length).toBe(2);
+  });
+});

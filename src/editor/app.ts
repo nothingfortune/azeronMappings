@@ -673,6 +673,34 @@ function renderHeader(): HTMLElement {
   });
   header.append(reset);
 
+  // The payload is embedded so the page works from file://, where fetching a sibling
+  // JSON is blocked. A newer or different one can still be opened by hand.
+  const picker = el("input", { type: "file", accept: "application/json,.json" });
+  picker.style.display = "none";
+  picker.addEventListener("change", () => {
+    const file = picker.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.addEventListener("load", () => {
+      try {
+        const text = typeof reader.result === "string" ? reader.result : "";
+        const next = JSON.parse(text) as EditorPayload;
+        if (!Array.isArray(next.games)) throw new Error("not an editor payload");
+        start(next);
+      } catch (error) {
+        window.alert(`Could not read that file: ${(error as Error).message}`);
+      }
+    });
+    reader.readAsText(file);
+  });
+  const load = el("button", { class: "btn", type: "button", title: "Open an editor-data.json" }, [
+    "Data",
+  ]);
+  load.addEventListener("click", () => {
+    picker.click();
+  });
+  header.append(load, picker);
+
   const theme = el("button", { class: "btn", type: "button" }, ["Theme"]);
   theme.addEventListener("click", () => {
     const root = document.documentElement;

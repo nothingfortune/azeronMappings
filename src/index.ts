@@ -2,7 +2,7 @@
 /** azeron -- build, decompile, lint, cheatsheet, editor, install. */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join, relative } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { parseArgs } from "node:util";
 
 import { dataDirs, repoPath, repoRoot } from "./config/paths.js";
@@ -325,9 +325,16 @@ function cmdEditor(outPath: string): number {
     process.stderr.write("error: build/editor-app.js is missing. Run `npm run build` first.\n");
     return 1;
   }
-  const html = renderEditorHtml(buildPayload(), bundle);
+  const payload = buildPayload();
+  const html = renderEditorHtml(payload, bundle);
   writeText(outPath, html);
   out(`wrote ${outPath}  (${String(Math.round(html.length / 1024))} KB) -- open it in a browser`);
+
+  // The same payload on its own, so a page that is already open can be pointed at newer
+  // data without regenerating it.
+  const dataPath = join(dirname(outPath), "editor-data.json");
+  writeText(dataPath, `${JSON.stringify(payload)}\n`);
+  out(`wrote ${dataPath}  -- load it with the editor's Data button`);
   return 0;
 }
 

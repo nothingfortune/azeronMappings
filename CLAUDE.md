@@ -98,6 +98,11 @@ Profiles map position to action id, never position to raw key.
   therefore the `dist/` diff — stays stable.
 - `decompile.ts` goes the other way, for edits made in the Azeron app. Anything
   that will not round-trip canonically is kept as `*_raw` or `raw: {types: [...]}`.
+  `azeron editor` writes one page for every game: games and sets are data, chosen from the
+  two selectors. The payload is embedded because a page opened from `file://` cannot fetch
+  a sibling JSON, and `editor-data.json` is written beside it so an open page can be
+  pointed at newer data with the Data button instead of being regenerated.
+
 - `lint.ts` and `model-core.ts` are free of node imports on purpose: **the browser editor
   imports the same compiler, linter and YAML writer the CLI uses.** There is one
   implementation of each rule, not one per surface. Keep it that way — if you need
