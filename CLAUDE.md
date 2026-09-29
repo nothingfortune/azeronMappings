@@ -194,6 +194,18 @@ array of per-key records.
 - Emit 2-space-indented JSON; the template's key order is preserved by mutating a deep
   clone in place.
 
+## The game's own binding file
+
+Everspace 2 keeps its bindings in `Input.ini` under `[/Script/ES2.CustomPlayerInput]`,
+one `KeybindingsConfig=(...)` line per action per input group (Keyboard, Gamepad,
+**Joystick** — the game does support joysticks natively). `ingame_config` in `game.yaml`
+points at it and `azeron ingame` compares it against `actions.yaml`.
+
+Matching is by **key**, not by name: an action id is ours, the game's action names are
+its own, and the key is the only thing the two sides share. Parsing is lossless and only
+`Key1` on a keyboard row would ever be rewritten — the file belongs to the game and most
+of its fields are not understood here.
+
 ## Detecting the units
 
 The editor's press test reports what is connected over WebHID (Chrome and Edge only).

@@ -140,6 +140,8 @@ export interface GameConfig {
    * wants to find them.
    */
   export_to?: string;
+  /** The game's own binding file, e.g. Everspace 2's Input.ini. */
+  ingame_config?: string;
   lint?: LintConfig;
 }
 

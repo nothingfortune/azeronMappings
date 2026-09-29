@@ -21,6 +21,7 @@ import {
 } from "./lib/install.js";
 import { loadDevice, loadTemplate, writeText } from "./lib/io.js";
 import { buildProbeProfile, buildStickCalibrationProfile } from "./lib/probe.js";
+import { compareToGame, gameCollisions, parseInput } from "./lib/ingame.js";
 import { gameConfig, seedActions, unnamedPositions } from "./lib/scaffold.js";
 import { dumpYaml } from "./lib/yaml.js";
 import { ERROR, WARNING, formatFinding, lintGame, lintGenre } from "./lib/lint.js";
@@ -305,6 +306,63 @@ function cmdImport(exportPath: string, flags: ImportFlags): number {
   return 0;
 }
 
+/** Compare actions.yaml against the game's own binding file. */
+function cmdIngame(selector: string | undefined, configPath: string | undefined): number {
+  let failures = 0;
+  for (const game of games(selector)) {
+    const path = configPath ?? game.config.ingame_config;
+    if (path === undefined) {
+      process.stderr.write(
+        `error: ${game.slug} has no ingame_config in game.yaml, and no --config given.\n`,
+      );
+      failures += 1;
+      continue;
+    }
+    if (!existsSync(path)) {
+      process.stderr.write(`error: ${path} does not exist.\n`);
+      failures += 1;
+      continue;
+    }
+
+    const file = parseInput(readFileSync(path, "utf8"));
+    const rows = compareToGame(game.actions, file);
+    const agrees = rows.filter((row) => row.status === "agrees");
+    const unmatched = rows.filter((row) => row.status === "unmatched");
+
+    out(`${game.slug}: ${path}`);
+    out(
+      `  ${String(file.entries.length)} binding rows, ` +
+        `${String(agrees.length)} of our actions found in game, ` +
+        `${String(unmatched.length)} not bound to anything`,
+    );
+
+    out("");
+    out("  what the game does with the keys we send:");
+    for (const row of agrees) {
+      const what = row.theirs
+        .map((entry) => `${entry.display}${entry.scale < 0 ? " (negative)" : ""}`)
+        .join(" + ");
+      const flag = row.theirs.length > 1 ? "  <-- more than one" : "";
+      out(`    ${row.label.padEnd(24)} ${String(row.ours).padEnd(16)} ${what}${flag}`);
+    }
+
+    if (unmatched.length > 0) {
+      out("");
+      out("  we send these, the game has nothing on them:");
+      for (const row of unmatched) out(`    ${row.label.padEnd(24)} ${String(row.ours)}`);
+    }
+
+    const collisions = gameCollisions(file);
+    if (collisions.length > 0) {
+      out("");
+      out("  keys the game itself binds twice:");
+      for (const entry of collisions)
+        out(`    ${entry.key.padEnd(16)} ${entry.actions.join(" + ")}`);
+    }
+  }
+  return failures > 0 ? 1 : 0;
+}
+
 function cmdBindings(selector: string | undefined): number {
   for (const game of games(selector)) {
     const sheet = bindingSheet(game.name, game.actions, game.loadedProfiles());
@@ -508,6 +566,7 @@ export function main(argv: string[]): number {
       genre: { type: "string" },
       name: { type: "string" },
       "export-to": { type: "string" },
+      config: { type: "string" },
       out: { type: "string", short: "o" },
     },
   });
@@ -523,6 +582,8 @@ export function main(argv: string[]): number {
       return cmdCheatsheet(positionals[0]);
     case "bindings":
       return cmdBindings(positionals[0]);
+    case "ingame":
+      return cmdIngame(positionals[0], values.config);
     case "editor":
       return cmdEditor(values.out ?? join(dataDirs.dist, "editor.html"));
     case "probe": {

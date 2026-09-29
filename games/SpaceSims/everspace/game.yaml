@@ -3,6 +3,9 @@ slug: everspace
 genre: SpaceSims
 template: templates/everspace2-v5.json
 
+# The game's own binding file. `azeron ingame` reads it to compare against actions.yaml.
+ingame_config: "/mnt/c/Users/there/AppData/Local/ES2/Saved/Config/Windows/Input.ini"
+
 lint:
   # Constraint 1: a stick in gamepad/analog mode made the game flip between gamepad and
   # keyboard/mouse input and stuttered the frame rate. Keyboard mode only.
