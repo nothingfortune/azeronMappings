@@ -18,6 +18,8 @@ import {
   DEFAULT_FEATURE_DELAY,
   HOLD_FIELDS,
   SLOTS,
+  TURBO_FIELDS,
+  TURBO_INTERVAL_FIELDS,
   SLOT_FIELDS,
   STICK_DIRECTIONS,
   STICK_MODE_CODES,
@@ -41,6 +43,10 @@ function neutralize(record: InputRecord, isStick: boolean): void {
     tokens(record, keyField)[0] = keys.NONE_TOKEN;
     tokens(record, metaField)[0] = keys.NONE_TOKEN;
     record[HOLD_FIELDS[slot]] = false;
+  }
+  for (const slot of SLOTS) {
+    record[TURBO_FIELDS[slot]] = false;
+    record[TURBO_INTERVAL_FIELDS[slot]] = 0;
   }
   record.featureDelay = DEFAULT_FEATURE_DELAY;
   record.doubleDelay = DEFAULT_DOUBLE_DELAY;
@@ -150,6 +156,13 @@ function applyPosition(
   for (const slot of SLOTS) {
     const field = slot === "tap" ? "hold" : (`hold_${slot}` as const);
     if (spec[field]) record[HOLD_FIELDS[slot]] = true;
+    const turboField = slot === "tap" ? "turbo" : (`turbo_${slot}` as const);
+    if (spec[turboField]) {
+      record[TURBO_FIELDS[slot]] = true;
+      if (spec.turbo_interval !== undefined) {
+        record[TURBO_INTERVAL_FIELDS[slot]] = spec.turbo_interval;
+      }
+    }
   }
 }
 

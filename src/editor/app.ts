@@ -1025,15 +1025,18 @@ function renderRepo(): HTMLElement {
 
   // Importing an export: the round trip back from the Azeron app.
   const importRow = el("div", { class: "field" });
-  importRow.append(el("label", {}, ["Import an Azeron export"]));
+  importRow.append(el("label", {}, ["Upload an Azeron export"]));
+
   const setName = el("input", { type: "text", value: "v1", placeholder: "set name" });
   const deviceSelect = el("select", {});
   for (const device of Object.values(state.payload.devices)) {
     deviceSelect.append(el("option", { value: device.device }, [device.device]));
   }
+
   const file = el("input", { type: "file", accept: "application/json,.json" });
-  file.addEventListener("change", () => {
-    const chosen = file.files?.[0];
+  file.style.display = "none";
+
+  const accept = (chosen: File | undefined): void => {
     if (!chosen) return;
     const reader = new FileReader();
     reader.addEventListener("load", () => {
@@ -1042,11 +1045,17 @@ function renderRepo(): HTMLElement {
       try {
         exported = JSON.parse(text);
       } catch (error) {
-        repoNote = `not JSON: ${(error as Error).message}`;
+        repoNote = `${chosen.name} is not JSON: ${(error as Error).message}`;
         render();
         return;
       }
-      repoNote = "importing...";
+      const profiles = (exported as { profiles?: unknown[] }).profiles;
+      if (!Array.isArray(profiles) || profiles.length === 0) {
+        repoNote = `${chosen.name} has no profiles in it -- is it an Azeron export?`;
+        render();
+        return;
+      }
+      repoNote = `importing ${chosen.name}...`;
       render();
       void post("/api/import", {
         game: currentGame().slug,
@@ -1062,8 +1071,47 @@ function renderRepo(): HTMLElement {
       });
     });
     reader.readAsText(chosen);
+  };
+
+  file.addEventListener("change", () => {
+    accept(file.files?.[0]);
   });
-  importRow.append(el("div", { class: "row2" }, [setName, deviceSelect]), file);
+
+  const upload = el("button", { class: "btn primary", type: "button" }, ["Upload export"]);
+  upload.addEventListener("click", () => {
+    file.click();
+  });
+
+  // Dropping the file on the zone does the same thing, since that is how a file usually
+  // arrives from the Azeron app's export dialog.
+  const drop = el("div", { class: "dropzone" }, [
+    "Drop an exported .json here, or use the button.",
+  ]);
+  for (const name of ["dragenter", "dragover"]) {
+    drop.addEventListener(name, (event) => {
+      event.preventDefault();
+      drop.classList.add("over");
+    });
+  }
+  for (const name of ["dragleave", "drop"]) {
+    drop.addEventListener(name, (event) => {
+      event.preventDefault();
+      drop.classList.remove("over");
+    });
+  }
+  drop.addEventListener("drop", (event) => {
+    accept(event.dataTransfer?.files[0]);
+  });
+
+  importRow.append(
+    el("div", { class: "row2" }, [
+      el("div", { class: "field" }, [el("label", {}, ["set name"]), setName]),
+      el("div", { class: "field" }, [el("label", {}, ["unit"]), deviceSelect]),
+    ]),
+    el("div", { class: "row2" }, [upload]),
+    drop,
+    file,
+  );
   panel.append(importRow);
 
   // The game's own bindings, read from its config file.

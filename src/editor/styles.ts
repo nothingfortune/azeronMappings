@@ -45,6 +45,9 @@ select, .btn {
 }
 .btn:hover, select:hover { border-color: var(--accent); }
 .btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.dropzone { border: 1px dashed var(--line); border-radius: 8px; padding: 14px; text-align: center;
+            color: var(--muted); font-size: 11.5px; margin-top: 6px; }
+.dropzone.over { border-color: var(--accent); color: var(--fg); background: var(--bg); }
 .save-note { padding: 6px 16px; background: var(--panel); border-bottom: 1px solid var(--line);
              font-size: 12px; color: var(--muted); }
 .workspace.single { display: block; }

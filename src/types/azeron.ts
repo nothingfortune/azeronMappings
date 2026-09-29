@@ -112,6 +112,21 @@ export const HOLD_FIELDS: Record<Slot, "isHold" | "isHoldLong" | "isHoldDouble">
   double: "isHoldDouble",
 };
 
+export const TURBO_FIELDS: Record<Slot, "isTurbo" | "isTurboLong" | "isTurboDouble"> = {
+  tap: "isTurbo",
+  long: "isTurboLong",
+  double: "isTurboDouble",
+};
+
+export const TURBO_INTERVAL_FIELDS: Record<
+  Slot,
+  "turboInterval" | "turboIntervalLong" | "turboIntervalDouble"
+> = {
+  tap: "turboInterval",
+  long: "turboIntervalLong",
+  double: "turboIntervalDouble",
+};
+
 /**
  * Stick mode name to types[0] code. Only keyboard mode is verified; gamepad mode is
  * forbidden for Everspace 2 anyway (it made the game stutter), and mouse mode has never

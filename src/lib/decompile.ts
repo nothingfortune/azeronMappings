@@ -14,6 +14,8 @@ import {
   DEFAULT_FEATURE_DELAY,
   HOLD_FIELDS,
   SLOTS,
+  TURBO_FIELDS,
+  TURBO_INTERVAL_FIELDS,
   SLOT_FIELDS,
   STICK_DIRECTIONS,
   STICK_MODES,
@@ -101,6 +103,13 @@ export function decompilePosition(
       if (slot === "tap") spec.hold = true;
       else if (slot === "long") spec.hold_long = true;
       else spec.hold_double = true;
+    }
+    if (record[TURBO_FIELDS[slot]]) {
+      if (slot === "tap") spec.turbo = true;
+      else if (slot === "long") spec.turbo_long = true;
+      else spec.turbo_double = true;
+      const interval = record[TURBO_INTERVAL_FIELDS[slot]];
+      if (typeof interval === "number" && interval > 0) spec.turbo_interval = interval;
     }
   }
 

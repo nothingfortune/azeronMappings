@@ -52,6 +52,32 @@ If it does not, there is no proportional throttle without an analog axis, and th
 below are the only ones. Note that cruise and boost already give a crude three-notch
 speed (normal, cruise, boost), which may be as close as the game allows.
 
+## Option 0 — duty cycling, which needs nothing new
+
+Taken from arygtm/everspace2-spacemouse, which drives Everspace 2 from a 3Dconnexion
+SpaceMouse. It does not use a virtual joystick or a gamepad at all: it emits **keyboard**
+presses and gets an analog feel out of them by varying how long the key is held. A small
+push taps the key in short bursts; a bigger push holds it longer; past a threshold it
+holds continuously. The game only ever sees a keyboard, so there is nothing to flip
+between and no stutter to trigger.
+
+The Azeron can do a fixed version of this on its own. Every key record carries `isTurbo`
+and `turboInterval`, and a repeated key spends part of its time up, so for an action the
+game reads as on/off it averages to less than a held key. `turbo: true` and
+`turbo_interval: <ms>` are expressible in a profile now, and survive a round trip.
+
+That does not give deflection-proportional thrust -- the interval is fixed per key, not
+driven by how far anything is pushed -- but it does give **thrust notches**. A d-pad with
+full thrust on one key and a turbo'd thrust on another is a two-speed throttle, and a
+third interval makes it three. Untested in game: whether a pulsed `MoveFwd` reads as
+smooth part-power or as judder is a question only a session can answer, and it is the
+cheapest of everything on this page to try.
+
+The SpaceMouse project also shows the ceiling of the approach. It reaches proportional
+control because software recomputes the duty cycle continuously from a live analog
+reading; a keypad running a fixed interval onboard cannot. Anything beyond notches needs
+a real axis, which is what the options below are about.
+
 ## Option A — commit fully to gamepad
 
 Put everything on the gamepad: both units in gamepad mode, aim on a stick, no keyboard or

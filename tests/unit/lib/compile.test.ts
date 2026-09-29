@@ -86,3 +86,52 @@ describe("decompile", () => {
     );
   });
 });
+
+describe("turbo", () => {
+  /**
+   * Turbo repeats a key while it is held, so it spends part of its time up. For an
+   * action the game reads as on/off -- thrust -- that averages to part power, which is
+   * the only way to get a part-power press out of a digital key.
+   */
+  function withTurbo(change: (data: ReturnType<typeof fixture>["profile"]["data"]) => void) {
+    const { game, profile, template } = fixture();
+    const data = structuredClone(profile.data);
+    change(data);
+    const mutated = new Profile(data, profile.device, { path: profile.path, game });
+    return compileProfile(mutated, { template, actions: game.actions.actions });
+  }
+
+  it("writes the repeat and its interval", () => {
+    const doc = withTurbo((data) => {
+      const boost = data.positions.index_3;
+      if (boost) {
+        boost.turbo = true;
+        boost.turbo_interval = 60;
+      }
+    });
+    const record = doc.profiles[0]?.inputs.find((input) => input.pinOne === 24);
+    expect(record?.isTurbo).toBe(true);
+    expect(record?.turboInterval).toBe(60);
+  });
+
+  it("leaves it off everywhere it is not asked for", () => {
+    const doc = withTurbo(() => undefined);
+    for (const record of doc.profiles[0]?.inputs ?? []) {
+      expect(record.isTurbo, `pin ${String(record.pinOne)}`).toBeFalsy();
+    }
+  });
+
+  it("comes back out of an export rather than being dropped", () => {
+    const { game, profile } = fixture();
+    const doc = withTurbo((data) => {
+      const boost = data.positions.index_3;
+      if (boost) {
+        boost.turbo = true;
+        boost.turbo_interval = 45;
+      }
+    });
+    const back = decompile(doc, profile.device, { actions: game.actions });
+    expect(back.positions.index_3?.turbo).toBe(true);
+    expect(back.positions.index_3?.turbo_interval).toBe(45);
+  });
+});

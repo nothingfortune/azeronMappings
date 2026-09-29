@@ -56,6 +56,17 @@ export interface PositionSpec {
   hold?: boolean;
   hold_long?: boolean;
   hold_double?: boolean;
+  /**
+   * Repeat the key while it is held, at `turbo_interval` milliseconds.
+   *
+   * A repeated key spends part of its time up, so for an action the game reads as
+   * on/off -- thrust, for one -- it averages to less than a held key. That is the only
+   * way to get a part-power press out of a digital key.
+   */
+  turbo?: boolean;
+  turbo_long?: boolean;
+  turbo_double?: boolean;
+  turbo_interval?: number;
   /** Type codes we cannot derive, preserved verbatim. */
   raw?: { types?: string[] };
 }

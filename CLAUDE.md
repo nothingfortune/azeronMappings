@@ -159,6 +159,10 @@ These came from real play sessions; each one is a lint rule now.
    constraint 1.
 3. In-game bindings are fully rebindable and are **part of the source of truth**, kept in
    `actions.yaml`.
+   3b. `turbo` / `turbo_interval` repeat a key while it is held. A repeated key is down
+   part of the time, so for an action the game reads as on/off it averages to part
+   power — the only way to get a part-power press out of a digital key. See
+   `docs/guides/analog-input.md`.
 4. **Long-press and double-tap delay the tap** (by `featureDelay` / `doubleDelay`). Never
    on combat-critical keys: consumables, targeting, fire, boost. → `combat-tap-delayed`
 5. **Never put Escape or any menu action on a mashable combat key.** v3 had Escape as
