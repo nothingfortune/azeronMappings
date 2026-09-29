@@ -26,6 +26,32 @@ the keys assert "keyboard is active", and the game thrashes between the two inpu
 If that reading is right, the stutter is caused by **mixing**, not by gamepad mode
 itself. Which gives three ways out, and one dead end.
 
+## The throttle case
+
+Reported 2026-09-29: thrust cannot be incremented, and forward thrust feels like a
+strafe. That is this constraint arriving in practice, plus one layout change.
+
+`throttle_up` and `throttle_down` are bound to W and S, which in Everspace 2 are forward
+and backward thrust, not a throttle notch. Pressed digitally they are a full-power
+impulse: 0% or 100%, nothing between. A stick in keyboard mode does not change this — it
+is a four-way switch, not an axis, so deflecting it half way sends the same key as
+deflecting it fully.
+
+The layout change: v5 and v6 put throttle on the left stick's up/down. v7 moved it to the
+right thumb pad as two buttons (`thumb_up`, `thumb_down`). Both are digital, so neither
+gives proportional thrust, but a thumb deflection reads as a throttle in a way a button
+press does not — which is the likely reason it feels worse now than it did.
+
+**Check the controls screen before anything else.** If Everspace 2 offers throttle steps
+or presets — "increase/decrease throttle", or "throttle 25/50/75/100%" — then discrete
+keys are exactly the right shape for it, the thumb pad is a good home for a four-way
+preset bank, and this problem is solved without touching the analog question. Whether the
+game has those bindings is not recorded here and has not been checked.
+
+If it does not, there is no proportional throttle without an analog axis, and the options
+below are the only ones. Note that cruise and boost already give a crude three-notch
+speed (normal, cruise, boost), which may be as close as the game allows.
+
 ## Option A — commit fully to gamepad
 
 Put everything on the gamepad: both units in gamepad mode, aim on a stick, no keyboard or

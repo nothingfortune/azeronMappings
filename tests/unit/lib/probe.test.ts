@@ -86,7 +86,7 @@ describe("deviceFromProbe", () => {
       positions: {
         pinky_1: { pin: 5, col: "pinky", row: 1 },
         pinky_5: { pin: 1, col: "pinky", row: 5 },
-        thumb_left: { pin: 35, col: "thumb", row: 2, cluster: "pad" },
+        dpad_left: { pin: 35, col: "thumb", row: 2, cluster: "pad" },
         stick: { pin: 31, pin_two: 30, col: "thumb", row: 0, kind: "stick" },
       },
     };
@@ -95,13 +95,13 @@ describe("deviceFromProbe", () => {
   it("rebuilds the map from what actually fired, and marks it verified", () => {
     const assumed = assumedMap();
     const next = deviceFromProbe(assumed, {
-      pins: { pinky_1: 1, pinky_5: 5, thumb_left: 33 },
+      pins: { pinky_1: 1, pinky_5: 5, dpad_left: 33 },
       stick: { up: "up", right: "left", down: "down", left: "right" },
     });
 
     expect(next.verified).toBe(true);
     expect(next.positions.pinky_1?.pin).toBe(1);
-    expect(next.positions.thumb_left?.pin).toBe(33);
+    expect(next.positions.dpad_left?.pin).toBe(33);
     expect(next.stick_directions).toEqual({ up: "up", right: "left", down: "down", left: "right" });
     // The rest of the position's description survives; only the pin was measured.
     expect(next.positions.pinky_1?.col).toBe("pinky");
@@ -125,10 +125,10 @@ describe("deviceFromProbe", () => {
 
   it("reports what disagreed with the assumed map", () => {
     const notes = probeDiff(assumedMap(), {
-      pins: { pinky_1: 5, pinky_5: 1, thumb_left: 33 },
+      pins: { pinky_1: 5, pinky_5: 1, dpad_left: 33 },
       stick: { left: "right" },
     });
-    expect(notes.some((note) => note.includes("thumb_left: pin 33, not 35"))).toBe(true);
+    expect(notes.some((note) => note.includes("dpad_left: pin 33, not 35"))).toBe(true);
     expect(notes.some((note) => note.includes("stick left drives the 'right' field"))).toBe(true);
   });
 });

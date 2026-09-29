@@ -8,10 +8,10 @@
 # report the same pin as the left unit. The four that differ are the thumb pad, and they
 # differ as a clean 180-degree rotation:
 #
-#     thumb_up    34 -> 36     (what the left calls thumb_down)
-#     thumb_down  36 -> 34
-#     thumb_left  35 -> 33     (what the left calls thumb_right)
-#     thumb_right 33 -> 35
+#     dpad_up    34 -> 36     (what the left calls dpad_down)
+#     dpad_down  36 -> 34
+#     dpad_left  35 -> 33     (what the left calls dpad_right)
+#     dpad_right 33 -> 35
 #
 # The stick is rotated the same 180 degrees: the zero pass measured up->down,
 # right->left, down->up, left->right, matching a 180-degree rotation set in the app.
@@ -65,14 +65,13 @@ positions:
   index_5: {pin: 22, col: index, row: 5}
   pinky_side: {pin: 6, col: side, row: 3, side: outer}
   index_side: {pin: 27, col: side, row: 3, side: inner}
-  thumb_up: {pin: 36, col: thumb, row: 1, cluster: pad}
-  thumb_left: {pin: 33, col: thumb, row: 2, cluster: pad}
-  thumb_center: {pin: 37, col: thumb, row: 2, cluster: pad}
-  thumb_right: {pin: 35, col: thumb, row: 2, cluster: pad}
-  thumb_down: {pin: 34, col: thumb, row: 3, cluster: pad}
+  dpad_up: {pin: 36, col: thumb, cluster: dpad}
+  dpad_left: {pin: 33, col: thumb, cluster: dpad}
+  dpad_press: {pin: 37, col: thumb, cluster: dpad}
+  dpad_right: {pin: 35, col: thumb, cluster: dpad}
+  dpad_down: {pin: 34, col: thumb, cluster: dpad}
   thumb_aux_upper: {pin: 20, col: thumb, row: 1, cluster: aux}
   thumb_aux_lower: {pin: 19, col: thumb, row: 2, cluster: aux}
-  # Pressing the thumbstick in. The app screenshot suggested a key "below the stick";
-  # the press test showed pin 32 is the stick click itself.
+  # The thumbstick pressed in.
   stick_press: {pin: 32, col: thumb, row: 3, cluster: stick}
   stick: {pin: 31, pin_two: 30, col: thumb, row: 0, kind: stick}

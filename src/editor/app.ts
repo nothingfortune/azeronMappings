@@ -242,7 +242,7 @@ const DIR_GLYPH: Record<string, string> = {
 };
 
 /** The stick as a compass: each direction sits where it points. */
-function stickDial(slug: string, position: string): HTMLElement {
+function stickDial(slug: string, position: string, press: string | null): HTMLElement {
   const actions = actionSetFor(currentGame());
   const spec = workingData(slug).positions[position];
   const selected =
@@ -273,10 +273,21 @@ function stickDial(slug: string, position: string): HTMLElement {
     dial.append(cell);
   }
 
-  const hub = el("button", { class: "dir hub", type: "button", title: "stick" });
-  hub.append(el("span", { class: "pos" }, ["stick"]));
-  hub.append(el("span", { class: "name" }, [spec?.mode ?? "unbound"]));
-  hub.addEventListener("click", select);
+  // The hub is the stick pressed in -- a real key -- so it selects that position.
+  const pressSpec = press === null ? undefined : workingData(slug).positions[press];
+  const pressLabel =
+    pressSpec === undefined ? null : (pressSpec.label ?? describeSlotValue(actions, pressSpec.tap));
+  const hub = el("button", {
+    class: `dir hub${pressLabel === null ? " empty" : ""}`,
+    type: "button",
+    title: press ?? "stick",
+  });
+  hub.append(el("span", { class: "wheel" }));
+  hub.append(el("span", { class: "name" }, [pressLabel ?? "click"]));
+  hub.addEventListener("click", () => {
+    state.selected = { slug, position: press ?? position };
+    render();
+  });
   dial.append(hub);
   return dial;
 }
@@ -302,16 +313,36 @@ function renderHand(slug: string): HTMLElement {
     ]),
   );
 
-  const thumb = el("div", { class: "thumb" });
-  if (layout.stick) thumb.append(stickDial(slug, layout.stick));
-  for (const [position, cell] of layout.pad) thumb.append(keyCard(slug, position, cell));
-  thumb.append(
-    el(
-      "div",
-      { class: "aux" },
-      layout.aux.map((position) => keyCard(slug, position)),
-    ),
-  );
+  const thumb = el("div", { class: "thumb-cluster" });
+  if (layout.stick) {
+    thumb.append(
+      el("div", { class: "thumb-group" }, [
+        el("div", { class: "head" }, [
+          `thumbstick \u00b7 ${workingData(slug).positions[layout.stick]?.mode ?? "unbound"}`,
+        ]),
+        stickDial(slug, layout.stick, layout.stickPress),
+      ]),
+    );
+  }
+  if (layout.dpad.length > 0) {
+    const pad = el("div", { class: "dpad" });
+    for (const [position, cell] of layout.dpad) pad.append(keyCard(slug, position, cell));
+    thumb.append(
+      el("div", { class: "thumb-group" }, [el("div", { class: "head" }, ["d-pad"]), pad]),
+    );
+  }
+  if (layout.aux.length > 0) {
+    thumb.append(
+      el("div", { class: "thumb-group" }, [
+        el("div", { class: "head" }, ["aux"]),
+        el(
+          "div",
+          { class: "aux" },
+          layout.aux.map((position) => keyCard(slug, position)),
+        ),
+      ]),
+    );
+  }
 
   const body = el("div", { class: "hand-body" });
   const thumbBlock = el("div", {}, [el("div", { class: "head" }, ["thumb"]), thumb]);

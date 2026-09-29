@@ -40,11 +40,11 @@ positions:
 
   # Thumb pad: the primary bank. v5 put weapon cycling here behind a 1000 ms long-press;
   # these are taps.
-  thumb_up:     {label: Primary 1, tap: primary_1}
-  thumb_left:   {label: Primary 2, tap: primary_2}
-  thumb_right:  {label: Primary 3, tap: primary_3}
-  thumb_down:   {label: Next target, tap: next_target}
-  thumb_center: {label: Ultimate, tap: ultimate}
+  dpad_up:     {label: Primary 1, tap: primary_1}
+  dpad_left:   {label: Primary 2, tap: primary_2}
+  dpad_right:  {label: Primary 3, tap: primary_3}
+  dpad_down:   {label: Next target, tap: next_target}
+  dpad_press: {label: Ultimate, tap: ultimate}
 
   # Thumb aux.
   thumb_aux_upper: {label: Cruise drive, tap: cruise}

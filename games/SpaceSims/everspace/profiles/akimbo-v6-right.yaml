@@ -38,11 +38,11 @@ positions:
   middle_3: {label: View ship, tap: view_ship}
 
   # Thumb pad: the device bank, opposite the left hand's primaries.
-  thumb_up:     {label: Device 1, tap: device_1}
-  thumb_left:   {label: Device 2, tap: device_2}
-  thumb_right:  {label: Device 3, tap: device_3}
-  thumb_down:   {label: Device 4, tap: device_4}
-  thumb_center: {label: Lock target, tap: lock_target}
+  dpad_up:     {label: Device 1, tap: device_1}
+  dpad_left:   {label: Device 2, tap: device_2}
+  dpad_right:  {label: Device 3, tap: device_3}
+  dpad_down:   {label: Device 4, tap: device_4}
+  dpad_press: {label: Lock target, tap: lock_target}
 
   thumb_aux_upper: {label: Supralight drive, tap: supralight}
 

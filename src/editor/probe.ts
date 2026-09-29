@@ -375,7 +375,7 @@ function renderDiagram(unitIndex: number): HTMLElement {
     );
     thumb.append(dial);
   }
-  for (const [position, css] of layout.pad) thumb.append(cell(position, css));
+  for (const [position, css] of layout.dpad) thumb.append(cell(position, css));
   thumb.append(
     el(
       "div",

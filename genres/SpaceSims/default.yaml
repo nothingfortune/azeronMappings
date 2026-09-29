@@ -54,11 +54,11 @@ positions:
 
   # Thumb pad: weapon cycling and the ultimate. Tap only -- this is the pad that cost v5
   # a 1000 ms delay on every one of these.
-  thumb_up:     {label: Cycle up, tap: weapon_cycle_up}
-  thumb_left:   {label: Cycle left, tap: weapon_cycle_left}
-  thumb_right:  {label: Cycle right, tap: weapon_cycle_right}
-  thumb_down:   {label: Cycle down, tap: weapon_cycle_down}
-  thumb_center: {label: Ultimate, tap: ultimate}
+  dpad_up:     {label: Cycle up, tap: weapon_cycle_up}
+  dpad_left:   {label: Cycle left, tap: weapon_cycle_left}
+  dpad_right:  {label: Cycle right, tap: weapon_cycle_right}
+  dpad_down:   {label: Cycle down, tap: weapon_cycle_down}
+  dpad_press: {label: Ultimate, tap: ultimate}
 
   # Thumb aux: travel and flight assist.
   thumb_aux_upper: {label: Travel drive, tap: cruise}

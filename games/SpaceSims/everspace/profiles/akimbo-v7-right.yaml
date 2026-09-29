@@ -62,16 +62,16 @@ positions:
   index_side:
     label: Inertia dampeners
     tap: inertia_dampeners
-  thumb_up:
+  dpad_up:
     label: Strafe Forward
     tap: throttle_up
-  thumb_left:
+  dpad_left:
     label: Strafe Left
     tap: strafe_left
-  thumb_right:
+  dpad_right:
     label: Strafe Right
     tap: strafe_right
-  thumb_down:
+  dpad_down:
     label: Strafe Back
     tap: throttle_down
   thumb_aux_upper:

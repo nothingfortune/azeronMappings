@@ -49,11 +49,11 @@ positions:
   index_side: {label: Grenade, tap: grenade}
 
   # Thumb pad: comms and weapon cycling.
-  thumb_up:     {label: Next weapon, tap: weapon_next}
-  thumb_down:   {label: Previous weapon, tap: weapon_prev}
-  thumb_left:   {label: Ping, tap: ping}
-  thumb_right:  {label: Emote, tap: emote}
-  thumb_center: {label: Push to talk, tap: push_to_talk}
+  dpad_up:     {label: Next weapon, tap: weapon_next}
+  dpad_down:   {label: Previous weapon, tap: weapon_prev}
+  dpad_left:   {label: Ping, tap: ping}
+  dpad_right:  {label: Emote, tap: emote}
+  dpad_press: {label: Push to talk, tap: push_to_talk}
 
   # Thumb aux.
   thumb_aux_upper: {label: Flashlight, tap: flashlight}

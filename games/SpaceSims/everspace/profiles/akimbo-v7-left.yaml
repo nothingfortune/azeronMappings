@@ -65,16 +65,16 @@ positions:
   index_side:
     label: Interact / fling
     tap: interact
-  thumb_up:
+  dpad_up:
     label: Ultimate
     tap: ultimate
-  thumb_left:
+  dpad_left:
     label: Primary 1
     tap: primary_1
-  thumb_right:
+  dpad_right:
     label: Primary 3
     tap: primary_3
-  thumb_down:
+  dpad_down:
     label: Primary 2
     tap: primary_2
   thumb_aux_upper:

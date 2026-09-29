@@ -46,14 +46,13 @@ positions:
   index_5: {pin: 22, col: index, row: 5}
   pinky_side: {pin: 6, col: side, row: 3, side: outer}
   index_side: {pin: 27, col: side, row: 3, side: inner}
-  thumb_up: {pin: 34, col: thumb, row: 1, cluster: pad}
-  thumb_left: {pin: 35, col: thumb, row: 2, cluster: pad}
-  thumb_center: {pin: 37, col: thumb, row: 2, cluster: pad}
-  thumb_right: {pin: 33, col: thumb, row: 2, cluster: pad}
-  thumb_down: {pin: 36, col: thumb, row: 3, cluster: pad}
+  dpad_up: {pin: 34, col: thumb, cluster: dpad}
+  dpad_left: {pin: 35, col: thumb, cluster: dpad}
+  dpad_press: {pin: 37, col: thumb, cluster: dpad}
+  dpad_right: {pin: 33, col: thumb, cluster: dpad}
+  dpad_down: {pin: 36, col: thumb, cluster: dpad}
   thumb_aux_upper: {pin: 20, col: thumb, row: 1, cluster: aux}
   thumb_aux_lower: {pin: 19, col: thumb, row: 2, cluster: aux}
-  # Pressing the thumbstick in. The app screenshot suggested a key "below the stick";
-  # the press test showed pin 32 is the stick click itself.
+  # The thumbstick pressed in.
   stick_press: {pin: 32, col: thumb, row: 3, cluster: stick}
   stick: {pin: 31, pin_two: 30, col: thumb, row: 0, kind: stick}

@@ -116,14 +116,23 @@ select, .btn {
 .key.menu { border-left-color: var(--menu); }
 .key.travel { border-left-color: var(--travel); }
 .key.utility { border-left-color: var(--utility); }
-.thumb { display: grid; grid-template-columns: repeat(3, var(--key-w)); gap: 4px;
-         align-content: start; }
-.thumb .stickwrap { grid-column: 1 / span 3; }
-/* The stick reads as a compass rose: each direction occupies the cell it points to. */
+/* The thumb cluster is two devices and some spare keys. Each gets its own labelled
+   group, and the stick is drawn as a dial so it never reads as another d-pad. */
+.thumb-cluster { display: flex; flex-direction: column; gap: 8px; }
+.thumb-group { border: 1px solid var(--line); border-radius: 9px; padding: 6px;
+               background: color-mix(in srgb, var(--bg) 60%, transparent); }
+.thumb-group > .head { margin-bottom: 4px; }
+.dpad { display: grid; grid-template-columns: repeat(3, var(--key-w)); gap: 4px; }
+.dpad .up { grid-area: 1 / 2; }
+.dpad .left { grid-area: 2 / 1; }
+.dpad .center { grid-area: 2 / 2; }
+.dpad .right { grid-area: 2 / 3; }
+.dpad .down { grid-area: 3 / 2; }
+.aux { display: flex; gap: 4px; }
+
 .stick-dial {
-  grid-column: 1 / span 3; display: grid; gap: 3px;
+  display: grid; gap: 3px;
   grid-template-columns: repeat(3, var(--key-w)); grid-template-rows: repeat(3, auto);
-  margin-bottom: 4px;
 }
 .stick-dial.selected { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px; }
 .stick-dial .dir {
@@ -132,23 +141,29 @@ select, .btn {
   justify-content: center; gap: 1px; min-height: 40px; text-align: center; overflow: hidden;
 }
 .stick-dial .dir:hover { border-color: var(--accent); }
-.stick-dial .dir.empty { opacity: .3; border-style: dashed; }
+.stick-dial .dir.empty { opacity: .35; border-style: dashed; }
 .stick-dial .glyph { font-size: 13px; line-height: 1; color: var(--movement); }
 .stick-dial .dir .name { font-size: 9.5px; font-weight: 600; line-height: 1.15;
                          overflow-wrap: anywhere; }
-.stick-dial .dir .pos { font-size: 8.5px; color: var(--muted); text-transform: uppercase;
-                        letter-spacing: .04em; }
 .stick-dial .up { grid-area: 1 / 2; }
 .stick-dial .left { grid-area: 2 / 1; }
-.stick-dial .hub { grid-area: 2 / 2; border-style: solid; background: var(--panel); }
 .stick-dial .right { grid-area: 2 / 3; }
 .stick-dial .down { grid-area: 3 / 2; }
-.thumb .up { grid-column: 2; grid-row: 2; }
-.thumb .left { grid-column: 1; grid-row: 3; }
-.thumb .center { grid-column: 2; grid-row: 3; }
-.thumb .right { grid-column: 3; grid-row: 3; }
-.thumb .down { grid-column: 2; grid-row: 4; }
-.thumb .aux { grid-column: 1 / span 3; display: flex; gap: 4px; }
+/* The hub is the stick pressed in, drawn as the wheel the Azeron software shows. */
+.stick-dial .hub { grid-area: 2 / 2; border: none; background: none; gap: 3px; }
+.stick-dial .hub .wheel {
+  width: 46px; height: 46px; border-radius: 50%; border: 2px solid var(--line);
+  background:
+    radial-gradient(circle at center, var(--panel) 0 26%, transparent 27%),
+    conic-gradient(from -22.5deg,
+      var(--line) 0 45deg, transparent 45deg 90deg,
+      var(--line) 90deg 135deg, transparent 135deg 180deg,
+      var(--line) 180deg 225deg, transparent 225deg 270deg,
+      var(--line) 270deg 315deg, transparent 315deg 360deg);
+}
+.stick-dial .hub:hover .wheel { border-color: var(--accent); }
+.stick-dial .hub.empty .wheel { opacity: .5; }
+
 .action-list { display: flex; flex-direction: column; gap: 3px; max-height: 62vh; overflow: auto; }
 .action {
   display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 6px;

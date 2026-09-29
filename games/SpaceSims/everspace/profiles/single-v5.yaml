@@ -83,35 +83,35 @@ positions:
   index_side:
     label: Roll Right (E)
     tap: roll_right
-  thumb_up:
+  dpad_up:
     label: Next Sec / Craft Menu
     tap: weapon_cycle_up
     long: crafting
     feature_delay: 1000
     double_delay: 200
     raw: { types: [ "1", "1", "6" ] }
-  thumb_left:
+  dpad_left:
     label: Previous Sec / Map
     tap: weapon_cycle_left
     long: map
     feature_delay: 1000
     double_delay: 200
     raw: { types: [ "1", "1", "6" ] }
-  thumb_center:
+  dpad_press:
     label: ULT / Menu
     tap: ultimate
     long: menu_tab
     feature_delay: 1000
     double_delay: 200
     raw: { types: [ "1", "1", "6" ] }
-  thumb_right:
+  dpad_right:
     label: Next Primary / Data
     tap: weapon_cycle_right
     long: data_logs
     feature_delay: 1000
     double_delay: 200
     raw: { types: [ "1", "1", "6" ] }
-  thumb_down:
+  dpad_down:
     label: Previous Sec / Inventory
     tap: weapon_cycle_down
     long: inventory

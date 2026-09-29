@@ -189,7 +189,7 @@ function renderHand(profile: Profile, actions: ActionSet): string {
 
   const thumb: string[] = [];
   if (layout.stick) thumb.push(keyCard(profile, actions, layout.stick));
-  for (const [position, cell] of layout.pad) thumb.push(keyCard(profile, actions, position, cell));
+  for (const [position, cell] of layout.dpad) thumb.push(keyCard(profile, actions, position, cell));
   const aux = layout.aux.map((position) => keyCard(profile, actions, position)).join("");
   const thumbBlock =
     `<div><div class="thumb">${thumb.join("")}</div>` +

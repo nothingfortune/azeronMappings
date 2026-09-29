@@ -32,10 +32,22 @@ describe("the editor", () => {
   });
 
   it("renders every position on the device", () => {
-    // 30 key cards plus the stick, which is drawn as a compass rather than a card.
+    // 29 key cards; the stick and its click are the dial and its hub, not cards.
     const firstHand = document.querySelector(".hand");
-    expect(firstHand?.querySelectorAll(".key").length).toBe(30);
+    expect(firstHand?.querySelectorAll(".key").length).toBe(29);
     expect(firstHand?.querySelectorAll(".stick-dial").length).toBe(1);
+    expect(firstHand?.querySelectorAll(".stick-dial .hub").length).toBe(1);
+  });
+
+  it("keeps the d-pad and the thumbstick visibly apart", () => {
+    const groups = [...document.querySelectorAll(".hand .thumb-group .head")].map(
+      (node) => node.textContent,
+    );
+    expect(groups.some((label) => label.startsWith("thumbstick"))).toBe(true);
+    expect(groups).toContain("d-pad");
+    // The stick's mode stays visible; a gamepad-mode stick is a lint error.
+    expect(groups.some((label) => label.includes("keyboard"))).toBe(true);
+    expect(document.querySelectorAll(".hand .dpad .key").length).toBeGreaterThanOrEqual(5);
   });
 
   it("assigns an action to the selected key", () => {
@@ -135,7 +147,8 @@ describe("key cards", () => {
     }
     expect(dial?.querySelector(".up .name")?.textContent).toBe("Throttle up");
     expect(dial?.querySelector(".left .name")?.textContent).toBe("Strafe left");
-    expect(dial?.querySelector(".hub .name")?.textContent).toBe("keyboard");
+    // The hub is the stick pressed in, so it shows that key's binding.
+    expect(dial?.querySelector(".hub .name")?.textContent).toBe("Menu (Tab)");
   });
 
   it("selects the stick when a direction cell is clicked", () => {

@@ -3,16 +3,21 @@
 import type { Device } from "./model-core.js";
 
 export const FINGER_COLUMNS = ["pinky", "ring", "middle", "index"] as const;
-export const PAD_POSITIONS: readonly (readonly [position: string, cell: string])[] = [
-  ["thumb_up", "up"],
-  ["thumb_left", "left"],
-  ["thumb_center", "center"],
-  ["thumb_right", "right"],
-  ["thumb_down", "down"],
+/**
+ * The thumb cluster is two devices, not one pile of keys: a d-pad that clicks, and a
+ * thumbstick that clicks. Each is laid out as its own plus so which is which is obvious.
+ */
+export const DPAD_POSITIONS: readonly (readonly [position: string, cell: string])[] = [
+  ["dpad_up", "up"],
+  ["dpad_left", "left"],
+  ["dpad_press", "center"],
+  ["dpad_right", "right"],
+  ["dpad_down", "down"],
 ];
-export const AUX_POSITIONS = ["thumb_aux_upper", "thumb_aux_lower", "stick_press"] as const;
-/** `stick_press` is the thumbstick clicked in, not a key beside it. */
 export const STICK_POSITION = "stick";
+export const STICK_PRESS_POSITION = "stick_press";
+/** Whatever else sits by the thumb and belongs to neither. */
+export const AUX_POSITIONS = ["thumb_aux_upper", "thumb_aux_lower"] as const;
 
 export interface HandColumn {
   name: string;
@@ -24,9 +29,11 @@ export interface HandColumn {
 export interface HandLayout {
   /** Already in the order they appear on the unit, seen from above. */
   columns: HandColumn[];
-  pad: (readonly [string, string])[];
+  /** The d-pad, as [position, grid cell] pairs. */
+  dpad: (readonly [string, string])[];
   aux: string[];
   stick: string | null;
+  stickPress: string | null;
   /** Which end of the columns the thumb cluster sits at. */
   thumbSide: "left" | "right";
 }
@@ -67,9 +74,10 @@ export function handLayout(device: Device): HandLayout {
 
   return {
     columns,
-    pad: PAD_POSITIONS.filter(([position]) => position in device.positions),
+    dpad: DPAD_POSITIONS.filter(([position]) => position in device.positions),
     aux: AUX_POSITIONS.filter((position) => position in device.positions),
     stick: STICK_POSITION in device.positions ? STICK_POSITION : null,
+    stickPress: STICK_PRESS_POSITION in device.positions ? STICK_PRESS_POSITION : null,
     thumbSide: device.mirrored ? "left" : "right",
   };
 }
@@ -79,7 +87,8 @@ export function probeOrder(device: Device): string[] {
   const layout = handLayout(device);
   return [
     ...layout.columns.flatMap((entry) => entry.positions),
-    ...layout.pad.map(([position]) => position),
+    ...layout.dpad.map(([position]) => position),
+    ...(layout.stickPress === null ? [] : [layout.stickPress]),
     ...layout.aux,
   ];
 }
