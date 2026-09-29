@@ -1,0 +1,47 @@
+{
+  "name": "azeron-mappings",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "azeron": "bin/azeron"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && node scripts/build-editor.mjs",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:bin": "node scripts/run-bin-tests.mjs",
+    "check": "npm run build && npm run typecheck && npm run lint && npm run format:check && npm test && npm run test:bin",
+    "azeron": "node build/index.js",
+    "postinstall": "git config core.hooksPath >/dev/null 2>&1 || git config core.hooksPath .githooks || true",
+    "test:quick": "vitest run tests/unit/lib",
+    "preflight": "node scripts/check-env.mjs",
+    "prebuild": "npm run --silent preflight",
+    "pretest": "npm run --silent preflight",
+    "pretypecheck": "npm run --silent preflight",
+    "prelint": "npm run --silent preflight"
+  },
+  "dependencies": {
+    "yaml": "^2.8.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.6.3",
+    "esbuild": "^0.25.12",
+    "eslint": "^10.11.0",
+    "eslint-config-prettier": "^10.1.8",
+    "happy-dom": "^20.14.5",
+    "prettier": "^3.6.2",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.46.2",
+    "vitest": "^4.1.11"
+  }
+}

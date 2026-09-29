@@ -1,0 +1,84 @@
+# Everspace 2 -- akimbo v7, RIGHT unit.
+#
+# Decompiled 2026-09-28 from an export of the profile as edited in the Azeron app, which
+# is the current state of the physical units. Supersedes the akimbo v6 draft.
+#
+# Source export: templates/everspace2-akimbo-v7-right.json
+# Built against the press-tested map in devices/cyborg2-right.yaml.
+profile:
+  id: 03e60aef-5647-4d2f-8ede-3436552761d5
+  name: Everspace 2 akimbo v7 (right)
+  device: cyborg2-right
+  unit: right
+  template: templates/everspace2-v5.json
+  set: akimbo-v7
+  output: everspace_akimbo_v7_right.json
+positions:
+  pinky_1:
+    label: Device 1
+    tap: device_1
+  pinky_2:
+    label: Cycle weapon right
+    tap: weapon_cycle_right
+  pinky_3:
+    label: View ship
+    tap: view_ship
+  pinky_5:
+    label: Map
+    tap: map
+  ring_1:
+    label: Device 2
+    tap: device_2
+  ring_2:
+    label: Cycle weapon left
+    tap: weapon_cycle_left
+  ring_5:
+    label: Crafting
+    tap: crafting
+  middle_1:
+    label: Device 3
+    tap: device_3
+  middle_3:
+    label: Boost
+    tap: boost
+  middle_5:
+    label: Inventory
+    tap: inventory
+  index_1:
+    label: Device 4
+    tap: device_4
+  index_2:
+    label: Hover up
+    tap: hover_up
+  index_3:
+    label: Fire Primary
+    tap: { type_raw: "15", key_raw: "1" }
+  index_4:
+    label: Hover down
+    tap: hover_down
+  index_5:
+    label: Data / logs
+    tap: data_logs
+  index_side:
+    label: Inertia dampeners
+    tap: inertia_dampeners
+  thumb_up:
+    label: Strafe Forward
+    tap: throttle_up
+  thumb_left:
+    label: Strafe Left
+    tap: strafe_left
+  thumb_right:
+    label: Strafe Right
+    tap: strafe_right
+  thumb_down:
+    label: Strafe Back
+    tap: throttle_down
+  thumb_aux_upper:
+    label: Supralight drive
+    tap: supralight
+  thumb_aux_lower:
+    label: Lock target
+    tap: lock_target
+  stick:
+    mode: keyboard

@@ -1,0 +1,87 @@
+# Everspace 2 -- akimbo v7, LEFT unit.
+#
+# Decompiled 2026-09-28 from an export of the profile as edited in the Azeron app, which
+# is the current state of the physical units. Supersedes the akimbo v6 draft.
+#
+# Source export: templates/everspace2-akimbo-v7-left.json
+# Built against the press-tested map in devices/cyborg2-left.yaml.
+profile:
+  id: 52ea554b-bdb5-4cb4-9347-8451c44e7864
+  name: Everspace 2 akimbo v7 (left)
+  device: cyborg2-left
+  unit: left
+  template: templates/everspace2-v5.json
+  set: akimbo-v7
+  output: everspace_akimbo_v7_left.json
+positions:
+  pinky_1:
+    label: Escape menu
+    tap: escape_menu
+  pinky_4:
+    label: Consumable 4
+    tap: consume_4
+  ring_2:
+    label: Secondary 3
+    tap: { key: F6 }
+  ring_3:
+    label: R
+    tap: { key: KeyR }
+  ring_4:
+    label: Consumable 3
+    tap: consume_3
+  ring_5:
+    label: Missions
+    tap: missions
+  middle_2:
+    label: Secondary 2
+    tap: { key: F5 }
+  middle_3:
+    label: Boost
+    tap: { type_raw: "1", key_raw: "0", meta_raw: "16" }
+  middle_4:
+    label: Consumable 2
+    tap: consume_2
+  middle_5:
+    label: Perks
+    tap: perks
+  index_1:
+    label: Menu (Tab)
+    tap: menu_tab
+  index_2:
+    label: Secondary 1
+    tap: next_target
+  index_3:
+    label: Fire Secondary
+    tap: { type_raw: "15", key_raw: "3" }
+  index_4:
+    label: Consumable 1
+    tap: consume_1
+  index_5:
+    label: Ship
+    tap: ship_menu
+  pinky_side:
+    label: Next target
+    tap: next_target
+  index_side:
+    label: Interact / fling
+    tap: interact
+  thumb_up:
+    label: Ultimate
+    tap: ultimate
+  thumb_left:
+    label: Primary 1
+    tap: primary_1
+  thumb_right:
+    label: Primary 3
+    tap: primary_3
+  thumb_down:
+    label: Primary 2
+    tap: primary_2
+  thumb_aux_upper:
+    label: Cruise drive
+    tap: cruise
+  thumb_aux_lower:
+    label: Place marker
+    tap: place_marker
+  stick:
+    mode: keyboard

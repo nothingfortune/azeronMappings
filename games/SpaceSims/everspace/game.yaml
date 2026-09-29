@@ -1,0 +1,112 @@
+name: Everspace 2
+slug: everspace
+genre: SpaceSims
+template: templates/everspace2-v5.json
+
+lint:
+  # Constraint 1: a stick in gamepad/analog mode made the game flip between gamepad and
+  # keyboard/mouse input and stuttered the frame rate. Keyboard mode only.
+  require_keyboard_stick: true
+
+  # Findings that are real but accepted on a specific profile. Each one is a decision,
+  # not a mute: say why, and revisit it when that profile is revised.
+  acknowledged:
+    - {profile: akimbo-v7, rule: akimbo-role-mismatch, position: pinky_1,
+       reason: "v7 specialises the hands -- the right flies (throttle, strafe,
+                vertical) and the left fights -- instead of mirroring roles. That is a
+                deliberate departure from the 2026-09-28 lesson, and is the main thing
+                the first v7 playtest has to judge."}
+    - {profile: akimbo-v7, rule: akimbo-role-mismatch, position: index_1,
+       reason: "v7 specialises the hands -- the right flies (throttle, strafe,
+                vertical) and the left fights -- instead of mirroring roles. That is a
+                deliberate departure from the 2026-09-28 lesson, and is the main thing
+                the first v7 playtest has to judge."}
+    - {profile: akimbo-v7, rule: akimbo-role-mismatch, position: index_2,
+       reason: "v7 specialises the hands -- the right flies (throttle, strafe,
+                vertical) and the left fights -- instead of mirroring roles. That is a
+                deliberate departure from the 2026-09-28 lesson, and is the main thing
+                the first v7 playtest has to judge."}
+    - {profile: akimbo-v7, rule: akimbo-role-mismatch, position: index_4,
+       reason: "v7 specialises the hands -- the right flies (throttle, strafe,
+                vertical) and the left fights -- instead of mirroring roles. That is a
+                deliberate departure from the 2026-09-28 lesson, and is the main thing
+                the first v7 playtest has to judge."}
+    - {profile: akimbo-v7, rule: akimbo-role-mismatch, position: index_side,
+       reason: "v7 specialises the hands -- the right flies (throttle, strafe,
+                vertical) and the left fights -- instead of mirroring roles. That is a
+                deliberate departure from the 2026-09-28 lesson, and is the main thing
+                the first v7 playtest has to judge."}
+    - {profile: akimbo-v7, rule: akimbo-role-mismatch, position: thumb_up,
+       reason: "v7 specialises the hands -- the right flies (throttle, strafe,
+                vertical) and the left fights -- instead of mirroring roles. That is a
+                deliberate departure from the 2026-09-28 lesson, and is the main thing
+                the first v7 playtest has to judge."}
+    - {profile: akimbo-v7, rule: akimbo-role-mismatch, position: thumb_left,
+       reason: "v7 specialises the hands -- the right flies (throttle, strafe,
+                vertical) and the left fights -- instead of mirroring roles. That is a
+                deliberate departure from the 2026-09-28 lesson, and is the main thing
+                the first v7 playtest has to judge."}
+    - {profile: akimbo-v7, rule: akimbo-role-mismatch, position: thumb_right,
+       reason: "v7 specialises the hands -- the right flies (throttle, strafe,
+                vertical) and the left fights -- instead of mirroring roles. That is a
+                deliberate departure from the 2026-09-28 lesson, and is the main thing
+                the first v7 playtest has to judge."}
+    - {profile: akimbo-v7, rule: akimbo-role-mismatch, position: thumb_down,
+       reason: "v7 specialises the hands -- the right flies (throttle, strafe,
+                vertical) and the left fights -- instead of mirroring roles. That is a
+                deliberate departure from the 2026-09-28 lesson, and is the main thing
+                the first v7 playtest has to judge."}
+    - {profile: akimbo-v7, rule: akimbo-role-mismatch, position: thumb_aux_lower,
+       reason: "v7 specialises the hands -- the right flies (throttle, strafe,
+                vertical) and the left fights -- instead of mirroring roles. That is a
+                deliberate departure from the 2026-09-28 lesson, and is the main thing
+                the first v7 playtest has to judge."}
+    - {profile: akimbo-v7-left, rule: duplicate-output-key, key: F4,
+       reason: "Next target is reachable from index_2 and pinky_side on the left unit.
+                Harmless as redundancy; check one of the two was not meant to be a
+                different action."}
+    # --- akimbo v7: imported from the units on 2026-09-28, questions still open ---
+    - {profile: akimbo-v7-left, rule: unbound-key, position: middle_2,
+       reason: "Sends F5. What F5 does in Everspace 2 is not recorded; add an action for
+                it once confirmed and this acknowledgement goes stale."}
+    - {profile: akimbo-v7-left, rule: unbound-key, position: ring_2,
+       reason: "Sends F6. Same as F5 -- unidentified, pending confirmation in game."}
+    - {profile: akimbo-v7-left, rule: unbound-key, position: ring_3,
+       reason: "Sends R. Unidentified in Everspace 2; confirm and add an action."}
+    - {profile: akimbo-v7-left, rule: unbound-key, position: index_3,
+       reason: "Mouse button code 3. Only code 2 (middle) is confirmed; which physical
+                button 3 is, and what it does in game, are both unconfirmed."}
+    - {profile: akimbo-v7-right, rule: unbound-key, position: index_3,
+       reason: "Mouse button code 1, as above -- physical button and in-game action both
+                unconfirmed."}
+    - {profile: akimbo-v7, rule: missing-required,
+       reason: "roll_left and roll_right (Q/E) are bound on neither unit in this layout.
+                Either roll was rebound in game to something the units already send, or
+                it is genuinely unreachable -- confirm before a playtest."}
+    - {profile: single-v5, rule: duplicate-output-key, key: Tab,
+       reason: "Tab reaches the menu from two places (perks double-tap, ULT long-press).
+                Both are menu actions, so there is no combat ambiguity."}
+    - {profile: single-v5, rule: duplicate-output-key, key: KeyI,
+       reason: "Inventory from the ship menu key and from the thumb pad; deliberate."}
+    - {profile: single-v5, rule: combat-tap-delayed, position: thumb_center,
+       reason: "Baseline v5 as shipped: ULT waits 1000 ms for the long-press window.
+                Constraint 4 says this is wrong; fix it in v6 rather than silence it."}
+    - {profile: single-v5, rule: combat-tap-delayed, position: thumb_up,
+       reason: "Baseline v5: weapon cycling delayed 1000 ms by the crafting long-press."}
+    - {profile: single-v5, rule: combat-tap-delayed, position: thumb_down,
+       reason: "Baseline v5: weapon cycling delayed 1000 ms by the inventory long-press."}
+    - {profile: single-v5, rule: combat-tap-delayed, position: thumb_left,
+       reason: "Baseline v5: weapon cycling delayed 1000 ms by the map long-press."}
+    - {profile: single-v5, rule: combat-tap-delayed, position: thumb_right,
+       reason: "Baseline v5: weapon cycling delayed 1000 ms by the data long-press."}
+    - {profile: single-v5, rule: menu-with-combat, position: thumb_center,
+       reason: "Tab on long-press next to the ULT tap. Tab is not Escape, and the pad is
+                not mashed the way a consumable is, but it is on the v6 review list."}
+    - {profile: single-v5, rule: menu-with-combat, position: thumb_up,
+       reason: "Crafting menu long-press shares the key with weapon cycling; v6 review."}
+    - {profile: single-v5, rule: menu-with-combat, position: thumb_down,
+       reason: "Inventory long-press shares the key with weapon cycling; v6 review."}
+    - {profile: single-v5, rule: menu-with-combat, position: thumb_left,
+       reason: "Map long-press shares the key with weapon cycling; v6 review."}
+    - {profile: single-v5, rule: menu-with-combat, position: thumb_right,
+       reason: "Data long-press shares the key with weapon cycling; v6 review."}

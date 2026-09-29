@@ -1,0 +1,12 @@
+build/
+node_modules/
+
+# Hand-authored data, formatted for humans reading a layout. Prettier would reflow the
+# aligned flow mappings in the device pin maps and action tables and make them worse.
+devices/
+genres/
+games/
+templates/
+
+# Generated Azeron import JSON and cheatsheets; byte-for-byte output of the compiler.
+dist/

@@ -1,0 +1,67 @@
+# Shared action vocabulary for space sims / flight games.
+#
+# No keys here on purpose: a genre says which ROLES a game has, a game says which keys
+# they are bound to. A game's actions.yaml starts with `extends: genres/SpaceSims/actions.yaml`
+# and supplies only `key:` / `meta:` / `mouse:` per action.
+#
+# `required` means "must be bound on some unit, or you will reach for the gamepad".
+# `provided_by: sensor` means the unit's own mouse sensor supplies it, so it is excluded
+# from the coverage check.
+genre: SpaceSims
+
+actions:
+  # --- flight axes and attitude -------------------------------------------------
+  throttle_up:        {label: Throttle up,       tags: [movement, required]}
+  throttle_down:      {label: Throttle down,     tags: [movement, required]}
+  strafe_left:        {label: Strafe left,       tags: [movement, required]}
+  strafe_right:       {label: Strafe right,      tags: [movement, required]}
+  roll_left:          {label: Roll left,         tags: [movement, required]}
+  roll_right:         {label: Roll right,        tags: [movement, required]}
+  hover_up:           {label: Vertical thrust up,   tags: [movement, required]}
+  hover_down:         {label: Vertical thrust down, tags: [movement, required]}
+  boost:              {label: Boost,             tags: [movement, required],
+                       note: "Must never latch -- constraint 6."}
+  inertia_dampeners:  {label: Inertia dampeners, tags: [movement, required]}
+  pitch:              {label: Pitch, provided_by: sensor, axis: mouse_y, tags: [movement, required]}
+  yaw:                {label: Yaw,   provided_by: sensor, axis: mouse_x, tags: [movement, required]}
+
+  # --- travel -------------------------------------------------------------------
+  cruise:             {label: Travel drive,      tags: [travel, required]}
+  supralight:         {label: Jump / supralight drive, tags: [travel, required]}
+
+  # --- weapons and targeting ----------------------------------------------------
+  primary_1:          {label: Primary 1,         tags: [combat, required]}
+  primary_2:          {label: Primary 2,         tags: [combat, required]}
+  primary_3:          {label: Primary 3,         tags: [combat]}
+  device_1:           {label: Device 1,          tags: [combat, required]}
+  device_2:           {label: Device 2,          tags: [combat, required]}
+  device_3:           {label: Device 3,          tags: [combat, required]}
+  device_4:           {label: Device 4,          tags: [combat, required]}
+  consume_1:          {label: Consumable 1,      tags: [combat, required]}
+  consume_2:          {label: Consumable 2,      tags: [combat, required]}
+  consume_3:          {label: Consumable 3,      tags: [combat, required]}
+  consume_4:          {label: Consumable 4,      tags: [combat, required]}
+  ultimate:           {label: Ultimate,          tags: [combat, required]}
+  next_target:        {label: Next target,       tags: [combat, required]}
+  lock_target:        {label: Lock target,       tags: [combat, required]}
+  weapon_cycle_up:    {label: Cycle weapon (up),    tags: [combat]}
+  weapon_cycle_down:  {label: Cycle weapon (down),  tags: [combat]}
+  weapon_cycle_left:  {label: Cycle weapon (left),  tags: [combat]}
+  weapon_cycle_right: {label: Cycle weapon (right), tags: [combat]}
+
+  # --- utility ------------------------------------------------------------------
+  interact:           {label: Interact,          tags: [utility, required]}
+  view_ship:          {label: View ship,         tags: [utility]}
+  place_marker:       {label: Place marker,      tags: [utility]}
+
+  # --- menus --------------------------------------------------------------------
+  menu_tab:           {label: Menu,              tags: [menu]}
+  escape_menu:        {label: Escape menu,       tags: [menu],
+                       note: "Constraint 5 -- never on a key that gets mashed in combat."}
+  ship_menu:          {label: Ship,              tags: [menu]}
+  inventory:          {label: Inventory,         tags: [menu]}
+  missions:           {label: Missions,          tags: [menu]}
+  map:                {label: Map,               tags: [menu]}
+  crafting:           {label: Crafting,          tags: [menu]}
+  data_logs:          {label: Data / logs,       tags: [menu]}
+  perks:              {label: Perks,             tags: [menu]}

@@ -1,0 +1,72 @@
+# Everspace 2 -- the in-game key behind each action in the SpaceSims vocabulary.
+#
+# Roles, labels and tags come from genres/SpaceSims/actions.yaml; this file supplies the
+# keys and anything Everspace does differently. Rebinding something in game is a one-line
+# edit here -- no profile changes.
+extends: genres/SpaceSims/actions.yaml
+game: Everspace 2
+
+actions:
+  # --- flight ------------------------------------------------------------------
+  throttle_up:        {key: KeyW}
+  throttle_down:      {key: KeyS}
+  strafe_left:        {key: KeyA}
+  strafe_right:       {key: KeyD}
+  roll_left:          {key: KeyQ}
+  roll_right:         {key: KeyE}
+  hover_up:           {key: F9,  label: Hover up}
+  hover_down:         {key: F10, label: Hover down}
+  boost:              {meta: ShiftLeft}
+  inertia_dampeners:  {meta: AltLeft}
+
+  # --- travel ------------------------------------------------------------------
+  cruise:             {key: KeyF, label: Cruise drive}
+  supralight:         {key: KeyC, label: Supralight drive}
+
+  # --- combat ------------------------------------------------------------------
+  primary_1:          {key: F1}
+  primary_2:          {key: F2}
+  primary_3:          {key: F3,
+                       note: "Not bound on any unit in v5; bind it before marking required."}
+  device_1:           {key: Digit1}
+  device_2:           {key: Digit2}
+  device_3:           {key: Digit3}
+  device_4:           {key: Digit4}
+  consume_1:          {key: Digit5}
+  consume_2:          {key: Digit6}
+  consume_3:          {key: Digit7}
+  consume_4:          {key: Digit8}
+  ultimate:           {key: KeyG}
+  next_target:        {key: F4}
+  lock_target:        {mouse: middle}
+
+  # The arrow keys are rebound to weapon cycling, so the game default (pitch and yaw on
+  # the arrows) must be left unbound in game.
+  # OPEN QUESTION: the v5 key labels disagree about which arrow does what -- Left reads
+  # "Previous Sec" while Right reads "Next Primary". Confirm each arrow in game.
+  weapon_cycle_up:    {key: ArrowUp}
+  weapon_cycle_down:  {key: ArrowDown}
+  weapon_cycle_left:  {key: ArrowLeft}
+  weapon_cycle_right: {key: ArrowRight}
+
+  # --- utility -----------------------------------------------------------------
+  interact:           {key: KeyF, label: Interact / fling,
+                       note: "Shares F with cruise in game; see duplicate_key_allowlist."}
+  view_ship:          {key: KeyV}
+  place_marker:       {key: Equal}
+
+  # --- menus -------------------------------------------------------------------
+  menu_tab:           {key: Tab}
+  escape_menu:        {key: Escape}
+  ship_menu:          {key: KeyO}
+  inventory:          {key: KeyI}
+  missions:           {key: KeyK}
+  map:                {key: KeyM}
+  crafting:           {key: KeyU}
+  data_logs:          {key: KeyL}
+  perks:              {key: KeyJ}
+
+# Two actions may deliberately send the same key in game.
+duplicate_key_allowlist:
+  - {key: KeyF, actions: [interact, cruise],
+     reason: "Everspace 2 uses F for both; the game picks by context."}

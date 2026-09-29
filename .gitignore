@@ -1,0 +1,12 @@
+node_modules/
+build/
+coverage/
+*.tsbuildinfo
+
+# Regenerate with `npm run azeron -- editor`; it embeds the whole payload, so committing
+# it would churn a 250 KB blob on every data change. dist/*.json IS committed.
+dist/editor.html
+
+# Diagnostic artifacts, regenerated with `azeron probe`. The profiles in dist/ are the
+# things worth having in history; these are tools.
+dist/probe/

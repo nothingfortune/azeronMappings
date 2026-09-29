@@ -1,0 +1,88 @@
+/**
+ * Regression fixture: templates/everspace2-v5.json, a known-good export.
+ *
+ * The compiler must reproduce it exactly. A divergence means a field is being rewritten
+ * that the compiler does not model.
+ */
+
+import { describe, expect, it } from "vitest";
+
+import { compileProfile } from "../../../src/lib/compile.js";
+import { decompile } from "../../../src/lib/decompile.js";
+import { loadProfile, loadTemplate } from "../../../src/lib/io.js";
+import { Game } from "../../../src/lib/model.js";
+import { Profile } from "../../../src/lib/model-core.js";
+
+const GOLDEN = "templates/everspace2-v5.json";
+const SINGLE_V5 = "games/SpaceSims/everspace/profiles/single-v5.yaml";
+
+function fixture() {
+  const game = new Game("games/SpaceSims/everspace");
+  const profile = loadProfile(SINGLE_V5, game);
+  const template = loadTemplate(GOLDEN);
+  return { game, profile, template };
+}
+
+describe("compileProfile", () => {
+  it("reproduces the export byte for byte", () => {
+    const { game, profile, template } = fixture();
+    const built = compileProfile(profile, { template, actions: game.actions.actions });
+    const expected = { ...template, profiles: [template.profiles[0]] };
+    expect(JSON.stringify(built)).toBe(JSON.stringify(expected));
+  });
+
+  it("is idempotent through a decompile", () => {
+    const { game, profile, template } = fixture();
+    const first = compileProfile(profile, { template, actions: game.actions.actions });
+    const data = decompile(first, profile.device, { actions: game.actions });
+    const rebuilt = new Profile(data, profile.device, { path: profile.path, game });
+    const second = compileProfile(rebuilt, { template, actions: game.actions.actions });
+    expect(JSON.stringify(second)).toBe(JSON.stringify(first));
+  });
+
+  it("leaves unidentified pins and unused slots exactly as the template had them", () => {
+    const { game, profile, template } = fixture();
+    const built = compileProfile(profile, { template, actions: game.actions.actions });
+    const golden = loadTemplate(GOLDEN).profiles[0];
+    const byId = new Map(golden?.inputs.map((record) => [record.id, record]));
+    const untouched = built.profiles[0]?.inputs.filter(
+      (record) => profile.device.unknownPins.has(record.pinOne) || record.pinOne === 255,
+    );
+    expect(untouched?.length).toBeGreaterThan(0);
+    for (const record of untouched ?? []) {
+      expect(JSON.stringify(record)).toBe(JSON.stringify(byId.get(record.id)));
+    }
+  });
+
+  it("refuses a stick mode it cannot encode rather than guessing", () => {
+    const { game, profile, template } = fixture();
+    const data = structuredClone(profile.data);
+    const stick = data.positions.stick;
+    if (stick) {
+      stick.mode = "gamepad";
+      delete stick.raw;
+    }
+    const mutated = new Profile(data, profile.device, { path: profile.path, game });
+    expect(() => compileProfile(mutated, { template, actions: game.actions.actions })).toThrow(
+      /no known type code/,
+    );
+  });
+});
+
+describe("decompile", () => {
+  it("reproduces the checked-in YAML for the golden profile", () => {
+    const { game, profile, template } = fixture();
+    const data = decompile(template, profile.device, {
+      actions: game.actions,
+      meta: {
+        golden: true,
+        ...(profile.meta.set === undefined ? {} : { set: profile.meta.set }),
+        ...(profile.meta.template === undefined ? {} : { template: profile.meta.template }),
+        ...(profile.meta.output === undefined ? {} : { output: profile.meta.output }),
+      },
+    });
+    expect(JSON.parse(JSON.stringify(data.positions))).toEqual(
+      JSON.parse(JSON.stringify(profile.positions)),
+    );
+  });
+});
