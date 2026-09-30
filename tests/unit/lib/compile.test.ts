@@ -8,6 +8,19 @@
 import { describe, expect, it } from "vitest";
 
 import { compileProfile } from "../../../src/lib/compile.js";
+import * as keys from "../../../src/lib/keys.js";
+import { removeKey } from "../../../src/lib/object.js";
+import type { InputRecord } from "../../../src/types/azeron.js";
+import {
+  DEFAULT_DOUBLE_DELAY,
+  DEFAULT_FEATURE_DELAY,
+  HOLD_FIELDS,
+  SLOTS,
+  SLOT_FIELDS,
+  TURBO_FIELDS,
+  TURBO_INTERVAL_FIELDS,
+  TYPE_NONE,
+} from "../../../src/types/azeron.js";
 import { decompile } from "../../../src/lib/decompile.js";
 import { loadProfile, loadTemplate } from "../../../src/lib/io.js";
 import { Game } from "../../../src/lib/model.js";
@@ -115,9 +128,20 @@ describe("turbo", () => {
   });
 
   it("leaves it off everywhere it is not asked for", () => {
-    const doc = withTurbo(() => undefined);
+    // The template is given a repeat on every record first. Without that the sweep
+    // passed against a compiler that never wrote the field and one that never cleared it.
+    const { game, profile, template } = fixture();
+    const loaded = structuredClone(template);
+    for (const record of loaded.profiles[0]?.inputs ?? []) {
+      record.isTurbo = true;
+      record.turboInterval = 60;
+    }
+    const doc = compileProfile(profile, { template: loaded, actions: game.actions.actions });
     for (const record of doc.profiles[0]?.inputs ?? []) {
-      expect(record.isTurbo, `pin ${String(record.pinOne)}`).toBeFalsy();
+      // An unidentified pin keeps whatever the template had; the rest are cleared.
+      if (profile.device.unknownPins.has(record.pinOne) || record.pinOne === 255) continue;
+      expect(record.isTurbo, `pin ${String(record.pinOne)}`).toBe(false);
+      expect(record.turboInterval, `pin ${String(record.pinOne)}`).toBe(0);
     }
   });
 
@@ -165,5 +189,105 @@ describe("the unit's optical sensor", () => {
 
   it("refuses a DPI the profile has no step for", () => {
     expect(() => built({ dpi: 1234 })).toThrow(/not one of this profile's steps/);
+  });
+});
+
+describe("neutralizing what the profile no longer says", () => {
+  /**
+   * The byte-for-byte contract above cannot see this. The golden template happens to
+   * carry no repeat, no latch and no non-default delay, and applying a position only ever
+   * sets fields -- so a compiler that neutralized nothing at all would still reproduce
+   * the fixture exactly. What neutralizing is for is the opposite case: a template that
+   * does carry state, and a profile that has stopped asking for it. Left behind, that
+   * state is a key still firing on the hardware after the binding was deleted.
+   */
+  const PIN = "pinky_1";
+
+  function compileWith(
+    changeTemplate: (record: InputRecord) => void,
+    changeData: (data: ReturnType<typeof fixture>["profile"]["data"]) => void = () => undefined,
+  ) {
+    const { game, profile, template } = fixture();
+    const pin = profile.device.positions[PIN]?.pin;
+    if (pin === undefined) throw new Error(`the device has no ${PIN}`);
+    const loaded = structuredClone(template);
+    const record = loaded.profiles[0]?.inputs.find((input) => input.pinOne === pin);
+    if (!record) throw new Error(`the template has no record for pin ${String(pin)}`);
+    changeTemplate(record);
+
+    const data = structuredClone(profile.data);
+    changeData(data);
+    const mutated = new Profile(data, profile.device, { path: profile.path, game });
+    const built = compileProfile(mutated, { template: loaded, actions: game.actions.actions });
+    const out = built.profiles[0]?.inputs.find((input) => input.pinOne === pin);
+    if (!out) throw new Error("the compiled profile lost the record");
+    return out;
+  }
+
+  it("blanks a position the profile has stopped mentioning", () => {
+    const record = compileWith(
+      () => undefined,
+      (data) => {
+        removeKey(data.positions, PIN);
+      },
+    );
+    expect(record.types).toEqual([TYPE_NONE, TYPE_NONE, TYPE_NONE]);
+    for (const slot of SLOTS) {
+      const [keyField, metaField] = SLOT_FIELDS[slot];
+      expect((record[keyField] as string[])[0], `${slot} key`).toBe(keys.NONE_TOKEN);
+      expect((record[metaField] as string[])[0], `${slot} meta`).toBe(keys.NONE_TOKEN);
+    }
+    expect(record.label).toBeUndefined();
+  });
+
+  it("clears a repeat the template carried and the profile does not ask for", () => {
+    const record = compileWith((template) => {
+      template.isTurbo = true;
+      template.turboInterval = 60;
+      template.isTurboLong = true;
+      template.turboIntervalLong = 80;
+    });
+    // pinky_1 is still bound -- only the repeat is gone.
+    expect(record.types[0]).not.toBe(TYPE_NONE);
+    for (const slot of SLOTS) {
+      expect(record[TURBO_FIELDS[slot]], slot).toBe(false);
+      expect(record[TURBO_INTERVAL_FIELDS[slot]], slot).toBe(0);
+    }
+  });
+
+  it("unlatches a key the template latched", () => {
+    const record = compileWith((template) => {
+      template.isHold = true;
+      template.isHoldLong = true;
+      template.isHoldDouble = true;
+    });
+    for (const slot of SLOTS) expect(record[HOLD_FIELDS[slot]], slot).toBe(false);
+  });
+
+  it("puts a delay the template carried back to the default", () => {
+    const record = compileWith((template) => {
+      template.featureDelay = 1234;
+      template.doubleDelay = 999;
+    });
+    expect(record.featureDelay).toBe(DEFAULT_FEATURE_DELAY);
+    expect(record.doubleDelay).toBe(DEFAULT_DOUBLE_DELAY);
+  });
+
+  // Not neutralizing -- applyStick zeroes an unnamed direction itself. Pinned here
+  // because it is the same guarantee from the other side, and nothing else asserts it.
+  it("zeroes a stick direction the profile no longer names", () => {
+    const { game, profile, template } = fixture();
+    const pin = profile.device.positions.stick?.pin;
+    if (pin === undefined) throw new Error("the device has no stick");
+    const data = structuredClone(profile.data);
+    const stick = data.positions.stick;
+    if (!stick?.directions) throw new Error("the fixture's stick has no directions");
+    removeKey(stick.directions, "left");
+    const mutated = new Profile(data, profile.device, { path: profile.path, game });
+    const built = compileProfile(mutated, { template, actions: game.actions.actions });
+    const record = built.profiles[0]?.inputs.find((input) => input.pinOne === pin);
+    expect(record?.analogSettings?.analogKeys.left.left[0]).toBe(0);
+    // The directions it still names are untouched.
+    expect(record?.analogSettings?.analogKeys.left.up[0]).not.toBe(0);
   });
 });
