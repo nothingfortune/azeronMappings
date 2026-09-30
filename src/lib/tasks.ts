@@ -9,7 +9,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { repoPath } from "../config/paths.js";
+import { hostPath, repoPath } from "../config/paths.js";
 import type { ExportDocument } from "../types/azeron.js";
 import type { ProfileMeta } from "../types/profile.js";
 import { compileProfile, dumps } from "./compile.js";
@@ -25,6 +25,7 @@ import {
 import type { Comparison, IngameChange } from "./ingame.js";
 import { loadDevice, loadTemplate, writeText } from "./io.js";
 import { ERROR, WARNING, formatFinding, lintGame, lintGenre } from "./lint.js";
+import type { Finding } from "./lint.js";
 import { Game, Genre } from "./model.js";
 import type { Profile } from "./model-core.js";
 
@@ -298,4 +299,55 @@ export function profilePathFor(game: Game, setName: string, unit: string): strin
 
 export function templatePathFor(game: Game, setName: string, unit: string): string {
   return join("templates", `${game.slug}-${setName}-${unit}.json`);
+}
+
+export interface CheckedBuild {
+  /** Repo-relative. */
+  output: string;
+  /** The same file as the Azeron app's import dialog would take it. */
+  importPath: string;
+  mirroredTo?: string;
+  changed: boolean;
+}
+
+export interface SaveCheck {
+  /** The game the saved file belongs to, or null when it is shared (a device map). */
+  game: string | null;
+  built: CheckedBuild[];
+  /** Live errors and warnings for that game -- not every game's, joined into one line. */
+  findings: Finding[];
+  buildErrors: string[];
+}
+
+/**
+ * What a save means for the game it touched: rebuild, then lint.
+ *
+ * The file has already been written by the time this runs, so nothing here can make a
+ * save not have happened -- a failure is reported as a finding on a saved file. Scoped to
+ * the saved file's game, because a list of another game's errors after saving this one
+ * says nothing about whether this one is right.
+ */
+export function checkAfterSave(
+  path: string,
+  games: readonly Game[],
+  /** Compare against dist/ instead of writing it -- for callers that must not touch it. */
+  checkOnly = false,
+): SaveCheck {
+  const owner = games.find((game) => path.startsWith(`${game.rel}/`));
+  const scope = owner ? [owner] : games;
+  const build = buildAll(scope, checkOnly);
+  const findings = scope.flatMap((game) =>
+    lintGame(game).live.filter((finding) => finding.level === ERROR || finding.level === WARNING),
+  );
+  return {
+    game: owner?.slug ?? null,
+    built: build.built.map((entry) => ({
+      output: entry.output,
+      importPath: hostPath(repoPath(entry.output)),
+      ...(entry.mirroredTo === undefined ? {} : { mirroredTo: hostPath(entry.mirroredTo) }),
+      changed: entry.changed,
+    })),
+    findings,
+    buildErrors: build.errors,
+  };
 }

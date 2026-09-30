@@ -57,7 +57,11 @@ select, .btn {
             color: var(--muted); font-size: 11.5px; margin-top: 6px; }
 .dropzone.over { border-color: var(--accent); color: var(--fg); background: var(--bg); }
 .save-note { padding: 6px 16px; background: var(--panel); border-bottom: 1px solid var(--line);
-             font-size: 12px; color: var(--muted); }
+             font-size: 12px; color: var(--muted); display: flex; gap: 12px; align-items: flex-start; }
+.save-report { flex: 1; display: grid; gap: 4px; min-width: 0; }
+.save-report .finding { overflow-wrap: anywhere; }
+.save-report .import-path code { user-select: all; overflow-wrap: anywhere; color: var(--fg); }
+.save-note .dismiss { flex: none; }
 .workspace.single { display: block; }
 .panel.inset { background: var(--bg); margin-bottom: 12px; }
 .workspace.wide { grid-template-columns: minmax(0, 1fr); }

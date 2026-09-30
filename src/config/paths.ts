@@ -19,3 +19,17 @@ export const dataDirs = {
   /** Compiled Azeron import JSON and cheatsheets. Committed; not the TypeScript build. */
   dist: "dist",
 } as const;
+
+/**
+ * A path as the machine the Azeron app runs on would write it.
+ *
+ * The app is Windows-only, so a file it has to import is picked in a Windows dialog. From
+ * WSL the repo is under /mnt/c/..., which that dialog cannot take; the same file is
+ * C:\\... there. Anything else passes through.
+ */
+export function hostPath(path: string): string {
+  const mounted = /^\/mnt\/([a-z])\/(.*)$/.exec(path);
+  if (!mounted) return path;
+  const [, drive = "c", rest = ""] = mounted;
+  return `${drive.toUpperCase()}:\\${rest.replace(/\//g, "\\")}`;
+}

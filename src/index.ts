@@ -2,6 +2,7 @@
 /** azeron -- build, decompile, lint, cheatsheet, editor, install. */
 
 import { createServer } from "node:http";
+import type { IncomingMessage, ServerResponse } from "node:http";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { parseArgs } from "node:util";
@@ -23,6 +24,8 @@ import {
 import { loadDevice, loadTemplate, writeText } from "./lib/io.js";
 import { buildProbeProfile, buildStickCalibrationProfile } from "./lib/probe.js";
 import { gameConfig, seedActions, unnamedPositions } from "./lib/scaffold.js";
+import { patchActionBindings } from "./lib/actionfile.js";
+import type { BindingChange } from "./lib/actionfile.js";
 import {
   CONTENT_TYPES,
   SaveRejected,
@@ -35,11 +38,12 @@ import {
   ImportCollision,
   importExport,
   applyIngame,
+  checkAfterSave,
   ingameReport,
-  lintAll,
   profilePathFor,
   templatePathFor,
 } from "./lib/tasks.js";
+import type { SaveCheck } from "./lib/tasks.js";
 import type { ExportDocument } from "./types/azeron.js";
 import { dumpYaml } from "./lib/yaml.js";
 import { ERROR, WARNING, formatFinding, lintGame, lintGenre } from "./lib/lint.js";
@@ -394,6 +398,30 @@ function cmdIngame(
   return failures > 0 ? 1 : 0;
 }
 
+/** Read a request body, refusing one over `limit` with a reply rather than a dropped socket. */
+function readBody(
+  request: IncomingMessage,
+  response: ServerResponse,
+  limit: number,
+  handle: (body: string) => void,
+): void {
+  let body = "";
+  let refused = false;
+  request.on("data", (chunk: Buffer) => {
+    if (refused) return;
+    body += chunk.toString("utf8");
+    if (body.length > limit) {
+      refused = true;
+      response.writeHead(413, { "content-type": "application/json" });
+      response.end(JSON.stringify({ ok: false, error: `request over ${String(limit)} bytes` }));
+      request.resume();
+    }
+  });
+  request.on("end", () => {
+    if (!refused) handle(body);
+  });
+}
+
 /** Serve the editor and let it write back into the repo. */
 function cmdServe(port: number): number {
   const bundle = readBundle("editor-app.js");
@@ -429,8 +457,9 @@ function cmdServe(port: number): number {
     if (request.method === "GET" && url.startsWith("/api/ingame")) {
       const slug = new URL(url, "http://localhost").searchParams.get("game");
       try {
-        const game = games(slug ?? undefined)[0];
-        if (!game) throw new Error("no such game");
+        if (!slug) throw new Error("name a game: /api/ingame?game=<slug>");
+        const game = games(slug)[0];
+        if (!game) throw new Error(`no game '${slug}'`);
         send(200, JSON.stringify({ ok: true, report: ingameReport(game) }));
       } catch (error) {
         send(400, JSON.stringify({ ok: false, error: (error as Error).message }));
@@ -438,12 +467,7 @@ function cmdServe(port: number): number {
       return;
     }
     if (request.method === "POST" && (url === "/api/build" || url === "/api/import")) {
-      let body = "";
-      request.on("data", (chunk: Buffer) => {
-        body += chunk.toString("utf8");
-        if (body.length > 20_000_000) request.destroy();
-      });
-      request.on("end", () => {
+      readBody(request, response, 20_000_000, (body) => {
         try {
           if (url === "/api/build") {
             const result = buildAll(Game.discover());
@@ -482,13 +506,55 @@ function cmdServe(port: number): number {
       });
       return;
     }
-    if (request.method === "POST" && url === "/api/save") {
-      let body = "";
-      request.on("data", (chunk: Buffer) => {
-        body += chunk.toString("utf8");
-        if (body.length > 2_000_000) request.destroy();
+    if (request.method === "POST" && url === "/api/actions") {
+      // Keys only, patched line by line. The path is the game's own, derived here -- the
+      // page names a game, never a file.
+      readBody(request, response, 200_000, (body) => {
+        try {
+          const parsed = JSON.parse(body) as {
+            game?: string;
+            changes?: Record<string, BindingChange>;
+          };
+          if (!parsed.game || !parsed.changes) throw new Error("needs game and changes");
+          const game = games(parsed.game)[0];
+          if (!game) throw new Error(`no game '${parsed.game}'`);
+          const path = join(game.rel, "actions.yaml");
+          const text = readFileSync(repoPath(path), "utf8");
+          writeFileSync(repoPath(path), patchActionBindings(text, parsed.changes), "utf8");
+          invalidate();
+          send(
+            200,
+            JSON.stringify({
+              ok: true,
+              saved: true,
+              path,
+              check: checkAfterSave(path, Game.discover()),
+            }),
+          );
+        } catch (error) {
+          send(400, JSON.stringify({ ok: false, error: (error as Error).message }));
+        }
       });
-      request.on("end", () => {
+      return;
+    }
+    if (request.method === "POST" && url === "/api/ingame/apply") {
+      readBody(request, response, 10_000, (body) => {
+        try {
+          const parsed = JSON.parse(body) as { game?: string };
+          if (!parsed.game) throw new Error("needs game");
+          const game = games(parsed.game)[0];
+          if (!game) throw new Error(`no game '${parsed.game}'`);
+          const result = applyIngame(game, { write: true, toGame: true });
+          invalidate();
+          send(200, JSON.stringify({ ok: true, result }));
+        } catch (error) {
+          send(400, JSON.stringify({ ok: false, error: (error as Error).message }));
+        }
+      });
+      return;
+    }
+    if (request.method === "POST" && url === "/api/save") {
+      readBody(request, response, 2_000_000, (body) => {
         try {
           const { path, content } = parseSaveRequest(body);
           const target = resolveSavePath(repoRoot, path);
@@ -497,24 +563,14 @@ function cmdServe(port: number): number {
           writeFileSync(target, preserveHeader(existing, content), "utf8");
           invalidate();
 
-          // The point of saving into the repo is getting the verdict back, and dist/
-          // should not lag behind what was just written.
-          let verdict = "saved";
+          // The file is written. What follows is the verdict on it, not a condition of it.
+          let check: SaveCheck | { error: string };
           try {
-            const discovered = Game.discover();
-            const summaries = lintAll(discovered, Genre.discover());
-            const errors = summaries.flatMap((summary) => summary.errors);
-            const build = buildAll(discovered);
-            const changed = build.built.filter((entry) => entry.changed).length;
-            verdict =
-              errors.length > 0
-                ? `lint: ${errors.join(" | ")}`
-                : `saved, rebuilt ${String(changed)} profile(s), lint clean`;
-            if (build.errors.length > 0) verdict = `build: ${build.errors.join(" | ")}`;
+            check = checkAfterSave(path, Game.discover());
           } catch (error) {
-            verdict = `saved, but reloading failed: ${(error as Error).message}`;
+            check = { error: (error as Error).message };
           }
-          send(200, JSON.stringify({ ok: true, path, verdict }));
+          send(200, JSON.stringify({ ok: true, saved: true, path, check }));
         } catch (error) {
           const rejected = error instanceof SaveRejected;
           send(

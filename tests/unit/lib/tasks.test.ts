@@ -8,10 +8,11 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-import { repoPath } from "../../../src/config/paths.js";
+import { hostPath, repoPath } from "../../../src/config/paths.js";
 import { loadTemplate } from "../../../src/lib/io.js";
 import {
   buildAll,
+  checkAfterSave,
   ImportCollision,
   importExport,
   ingameReport,
@@ -110,5 +111,44 @@ describe("importExport refusing to overwrite", () => {
       before,
     );
     expect(readFileSync(repoPath("templates/everspace2-v5.json"))).toEqual(template);
+  });
+});
+
+describe("checkAfterSave", () => {
+  // Check-only: a test has no business rewriting dist/, even with identical bytes.
+  const all = games();
+
+  it("reports on the game the saved file belongs to, not every game", () => {
+    const check = checkAfterSave("games/SpaceSims/everspace/profiles/x.yaml", all, true);
+    expect(check.game).toBe("everspace");
+    const everspace = all.find((game) => game.slug === "everspace");
+    expect(check.built.every((entry) => entry.output.startsWith(everspace?.distDir() ?? "?"))).toBe(
+      true,
+    );
+  });
+
+  it("gives each built file as the Azeron app's import dialog would take it", () => {
+    const check = checkAfterSave("games/SpaceSims/everspace/profiles/x.yaml", all, true);
+    for (const entry of check.built) {
+      expect(entry.importPath.endsWith(entry.output.split("/").pop() ?? "?")).toBe(true);
+      expect(entry.importPath.startsWith("/mnt/")).toBe(false);
+    }
+  });
+
+  it("checks every game for a file they share, such as a device map", () => {
+    expect(checkAfterSave("devices/cyborg2-left.yaml", all, true).game).toBeNull();
+  });
+});
+
+describe("hostPath", () => {
+  it("turns a WSL mount into the Windows path the app's dialog needs", () => {
+    expect(hostPath("/mnt/c/Users/there/repo/dist/a.json")).toBe(
+      "C:\\Users\\there\\repo\\dist\\a.json",
+    );
+  });
+
+  it("leaves any other path alone", () => {
+    expect(hostPath("C:\\Users\\there")).toBe("C:\\Users\\there");
+    expect(hostPath("/home/alex/repo")).toBe("/home/alex/repo");
   });
 });

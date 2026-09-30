@@ -520,11 +520,20 @@ function renderPalette(): HTMLElement {
 /**
  * Whether there are edits that only exist in the page.
  *
- * `state.working` holds a copy per profile the moment one is touched, so its size is the
- * honest answer -- there is nothing to lose until something has been edited.
+ * A working copy is made the first time a profile is read, and every render reads, so
+ * having one says nothing -- the page would call itself dirty the moment it drew. Each
+ * copy is compared with what the page loaded instead.
  */
 function isDirty(): boolean {
-  return state.working.size > 0;
+  const game = currentGame();
+  for (const [slug, data] of state.working) {
+    const source = game.profiles.find((profile) => profile.slug === slug);
+    if (!source || JSON.stringify(source.data) !== JSON.stringify(data)) return true;
+  }
+  return (
+    state.workingActions !== null &&
+    JSON.stringify(state.workingActions) !== JSON.stringify(game.actions.actions ?? {})
+  );
 }
 
 /** Ask before throwing edits away. Returns false when the user would rather not. */
@@ -694,7 +703,11 @@ function renderChecks(): HTMLElement {
   panel.append(box);
   panel.append(
     el("div", { class: "field muted" }, [
-      el("small", {}, ["Same rules as `azeron lint`. Run it after pasting the YAML back."]),
+      el("small", {}, [
+        canSave()
+          ? "Same rules as `azeron lint`. Saving runs them and rebuilds."
+          : "Same rules as `azeron lint`. Run it after copying the YAML back into the repo.",
+      ]),
     ]),
   );
   return panel;
@@ -713,8 +726,75 @@ function canSave(): boolean {
 
 let saveNote: string | null = null;
 
-async function saveToRepo(path: string, content: string): Promise<void> {
+/** What the server said about a save, beyond the headline. Cleared by the next save. */
+let saveReport: HTMLElement | null = null;
+
+interface SaveResponse {
+  ok: boolean;
+  error?: string;
+  check?:
+    | {
+        game: string | null;
+        built: { output: string; importPath: string; mirroredTo?: string; changed: boolean }[];
+        findings: Finding[];
+        buildErrors: string[];
+      }
+    | { error: string };
+}
+
+/**
+ * The verdict, laid out so the first thing read is whether the file landed.
+ *
+ * A save is written before it is checked, so a lint error never means the file is not
+ * there -- it used to arrive as one line of every game's errors joined together, which
+ * said neither.
+ */
+function reportSave(path: string, result: SaveResponse): HTMLElement {
+  const box = el("div", { class: "save-report" });
+  const check = result.check;
+  if (!check || "error" in check) {
+    box.append(
+      el("div", {}, [`Saved ${path}, but checking it failed: ${check?.error ?? "no reply"}`]),
+    );
+    return box;
+  }
+  const changed = check.built.filter((entry) => entry.changed);
+  box.append(el("div", {}, [`Saved ${path}.`]));
+  if (changed.length > 0) {
+    box.append(el("div", {}, ["Import in the Azeron app, then write it to the unit:"]));
+    for (const entry of changed) {
+      const row = el("div", { class: "import-path" }, [el("code", {}, [entry.importPath])]);
+      if (entry.mirroredTo) row.append(el("small", {}, [` also copied to ${entry.mirroredTo}`]));
+      box.append(row);
+    }
+  } else {
+    box.append(
+      el("div", { class: "muted" }, ["Nothing to re-import: the compiled file is unchanged."]),
+    );
+  }
+  for (const message of check.buildErrors) {
+    box.append(el("div", { class: "finding error" }, [`build: ${message}`]));
+  }
+  if (check.findings.length === 0) {
+    box.append(el("div", { class: "finding" }, ["Lint clean."]));
+  }
+  for (const finding of check.findings) {
+    const item = el("div", { class: `finding ${finding.level}` });
+    const where = [finding.profile, finding.position ?? finding.key].filter(Boolean).join(":");
+    item.append(el("b", {}, [`${finding.rule} · ${where}`]));
+    item.append(document.createTextNode(finding.message));
+    box.append(item);
+  }
+  return box;
+}
+
+async function saveToRepo(
+  path: string,
+  content: string,
+  onSaved: () => void = () => undefined,
+): Promise<void> {
   saveNote = `saving ${path}...`;
+  saveReport = null;
   render();
   try {
     const response = await fetch("/api/save", {
@@ -722,12 +802,16 @@ async function saveToRepo(path: string, content: string): Promise<void> {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ path, content }),
     });
-    const result = (await response.json()) as { ok: boolean; verdict?: string; error?: string };
-    saveNote = result.ok
-      ? `${path} — ${result.verdict ?? "saved"}`
-      : `refused: ${result.error ?? ""}`;
+    const result = (await response.json()) as SaveResponse;
+    if (result.ok) {
+      saveNote = null;
+      saveReport = reportSave(path, result);
+      onSaved();
+    } else {
+      saveNote = `not saved: ${result.error ?? "the server refused it"}`;
+    }
   } catch (error) {
-    saveNote = `could not reach the server: ${(error as Error).message}`;
+    saveNote = `not saved -- could not reach the server: ${(error as Error).message}`;
   }
   render();
 }
@@ -742,12 +826,62 @@ function download(name: string, text: string, type: string): void {
   URL.revokeObjectURL(url);
 }
 
+/**
+ * Save the in-game keys that changed, and only those.
+ *
+ * The server patches each action's line in place, so actions.yaml keeps its `extends:`,
+ * its allowlist and its comments. Regenerating it lost all three.
+ */
+async function saveActionKeys(game: EditorGame): Promise<void> {
+  const loaded = game.actions.actions ?? {};
+  const edited = state.workingActions ?? {};
+  const changes: Record<string, { key?: string | null; meta?: string | null }> = {};
+  for (const [id, spec] of Object.entries(edited)) {
+    const before = loaded[id] ?? {};
+    const change: { key?: string | null; meta?: string | null } = {};
+    if ((spec.key ?? null) !== (before.key ?? null)) change.key = spec.key ?? null;
+    if ((spec.meta ?? null) !== (before.meta ?? null)) change.meta = spec.meta ?? null;
+    if (Object.keys(change).length > 0) changes[id] = change;
+  }
+  if (Object.keys(changes).length === 0) {
+    saveNote = "Nothing to save: no in-game key has changed.";
+    saveReport = null;
+    render();
+    return;
+  }
+  const path = `${game.rel}/actions.yaml`;
+  saveNote = `saving ${path}...`;
+  saveReport = null;
+  render();
+  try {
+    const result = await post<SaveResponse>("/api/actions", { game: game.slug, changes });
+    if (result.ok) {
+      saveNote = null;
+      saveReport = reportSave(path, result);
+      saveReport.append(
+        el("div", {}, [
+          "The game does not know yet. Apply it from the Repo tab with the game closed.",
+        ]),
+      );
+      game.actions.actions = structuredClone(edited);
+    } else {
+      saveNote = `not saved: ${result.error ?? "the server refused it"}`;
+    }
+  } catch (error) {
+    saveNote = `not saved -- could not reach the server: ${(error as Error).message}`;
+  }
+  render();
+}
+
 function exportYaml(slug: string): void {
   // No header: the server keeps whatever the file already had.
   const yaml = dumpProfile(workingData(slug), "");
   const source = currentGame().profiles.find((profile) => profile.slug === slug);
   if (canSave() && source) {
-    void saveToRepo(source.path, yaml);
+    const saved = structuredClone(workingData(slug));
+    void saveToRepo(source.path, yaml, () => {
+      source.data = saved;
+    });
     return;
   }
   download(`${slug}.yaml`, yaml, "text/yaml");
@@ -832,7 +966,7 @@ function renderHeader(): HTMLElement {
     yaml.addEventListener("click", () => {
       exportYaml(slug);
     });
-    const json = el("button", { class: "btn primary", type: "button" }, [`Import JSON ${unit}`]);
+    const json = el("button", { class: "btn primary", type: "button" }, [`Download ${unit} JSON`]);
     json.addEventListener("click", () => {
       exportJson(slug);
     });
@@ -969,15 +1103,20 @@ function renderInGame(): HTMLElement {
     canSave() ? "Save actions.yaml" : "Export actions.yaml",
   ]);
   save.addEventListener("click", () => {
-    const header =
-      `# ${game.name} -- every action and the in-game key it is bound to.\n` +
-      "# Edited in the editor; save this over the game's actions.yaml and rebuild.\n";
-    const yaml = dumpYaml({ game: game.name, actions: actionSetFor(game).actions }, header);
     if (canSave()) {
-      void saveToRepo(`${game.rel}/actions.yaml`, yaml);
+      void saveActionKeys(game);
       return;
     }
-    download("actions.yaml", yaml, "text/yaml");
+    // Offline there is no file to patch, so this is the whole vocabulary, flattened. It says
+    // so, because pasting it over the real file would lose `extends:` and the allowlist.
+    const header =
+      `# ${game.name} -- every action and the in-game key it is bound to, flattened.\n` +
+      "# Copy the keys you changed into the game's actions.yaml; do not replace the file.\n";
+    download(
+      "actions.yaml",
+      dumpYaml({ game: game.name, actions: actionSetFor(game).actions }, header),
+      "text/yaml",
+    );
   });
   panel.append(save);
   return panel;
@@ -1092,13 +1231,16 @@ let repoNote: string | null = null;
 let ingameRows: IngameRow[] | null = null;
 let ingameCollisions: { key: string; actions: string[] }[] = [];
 
-async function post(path: string, body: unknown): Promise<Record<string, unknown>> {
+async function post<T extends object = Record<string, unknown>>(
+  path: string,
+  body: unknown,
+): Promise<T & { status: number }> {
   const response = await fetch(path, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   });
-  const parsed = (await response.json()) as Record<string, unknown>;
+  const parsed = (await response.json()) as T;
   // The status carries meaning the body does not: 409 is a name already in use, which the
   // user can resolve, as against a request that was simply wrong.
   return { ...parsed, status: response.status };
@@ -1212,7 +1354,7 @@ function renderRepo(): HTMLElement {
           repoNote =
             result.ok === true
               ? `wrote ${String(result.profilePath)} (${String(result.positions)} positions) ` +
-                `and kept the export at ${String(result.templatePath)}. Reload to see it.`
+                `and kept the export at ${String(result.templatePath)}. Reload the page to open it.`
               : `import refused: ${String(result.error)}`;
           render();
         });
@@ -1288,7 +1430,43 @@ function renderRepo(): HTMLElement {
         render();
       });
   });
-  ingameRow.append(check);
+  // Writing is the other half: actions.yaml says which key each action is on, and the
+  // game is made to agree. The game has to be closed -- it rewrites the file on exit.
+  const apply = el("button", { class: "btn primary", type: "button" }, [
+    "Write the game's bindings",
+  ]);
+  apply.addEventListener("click", () => {
+    if (
+      !window.confirm(
+        `Rewrite ${currentGame().name}'s key bindings from actions.yaml? Close the game first: ` +
+          "it rewrites the file when it exits. The current file is kept beside it.",
+      )
+    ) {
+      return;
+    }
+    repoNote = "writing the game's bindings...";
+    render();
+    void post("/api/ingame/apply", { game: currentGame().slug }).then((reply) => {
+      if (reply.ok !== true) {
+        repoNote = `not written: ${String(reply.error)}`;
+      } else {
+        const result = reply.result as {
+          changes: { display: string; from: string; to: string }[];
+          backup: string | null;
+        };
+        const changed = result.changes
+          .map((change) => `${change.display} ${change.from} -> ${change.to}`)
+          .join("; ");
+        repoNote =
+          result.changes.length === 0
+            ? "The game already agrees with actions.yaml -- nothing written."
+            : `Wrote ${String(result.changes.length)} binding(s): ${changed}.` +
+              (result.backup === null ? "" : ` The previous file is at ${result.backup}.`);
+      }
+      render();
+    });
+  });
+  ingameRow.append(check, apply);
   panel.append(ingameRow);
 
   if (ingameRows !== null) {
@@ -1389,6 +1567,14 @@ function render(): void {
   root.append(renderHeader());
   if (saveNote !== null) {
     root.append(el("div", { class: "save-note" }, [saveNote]));
+  }
+  if (saveReport !== null) {
+    const dismiss = el("button", { class: "btn dismiss", type: "button" }, ["Dismiss"]);
+    dismiss.addEventListener("click", () => {
+      saveReport = null;
+      render();
+    });
+    root.append(el("div", { class: "save-note" }, [saveReport, dismiss]));
   }
 
   if (state.mode === "in-game") {

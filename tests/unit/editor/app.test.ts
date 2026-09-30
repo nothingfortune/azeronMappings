@@ -4,7 +4,7 @@
  * action to a selected key, and surfacing linter findings.
  */
 
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { start } from "../../../src/editor/app.js";
 import { buildPayload } from "../../../src/lib/editor/payload.js";
@@ -400,5 +400,156 @@ describe("the in-game tab", () => {
     expect(
       document.querySelector(".workspace.ingame .checks, .workspace.ingame .finding"),
     ).not.toBeNull();
+  });
+});
+
+describe("unsaved edits", () => {
+  function served(reply: (path: string, body: unknown) => unknown) {
+    (window as unknown as { AZERON_SERVED?: boolean }).AZERON_SERVED = true;
+    const calls: { path: string; body: unknown }[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((path: string, init: { body: string }) => {
+        const body: unknown = JSON.parse(init.body);
+        calls.push({ path, body });
+        return Promise.resolve({
+          status: 200,
+          json: () => Promise.resolve(reply(path, body)),
+        });
+      }),
+    );
+    return calls;
+  }
+
+  afterEach(() => {
+    (window as unknown as { AZERON_SERVED?: boolean }).AZERON_SERVED = false;
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  function header(label: string | RegExp): HTMLButtonElement {
+    const found = [...document.querySelectorAll<HTMLButtonElement>("header button")].find(
+      (button) =>
+        typeof label === "string" ? button.textContent === label : label.test(button.textContent),
+    );
+    if (!found) throw new Error(`no header button ${String(label)}`);
+    return found;
+  }
+
+  function edit(position: string, unit: 0 | 1 = 0): void {
+    const hand = document.querySelectorAll(".hand")[unit];
+    const card = [...(hand?.querySelectorAll<HTMLButtonElement>(".key") ?? [])].find(
+      (key) => key.querySelector(".pos")?.textContent === position,
+    );
+    card?.click();
+    document.querySelector<HTMLButtonElement>(".action")?.click();
+  }
+
+  it("does not call a page dirty for having drawn it", () => {
+    // A working copy is made on first read, and drawing reads -- so "has a working copy"
+    // made every page dirty, and every Reset and reload asked about edits nobody made.
+    mount();
+    const confirm = vi.fn(() => false);
+    vi.stubGlobal("confirm", confirm);
+    header("Reset").click();
+    expect(confirm).not.toHaveBeenCalled();
+  });
+
+  it("asks before Reset throws an edit away", () => {
+    mount();
+    edit("pinky_1");
+    const confirm = vi.fn(() => false);
+    vi.stubGlobal("confirm", confirm);
+    header("Reset").click();
+    expect(confirm).toHaveBeenCalledOnce();
+  });
+
+  it("says the file was saved before anything else, and where the file to import is", async () => {
+    const PATH = "games/SpaceSims/everspace/profiles/example-left.yaml";
+    served(() => ({
+      ok: true,
+      saved: true,
+      path: PATH,
+      check: {
+        game: "everspace",
+        built: [
+          {
+            output: "dist/x/example_left.json",
+            importPath: "C:\\\\repo\\\\dist\\\\x\\\\example_left.json",
+            changed: true,
+          },
+        ],
+        findings: [
+          {
+            level: "warning",
+            rule: "duplicate-output-key",
+            profile: "p",
+            key: "KeyR",
+            message: "m",
+          },
+        ],
+        buildErrors: [],
+      },
+    }));
+    mount();
+    edit("pinky_1");
+    header(/^Save left$/).click();
+    await vi.waitFor(() => {
+      expect(document.querySelector(".save-report")).not.toBeNull();
+    });
+    const report = document.querySelector(".save-report");
+    expect(report?.firstElementChild?.textContent).toMatch(/^Saved /);
+    expect(report?.querySelector(".import-path code")?.textContent).toBe(
+      "C:\\\\repo\\\\dist\\\\x\\\\example_left.json",
+    );
+    // Findings as rows, not one joined line.
+    expect(report?.querySelectorAll(".finding.warning")).toHaveLength(1);
+  });
+
+  it("keeps the other unit's edits after saving one", async () => {
+    served((path) => ({
+      ok: true,
+      saved: true,
+      path,
+      check: { game: null, built: [], findings: [], buildErrors: [] },
+    }));
+    mount();
+    edit("pinky_1", 0);
+    edit("pinky_1", 1);
+    header(/^Save left$/).click();
+    await vi.waitFor(() => {
+      expect(document.querySelector(".save-report")).not.toBeNull();
+    });
+    // The right unit is still unsaved, so throwing it away still asks.
+    const confirm = vi.fn(() => false);
+    vi.stubGlobal("confirm", confirm);
+    header("Reset").click();
+    expect(confirm).toHaveBeenCalledOnce();
+  });
+
+  it("sends only the in-game keys that changed, never the whole file", async () => {
+    const calls = served(() => ({
+      ok: true,
+      saved: true,
+      path: "p",
+      check: { game: null, built: [], findings: [], buildErrors: [] },
+    }));
+    mount();
+    header("In-game").click();
+    const row = [...document.querySelectorAll(".ingame-row")].find(
+      (node) => node.querySelector(".who b")?.textContent === "Headlight",
+    );
+    const input = row?.querySelector<HTMLInputElement>("input");
+    if (!input) throw new Error("no key field for Headlight");
+    input.value = "KeyL";
+    input.dispatchEvent(new Event("change"));
+    [...document.querySelectorAll<HTMLButtonElement>("button")]
+      .find((button) => button.textContent === "Save actions.yaml")
+      ?.click();
+    await vi.waitFor(() => {
+      expect(calls).toHaveLength(1);
+    });
+    expect(calls[0]?.path).toBe("/api/actions");
+    expect(calls[0]?.body).toEqual({ game: "everspace", changes: { headlight: { key: "KeyL" } } });
   });
 });
