@@ -51,6 +51,7 @@ import type { LintResult } from "./lib/lint.js";
 import { Game, Genre } from "./lib/model.js";
 import type { Profile } from "./lib/model-core.js";
 import type { ProfileMeta } from "./types/profile.js";
+import { messageOf } from "./lib/object.js";
 
 const DEFAULT_DEVICE = "cyborg2-left";
 const DEFAULT_PROBE_DEVICES = ["cyborg2-left", "cyborg2-right"];
@@ -93,7 +94,7 @@ function cmdBuild(selector: string | undefined, check: boolean): number {
       try {
         text = compiled(profile, game);
       } catch (error) {
-        process.stderr.write(`error: ${(error as Error).message}\n`);
+        process.stderr.write(`error: ${messageOf(error)}\n`);
         failures += 1;
         continue;
       }
@@ -391,7 +392,7 @@ function cmdIngame(
         }
       }
     } catch (error) {
-      process.stderr.write(`error: ${game.slug}: ${(error as Error).message}\n`);
+      process.stderr.write(`error: ${game.slug}: ${messageOf(error)}\n`);
       failures += 1;
     }
   }
@@ -462,7 +463,7 @@ function cmdServe(port: number): number {
         if (!game) throw new Error(`no game '${slug}'`);
         send(200, JSON.stringify({ ok: true, report: ingameReport(game) }));
       } catch (error) {
-        send(400, JSON.stringify({ ok: false, error: (error as Error).message }));
+        send(400, JSON.stringify({ ok: false, error: messageOf(error) }));
       }
       return;
     }
@@ -501,7 +502,7 @@ function cmdServe(port: number): number {
         } catch (error) {
           // A name already in use is the user's to resolve, not a malformed request.
           const status = error instanceof ImportCollision ? 409 : 400;
-          send(status, JSON.stringify({ ok: false, error: (error as Error).message }));
+          send(status, JSON.stringify({ ok: false, error: messageOf(error) }));
         }
       });
       return;
@@ -532,7 +533,7 @@ function cmdServe(port: number): number {
             }),
           );
         } catch (error) {
-          send(400, JSON.stringify({ ok: false, error: (error as Error).message }));
+          send(400, JSON.stringify({ ok: false, error: messageOf(error) }));
         }
       });
       return;
@@ -548,7 +549,7 @@ function cmdServe(port: number): number {
           invalidate();
           send(200, JSON.stringify({ ok: true, result }));
         } catch (error) {
-          send(400, JSON.stringify({ ok: false, error: (error as Error).message }));
+          send(400, JSON.stringify({ ok: false, error: messageOf(error) }));
         }
       });
       return;
@@ -568,15 +569,12 @@ function cmdServe(port: number): number {
           try {
             check = checkAfterSave(path, Game.discover());
           } catch (error) {
-            check = { error: (error as Error).message };
+            check = { error: messageOf(error) };
           }
           send(200, JSON.stringify({ ok: true, saved: true, path, check }));
         } catch (error) {
           const rejected = error instanceof SaveRejected;
-          send(
-            rejected ? 400 : 500,
-            JSON.stringify({ ok: false, error: (error as Error).message }),
-          );
+          send(rejected ? 400 : 500, JSON.stringify({ ok: false, error: messageOf(error) }));
         }
       });
       return;
@@ -792,6 +790,15 @@ function usage(): void {
 `);
 }
 
+/** A whole, non-negative number from a flag, or an error that names the flag. */
+function wholeNumber(flag: string, text: string): number {
+  const value = Number(text);
+  if (!Number.isInteger(value) || value < 0) {
+    throw new Error(`${flag} needs a whole number, not '${text}'`);
+  }
+  return value;
+}
+
 export function main(argv: string[]): number {
   const [command, ...rest] = argv;
   if (!command || command === "--help" || command === "-h" || command === "help") {
@@ -810,7 +817,7 @@ export function main(argv: string[]): number {
       golden: { type: "boolean", default: false },
       yes: { type: "boolean", default: false },
       "dry-run": { type: "boolean", default: false },
-      device: { type: "string", default: DEFAULT_DEVICE },
+      device: { type: "string" },
       game: { type: "string" },
       set: { type: "string" },
       template: { type: "string" },
@@ -841,11 +848,12 @@ export function main(argv: string[]): number {
     case "ingame":
       return cmdIngame(positionals[0], values.config, values.apply);
     case "serve":
-      return cmdServe(Number(values.port ?? "4173"));
+      return cmdServe(wholeNumber("--port", values.port ?? "4173"));
     case "editor":
       return cmdEditor(values.out ?? join(dataDirs.dist, "editor.html"));
     case "probe": {
-      const chosen = values.device === DEFAULT_DEVICE ? DEFAULT_PROBE_DEVICES : [values.device];
+      // No --device means both units; naming one means that one.
+      const chosen = values.device === undefined ? DEFAULT_PROBE_DEVICES : [values.device];
       return cmdProbe(
         chosen,
         values.template ?? join(dataDirs.templates, "everspace2-v5.json"),
@@ -856,12 +864,12 @@ export function main(argv: string[]): number {
       const target = positionals[0];
       if (!target) throw new Error("decompile needs an export path");
       return cmdDecompile(target, {
-        device: values.device,
+        device: values.device ?? DEFAULT_DEVICE,
         game: values.game,
         set: values.set,
         template: values.template,
         outputName: values["output-name"],
-        profileIndex: Number(values["profile-index"]),
+        profileIndex: wholeNumber("--profile-index", values["profile-index"]),
         golden: values.golden,
         out: values.out,
       });
@@ -876,7 +884,7 @@ export function main(argv: string[]): number {
         genre: values.genre,
         game: values.game,
         name: values.name,
-        device: values.device,
+        device: values.device ?? DEFAULT_DEVICE,
         set: values.set,
         exportTo: values["export-to"],
       });
@@ -900,7 +908,7 @@ if (invokedDirectly) {
   try {
     process.exitCode = main(process.argv.slice(2));
   } catch (error) {
-    process.stderr.write(`error: ${(error as Error).message}\n`);
+    process.stderr.write(`error: ${messageOf(error)}\n`);
     process.exitCode = 1;
   }
 }

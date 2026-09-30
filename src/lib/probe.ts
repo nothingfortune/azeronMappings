@@ -7,18 +7,18 @@
  * inferred from the left-handed layout.
  */
 
-import type { ExportDocument, InputRecord, StickDirection, StickSector } from "../types/azeron.js";
+import type { ExportDocument, StickDirection, StickSector } from "../types/azeron.js";
 import {
   isRebindableRecord,
   SECTOR_DEGREES,
   STICK_DIRECTIONS,
   STICK_SECTORS,
   TYPE_KEYBOARD,
-  TYPE_NONE,
   TYPE_STICK_KEYBOARD,
   activeAnalogKeys,
 } from "../types/azeron.js";
 import type { DeviceData, DevicePosition } from "../types/profile.js";
+import { blankRecord } from "./binding.js";
 import * as keys from "./keys.js";
 
 /**
@@ -48,25 +48,6 @@ export interface ProbeProfile {
 }
 
 export class ProbeError extends Error {}
-
-function clearSlots(record: InputRecord): void {
-  record.types = [TYPE_NONE, TYPE_NONE, TYPE_NONE];
-  for (const field of [
-    "keyValues",
-    "metaValues",
-    "keyValuesLong",
-    "metaValuesLong",
-    "keyValuesDouble",
-    "metaValuesDouble",
-  ] as const) {
-    record[field][0] = keys.NONE_TOKEN;
-  }
-  record.isHold = false;
-  record.isHoldLong = false;
-  record.isHoldDouble = false;
-  record.featureDelay = 500;
-  record.doubleDelay = 150;
-}
 
 /**
  * Build a profile where every pin sends its own key.
@@ -119,7 +100,7 @@ export function buildProbeProfile(
     const isStick =
       record.types[0] === TYPE_STICK_KEYBOARD ||
       (record.pinTwo !== 255 && record.pinTwo !== record.pinOne);
-    clearSlots(record);
+    blankRecord(record);
     if (isStick) {
       record.types[0] = TYPE_STICK_KEYBOARD;
       const settings = record.analogSettings;
@@ -188,7 +169,11 @@ export function deviceFromProbe(assumed: DeviceData, result: ProbeResult): Devic
   if (result.sectors && Object.keys(result.sectors).length > 0) {
     const zero = stickZeroFrom(result.sectors);
     if (zero.zeroPush) next.stick_zero = zero.zeroPush;
-    if (zero.offsetDegrees !== 0) next.stick_angle = zero.offsetDegrees;
+    // One correction, not two. The direction sweep and the zero pass measure the same
+    // rotation; writing both applies it twice, which `stick-double-correction` rejects --
+    // so the probe produced maps its own linter would not accept. The sweep is exact for a
+    // quarter turn and remaps at compile time, so it wins when it found anything.
+    if (zero.offsetDegrees !== 0 && identity) next.stick_angle = zero.offsetDegrees;
   }
   return next;
 }
@@ -265,7 +250,7 @@ export function buildStickCalibrationProfile(
       record.types[0] === TYPE_STICK_KEYBOARD ||
       (record.pinOne !== 255 && record.pinTwo !== 255 && record.pinTwo !== record.pinOne);
     if (!isRebindableRecord(record)) continue;
-    clearSlots(record);
+    blankRecord(record);
     if (!isStick) continue;
     found = true;
 

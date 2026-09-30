@@ -5,7 +5,8 @@
  * numbered constraints each one enforces.
  */
 
-import { SLOTS, STICK_MODE_CODES, DEFAULT_FEATURE_DELAY } from "../types/azeron.js";
+import { DEFAULT_FEATURE_DELAY, SLOTS, STICK_MODE_CODES, TYPE_MOUSE } from "../types/azeron.js";
+import { resolveSlot } from "./binding.js";
 import * as keys from "./keys.js";
 import type { Slot } from "../types/azeron.js";
 import type {
@@ -89,6 +90,15 @@ export function emittedKey(
 
   const mouse = "mouse" in spec ? spec.mouse : undefined;
   if (mouse) return `mouse:${mouse}`;
+
+  // A mouse button the app wrote with a code this repo cannot name comes back as
+  // `{type_raw: "15", key_raw: "4"}`. Read as a key it was "4" -- a phantom that could
+  // collide with a real key, or be reported as a key nothing declares.
+  const typeRaw = "type_raw" in spec ? spec.type_raw : undefined;
+  if (typeRaw === TYPE_MOUSE) {
+    const code = "key_raw" in spec ? spec.key_raw : undefined;
+    return code === undefined ? null : `mouse:${keys.mouseToName(code) ?? code}`;
+  }
 
   const named = "key" in spec ? (spec.key ?? null) : null;
   const namedMeta = "meta" in spec ? (spec.meta ?? null) : null;
@@ -185,12 +195,12 @@ export function checkProfile(profile: Profile, actions: ActionSet, config: LintC
       continue;
     }
 
-    if (raw && ("key" in raw || "key_raw" in raw)) {
+    // Any inline binding, a mouse button included. Gating on `key` let an undeclared mouse
+    // button through while the binding sheet listed it as undeclared -- two surfaces, two
+    // verdicts on the same slot.
+    if (raw) {
       const emitted = emittedKey(actions, null, raw);
-      const known = new Set(
-        Object.keys(actions.actions).map((id) => emittedKey(actions, id, null)),
-      );
-      if (emitted && !known.has(emitted)) {
+      if (emitted && !actionByKey.has(emitted)) {
         findings.push({
           level: ERROR,
           rule: "unbound-key",
@@ -263,6 +273,60 @@ export function checkProfile(profile: Profile, actions: ActionSet, config: LintC
     for (const slot of SLOTS) {
       const id = actionForSlot(actions, actionByKey, spec[slot]);
       if (id !== undefined) tagsBySlot.set(slot, actions.tags(id));
+    }
+
+    // A stick holds directions and a key holds slots. The other kind validates, is dropped
+    // by the compiler, and never reaches the unit -- an authoring mistake nothing reported.
+    const stickHere = device.isStick(position);
+    const slotsHere = SLOTS.filter((slot) => spec[slot] !== undefined && spec[slot] !== null);
+    if (stickHere && slotsHere.length > 0) {
+      findings.push({
+        level: ERROR,
+        rule: "misplaced-binding",
+        profile: name,
+        position,
+        message: `a stick sends directions, so its ${slotsHere.join("/")} is ignored`,
+      });
+    }
+    if (!stickHere && spec.directions !== undefined && Object.keys(spec.directions).length > 0) {
+      findings.push({
+        level: ERROR,
+        rule: "misplaced-binding",
+        profile: name,
+        position,
+        message: "only a stick has directions, so these are ignored",
+      });
+    }
+
+    // `raw.types` preserves type codes nobody understands -- v5's "6" on the thumb pad --
+    // and the compiler writes it after the bindings. On a slot that is bound, a code that
+    // disagrees with the binding wins: the key compiles, lints clean, and does nothing in
+    // game. Rebinding the double tap on v5's pad would do exactly that.
+    if (!device.isStick(position)) {
+      const rawTypes = spec.raw?.types ?? [];
+      SLOTS.forEach((slot, index) => {
+        const bound = spec[slot];
+        const kept = rawTypes[index];
+        if (bound === undefined || bound === null || kept === undefined) return;
+        let derived: string;
+        try {
+          derived = resolveSlot(bound, actions.actions)[0];
+        } catch {
+          return; // An unencodable binding is its own error, reported by the compiler.
+        }
+        if (kept !== derived) {
+          findings.push({
+            level: ERROR,
+            rule: "raw-types-stale",
+            profile: name,
+            position,
+            message:
+              `${slot} is bound, but raw.types keeps type '${kept}' for it and the binding ` +
+              `needs '${derived}' -- the compiler would write '${kept}', and the key would ` +
+              "do nothing. Drop that entry from raw.types.",
+          });
+        }
+      });
     }
 
     // Constraint 4: a long or double action delays the tap on the same key. Flight counts

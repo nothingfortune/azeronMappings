@@ -28,6 +28,7 @@ import { ERROR, WARNING, formatFinding, lintGame, lintGenre } from "./lint.js";
 import type { Finding } from "./lint.js";
 import { Game, Genre } from "./model.js";
 import type { Profile } from "./model-core.js";
+import { messageOf } from "./object.js";
 
 export interface BuiltProfile {
   profile: string;
@@ -63,7 +64,7 @@ export function buildAll(games: readonly Game[], check = false): BuildResult {
           }),
         );
       } catch (error) {
-        errors.push(`${profile.path}: ${(error as Error).message}`);
+        errors.push(`${profile.path}: ${messageOf(error)}`);
         continue;
       }
 

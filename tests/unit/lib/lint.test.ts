@@ -6,7 +6,7 @@ import { ERROR, WARNING, checkProfile, checkSet, lintGame } from "../../../src/l
 import type { Finding } from "../../../src/lib/lint.js";
 import { loadProfile } from "../../../src/lib/io.js";
 import { Game } from "../../../src/lib/model.js";
-import { Profile } from "../../../src/lib/model-core.js";
+import { ActionSet, Profile } from "../../../src/lib/model-core.js";
 import type { ProfileData } from "../../../src/types/profile.js";
 
 const SINGLE_V5 = "games/SpaceSims/everspace/profiles/single-v5.yaml";
@@ -97,6 +97,61 @@ describe("rules catch the known failures", () => {
     });
     const here = findings.filter((finding) => finding.position === "pinky_1");
     expect(rules(here, WARNING)).not.toContain("combat-tap-delayed");
+  });
+
+  it("errors on a mouse button no action declares, as the binding sheet already did", () => {
+    // The rule only looked at slots with a `key`, so an inline mouse button was never
+    // checked. A vocabulary without a right-button action makes one undeclared.
+    const data = structuredClone(base.data);
+    const position = data.positions.pinky_1;
+    if (position) position.tap = { mouse: "right" };
+    const withoutRight = new ActionSet({
+      actions: Object.fromEntries(
+        Object.entries(game.actions.actions).filter(([id]) => id !== "fire_secondary"),
+      ),
+    });
+    const profile = new Profile(data, base.device, { path: base.path, game });
+    const here = checkProfile(profile, withoutRight, game.lintConfig).filter(
+      (finding) => finding.position === "pinky_1",
+    );
+    expect(rules(here, ERROR)).toContain("unbound-key");
+  });
+
+  it("does not read a raw mouse button as the keyboard key with the same number", () => {
+    // Button 4 read as a key was "4" -- which could collide with whatever a key token of
+    // 4 means, or be reported as a key. It is a mouse button.
+    const findings = mutate((data) => {
+      const position = data.positions.pinky_1;
+      if (position) position.tap = { type_raw: "15", key_raw: "4" };
+    });
+    const message = findings.find(
+      (finding) => finding.position === "pinky_1" && finding.rule === "unbound-key",
+    )?.message;
+    expect(message).toContain("mouse:4");
+  });
+
+  it("errors when a kept type code would override a new binding", () => {
+    // v5's thumb pad keeps raw.types ["1", "1", "6"]. Binding its double tap used to
+    // compile with type "6" and lint clean -- and the key did nothing in game.
+    const findings = mutate((data) => {
+      const pad = data.positions.dpad_up;
+      if (pad) pad.double = "map";
+    });
+    const here = findings.filter((finding) => finding.position === "dpad_up");
+    expect(rules(here, ERROR)).toContain("raw-types-stale");
+  });
+
+  it("errors on a tap put on a stick, or directions put on a key", () => {
+    const findings = mutate((data) => {
+      const stick = data.positions.stick;
+      if (stick) stick.tap = "boost";
+      const key = data.positions.pinky_1;
+      if (key) key.directions = { up: "boost" };
+    });
+    const misplaced = findings.filter((finding) => finding.rule === "misplaced-binding");
+    expect(new Set(misplaced.map((finding) => finding.position))).toEqual(
+      new Set(["pinky_1", "stick"]),
+    );
   });
 
   it("errors on a key no action declares", () => {

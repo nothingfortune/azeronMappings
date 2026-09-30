@@ -16,8 +16,6 @@ import type {
 import {
   activeAnalogKeys,
   isRebindableRecord,
-  DEFAULT_DOUBLE_DELAY,
-  DEFAULT_FEATURE_DELAY,
   HOLD_FIELDS,
   SLOTS,
   TURBO_FIELDS,
@@ -25,12 +23,12 @@ import {
   SLOT_FIELDS,
   STICK_DIRECTIONS,
   STICK_MODE_CODES,
-  TYPE_NONE,
 } from "../types/azeron.js";
 import type { ActionSpec, PositionSpec } from "../types/profile.js";
-import { resolveSlot } from "./binding.js";
+import { blankRecord, resolveSlot } from "./binding.js";
 import * as keys from "./keys.js";
 import type { Device, Profile } from "./model-core.js";
+import { messageOf } from "./object.js";
 
 export class CompileError extends Error {}
 
@@ -39,19 +37,7 @@ function tokens(record: InputRecord, field: keyof InputRecord): string[] {
 }
 
 function neutralize(record: InputRecord, isStick: boolean): void {
-  record.types = [TYPE_NONE, TYPE_NONE, TYPE_NONE];
-  for (const slot of SLOTS) {
-    const [keyField, metaField] = SLOT_FIELDS[slot];
-    tokens(record, keyField)[0] = keys.NONE_TOKEN;
-    tokens(record, metaField)[0] = keys.NONE_TOKEN;
-    record[HOLD_FIELDS[slot]] = false;
-  }
-  for (const slot of SLOTS) {
-    record[TURBO_FIELDS[slot]] = false;
-    record[TURBO_INTERVAL_FIELDS[slot]] = 0;
-  }
-  record.featureDelay = DEFAULT_FEATURE_DELAY;
-  record.doubleDelay = DEFAULT_DOUBLE_DELAY;
+  blankRecord(record);
   // `label` is deliberately left alone here. Deleting and re-adding it would move the
   // key to the end of the record and churn the JSON for no reason; the caller clears it
   // for positions the profile does not mention, and applyPosition overwrites it in place.
@@ -143,7 +129,7 @@ function applyPosition(
       try {
         triple = resolveSlot(spec[slot], actions);
       } catch (error) {
-        throw new CompileError(`${position}.${slot}: ${(error as Error).message}`);
+        throw new CompileError(`${position}.${slot}: ${messageOf(error)}`);
       }
       record.types[index] = triple[0];
       const [keyField, metaField] = SLOT_FIELDS[slot];

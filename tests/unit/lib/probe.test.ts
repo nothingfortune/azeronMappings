@@ -44,6 +44,28 @@ describe("buildProbeProfile", () => {
     expect(used.every((key) => PROBE_KEYS.includes(key))).toBe(true);
   });
 
+  it("sends one key per press, even from a template that repeats", () => {
+    // The probe blanked records with its own copy of the compiler's function, and that
+    // copy did not clear a repeat -- so a template with one made every press a stream,
+    // which the capture page reads as several presses.
+    const template = loadTemplate(TEMPLATE);
+    for (const record of template.profiles[0]?.inputs ?? []) {
+      record.isTurbo = true;
+      record.turboInterval = 40;
+    }
+    const device = loadDevice("cyborg2-left");
+    const { doc, assignments } = buildProbeProfile(template, {
+      id: "00000000-0000-4000-8000-000000000000",
+      name: "PROBE",
+      unknownPins: [...device.unknownPins],
+    });
+    const probed = new Set(assignments.map((entry) => entry.inputId));
+    for (const record of doc.profiles[0]?.inputs ?? []) {
+      if (!probed.has(record.id)) continue;
+      expect(record.isTurbo, `pin ${String(record.pinOne)}`).toBe(false);
+    }
+  });
+
   it("covers every input that has a real pin and is an ordinary key", () => {
     const { doc, assignments } = probe();
     const real =
@@ -240,6 +262,28 @@ describe("stick zero calibration", () => {
     const next = deviceFromProbe(assumed.data, { pins, stick: {}, sectors: observed });
     expect(next.stick_angle).toBe(90);
     expect(next.stick_zero).toBe("left");
+  });
+
+  it("writes one stick correction, never both, so its own linter accepts the map", () => {
+    // The direction sweep and the zero pass measure the same rotation. Writing both
+    // applies it twice, and `stick-double-correction` rejects the result.
+    const assumed = loadDevice("cyborg2-right");
+    const pins = Object.fromEntries(
+      Object.entries(assumed.positions).map(([name, position]) => [name, position.pin]),
+    );
+    const turned = Object.fromEntries(
+      STICK_SECTORS.map((sector, index) => [
+        sector,
+        STICK_SECTORS[(index + 4) % STICK_SECTORS.length],
+      ]),
+    );
+    const next = deviceFromProbe(assumed.data, {
+      pins,
+      stick: { up: "down", right: "left", down: "up", left: "right" },
+      sectors: turned,
+    });
+    expect(next.stick_directions).toBeDefined();
+    expect(next.stick_angle).toBeUndefined();
   });
 });
 

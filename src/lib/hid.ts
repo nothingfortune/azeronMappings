@@ -8,6 +8,8 @@
  * were told apart.
  */
 
+import { messageOf } from "./object.js";
+
 export const AZERON_PRODUCT_ID = 0x12f7;
 
 export interface DetectedUnit {
@@ -73,7 +75,7 @@ export async function alreadyGranted(hid: HidLike | undefined): Promise<Detectio
     const units = devices.map(describe);
     return units.length > 0 ? { status: "found", units } : { status: "none" };
   } catch (error) {
-    return { status: "unsupported", reason: `could not list devices: ${(error as Error).message}` };
+    return { status: "unsupported", reason: `could not list devices: ${messageOf(error)}` };
   }
 }
 
@@ -99,7 +101,7 @@ export async function requestUnits(hid: HidLike | undefined): Promise<DetectionS
   } catch (error) {
     // A rejected promise here is normal -- a dismissed picker looks the same as a real
     // failure -- so it is reported rather than swallowed.
-    return { status: "unsupported", reason: `the picker failed: ${(error as Error).message}` };
+    return { status: "unsupported", reason: `the picker failed: ${messageOf(error)}` };
   }
 }
 

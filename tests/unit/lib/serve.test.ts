@@ -5,6 +5,7 @@
 
 import { describe, expect, it } from "vitest";
 
+import { messageOf } from "../../../src/lib/object.js";
 import {
   leadingComments,
   parseSaveRequest,
@@ -118,5 +119,15 @@ describe("leadingComments", () => {
 
   it("returns nothing when the file opens with content", () => {
     expect(leadingComments("profile:\n# later\n")).toBe("");
+  });
+});
+
+describe("messageOf", () => {
+  it("says what was thrown, even when it is not an Error", () => {
+    // `(error as Error).message` printed "undefined" for these.
+    expect(messageOf(new Error("broke"))).toBe("broke");
+    expect(messageOf("plain text")).toBe("plain text");
+    expect(messageOf({ code: 4 })).toBe('{"code":4}');
+    expect(messageOf(undefined)).toBe("undefined");
   });
 });

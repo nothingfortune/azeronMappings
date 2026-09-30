@@ -25,7 +25,7 @@ import {
 import type { Slot } from "../types/azeron.js";
 import type { EditorGame, EditorPayload } from "../types/editor.js";
 import type { ActionSpec, PositionSpec, ProfileData } from "../types/profile.js";
-import { removeKey } from "../lib/object.js";
+import { messageOf, removeKey } from "../lib/object.js";
 import { dumpYaml } from "../lib/yaml.js";
 import { AZERON_PRODUCT_ID, alreadyGranted, hex4, requestUnits } from "../lib/hid.js";
 import type { DetectionState, HidLike } from "../lib/hid.js";
@@ -842,7 +842,7 @@ function renderChecks(): HTMLElement {
   try {
     result = lintProfiles(actionSetFor(game), profiles, game.lintConfig);
   } catch (error) {
-    panel.append(el("div", { class: "finding error" }, [(error as Error).message]));
+    panel.append(el("div", { class: "finding error" }, [messageOf(error)]));
     return panel;
   }
 
@@ -978,7 +978,7 @@ async function saveToRepo(
       saveNote = `not saved: ${result.error ?? "the server refused it"}`;
     }
   } catch (error) {
-    saveNote = `not saved -- could not reach the server: ${(error as Error).message}`;
+    saveNote = `not saved -- could not reach the server: ${messageOf(error)}`;
   }
   render();
 }
@@ -1035,7 +1035,7 @@ async function saveActionKeys(game: EditorGame): Promise<void> {
       saveNote = `not saved: ${result.error ?? "the server refused it"}`;
     }
   } catch (error) {
-    saveNote = `not saved -- could not reach the server: ${(error as Error).message}`;
+    saveNote = `not saved -- could not reach the server: ${messageOf(error)}`;
   }
   render();
 }
@@ -1180,7 +1180,7 @@ function renderHeader(): HTMLElement {
         if (!Array.isArray(next.games)) throw new Error("not an editor payload");
         start(next);
       } catch (error) {
-        window.alert(`Could not read that file: ${(error as Error).message}`);
+        window.alert(`Could not read that file: ${messageOf(error)}`);
       }
     });
     reader.readAsText(file);
@@ -1522,7 +1522,7 @@ function renderRepo(): HTMLElement {
       try {
         exported = JSON.parse(text);
       } catch (error) {
-        repoNote = `${chosen.name} is not JSON: ${(error as Error).message}`;
+        repoNote = `${chosen.name} is not JSON: ${messageOf(error)}`;
         render();
         return;
       }
