@@ -118,6 +118,15 @@ export interface ProfileMeta {
   output?: string;
   /** True when this profile is a faithful decompile of its template. */
   golden?: boolean;
+  /**
+   * The unit's own optical sensor, which moves the system pointer.
+   *
+   * Two units both running their sensors drive the same pointer at once, so a pair
+   * normally wants exactly one of them on. Inherited from the template when unset.
+   */
+  sensor?: boolean;
+  /** One of the profile's sensitivity steps, in DPI. */
+  dpi?: number;
   template_profile?: number;
 }
 

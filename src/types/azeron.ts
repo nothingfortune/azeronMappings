@@ -52,10 +52,21 @@ export interface InputRecord {
   [key: string]: unknown;
 }
 
+export interface ProfileSettings {
+  /** The unit's optical sensor: whether it drives the system pointer. */
+  isSensorOn?: boolean;
+  profileSensitivitySettings?: {
+    currentSensitivityIndex: number;
+    sensitivityValues: number[];
+  };
+  [key: string]: unknown;
+}
+
 export interface ExportProfile {
   id: string;
   name: string;
   inputs: InputRecord[];
+  profileSettings?: ProfileSettings;
   [key: string]: unknown;
 }
 

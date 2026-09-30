@@ -10,6 +10,8 @@ profile:
   name: Everspace 2 akimbo v6 (right)
   device: cyborg2-right
   unit: right
+  # Off: two sensors drive the same pointer and fight each other. The left unit aims.
+  sensor: false
   template: templates/everspace2-v5.json
   set: akimbo-v7
   output: everspace_akimbo_v7_right.json

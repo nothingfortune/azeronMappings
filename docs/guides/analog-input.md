@@ -52,6 +52,34 @@ If it does not, there is no proportional throttle without an analog axis, and th
 below are the only ones. Note that cruise and boost already give a crude three-notch
 speed (normal, cruise, boost), which may be as close as the game allows.
 
+## What "mouse" means on a Cyborg II
+
+Four separate things, worth keeping apart:
+
+1. **The unit's own optical sensor.** `profileSettings.isSensorOn`, with five DPI steps
+   in `sensitivityValues` (1000 / 4000 / 7500 / 10000 / 15000). Moving the unit moves
+   the system pointer. This is a real mouse, and it is why a keypad-only setup can still
+   aim.
+2. **A stick in mouse mode.** The stick drives the pointer instead of sending keys;
+   `analogSettings.mouseSensitivity` shapes it. The type code for this mode has never
+   been captured, so the compiler refuses to emit it.
+3. **Mouse buttons on keys.** Type `"15"`, with codes 1, 2 and 3 seen in the wild; only
+   2 (middle) is confirmed.
+4. **Scroll.** `scrollSpeed`, `scrollThreshold`, `isSmoothScroll` per input.
+
+**Two units means two sensors, and they drive the same pointer.** Both akimbo v7
+profiles shipped with `isSensorOn: true`, inherited from the v5 template, because
+`profileSettings` passes through untouched and nothing could say otherwise. A profile can
+now set `sensor: true|false` and `dpi: <step>`; the pair is set so the left unit aims and
+the right unit's sensor is off.
+
+What the sensor cannot do is throttle. In Everspace 2's own config the mouse axes reach
+only `CameraPitch` and `CameraYaw` — aim. `MoveForward`'s axis row is `Key1=None` in the
+Keyboard group, and the only keyboard bindings it has are W and S at scale +1 and -1.
+Whether `MouseY` can be bound to `MoveFwd` instead has not been tried; it would cost the
+aim axis, which is probably a bad trade, but it is the one untested way to get a
+proportional thrust axis without another device.
+
 ## Option 0 — duty cycling, which needs nothing new
 
 Taken from arygtm/everspace2-spacemouse, which drives Everspace 2 from a 3Dconnexion

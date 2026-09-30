@@ -197,6 +197,24 @@ export function compileProfile(profile: Profile, options: CompileOptions = {}): 
   if (profile.id) target.id = profile.id;
   if (profile.name) target.name = profile.name;
 
+  // Two units both running their sensors drive the same pointer, so a pair normally
+  // wants one on. Left alone unless the profile says.
+  const settings = target.profileSettings;
+  if (settings !== undefined) {
+    if (profile.meta.sensor !== undefined) settings.isSensorOn = profile.meta.sensor;
+    if (profile.meta.dpi !== undefined) {
+      const steps = settings.profileSensitivitySettings;
+      const index = steps?.sensitivityValues.indexOf(profile.meta.dpi) ?? -1;
+      if (steps === undefined || index === -1) {
+        throw new CompileError(
+          `${profile.path}: dpi ${String(profile.meta.dpi)} is not one of this profile's ` +
+            `steps (${steps?.sensitivityValues.join(", ") ?? "none"})`,
+        );
+      }
+      steps.currentSensitivityIndex = index;
+    }
+  }
+
   const byPin = new Map<number, InputRecord>();
   for (const record of target.inputs) {
     if (!byPin.has(record.pinOne)) byPin.set(record.pinOne, record);

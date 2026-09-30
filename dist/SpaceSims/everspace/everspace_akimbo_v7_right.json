@@ -8995,7 +8995,7 @@
             15000
           ]
         },
-        "isSensorOn": true,
+        "isSensorOn": false,
         "mouseSensorAngle": 0,
         "ledSettings": {
           "ledState": [

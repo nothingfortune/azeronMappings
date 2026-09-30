@@ -135,3 +135,35 @@ describe("turbo", () => {
     expect(back.positions.index_3?.turbo_interval).toBe(45);
   });
 });
+
+describe("the unit's optical sensor", () => {
+  function built(meta: Record<string, unknown>) {
+    const { game, profile, template } = fixture();
+    const data = structuredClone(profile.data);
+    Object.assign(data.profile, meta);
+    const mutated = new Profile(data, profile.device, { path: profile.path, game });
+    return compileProfile(mutated, { template, actions: game.actions.actions });
+  }
+
+  it("turns the sensor off when a profile says to", () => {
+    // Two units both running their sensors drive the same pointer at once.
+    expect(built({ sensor: false }).profiles[0]?.profileSettings?.isSensorOn).toBe(false);
+    expect(built({ sensor: true }).profiles[0]?.profileSettings?.isSensorOn).toBe(true);
+  });
+
+  it("leaves it as the template had it when the profile is silent", () => {
+    const { template } = fixture();
+    const before = template.profiles[0]?.profileSettings?.isSensorOn;
+    expect(built({}).profiles[0]?.profileSettings?.isSensorOn).toBe(before);
+  });
+
+  it("selects a sensitivity step by its DPI", () => {
+    const doc = built({ dpi: 7500 });
+    const steps = doc.profiles[0]?.profileSettings?.profileSensitivitySettings;
+    expect(steps?.sensitivityValues[steps.currentSensitivityIndex]).toBe(7500);
+  });
+
+  it("refuses a DPI the profile has no step for", () => {
+    expect(() => built({ dpi: 1234 })).toThrow(/not one of this profile's steps/);
+  });
+});

@@ -221,6 +221,9 @@ array of per-key records.
   `invertXAxis`/`invertYAxis` both true, so the right unit's half turn is absorbed by the
   direction assignment and the inversion, and `angle` looks like a small trim. It is only
   written when a device sets `stick_angle`, which no device currently does.
+- `profileSettings` passes through from the template, except `isSensorOn` and the
+  sensitivity step, which a profile sets with `sensor:` and `dpi:`. Two units both
+  running their sensors drive the same pointer, so a pair wants one of them on.
 - Keep profile `id` (UUID) **stable in YAML**. Note that the app assigns a fresh UUID on
   import, so an id only survives when a profile is written into the store by
   `azeron install`.

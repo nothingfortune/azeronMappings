@@ -10,6 +10,8 @@ profile:
   name: Everspace 2 akimbo v6 (left)
   device: cyborg2-left
   unit: left
+  # This unit's sensor aims; the right unit's is off, so only one drives the pointer.
+  sensor: true
   template: templates/everspace2-v5.json
   set: akimbo-v7
   output: everspace_akimbo_v7_left.json
