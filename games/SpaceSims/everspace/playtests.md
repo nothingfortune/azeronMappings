@@ -2,6 +2,25 @@
 
 What each layout actually felt like. Dated, newest first.
 
+## 2026-09-30 — a stick in mouse mode
+
+Set in the Azeron app, not in the repo (the compiler cannot emit mouse mode). **The ship
+spins, and there is no way to bring it back to centre.**
+
+Why, as far as can be told: Everspace 2 steers by where the pointer is — off centre, the
+ship turns, until the pointer comes back. A stick moves the pointer at a rate, so
+letting go leaves it wherever it got to, and stopping means counter-deflecting for
+exactly as long. A mouse, or the unit's sensor, is a position device: you move it back.
+
+Worth one check next time: after letting go, does the ship **hold** the turn it had, or
+**creep**? Holding is the steering model and no setting fixes it. Creeping is the stick
+drifting at rest, which a larger deadzone in the app would fix.
+
+This also answers part of the v10 question below: **moving the pointer does turn the
+ship.** Pitch and yaw are on the sensor as a position control. What a stick in keyboard
+mode adds is the other kind — turn while held, stop when released — which is the case
+for yaw on a stick, or the twin-stick mode.
+
 ## 2026-09-29 — akimbo v10, not yet flown
 
 On branch `experiment/pulsed-thrust`. Import both units fresh: v9 was never flown, and

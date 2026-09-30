@@ -123,23 +123,27 @@ there is nothing to flip between.
   it would have to be turned off for the game deliberately in `game.yaml` — not quietly.
 - **Untested.** Worth one session if full-analog flight matters more than mouse aim.
 
-## Option B — stick in mouse mode (most promising, least explored)
+## Option B — stick in mouse mode: tried, and it spins
 
-The Azeron stick has a mouse mode. Mouse X/Y are the only analog axes the game reads in
-KB/M mode, so a stick driving the mouse is **analog input that the game never sees as a
-gamepad**. No device ever contradicts another, so there is nothing to flip between.
+Tried 2026-09-30. **The ship turns and does not stop, and there is no way to bring it
+back to centre.** It is not a tuning problem.
 
-- It gives _rate_ control (a deflected stick moves the pointer continuously), which is
-  what you want for pitch and yaw in a space sim anyway.
-- You get two axes total, and they are the same two the mouse uses — so it is stick aim
-  _instead of_ mouse aim, not as well.
-- It cannot drive an absolute axis such as a throttle.
-- **The export format for a mouse-mode stick is unknown.** The compiler refuses to emit a
-  mode it has not seen. To unblock it: set a stick to mouse mode in the Azeron app, export
-  the profile, and run `azeron decompile` on it — the unknown fields come back as `raw`
-  values and we can add the mode properly.
-- **Untested for stutter.** It should be immune by the reasoning above, but that is a
-  prediction, not a result.
+The reasoning for it was that a deflected stick moves the pointer continuously, which is
+rate control. It is — rate control _of the pointer_. But Everspace 2 steers by where the
+pointer _is_: off centre, the ship turns, and it keeps turning until the pointer comes
+back. So the stick sets how fast the pointer moves, the pointer's position sets how fast
+the ship turns, and letting go leaves the pointer wherever it got to. Stopping means
+counter-deflecting for exactly as long as it took to get there. A mouse does not have
+this problem because it is a position device: you move it back to where it was.
+
+One thing would change this reading: if, after letting go, the ship creeps slowly rather
+than holding the turn it had, the stick is drifting at rest and a larger deadzone in the
+app would fix it. Holding the same turn is the steering model, and no setting fixes that.
+
+What the stick _can_ give is rate control of the ship directly, in keyboard mode: the
+game's own `Yaw` and `Pitch` actions are on keys, and a stick sending them turns the ship
+while it is held and stops when it is released. That is the `twin_stick` stick mode, and
+yaw on the left stick in Mode 2. It is digital — full rate or nothing — but it centres.
 
 ## Option C — translate the gamepad to mouse outside the game
 
@@ -148,7 +152,7 @@ mouse movement. The game is launched through Steam and only ever sees keyboard a
 
 - Same no-mixing property as option B, with more moving parts and another layer to
   configure.
-- Worth trying only if option B's mouse mode turns out to be unusable.
+- **Ruled out by option B.** It still ends in the pointer, so it spins for the same reason.
 
 ## Option D — a real joystick, neither gamepad nor keyboard
 

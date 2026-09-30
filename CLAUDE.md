@@ -167,7 +167,10 @@ These came from real play sessions; each one is a lint rule now.
 
 1. **No thumbstick in gamepad/analog mode for Everspace 2.** It caused frame-rate stutter
    (the game flip-flopped between gamepad and KB/M input). Keyboard mode fixed it. Stick
-   _mouse_ mode is untested. → `stick-not-keyboard` (error)
+   _mouse_ mode was tried 2026-09-30 and **spins**: the game steers by where the pointer
+   is, a stick moves it at a rate, and letting go leaves it off centre, so the ship keeps
+   turning with no way back. Keyboard mode with the game's `Yaw`/`Pitch` keys is the
+   stick's rate control. → `stick-not-keyboard` (error)
 2. Everspace 2 in KB/M mode reads **only two analog axes** (mouse X/Y). Everything else is
    digital, and no remapper can add axes without a virtual gamepad — which re-triggers
    constraint 1.

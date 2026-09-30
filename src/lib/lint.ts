@@ -259,8 +259,9 @@ export function checkProfile(profile: Profile, actions: ActionSet, config: LintC
           profile: name,
           position,
           message:
-            `stick mode is '${String(mode)}'; only keyboard mode is allowed (gamepad mode made ` +
-            "the game flip between input devices and stutter)",
+            `stick mode is '${String(mode)}'; only keyboard mode is allowed. Gamepad mode made ` +
+            "the game flip between input devices and stutter; mouse mode spins the ship, " +
+            "because the game steers by where the pointer is and a stick cannot bring it back.",
         });
       }
     }
