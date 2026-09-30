@@ -17,16 +17,17 @@ leaves open.
 
 `npm run check` is the gate. It must pass before you claim work is done.
 
-| Command                                   | Purpose                                           |
-| ----------------------------------------- | ------------------------------------------------- |
-| `npm run check`                           | build + typecheck + lint + format check + tests   |
-| `npm run build`                           | `tsc` to `build/`, then bundle the editor         |
-| `npm run typecheck`                       | `tsc --noEmit`                                    |
-| `npm run lint` / `npm run lint:fix`       | ESLint                                            |
-| `npm run format` / `npm run format:check` | Prettier                                          |
-| `npm test` / `npm run test:watch`         | Vitest                                            |
-| `npm run test:quick`                      | library tests only; what the pre-commit hook runs |
-| `npm run test:bin`                        | Bash smoke tests for `bin/azeron`                 |
+| Command                                   | Purpose                                            |
+| ----------------------------------------- | -------------------------------------------------- |
+| `npm run check`                           | build + typecheck + lint + format check + tests    |
+| `npm start`                               | build, then serve the editor — the owner's command |
+| `npm run build`                           | `tsc` to `build/`, then bundle the editor          |
+| `npm run typecheck`                       | `tsc --noEmit`                                     |
+| `npm run lint` / `npm run lint:fix`       | ESLint                                             |
+| `npm run format` / `npm run format:check` | Prettier                                           |
+| `npm test` / `npm run test:watch`         | Vitest                                             |
+| `npm run test:quick`                      | every unit test; what the pre-commit hook runs     |
+| `npm run test:bin`                        | Bash smoke tests for `bin/azeron`                  |
 
 Run one test: `npx vitest run tests/unit/lib/compile.test.ts -t "byte for byte"`.
 
@@ -156,7 +157,8 @@ This repo follows the `nothingfortune/base` conventions.
 - Everything is TypeScript except three files, and `allowJs`/`checkJs` type-check two of
   them anyway: `scripts/check-env.mjs` stays JavaScript because it runs before anything
   is compiled (a guard that needs a build is no guard), `eslint.config.js` is ESLint's own
-  config, and `bin/azeron` is a nine-line npm bin shim. Build tooling under `scripts/` is
+  config, and `bin/azeron` is the npm bin shim, which has to run the environment guard
+  and check for a build before it can load anything compiled. Build tooling under `scripts/` is
   TypeScript, compiled by `tsconfig.scripts.json` into `build/scripts/`.
 
 ## Hard-won constraints — do not relearn these
@@ -308,8 +310,9 @@ Importing through the app stays the supported path.
   must come through identical. A failure indicates the compiler is rewriting a field it
   does not model; the fixture is the reference, not the thing to change.
 - Never make a suite green by deleting a test, adding `.skip`, or loosening an assertion.
-- The pre-commit hook runs `test:quick`; the pre-push hook runs the whole gate. Both are
-  wired by `git config core.hooksPath .githooks`, which `npm install` sets.
+- The pre-commit hook runs `test:quick` — every unit test, editor included; the pre-push
+  hook runs the whole gate. Both are wired by `git config core.hooksPath .githooks`, which
+  `npm install` sets.
 
 ## Conventions
 

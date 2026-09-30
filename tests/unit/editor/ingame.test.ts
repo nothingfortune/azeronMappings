@@ -27,10 +27,13 @@ function keyInput(label: string): HTMLInputElement {
   return input;
 }
 
+// Built once and cloned per test; see app.test.ts.
+const PAYLOAD = buildPayload();
+
 describe("the in-game bindings editor", () => {
   beforeEach(() => {
     document.body.innerHTML = '<div id="app"></div>';
-    start(buildPayload());
+    start(structuredClone(PAYLOAD));
     tab("In-game").click();
   });
 
@@ -44,8 +47,8 @@ describe("the in-game bindings editor", () => {
     // Which position carries it is a layout choice, so the row is checked against the
     // payload rather than against a position name that a revision is free to move.
     const set = (document.querySelectorAll("header select")[1] as HTMLSelectElement).value;
-    const expected = buildPayload()
-      .games.flatMap((game) => game.profiles)
+    const expected = PAYLOAD.games
+      .flatMap((game) => game.profiles)
       .filter((profile) => profile.data.profile.set === set)
       .flatMap((profile) =>
         Object.entries(profile.data.positions)

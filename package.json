@@ -11,6 +11,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json && tsc -p tsconfig.scripts.json && node build/scripts/build-editor.js",
+    "start": "npm run build && node build/index.js serve",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -22,13 +23,17 @@
     "check": "npm run build && npm run typecheck && npm run lint && npm run format:check && npm test && npm run test:bin",
     "azeron": "node build/index.js",
     "postinstall": "git config core.hooksPath >/dev/null 2>&1 || git config core.hooksPath .githooks || true",
-    "test:quick": "vitest run tests/unit/lib",
+    "test:quick": "vitest run tests/unit",
     "preflight": "node scripts/check-env.mjs",
     "prebuild": "npm run --silent preflight",
     "pretest": "npm run --silent preflight",
     "pretypecheck": "npm run --silent preflight",
     "prelint": "npm run --silent preflight",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "preazeron": "npm run --silent preflight",
+    "pretest:quick": "npm run --silent preflight",
+    "pretest:bin": "npm run --silent preflight",
+    "pretest:e2e": "npm run --silent preflight"
   },
   "dependencies": {
     "yaml": "^2.8.1"

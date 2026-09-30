@@ -58,11 +58,27 @@ const wanted = `${process.platform}-${process.arch}`;
 const installed = installedPlatforms();
 const mismatched = [...installed].filter(([, platform]) => platform !== wanted);
 
-if (installed.size > 0 && mismatched.length === installed.size) {
+// Half a reinstall -- binaries for both platforms side by side -- works until it does not.
+// Worth saying, not worth stopping for.
+if (mismatched.length > 0 && mismatched.length < installed.size) {
+  console.warn(
+    `node_modules also holds binaries for another platform: ${mismatched
+      .map(([name, platform]) => `${name} (${platform})`)
+      .join(", ")}. If something fails to start, reinstall in this shell.`,
+  );
+}
+
+// On Windows the failure people actually see is "'tsc' is not recognized": npm wrote no
+// .cmd shims because it installed from WSL. Check for the shim itself, not a proxy for it.
+const missingShim = process.platform === "win32" && !existsSync(join(modules, ".bin", "tsc.cmd"));
+
+if (missingShim || (installed.size > 0 && mismatched.length === installed.size)) {
   const names = [...new Set(mismatched.map(([, platform]) => platform))].join(", ");
   console.error(
     [
-      `node_modules holds binaries for ${names}, but this shell is ${wanted}.`,
+      missingShim && mismatched.length === 0
+        ? "node_modules has no .cmd shims, so it was installed from WSL, not this shell."
+        : `node_modules holds binaries for ${names}, but this shell is ${wanted}.`,
       "",
       ...mismatched.map(([name, platform]) => `  ${name}  (${platform})`),
       "",

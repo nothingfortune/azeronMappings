@@ -613,6 +613,32 @@ interface InstallFlags {
 }
 
 function cmdInstall(selector: string | undefined, flags: InstallFlags): number {
+  // What was asked for is checked before anything on this machine is looked at, so a bad
+  // invocation gets the same answer everywhere -- with or without the app installed.
+  if (!flags.yes && !flags.dryRun) {
+    process.stderr.write(
+      "error: this writes outside the repo. Re-run with --yes (or --dry-run).\n",
+    );
+    return 1;
+  }
+
+  // --device-id overrides every profile's own unit. For a pair that sends both hands to
+  // one device, so it is refused rather than obeyed: each unit's id is in its device map.
+  if (flags.deviceId !== undefined) {
+    const units = new Set(
+      games(selector).flatMap((game) => game.loadedProfiles().map((p) => p.device.name)),
+    );
+    if (units.size > 1) {
+      process.stderr.write(
+        `error: --device-id would send profiles for ${String(units.size)} units ` +
+          `(${[...units].sort().join(", ")}) to one device. Leave it out -- each unit's ` +
+          "software_device_id is in its device map -- or name a single game whose profiles " +
+          "are all for one unit.\n",
+      );
+      return 1;
+    }
+  }
+
   const store = findStore(flags.store);
   if (!store) {
     process.stderr.write(
@@ -638,13 +664,6 @@ function cmdInstall(selector: string | undefined, flags: InstallFlags): number {
     process.stderr.write(
       "error: the Azeron app is running. It rewrites this directory as it pleases -- " +
         "close it first.\n",
-    );
-    return 1;
-  }
-
-  if (!flags.yes && !flags.dryRun) {
-    process.stderr.write(
-      "error: this writes outside the repo. Re-run with --yes (or --dry-run).\n",
     );
     return 1;
   }
@@ -698,6 +717,7 @@ function usage(): void {
 
   build [game] [--check]          compile profile YAML into ${dataDirs.dist}/
   lint [game] [--strict] [--show-acknowledged]
+                                  the constraint rules from real play sessions
   roundtrip [game]                verify golden profiles rebuild their template
   cheatsheet [game]               per-profile layout diagram + binding checklist
   bindings [game]                 the in-game key list to check against the game
@@ -705,18 +725,20 @@ function usage(): void {
                                   compare the game's own bindings; --apply makes them agree
   editor [--out PATH]             the editor as one self-contained HTML file
   serve [--port N]                the same editor, able to save back into the repo
-  probe [--device D ...]          press-test profile + capture page for the real pin map
+  probe [--device D]              press-test profiles; capture them in the editor's Press test tab
   import <export.json> --genre G --game SLUG [--name N] [--device D] [--set S]
          [--export-to DIR]      start a game folder from an export
   decompile <export.json> [--device D] [--game G] [--set S] [--template T]
             [--output-name N] [--profile-index N] [--golden] [-o OUT]
-  install [game] --device-id ID [--store PATH] [--yes] [--dry-run]
+  install [game] [--store PATH] [--yes] [--dry-run] [--device-id ID]
+                                  each unit's id comes from its device map; --device-id
+                                  overrides it, and only for a single unit
 `);
 }
 
 export function main(argv: string[]): number {
   const [command, ...rest] = argv;
-  if (!command || command === "--help" || command === "-h") {
+  if (!command || command === "--help" || command === "-h" || command === "help") {
     usage();
     return command ? 0 : 1;
   }

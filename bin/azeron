@@ -1,6 +1,25 @@
 #!/usr/bin/env node
-import { main } from "../build/index.js";
+// The npm bin shim. It checks the two things a fresh clone gets wrong before loading the
+// build: node_modules installed from the other shell (Windows vs WSL), and no build at all.
+// A static import would fail on the second with a raw ERR_MODULE_NOT_FOUND stack.
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
+await import("../scripts/check-env.mjs");
+
+const entry = new URL("../build/index.js", import.meta.url);
+if (!existsSync(fileURLToPath(entry))) {
+  process.stderr.write("azeron is not built yet. Run: npm run build\n");
+  process.exit(1);
+}
+
+// `azeron ... | head` closes the pipe early; that is the reader finishing, not a failure.
+process.stdout.on("error", (error) => {
+  if (error.code === "EPIPE") process.exit(0);
+  throw error;
+});
+
+const { main } = await import(entry.href);
 try {
   process.exitCode = main(process.argv.slice(2));
 } catch (error) {

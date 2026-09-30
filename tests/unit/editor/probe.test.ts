@@ -10,7 +10,7 @@ import { loadDevice, loadTemplate } from "../../../src/lib/io.js";
 import { buildProbeProfile, buildStickCalibrationProfile } from "../../../src/lib/probe.js";
 import type { ProbePayload } from "../../../src/types/probe.js";
 
-function payload(): ProbePayload {
+function buildPayloadOnce(): ProbePayload {
   const left = loadDevice("cyborg2-left");
   const right = loadDevice("cyborg2-right");
   const template = loadTemplate("templates/everspace2-v5.json");
@@ -38,6 +38,10 @@ function payload(): ProbePayload {
     stickAssignments: calibration.assignments,
   };
 }
+
+// Two device loads, a template and two generated profiles -- built once, cloned per test.
+const PAYLOAD = buildPayloadOnce();
+const payload = (): ProbePayload => structuredClone(PAYLOAD);
 
 let probePayload: ProbePayload;
 

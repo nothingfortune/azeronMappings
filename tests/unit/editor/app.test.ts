@@ -10,9 +10,14 @@ import { start } from "../../../src/editor/app.js";
 import { buildPayload } from "../../../src/lib/editor/payload.js";
 import { LIVE_SET } from "../../helpers/fixtures.js";
 
+// Built once: it re-reads every device, genre, game and template, about 150 ms a time,
+// and was rebuilt before every test. A clone costs a few milliseconds and keeps each test
+// from seeing another's edits.
+const PAYLOAD = buildPayload();
+
 function mount(): void {
   document.body.innerHTML = '<div id="app"></div>';
-  start(buildPayload());
+  start(structuredClone(PAYLOAD));
 }
 
 describe("the editor", () => {
