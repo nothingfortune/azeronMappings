@@ -313,3 +313,85 @@ describe("stick modes in the editor", () => {
     expect(document.querySelector(".save-note")?.textContent).toContain("Save each unit");
   });
 });
+
+describe("assigning an action", () => {
+  beforeEach(() => {
+    mount();
+    const sets = document.querySelectorAll("header select")[1] as HTMLSelectElement;
+    sets.value = "single-v5";
+    sets.dispatchEvent(new Event("change"));
+  });
+
+  function card(position: string): HTMLButtonElement {
+    const found = [...document.querySelectorAll<HTMLButtonElement>(".key")].find(
+      (key) => key.querySelector(".pos")?.textContent === position,
+    );
+    if (!found) throw new Error(`no card for ${position}`);
+    return found;
+  }
+
+  function palette(label: string): HTMLButtonElement {
+    const found = [...document.querySelectorAll<HTMLButtonElement>(".action")].find((button) =>
+      button.querySelector("b")?.textContent.includes(label),
+    );
+    if (!found) throw new Error(`no palette entry for ${label}`);
+    return found;
+  }
+
+  it("renames the key it rebinds, rather than leaving the old action's name on it", () => {
+    // pinky_1 reads "Consume 1" and sends consume_1. Rebinding it must not still say that:
+    // the label is what the cheatsheet teaches and what is compiled onto the unit.
+    expect(card("pinky_1").querySelector(".name")?.textContent).toBe("Consume 1");
+    card("pinky_1").click();
+    palette("Consumable 3").click();
+    expect(card("pinky_1").querySelector(".name")?.textContent).toBe("Consumable 3");
+  });
+
+  it("leaves the label alone when the long press changes, because the label is the tap's", () => {
+    const before = card("pinky_1").querySelector(".name")?.textContent;
+    card("pinky_1").click();
+    const long = [...document.querySelectorAll<HTMLElement>(".field")].find(
+      (field) => field.querySelector("label")?.textContent === "long",
+    );
+    long?.querySelector("select")?.dispatchEvent(new Event("focus"));
+    palette("Consumable 3").click();
+    expect(card("pinky_1").querySelector(".name")?.textContent).toBe(before);
+  });
+
+  it("re-arms the tap when a different key is selected", () => {
+    // Focusing a slot's select was the only thing that moved the target, and nothing reset
+    // it -- so a long press armed on one key stayed armed on the next.
+    card("pinky_1").click();
+    const long = [...document.querySelectorAll<HTMLElement>(".field")].find(
+      (field) => field.querySelector("label")?.textContent === "long",
+    );
+    long?.querySelector("select")?.dispatchEvent(new Event("focus"));
+    expect(long?.getAttribute("data-active")).toBe("true");
+
+    card("pinky_2").click();
+    palette("Consumable 3").click();
+    // It landed on the tap, which is what the card shows.
+    expect(card("pinky_2").querySelector(".name")?.textContent).toBe("Consumable 3");
+  });
+
+  it("says why the palette cannot act when a stick is selected", () => {
+    document.querySelector<HTMLButtonElement>(".stick-dial .dir.up")?.click();
+    const list = document.querySelector(".action-list");
+    expect(list?.classList.contains("inert")).toBe(true);
+    expect(document.querySelector(".panel .note")?.textContent).toContain("direction on the dial");
+  });
+});
+
+describe("the in-game tab", () => {
+  it("renders the checks it promises", () => {
+    mount();
+    const tab = [...document.querySelectorAll("header button")].find(
+      (node) => node.textContent === "In-game",
+    );
+    (tab as HTMLButtonElement).click();
+    // The panel says a collision shows up here before it costs a fight.
+    expect(
+      document.querySelector(".workspace.ingame .checks, .workspace.ingame .finding"),
+    ).not.toBeNull();
+  });
+});

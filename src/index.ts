@@ -33,6 +33,7 @@ import {
 } from "./lib/serve.js";
 import {
   buildAll,
+  ImportCollision,
   importExport,
   ingameReport,
   lintAll,
@@ -441,6 +442,7 @@ function cmdServe(port: number): number {
             device?: string;
             set?: string;
             exported?: ExportDocument;
+            overwrite?: boolean;
           };
           const game = games(parsed.game)[0];
           if (!game) throw new Error("no such game");
@@ -455,11 +457,14 @@ function cmdServe(port: number): number {
             profilePath: profilePathFor(game, parsed.set, unit),
             templatePath: templatePathFor(game, parsed.set, unit),
             meta: { set: parsed.set, output: `${game.slug}_${parsed.set}_${unit}.json` },
+            ...(parsed.overwrite === true ? { overwrite: true } : {}),
           });
           invalidate();
           send(200, JSON.stringify({ ok: true, ...result, yaml: undefined }));
         } catch (error) {
-          send(400, JSON.stringify({ ok: false, error: (error as Error).message }));
+          // A name already in use is the user's to resolve, not a malformed request.
+          const status = error instanceof ImportCollision ? 409 : 400;
+          send(status, JSON.stringify({ ok: false, error: (error as Error).message }));
         }
       });
       return;

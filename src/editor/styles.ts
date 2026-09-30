@@ -78,6 +78,7 @@ select, .btn {
 .ingame-row .field label { font-size: 8.5px; }
 .ingame-row .field input { padding: 2px 5px; font-size: 11px; }
 .ingame-row .row2 { gap: 5px; }
+.action-list.inert { opacity: .45; pointer-events: none; }
 .note { font-size: 11.5px; color: var(--muted); margin-bottom: 10px; }
 .sheet-frame { width: 100%; min-height: 78vh; border: 1px solid var(--line); border-radius: 10px;
                background: var(--panel); }
@@ -197,6 +198,12 @@ select, .btn {
 .action .req { font-size: 9px; color: var(--error); }
 .field { margin-bottom: 9px; }
 .field label { display: block; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 3px; }
+/* Which slot the action palette will write to. The attribute was set and never styled,
+   so clicking an action could land on a long press with nothing on screen saying so. */
+.field[data-active] { position: relative; padding-left: 8px; }
+.field[data-active]::before { content: ""; position: absolute; left: 0; top: 2px; bottom: 2px;
+                              width: 2px; border-radius: 1px; background: var(--accent); }
+.field[data-active] label { color: var(--accent); font-weight: 600; }
 .field select, .field input { width: 100%; }
 .row2 { display: flex; gap: 8px; }
 .checks { display: flex; flex-direction: column; gap: 5px; }

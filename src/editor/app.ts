@@ -233,6 +233,11 @@ function keyCard(slug: string, position: string, extraClass = ""): HTMLElement {
   }
 
   card.addEventListener("click", () => {
+    // Back to the tap. `state.slot` only ever changed by focusing a slot's select, and
+    // never reset, so a long press armed on one key stayed armed on the next one.
+    if (state.selected?.slug !== slug || state.selected.position !== position) {
+      state.slot = "tap";
+    }
     state.selected = { slug, position };
     render();
   });
@@ -456,7 +461,21 @@ function renderPalette(): HTMLElement {
     ]),
   );
 
-  const list = el("div", { class: "action-list" });
+  // A stick holds four directions, not one action, so the palette has nowhere to write.
+  // It used to accept the click and silently discard it.
+  const selection = state.selected;
+  const onStick =
+    selection !== null && profileFor(selection.slug).device.isStick(selection.position);
+  if (onStick) {
+    panel.append(
+      el("div", { class: "note" }, [
+        "A stick is selected. Pick a direction on the dial to bind one of its four ways, " +
+          "or a key to bind an action.",
+      ]),
+    );
+  }
+
+  const list = el("div", { class: `action-list${onStick ? " inert" : ""}` });
   const byRole = new Map<string, [string, ActionSpec][]>();
   for (const entry of Object.entries(actions.actions)) {
     const tags = new Set(entry[1].tags ?? []);
@@ -498,6 +517,22 @@ function renderPalette(): HTMLElement {
   return panel;
 }
 
+/**
+ * Whether there are edits that only exist in the page.
+ *
+ * `state.working` holds a copy per profile the moment one is touched, so its size is the
+ * honest answer -- there is nothing to lose until something has been edited.
+ */
+function isDirty(): boolean {
+  return state.working.size > 0;
+}
+
+/** Ask before throwing edits away. Returns false when the user would rather not. */
+function confirmDiscard(what: string): boolean {
+  if (!isDirty()) return true;
+  return window.confirm(`${what} discards edits that have not been saved. Continue?`);
+}
+
 function assignToSelection(actionId: string): void {
   const selection = state.selected;
   if (!selection) return;
@@ -505,9 +540,14 @@ function assignToSelection(actionId: string): void {
   const spec = (data.positions[selection.position] ??= {});
   const device = profileFor(selection.slug).device;
   if (device.isStick(selection.position)) return;
-  spec[state.slot] = actionId;
   const actions = actionSetFor(currentGame());
-  spec.label ??= actions.label(actionId);
+  spec[state.slot] = actionId;
+  // The label is what the cheatsheet teaches and what is compiled onto the unit, so it
+  // must not go on naming the action that used to be here -- and whatever it said, it said
+  // it about that action. Rebinding the tap renames the key; a long press or a double tap
+  // leaves it, because the label is the tap's. `??=` never fired at all, since every
+  // shipped profile already has a label on every position.
+  if (state.slot === "tap") spec.label = actions.label(actionId);
   render();
 }
 
@@ -582,6 +622,10 @@ function renderInspector(): HTMLElement {
       if (slot === state.slot) wrap.setAttribute("data-active", "true");
       select.addEventListener("focus", () => {
         state.slot = slot;
+        for (const field of panel.querySelectorAll(".field[data-active]")) {
+          field.removeAttribute("data-active");
+        }
+        wrap.setAttribute("data-active", "true");
       });
       panel.append(wrap);
     }
@@ -733,6 +777,10 @@ function renderHeader(): HTMLElement {
     gameSelect.append(option);
   });
   gameSelect.addEventListener("change", () => {
+    if (!confirmDiscard("Switching game")) {
+      gameSelect.value = String(state.gameIndex);
+      return;
+    }
     state.gameIndex = Number(gameSelect.value);
     state.working.clear();
     state.selected = null;
@@ -802,6 +850,7 @@ function renderHeader(): HTMLElement {
 
   const reset = el("button", { class: "btn", type: "button" }, ["Reset"]);
   reset.addEventListener("click", () => {
+    if (!confirmDiscard("Reset")) return;
     state.working.clear();
     state.selected = null;
     render();
@@ -1049,7 +1098,10 @@ async function post(path: string, body: unknown): Promise<Record<string, unknown
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   });
-  return (await response.json()) as Record<string, unknown>;
+  const parsed = (await response.json()) as Record<string, unknown>;
+  // The status carries meaning the body does not: 409 is a name already in use, which the
+  // user can resolve, as against a request that was simply wrong.
+  return { ...parsed, status: response.status };
 }
 
 /**
@@ -1138,18 +1190,34 @@ function renderRepo(): HTMLElement {
       }
       repoNote = `importing ${chosen.name}...`;
       render();
-      void post("/api/import", {
-        game: currentGame().slug,
-        device: deviceSelect.value,
-        set: setName.value.trim() || "v1",
-        exported,
-      }).then((result) => {
-        repoNote = result.ok
-          ? `wrote ${String(result.profilePath)} (${String(result.positions)} positions) ` +
-            `and kept the export at ${String(result.templatePath)}. Reload to see it.`
-          : `import refused: ${String(result.error)}`;
-        render();
-      });
+      const send = (overwrite: boolean): void => {
+        void post("/api/import", {
+          game: currentGame().slug,
+          device: deviceSelect.value,
+          set: setName.value.trim() || "v1",
+          exported,
+          ...(overwrite ? { overwrite: true } : {}),
+        }).then((result) => {
+          // A set already in use destroys a profile and its committed template, which is
+          // the only record of what the unit held. Asked, not assumed.
+          if (result.ok !== true && result.status === 409) {
+            if (window.confirm(`${String(result.error)}\n\nOverwrite it?`)) {
+              send(true);
+              return;
+            }
+            repoNote = "import cancelled -- nothing was written.";
+            render();
+            return;
+          }
+          repoNote =
+            result.ok === true
+              ? `wrote ${String(result.profilePath)} (${String(result.positions)} positions) ` +
+                `and kept the export at ${String(result.templatePath)}. Reload to see it.`
+              : `import refused: ${String(result.error)}`;
+          render();
+        });
+      };
+      send(false);
     });
     reader.readAsText(chosen);
   };
@@ -1312,6 +1380,7 @@ function fitStage(wrap: HTMLElement, stage: HTMLElement): void {
 }
 
 let resizeBound = false;
+let unloadBound = false;
 
 function render(): void {
   const root = document.getElementById("app");
@@ -1327,7 +1396,9 @@ function render(): void {
     const stage = el("div", { class: "stage" });
     for (const slug of slugsInSet()) stage.append(renderHand(slug));
     const stageWrap = el("div", { class: "stage-wrap" }, [stage]);
-    workspace.append(stageWrap, renderInGame());
+    // The tab's whole claim is that changing a key here shows a collision before it costs
+    // a fight. It said so in the panel and did not render the findings.
+    workspace.append(stageWrap, renderInGame(), renderChecks());
     root.append(workspace);
     requestAnimationFrame(() => {
       fitStage(stageWrap, stage);
@@ -1379,6 +1450,18 @@ function render(): void {
   requestAnimationFrame(() => {
     fitStage(stageWrap, stage);
   });
+  if (!unloadBound) {
+    unloadBound = true;
+    // Edits live in the page until they are saved, and a reload used to take them with it
+    // without asking. The browser shows its own wording; what matters is that it asks.
+    window.addEventListener("beforeunload", (event) => {
+      if (!isDirty()) return;
+      // preventDefault is the current way to ask; some browsers still want a truthy
+      // returnValue, which is deprecated and set through the index signature.
+      event.preventDefault();
+      (event as unknown as Record<string, unknown>).returnValue = "";
+    });
+  }
   if (!resizeBound) {
     resizeBound = true;
     window.addEventListener("resize", () => {

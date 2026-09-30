@@ -118,6 +118,17 @@ export interface ImportRequest {
   meta?: Partial<ProfileMeta>;
   /** Where the export itself is kept, relative to the repo. */
   templatePath?: string;
+  /** Replace an existing set. Refused by default -- a template is committed history. */
+  overwrite?: boolean;
+}
+
+export class ImportCollision extends Error {
+  constructor(readonly paths: string[]) {
+    super(
+      `that set already exists: ${paths.join(", ")}. Importing would overwrite it -- pass ` +
+        "overwrite to replace it, or choose another set name.",
+    );
+  }
 }
 
 export interface ImportResult {
@@ -135,6 +146,17 @@ export interface ImportResult {
  */
 export function importExport(request: ImportRequest): ImportResult {
   const device = loadDevice(request.device);
+
+  // Both writes are silent overwrites, and one of them is a committed template -- the only
+  // record of what the unit actually held. Re-importing under a name already in use used
+  // to destroy both without a word.
+  if (request.overwrite !== true) {
+    const taken = [request.profilePath, request.templatePath]
+      .filter((path): path is string => path !== undefined)
+      .filter((path) => existsSync(repoPath(path)));
+    if (taken.length > 0) throw new ImportCollision(taken);
+  }
+
   if (request.templatePath !== undefined) {
     writeText(request.templatePath, `${JSON.stringify(request.exported, null, 2)}\n`);
   }
