@@ -7,15 +7,22 @@
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 
 import { repoPath } from "../config/paths.js";
 import type { ExportDocument } from "../types/azeron.js";
 import type { ProfileMeta } from "../types/profile.js";
 import { compileProfile, dumps } from "./compile.js";
 import { decompile, dumpProfile } from "./decompile.js";
-import { compareToGame, gameCollisions, parseInput } from "./ingame.js";
-import type { Comparison } from "./ingame.js";
+import {
+  applyVocabulary,
+  compareToGame,
+  gameCollisions,
+  IngameError,
+  ownedCollisions,
+  parseInput,
+} from "./ingame.js";
+import type { Comparison, IngameChange } from "./ingame.js";
 import { loadDevice, loadTemplate, writeText } from "./io.js";
 import { ERROR, WARNING, formatFinding, lintGame, lintGenre } from "./lint.js";
 import { Game, Genre } from "./model.js";
@@ -183,11 +190,105 @@ export interface IngameReport {
 
 /** What the game's own binding file says about the keys we send. */
 export function ingameReport(game: Game, override?: string): IngameReport {
-  const path = override ?? game.config.ingame_config;
-  if (path === undefined) throw new Error(`${game.slug} has no ingame_config in game.yaml`);
-  if (!existsSync(path)) throw new Error(`${path} does not exist`);
+  const path = ingameSource(game, override);
   const file = parseInput(readFileSync(path, "utf8"));
-  return { path, rows: compareToGame(game.actions, file), collisions: gameCollisions(file) };
+  // Menus and photo mode reuse flight keys on purpose. Where a game says which categories
+  // are live while flying, only a collision inside those is worth reporting.
+  const owned = new Set(game.config.ingame_owned_categories ?? []);
+  const collisions = owned.size > 0 ? ownedCollisions(file, owned) : gameCollisions(file);
+  return { path, rows: compareToGame(game.actions, file), collisions };
+}
+
+/** The committed copy of the game's binding file, as last generated. */
+export function ingameDistPath(game: Game): string {
+  return join(game.distDir(), "Input.ini");
+}
+
+/**
+ * The binding file to start from: the game's own when it is installed here, otherwise the
+ * committed copy, so generating works on a machine without the game -- or in CI.
+ */
+function ingameSource(game: Game, override?: string): string {
+  // A path asked for by name is the one meant. Falling back would report on a different
+  // file than the one requested, and say nothing about it.
+  if (override !== undefined) {
+    if (!existsSync(override)) throw new Error(`${override} does not exist`);
+    return override;
+  }
+  const live = game.config.ingame_config;
+  if (live !== undefined && existsSync(live)) return live;
+  const committed = repoPath(ingameDistPath(game));
+  if (existsSync(committed)) return committed;
+  throw new Error(
+    live === undefined
+      ? `${game.slug} has no ingame_config in game.yaml, and no committed copy to start from`
+      : `${live} does not exist, and there is no committed copy to start from`,
+  );
+}
+
+export interface IngameApplyResult {
+  /** The file generation started from. */
+  source: string;
+  changes: IngameChange[];
+  /** Pairs of rows still sharing a key in the owned categories. */
+  collisions: { key: string; actions: string[] }[];
+  /** Everything written, in order. Empty when `write` is false. */
+  written: string[];
+  /** Where the game's previous file was copied before being replaced, if it was. */
+  backup: string | null;
+}
+
+/**
+ * Make the game's binding file agree with actions.yaml.
+ *
+ * The committed copy under dist/ is always rewritten, so the repo records what the game
+ * was given. The game's own file is only touched when it exists and would change, and is
+ * copied aside first -- it belongs to the game, and the game must be closed, because it
+ * rewrites the file on exit.
+ */
+export function applyIngame(
+  game: Game,
+  options: {
+    /** Write anything at all. False is a dry run. */
+    write: boolean;
+    /** Also replace the game's own file. The committed copy is written either way. */
+    toGame?: boolean;
+    /** Read from this file instead of the game's. Never written to. */
+    override?: string;
+  },
+): IngameApplyResult {
+  const owned = new Set(game.config.ingame_owned_categories ?? []);
+  if (owned.size === 0) {
+    throw new IngameError(
+      `${game.slug} owns no binding categories -- set ingame_owned_categories in game.yaml`,
+    );
+  }
+  const source = ingameSource(game, options.override);
+  const before = readFileSync(source, "utf8");
+  const { text, changes } = applyVocabulary(parseInput(before), game.actions, owned);
+  const collisions = ownedCollisions(parseInput(text), owned);
+
+  const written: string[] = [];
+  let backup: string | null = null;
+  if (options.write) {
+    const committed = ingameDistPath(game);
+    writeText(committed, text);
+    written.push(committed);
+
+    const live = game.config.ingame_config;
+    if (
+      options.toGame === true &&
+      live !== undefined &&
+      existsSync(live) &&
+      readFileSync(live, "utf8") !== text
+    ) {
+      backup = `${live}.bak-${new Date().toISOString().replace(/[:.]/g, "-")}`;
+      writeFileSync(backup, readFileSync(live));
+      writeFileSync(live, text, "utf8");
+      written.push(live);
+    }
+  }
+  return { source, changes, collisions, written, backup };
 }
 
 /** Where a decompiled profile should live for a game and set. */
@@ -198,5 +299,3 @@ export function profilePathFor(game: Game, setName: string, unit: string): strin
 export function templatePathFor(game: Game, setName: string, unit: string): string {
   return join("templates", `${game.slug}-${setName}-${unit}.json`);
 }
-
-export { dirname };

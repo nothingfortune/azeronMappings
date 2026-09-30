@@ -68,10 +68,42 @@ describe("rules catch the known failures", () => {
     expect(rules(findings, WARNING)).toContain("combat-tap-delayed");
   });
 
+  it("warns when boost waits for a long press, which constraint 4 names outright", () => {
+    // The rule used to check only the combat tag, and boost is a movement action -- so the
+    // one action the constraint names by name was the one it could not see.
+    const findings = mutate((data) => {
+      const boost = data.positions.index_3;
+      if (boost) boost.long = "fling";
+    });
+    expect(rules(findings, WARNING)).toContain("combat-tap-delayed");
+  });
+
+  it("warns when a flight key opens a menu if it is held", () => {
+    // A flight key is held rather than mashed. Past the long-press window the menu opens.
+    const findings = mutate((data) => {
+      const boost = data.positions.index_3;
+      if (boost) boost.long = "map";
+    });
+    expect(rules(findings, WARNING)).toContain("menu-with-combat");
+  });
+
+  it("leaves a utility key with a long press alone", () => {
+    const findings = mutate((data) => {
+      const position = data.positions.pinky_1;
+      if (position) {
+        position.tap = "headlight";
+        position.long = "toggle_hud";
+      }
+    });
+    const here = findings.filter((finding) => finding.position === "pinky_1");
+    expect(rules(here, WARNING)).not.toContain("combat-tap-delayed");
+  });
+
   it("errors on a key no action declares", () => {
     const findings = mutate((data) => {
       const position = data.positions.pinky_1;
-      if (position) position.tap = { key: "KeyZ" };
+      // Every letter is declared now that the vocabulary covers every live game row.
+      if (position) position.tap = { key: "F12" };
     });
     expect(rules(findings, ERROR)).toContain("unbound-key");
   });

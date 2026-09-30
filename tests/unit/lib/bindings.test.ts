@@ -37,8 +37,8 @@ describe("bindingSheet", () => {
     const result = sheet();
     const sent = new Set(result.rows.map((row) => row.action));
     for (const row of result.unbound) expect(sent.has(row.action)).toBe(false);
-    // The mouse-sensor axes are declared but never sent by a key.
-    expect(result.unbound.some((row) => row.action === "pitch")).toBe(true);
+    // The pointer axes are declared but never sent by a key.
+    expect(result.unbound.some((row) => row.action === "pointer_y")).toBe(true);
   });
 
   it("flags a key that no action declares, which is how app-side edits show up", () => {

@@ -5,71 +5,93 @@
 # and supplies only `key:` / `meta:` / `mouse:` per action.
 #
 # `required` means "must be bound on some unit, or you will reach for the gamepad".
-# `provided_by: sensor` means the unit's own mouse sensor supplies it, so it is excluded
-# from the coverage check.
+# `provided_by: sensor` means the unit's own sensor supplies it by moving the pointer, so
+# it is excluded from the coverage check.
 genre: SpaceSims
 
 actions:
-  # --- flight axes and attitude -------------------------------------------------
-  throttle_up:        {label: Throttle up,       tags: [movement, required]}
-  throttle_down:      {label: Throttle down,     tags: [movement, required]}
-  strafe_left:        {label: Strafe left,       tags: [movement, required]}
-  strafe_right:       {label: Strafe right,      tags: [movement, required]}
-  roll_left:          {label: Roll left,         tags: [movement, required]}
-  roll_right:         {label: Roll right,        tags: [movement, required]}
+  # --- flight: the six axes ------------------------------------------------------
+  # Three translations and three rotations. Each is a real keyboard action -- none is
+  # assumed to be covered by the pointer, because whether the pointer turns the ship or
+  # only aims is a question of the game, and the answer decides the layout, not the
+  # vocabulary.
+  throttle_up:        {label: Thrust forward,     tags: [movement, required]}
+  throttle_down:      {label: Thrust backward,    tags: [movement, required]}
+  strafe_left:        {label: Strafe left,        tags: [movement, required]}
+  strafe_right:       {label: Strafe right,       tags: [movement, required]}
   hover_up:           {label: Vertical thrust up,   tags: [movement, required]}
   hover_down:         {label: Vertical thrust down, tags: [movement, required]}
-  boost:              {label: Boost,             tags: [movement, required],
+  pitch_up:           {label: Pitch up,           tags: [movement]}
+  pitch_down:         {label: Pitch down,         tags: [movement]}
+  yaw_left:           {label: Yaw left,           tags: [movement]}
+  yaw_right:          {label: Yaw right,          tags: [movement]}
+  roll_left:          {label: Roll left,          tags: [movement, required]}
+  roll_right:         {label: Roll right,         tags: [movement, required]}
+  boost:              {label: Boost,              tags: [movement, required],
                        note: "Must never latch -- constraint 6."}
-  inertia_dampeners:  {label: Inertia dampeners, tags: [movement, required]}
-  pitch:              {label: Pitch, provided_by: sensor, axis: mouse_y, tags: [movement, required]}
-  yaw:                {label: Yaw,   provided_by: sensor, axis: mouse_x, tags: [movement, required]}
+  inertia_dampeners:  {label: Inertia dampeners,  tags: [movement, required],
+                       note: "A toggle, and it decides whether thrust holds a speed or coasts."}
+
+  # The unit's sensor moves the pointer. Not keys -- listed so the coverage check knows
+  # the pointer exists, and so nothing mistakes it for the ship's pitch and yaw above.
+  pointer_x:          {label: Pointer left/right, provided_by: sensor, axis: mouse_x, tags: [movement]}
+  pointer_y:          {label: Pointer up/down,    provided_by: sensor, axis: mouse_y, tags: [movement]}
 
   # --- travel -------------------------------------------------------------------
   cruise:             {label: Travel drive,      tags: [travel, required]}
   supralight:         {label: Jump / supralight drive, tags: [travel, required]}
 
-  # --- weapons and targeting ----------------------------------------------------
-  # These cycle the primary weapon rather than selecting a numbered one; the ids are
-  # kept because every profile references them, but the labels say what they do.
-  primary_1:          {label: Next primary,      tags: [combat, required]}
-  primary_2:          {label: Previous primary,  tags: [combat, required]}
-  primary_3:          {label: Primary 3,         tags: [combat]}
-  # Not `required`: with a mouse these sit on it, and only a keypad-only setup has to
-  # find keys for them. Which is true depends on the layout, not on the genre.
+  # --- weapons ------------------------------------------------------------------
   fire_primary:       {label: Fire primary,      tags: [combat]}
   fire_secondary:     {label: Fire secondary,    tags: [combat]}
+  next_primary:       {label: Next primary,      tags: [combat, required]}
+  previous_primary:   {label: Previous primary,  tags: [combat, required]}
+  equip_primary_1:    {label: Equip primary 1,   tags: [combat]}
+  equip_primary_2:    {label: Equip primary 2,   tags: [combat]}
+  equip_primary_3:    {label: Equip primary 3,   tags: [combat]}
   next_secondary:     {label: Next secondary,    tags: [combat]}
+  previous_secondary: {label: Previous secondary, tags: [combat]}
   secondary_1:        {label: Equip secondary 1, tags: [combat]}
   secondary_2:        {label: Equip secondary 2, tags: [combat]}
   secondary_3:        {label: Equip secondary 3, tags: [combat]}
+  ultimate:           {label: Ultimate,          tags: [combat, required]}
+
+  # --- targeting ----------------------------------------------------------------
+  lock_target:        {label: Lock target,       tags: [combat, required]}
+  # Not `required`: lock_target already targets, and no layout has ever bound this -- the
+  # id used to mean equip secondary 1, while the game's NextTarget sat unbound throughout.
+  next_target:        {label: Next target,       tags: [combat]}
+  previous_target:    {label: Previous target,   tags: [combat]}
+  lock_nearest_target: {label: Lock nearest target, tags: [combat]}
+
+  # --- devices and consumables --------------------------------------------------
   device_1:           {label: Device 1,          tags: [combat, required]}
   device_2:           {label: Device 2,          tags: [combat, required]}
   device_3:           {label: Device 3,          tags: [combat, required]}
   device_4:           {label: Device 4,          tags: [combat, required]}
+  use_device_hold:    {label: Device wheel (hold), tags: [combat]}
   consume_1:          {label: Consumable 1,      tags: [combat, required]}
   consume_2:          {label: Consumable 2,      tags: [combat, required]}
   consume_3:          {label: Consumable 3,      tags: [combat, required]}
   consume_4:          {label: Consumable 4,      tags: [combat, required]}
-  ultimate:           {label: Ultimate,          tags: [combat, required]}
-  # F4 in Everspace 2 equips secondary 1; the game's own NextTarget is unbound. The id
-  # is historical.
-  next_target:        {label: "Equip secondary 1 (F4)", tags: [combat, required]}
-  lock_target:        {label: Lock target,       tags: [combat, required]}
-  weapon_cycle_up:    {label: Cycle weapon (up),    tags: [combat]}
-  weapon_cycle_down:  {label: Cycle weapon (down),  tags: [combat]}
-  weapon_cycle_left:  {label: Cycle weapon (left),  tags: [combat]}
-  weapon_cycle_right: {label: Cycle weapon (right), tags: [combat]}
+  use_consumable_hold: {label: Consumable wheel (hold), tags: [combat]}
 
   # --- utility ------------------------------------------------------------------
   interact:           {label: Interact,          tags: [utility, required]}
-  view_ship:          {label: View ship,         tags: [utility]}
+  fling:              {label: Fling objects,     tags: [utility]}
+  view_ship:          {label: Switch camera,     tags: [utility]}
+  free_look:          {label: Free look (toggle), tags: [utility]}
+  headlight:          {label: Headlight,         tags: [utility]}
   place_marker:       {label: Place marker,      tags: [utility]}
+  toggle_hud:         {label: Toggle HUD,        tags: [utility]}
 
   # --- menus --------------------------------------------------------------------
+  # System actions are tagged as menus so `menu-with-combat` keeps them off a key that
+  # gets mashed: a quick load in a fight loses the fight.
   menu_tab:           {label: Menu,              tags: [menu]}
   escape_menu:        {label: Escape menu,       tags: [menu],
                        note: "Constraint 5 -- never on a key that gets mashed in combat."}
+  pause:              {label: Pause,             tags: [menu]}
   ship_menu:          {label: Ship,              tags: [menu]}
   inventory:          {label: Inventory,         tags: [menu]}
   missions:           {label: Missions,          tags: [menu]}
@@ -77,3 +99,7 @@ actions:
   crafting:           {label: Crafting,          tags: [menu]}
   data_logs:          {label: Data / logs,       tags: [menu]}
   perks:              {label: Perks,             tags: [menu]}
+  photo_mode:         {label: Photo mode,        tags: [menu]}
+  quick_save:         {label: Quick save,        tags: [menu]}
+  quick_load:         {label: Quick load,        tags: [menu]}
+  load_recent_save:   {label: Load most recent save, tags: [menu]}

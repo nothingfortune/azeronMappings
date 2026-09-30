@@ -22,7 +22,6 @@ import {
 } from "./lib/install.js";
 import { loadDevice, loadTemplate, writeText } from "./lib/io.js";
 import { buildProbeProfile, buildStickCalibrationProfile } from "./lib/probe.js";
-import { compareToGame, gameCollisions, parseInput } from "./lib/ingame.js";
 import { gameConfig, seedActions, unnamedPositions } from "./lib/scaffold.js";
 import {
   CONTENT_TYPES,
@@ -35,6 +34,7 @@ import {
   buildAll,
   ImportCollision,
   importExport,
+  applyIngame,
   ingameReport,
   lintAll,
   profilePathFor,
@@ -325,57 +325,70 @@ function cmdImport(exportPath: string, flags: ImportFlags): number {
 }
 
 /** Compare actions.yaml against the game's own binding file. */
-function cmdIngame(selector: string | undefined, configPath: string | undefined): number {
+function cmdIngame(
+  selector: string | undefined,
+  configPath: string | undefined,
+  apply: boolean,
+): number {
   let failures = 0;
   for (const game of games(selector)) {
-    const path = configPath ?? game.config.ingame_config;
-    if (path === undefined) {
-      process.stderr.write(
-        `error: ${game.slug} has no ingame_config in game.yaml, and no --config given.\n`,
+    try {
+      if (apply) {
+        const result = applyIngame(game, {
+          write: true,
+          toGame: true,
+          ...(configPath === undefined ? {} : { override: configPath }),
+        });
+        out(`${game.slug}: generated from ${result.source}`);
+        if (result.changes.length === 0) out("  the game already agrees with actions.yaml");
+        for (const change of result.changes) {
+          out(
+            `  ${change.display.padEnd(30)} ${change.from.padEnd(14)} -> ${change.to.padEnd(14)}` +
+              ` (${String(change.by)})`,
+          );
+        }
+        for (const path of result.written) out(`  wrote ${path}`);
+        if (result.backup !== null) out(`  the game's previous file is at ${result.backup}`);
+        for (const entry of result.collisions) {
+          out(`  shared on purpose: ${entry.key} -> ${entry.actions.join(" + ")}`);
+        }
+        continue;
+      }
+
+      const report = ingameReport(game, configPath);
+      const differs = report.rows.filter((row) => row.status === "differs");
+      const unmatched = report.rows.filter((row) => row.status === "unmatched");
+      out(`${game.slug}: ${report.path}`);
+      out(
+        `  ${String(report.rows.filter((row) => row.status === "agrees").length)} agree, ` +
+          `${String(differs.length)} differ, ${String(unmatched.length)} not in the game`,
       );
+      if (differs.length > 0) {
+        out("");
+        out("  the game has these on another key -- `azeron ingame --apply` fixes it:");
+        for (const row of differs) {
+          const theirs = row.theirs[0];
+          out(
+            `    ${row.label.padEnd(26)} ours ${String(row.ours).padEnd(14)} ` +
+              `game ${String(theirs?.key)}`,
+          );
+        }
+      }
+      if (unmatched.length > 0) {
+        out("");
+        out("  we send these, the game has nothing on them:");
+        for (const row of unmatched) out(`    ${row.label.padEnd(26)} ${String(row.ours)}`);
+      }
+      if (report.collisions.length > 0) {
+        out("");
+        out("  keys two live actions share in the game:");
+        for (const entry of report.collisions) {
+          out(`    ${entry.key.padEnd(16)} ${entry.actions.join(" + ")}`);
+        }
+      }
+    } catch (error) {
+      process.stderr.write(`error: ${game.slug}: ${(error as Error).message}\n`);
       failures += 1;
-      continue;
-    }
-    if (!existsSync(path)) {
-      process.stderr.write(`error: ${path} does not exist.\n`);
-      failures += 1;
-      continue;
-    }
-
-    const file = parseInput(readFileSync(path, "utf8"));
-    const rows = compareToGame(game.actions, file);
-    const agrees = rows.filter((row) => row.status === "agrees");
-    const unmatched = rows.filter((row) => row.status === "unmatched");
-
-    out(`${game.slug}: ${path}`);
-    out(
-      `  ${String(file.entries.length)} binding rows, ` +
-        `${String(agrees.length)} of our actions found in game, ` +
-        `${String(unmatched.length)} not bound to anything`,
-    );
-
-    out("");
-    out("  what the game does with the keys we send:");
-    for (const row of agrees) {
-      const what = row.theirs
-        .map((entry) => `${entry.display}${entry.scale < 0 ? " (negative)" : ""}`)
-        .join(" + ");
-      const flag = row.theirs.length > 1 ? "  <-- more than one" : "";
-      out(`    ${row.label.padEnd(24)} ${String(row.ours).padEnd(16)} ${what}${flag}`);
-    }
-
-    if (unmatched.length > 0) {
-      out("");
-      out("  we send these, the game has nothing on them:");
-      for (const row of unmatched) out(`    ${row.label.padEnd(24)} ${String(row.ours)}`);
-    }
-
-    const collisions = gameCollisions(file);
-    if (collisions.length > 0) {
-      out("");
-      out("  keys the game itself binds twice:");
-      for (const entry of collisions)
-        out(`    ${entry.key.padEnd(16)} ${entry.actions.join(" + ")}`);
     }
   }
   return failures > 0 ? 1 : 0;
@@ -688,6 +701,8 @@ function usage(): void {
   roundtrip [game]                verify golden profiles rebuild their template
   cheatsheet [game]               per-profile layout diagram + binding checklist
   bindings [game]                 the in-game key list to check against the game
+  ingame [game] [--apply] [--config PATH]
+                                  compare the game's own bindings; --apply makes them agree
   editor [--out PATH]             the editor as one self-contained HTML file
   serve [--port N]                the same editor, able to save back into the repo
   probe [--device D ...]          press-test profile + capture page for the real pin map
@@ -713,6 +728,7 @@ export function main(argv: string[]): number {
       check: { type: "boolean", default: false },
       strict: { type: "boolean", default: false },
       "show-acknowledged": { type: "boolean", default: false },
+      apply: { type: "boolean", default: false },
       golden: { type: "boolean", default: false },
       yes: { type: "boolean", default: false },
       "dry-run": { type: "boolean", default: false },
@@ -745,7 +761,7 @@ export function main(argv: string[]): number {
     case "bindings":
       return cmdBindings(positionals[0]);
     case "ingame":
-      return cmdIngame(positionals[0], values.config);
+      return cmdIngame(positionals[0], values.config, values.apply);
     case "serve":
       return cmdServe(Number(values.port ?? "4173"));
     case "editor":

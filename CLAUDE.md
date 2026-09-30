@@ -46,6 +46,8 @@ output, so `npm run build` first:
 | `azeron roundtrip [game]`                           | golden profiles must rebuild their template exactly    |
 | `azeron cheatsheet [game]`                          | per-profile layout diagram + binding checklist         |
 | `azeron bindings [game]`                            | the in-game key list, to check against the game        |
+| `azeron ingame [game] [--apply]`                    | compare the game's `Input.ini`; `--apply` rewrites it  |
+| `azeron serve [--port N]`                           | the editor, able to save back into the repo            |
 | `azeron editor`                                     | the side-by-side editor, one self-contained HTML       |
 | `azeron probe [--device D]`                         | press-test profile + capture page for the real pin map |
 | `azeron import <export.json> --genre G --game SLUG` | start a game folder from an export                     |
@@ -248,12 +250,29 @@ array of per-key records.
 Everspace 2 keeps its bindings in `Input.ini` under `[/Script/ES2.CustomPlayerInput]`,
 one `KeybindingsConfig=(...)` line per action per input group (Keyboard, Gamepad,
 **Joystick** — the game does support joysticks natively). `ingame_config` in `game.yaml`
-points at it and `azeron ingame` compares it against `actions.yaml`.
+points at it.
 
-Matching is by **key**, not by name: an action id is ours, the game's action names are
-its own, and the key is the only thing the two sides share. Parsing is lossless and only
-`Key1` on a keyboard row would ever be rewritten — the file belongs to the game and most
-of its fields are not understood here.
+**The direction of truth is one way: `actions.yaml` → the game.** Each action names its
+game row with `ingame:` (the `Action=` field) and, for one half of a two-row axis,
+`ingame_scale:`. `azeron ingame --apply` writes every keyboard row in the categories
+`game.yaml` owns (`ingame_owned_categories` — for Everspace 2, 0–3: everything live while
+flying) from those references, clears `Key2` on them, and leaves every other line alone.
+A layout then changes on the keypads alone; the in-game half is never edited by hand.
+
+- Every owned row must be named by an action, or applying refuses — the vocabulary covers
+  the whole flying layer, so nothing sits on a key the repo does not know about. An action
+  with no key leaves its row unbound.
+- Rows in other categories (menu navigation, menu actions, photo-mode camera) reuse
+  flight keys on purpose and are never touched.
+- `dist/<game>/Input.ini` is the committed copy of what the game was given, gated like the
+  compiled JSON: it must be a fixed point of `actions.yaml`. Generating starts from the
+  game's own file when it is installed, and from that copy when it is not.
+- The game's file is copied aside before being replaced, and the game must be closed —
+  it rewrites the file on exit.
+
+`azeron ingame` without `--apply` reports rows that **differ** — the game has the row on
+another key — which is what key matching alone could not see: it found _a_ binding for A
+and called it agreement, while the game had A on "Strafe right".
 
 ## Detecting the units
 

@@ -42,7 +42,7 @@ modes:
       Not an RC mode. The left stick flies as a flight stick and the right stick is left
       for weapon cycling, which is what akimbo v7 does today.
     left: { vertical: thrust, horizontal: strafe }
-    right: { vertical: cycle, horizontal: roll }
+    right: { vertical: pitch, horizontal: roll }
 
 # Which action each axis sends at each end.
 axes:
@@ -50,4 +50,4 @@ axes:
   vertical: { up: hover_up, down: hover_down }
   strafe: { up: strafe_right, down: strafe_left }
   roll: { up: roll_right, down: roll_left }
-  cycle: { up: weapon_cycle_up, down: weapon_cycle_down }
+  pitch: { up: pitch_up, down: pitch_down }

@@ -56,15 +56,16 @@ describe("the editor", () => {
     expect(target).toBeDefined();
     target?.click();
 
-    const palette = [...document.querySelectorAll<HTMLButtonElement>(".action")];
-    const primary = palette.find((button) => button.textContent.includes("Primary 3"));
-    expect(primary).toBeDefined();
-    primary?.click();
+    // Whatever the palette offers first -- the test is about assigning, not the vocabulary.
+    const entry = document.querySelector<HTMLButtonElement>(".action");
+    const label = entry?.querySelector("b")?.textContent ?? "";
+    expect(label).not.toBe("");
+    entry?.click();
 
     const updated = [...document.querySelectorAll<HTMLButtonElement>(".key")].find(
       (key) => key.querySelector(".pos")?.textContent === "middle_1",
     );
-    expect(updated?.textContent).toContain("Primary 3");
+    expect(updated?.querySelector(".name")?.textContent).toBe(label);
   });
 
   it("reports the linter's findings, not its own opinion", () => {
@@ -162,7 +163,7 @@ describe("key cards", () => {
       expect(cell, direction).not.toBeNull();
       expect(cell?.querySelector(".glyph")?.textContent).toBeTruthy();
     }
-    expect(dial?.querySelector(".up .name")?.textContent).toBe("Throttle up");
+    expect(dial?.querySelector(".up .name")?.textContent).toBe("Thrust forward");
     expect(dial?.querySelector(".left .name")?.textContent).toBe("Strafe left");
     // The hub is the stick pressed in, so it shows that key's binding.
     expect(dial?.querySelector(".hub .name")?.textContent).toBe("Inertia Dampeners");
@@ -299,7 +300,7 @@ describe("stick modes in the editor", () => {
     expect(dials.length).toBe(2);
     // Mode 2: left stick climbs, right stick thrusts.
     expect(dials[0]?.querySelector(".up .name")?.textContent).toBe("Hover up");
-    expect(dials[1]?.querySelector(".up .name")?.textContent).toBe("Throttle up");
+    expect(dials[1]?.querySelector(".up .name")?.textContent).toBe("Thrust forward");
   });
 
   it("shows which mode a pair is already in", () => {

@@ -5,7 +5,7 @@
  * numbered constraints each one enforces.
  */
 
-import { SLOTS, STICK_MODE_CODES } from "../types/azeron.js";
+import { SLOTS, STICK_MODE_CODES, DEFAULT_FEATURE_DELAY } from "../types/azeron.js";
 import * as keys from "./keys.js";
 import type { Slot } from "../types/azeron.js";
 import type {
@@ -149,6 +149,11 @@ function actionForSlot(
   return key === null ? undefined : byKey.get(key);
 }
 
+/** Actions whose timing a fight depends on: anything that shoots, and anything that flies. */
+function isTimeCritical(tags: ReadonlySet<string>): boolean {
+  return tags.has("combat") || tags.has("movement");
+}
+
 export function checkProfile(profile: Profile, actions: ActionSet, config: LintConfig): Finding[] {
   const findings: Finding[] = [];
   const name = profile.slug;
@@ -260,30 +265,36 @@ export function checkProfile(profile: Profile, actions: ActionSet, config: LintC
       if (id !== undefined) tagsBySlot.set(slot, actions.tags(id));
     }
 
-    // Constraint 4: a long or double action delays the tap on the same key.
+    // Constraint 4: a long or double action delays the tap on the same key. Flight counts
+    // as much as combat -- the constraint names boost, which is a movement action, and a
+    // pitch that waits half a second is a missed shot all the same.
     const tapTags = tagsBySlot.get("tap") ?? new Set<string>();
-    if (tapTags.has("combat") && (spec.long ?? spec.double)) {
+    if (isTimeCritical(tapTags) && (spec.long ?? spec.double)) {
       findings.push({
         level: WARNING,
         rule: "combat-tap-delayed",
         profile: name,
         position,
         message:
-          "tap is a combat action but the key also has a long/double action, so the tap waits " +
-          `${String(spec.feature_delay ?? 500)} ms`,
+          `tap is a ${tapTags.has("combat") ? "combat" : "flight"} action but the key also ` +
+          "has a long/double action, so the tap waits " +
+          `${String(spec.feature_delay ?? DEFAULT_FEATURE_DELAY)} ms`,
       });
     }
 
-    // Constraint 5: a menu on a key that gets mashed in combat.
+    // Constraint 5: a menu on a key used in a fight. A combat key gets mashed; a flight key
+    // gets held, which is worse -- hold it past the long-press window and the menu opens.
     const allTags = new Set<string>();
     for (const tags of tagsBySlot.values()) for (const tag of tags) allTags.add(tag);
-    if (allTags.has("menu") && allTags.has("combat")) {
+    if (allTags.has("menu") && isTimeCritical(allTags)) {
       findings.push({
         level: WARNING,
         rule: "menu-with-combat",
         profile: name,
         position,
-        message: "the same key carries a combat action and a menu action",
+        message: `the same key carries a menu action and a ${
+          allTags.has("combat") ? "combat" : "flight"
+        } action`,
       });
     }
 

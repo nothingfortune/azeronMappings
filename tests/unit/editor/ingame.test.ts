@@ -59,9 +59,9 @@ describe("the in-game bindings editor", () => {
   });
 
   it("says which actions do not come from a keypad key at all", () => {
-    // Pitch and yaw are the unit's own mouse sensor, so they have no key to edit.
+    // The pointer is the unit's own sensor, so it has no key to edit.
     const row = [...document.querySelectorAll(".ingame-row")].find(
-      (node) => node.querySelector(".who b")?.textContent === "Pitch",
+      (node) => node.querySelector(".who b")?.textContent === "Pointer up/down",
     );
     expect(row?.classList.contains("unbound")).toBe(true);
     expect(row?.querySelector("input")).toBeNull();

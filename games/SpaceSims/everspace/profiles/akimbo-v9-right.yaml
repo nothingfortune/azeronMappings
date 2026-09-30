@@ -32,7 +32,7 @@ positions:
     tap: device_3
   pinky_3:
     label: Cycle weapon right
-    tap: weapon_cycle_right
+    tap: yaw_right
   pinky_5:
     label: Map
     tap: map
@@ -41,7 +41,7 @@ positions:
     tap: device_2
   ring_3:
     label: Cycle weapon left
-    tap: weapon_cycle_left
+    tap: yaw_left
   ring_5:
     label: Crafting
     tap: crafting

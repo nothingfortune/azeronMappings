@@ -9,15 +9,11 @@ If a key here does not match the game, fix `actions.yaml` -- not the profile.
 | Consumable 2 | `Digit6` | left:middle_2, left:pinky_2 | combat, required |
 | Consumable 3 | `Digit7` | left:ring_2, left:pinky_3 | combat, required |
 | Consumable 4 | `Digit8` | left:pinky_2, left:pinky_4 | combat, required |
-| Cycle weapon (down) | `ArrowDown` | left:dpad_down | combat |
-| Cycle weapon (left) | `ArrowLeft` | left:ring_1, right:ring_3, left:dpad_left | combat |
-| Cycle weapon (right) | `ArrowRight` | left:middle_3, right:pinky_3, left:dpad_right | combat |
-| Cycle weapon (up) | `ArrowUp` | left:dpad_up | combat |
 | Device 1 | `Digit1` | right:middle_2, left:ring_1 | combat, required |
 | Device 2 | `Digit2` | right:ring_2, left:ring_2 | combat, required |
 | Device 3 | `Digit3` | right:pinky_2, left:ring_3 | combat, required |
 | Device 4 | `Digit4` | right:pinky_1, left:ring_4 | combat, required |
-| Equip secondary 1 (F4) | `F4` | left:index_1, left:index_4, left:middle_4 | combat, required |
+| Equip secondary 1 | `F4` | left:index_1, left:index_4, left:middle_4 | combat |
 | Equip secondary 2 | `F5` | left:middle_4 | combat |
 | Equip secondary 3 | `F6` | left:ring_4 | combat |
 | Fire primary | `mouse left` | right:middle_3 | combat |
@@ -31,14 +27,18 @@ If a key here does not match the game, fix `actions.yaml` -- not the profile.
 | Hover down | `F10` | left:stick.down, right:dpad_down, left:index_4 | movement, required |
 | Hover up | `F9` | left:stick.up, right:dpad_up, left:index_1 | movement, required |
 | Inertia dampeners | `AltLeft` | left:stick_press, right:stick_press | movement, required |
+| Pitch down | `ArrowDown` | left:dpad_down | movement |
+| Pitch up | `ArrowUp` | left:dpad_up | movement |
 | Roll left | `KeyQ` | left:stick.left, left:pinky_side | movement, required |
 | Roll right | `KeyE` | left:stick.right, left:index_side | movement, required |
 | Strafe left | `KeyA` | right:dpad_right, right:stick.left, left:stick.left | movement, required |
 | Strafe right | `KeyD` | right:dpad_left, right:stick.right, left:stick.right | movement, required |
-| Throttle down | `KeyS` | right:index_4, right:stick.down, left:stick.down | movement, required |
-| Throttle up | `KeyW` | right:index_2, right:stick.up, right:middle_1, right:middle_4, left:stick.up | movement, required |
+| Thrust backward | `KeyS` | right:index_4, right:stick.down, left:stick.down | movement, required |
+| Thrust forward | `KeyW` | right:index_2, right:stick.up, right:middle_1, right:middle_4, left:stick.up | movement, required |
+| Yaw left | `ArrowLeft` | left:ring_1, right:ring_3, left:dpad_left | movement |
+| Yaw right | `ArrowRight` | left:middle_3, right:pinky_3, left:dpad_right | movement |
 | Cruise drive | `KeyF` | left:thumb_aux_upper | travel, required |
-| Supralight drive | `KeyC` | right:thumb_aux_upper, left:thumb_aux_lower | travel, required |
+| Jump / supralight drive | `KeyC` | right:thumb_aux_upper, left:thumb_aux_lower | travel, required |
 | Crafting | `KeyU` | right:ring_5, left:dpad_up | menu |
 | Data / logs | `KeyL` | right:index_5, left:dpad_right | menu |
 | Escape menu | `Escape` | left:pinky_1, left:pinky_side, left:index_5 | menu |
@@ -50,11 +50,27 @@ If a key here does not match the game, fix `actions.yaml` -- not the profile.
 | Ship | `KeyO` | left:index_5, left:middle_5 | menu |
 | Interact / fling | `KeyF` | left:pinky_4, right:dpad_press, left:middle_3 | utility, required |
 | Place marker | `Equal` | left:thumb_aux_lower, left:pinky_5 | utility |
-| View ship | `KeyV` | right:pinky_side, left:pinky_5 | utility |
+| Switch camera | `KeyV` | right:pinky_side, left:pinky_5 | utility |
 
 ## Declared but not sent by any unit
 
-- Equip secondary 1 (`(unbound in game)`)
-- Primary 3 (`F3`)
-- Pitch (`(sensor)`) — **required**
-- Yaw (`(sensor)`) — **required**
+- Consumable wheel (hold) (`(unbound in game)`)
+- Device wheel (hold) (`(unbound in game)`)
+- Equip primary 1 (`Digit9`)
+- Equip primary 2 (`Digit0`)
+- Equip primary 3 (`F3`)
+- Lock nearest target (`KeyN`)
+- Next target (`KeyT`)
+- Previous secondary (`KeyX`)
+- Previous target (`KeyY`)
+- Pointer left/right (`(sensor)`)
+- Pointer up/down (`(sensor)`)
+- Load most recent save (`F8`)
+- Pause (`KeyP`)
+- Photo mode (`KeyZ`)
+- Quick load (`F11`)
+- Quick save (`F7`)
+- Fling objects (`KeyF`)
+- Free look (toggle) (`(unbound in game)`)
+- Headlight (`KeyB`)
+- Toggle HUD (`KeyH`)

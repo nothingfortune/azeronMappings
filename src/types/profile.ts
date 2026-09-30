@@ -34,6 +34,17 @@ export interface ActionSpec {
   provided_by?: string;
   axis?: string;
   note?: string;
+  /**
+   * The game's own name for this action -- the `Action=` field of its row in the game's
+   * binding file -- so the game can be made to agree with this file rather than the two
+   * being kept in step by hand.
+   */
+  ingame?: string;
+  /**
+   * Which half of an axis this action is, for a game action with two rows (Everspace 2's
+   * `MoveRight` is one action: -1 strafes left, +1 right). Omitted for a single row.
+   */
+  ingame_scale?: number;
 }
 
 export interface DuplicateKeyAllowance {
@@ -180,6 +191,12 @@ export interface GameConfig {
   export_to?: string;
   /** The game's own binding file, e.g. Everspace 2's Input.ini. */
   ingame_config?: string;
+  /**
+   * The binding-file categories whose keyboard rows this repo owns outright -- the ones
+   * live while flying. Every row in them must have an action in `actions.yaml`, and
+   * generating writes their keys from it. The others (menus, photo mode) are left alone.
+   */
+  ingame_owned_categories?: number[];
   lint?: LintConfig;
 }
 
