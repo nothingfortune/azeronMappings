@@ -45,6 +45,7 @@ select, .btn {
 }
 .btn:hover, select:hover { border-color: var(--accent); }
 .btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.repo-note { color: var(--fg); border-left: 3px solid var(--accent); padding-left: 8px; }
 .mode-row { display: block; width: 100%; text-align: left; background: var(--bg);
             border: 1px solid var(--line); border-radius: 7px; padding: 6px 8px;
             margin-bottom: 4px; cursor: pointer; color: inherit; }
@@ -58,9 +59,7 @@ select, .btn {
 .save-note { padding: 6px 16px; background: var(--panel); border-bottom: 1px solid var(--line);
              font-size: 12px; color: var(--muted); }
 .workspace.single { display: block; }
-.press-test { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 12px;
-              align-items: start; }
-@media (max-width: 1100px) { .press-test { grid-template-columns: 1fr; } }
+.panel.inset { background: var(--bg); margin-bottom: 12px; }
 .workspace.wide { grid-template-columns: minmax(0, 1fr); }
 /* Boards on the left, the in-game half on the right, so the two can be read together. */
 .workspace.ingame { grid-template-columns: minmax(0, 1fr) 420px; }

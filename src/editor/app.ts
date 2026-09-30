@@ -20,7 +20,7 @@ import type { EditorGame, EditorPayload } from "../types/editor.js";
 import type { ActionSpec, PositionSpec, ProfileData } from "../types/profile.js";
 import { removeKey } from "../lib/object.js";
 import { dumpYaml } from "../lib/yaml.js";
-import { alreadyGranted, hex4, requestUnits } from "../lib/hid.js";
+import { AZERON_PRODUCT_ID, alreadyGranted, hex4, requestUnits } from "../lib/hid.js";
 import type { DetectionState, HidLike } from "../lib/hid.js";
 import { buildProbeProfile, buildStickCalibrationProfile } from "../lib/probe.js";
 import type { ProbePayload } from "../types/probe.js";
@@ -703,7 +703,8 @@ function download(name: string, text: string, type: string): void {
 }
 
 function exportYaml(slug: string): void {
-  const yaml = dumpProfile(workingData(slug));
+  // No header: the server keeps whatever the file already had.
+  const yaml = dumpProfile(workingData(slug), "");
   const source = currentGame().profiles.find((profile) => profile.slug === slug);
   if (canSave() && source) {
     void saveToRepo(source.path, yaml);
@@ -946,8 +947,8 @@ function hidApi(): HidLike | undefined {
 
 /** What is plugged in, as the browser sees it. */
 function renderDetection(): HTMLElement {
-  const panel = el("div", { class: "panel" });
-  panel.append(el("h2", {}, ["Units"]));
+  const panel = el("div", { class: "panel inset" });
+  panel.append(el("h2", {}, ["Units connected"]));
 
   // Devices already granted can be listed without prompting; only the picker needs a
   // click. Checked once, so rendering does not loop.
@@ -965,8 +966,8 @@ function renderDetection(): HTMLElement {
   if (detection === null) {
     body.append(
       document.createTextNode(
-        "Not checked yet. The browser only reports devices you have granted it, so this " +
-          "needs a click.",
+        "Not checked yet. The browser will only list devices you have granted it, so " +
+          "this needs a click and a pick from the dialog.",
       ),
     );
   } else if (detection.status === "unsupported") {
@@ -974,20 +975,22 @@ function renderDetection(): HTMLElement {
   } else if (detection.status === "none") {
     body.append(
       document.createTextNode(
-        "Nothing granted. Either the units are unplugged, or the picker was dismissed -- " +
-          "the browser cannot tell those apart.",
+        "Nothing granted. Either the dialog was dismissed, or nothing is plugged in -- " +
+          "the browser does not say which.",
       ),
     );
   } else {
     for (const found of detection.units) {
       body.append(
-        el("div", {}, [
-          `${found.productName} — vid ${hex4(found.vendorId)} pid ${hex4(found.productId)}, ` +
-            `${String(found.collections)} interface(s)`,
+        el("div", { class: found.isAzeron ? "" : "muted" }, [
+          `${found.productName || "(unnamed)"} — vid ${hex4(found.vendorId)} ` +
+            `pid ${hex4(found.productId)}, ${String(found.collections)} interface(s)` +
+            (found.isAzeron ? "  ← Cyborg II" : ""),
         ]),
       );
     }
-    if (detection.units.length === 1) {
+    const azerons = detection.units.filter((found) => found.isAzeron);
+    if (azerons.length === 1) {
       body.append(
         el("div", { class: "muted" }, [
           "Both units report the same product id, so one connection cannot be told apart " +
@@ -995,8 +998,24 @@ function renderDetection(): HTMLElement {
         ]),
       );
     }
+    if (azerons.length === 0) {
+      body.append(
+        el("div", { class: "muted" }, [
+          `Nothing here reports product id ${hex4(AZERON_PRODUCT_ID)}.`,
+        ]),
+      );
+    }
   }
   panel.append(body);
+
+  if (window.location.protocol === "file:") {
+    panel.append(
+      el("div", { class: "note" }, [
+        "Opened as a file. WebHID needs a secure context, so this usually only works " +
+          "from `azeron serve`.",
+      ]),
+    );
+  }
 
   const check = el("button", { class: "btn", type: "button" }, ["Detect units"]);
   check.addEventListener("click", () => {
@@ -1047,18 +1066,20 @@ function renderRepo(): HTMLElement {
   const panel = el("div", { class: "panel" });
   panel.append(el("h2", {}, ["Repo"]));
 
+  // Detection is the browser talking to USB, so it works either way.
+  panel.append(renderDetection());
+
   if (!canSave()) {
     panel.append(
       el("div", { class: "empty-state" }, [
-        "This page was opened as a file, so there is nothing to talk to. Run " +
-          "`azeron serve` and open the address it prints to build, import and compare " +
-          "from here.",
+        "Building, importing and reading the game's config need a server. Run " +
+          "`azeron serve` and open the address it prints.",
       ]),
     );
     return panel;
   }
 
-  if (repoNote !== null) panel.append(el("div", { class: "note" }, [repoNote]));
+  if (repoNote !== null) panel.append(el("div", { class: "note repo-note" }, [repoNote]));
 
   const buildRow = el("div", { class: "field" });
   const build = el("button", { class: "btn primary", type: "button" }, ["Build profiles"]);
@@ -1267,9 +1288,7 @@ function renderPressTest(): HTMLElement {
   panel.append(host);
   startProbe(probePayload(), host);
 
-  const wrap = el("div", { class: "press-test" });
-  wrap.append(panel, renderDetection());
-  return wrap;
+  return panel;
 }
 
 function renderSheet(): HTMLElement {

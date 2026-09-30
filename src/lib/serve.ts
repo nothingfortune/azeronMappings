@@ -82,3 +82,31 @@ export const CONTENT_TYPES: Record<string, string> = {
   ".js": "text/javascript; charset=utf-8",
   ".yaml": "text/yaml; charset=utf-8",
 };
+
+/** The comment block at the top of a file, up to the first line that is not one. */
+export function leadingComments(text: string): string {
+  const kept: string[] = [];
+  for (const line of text.split(/\r?\n/)) {
+    if (line.startsWith("#")) kept.push(line);
+    else if (line.trim() === "" && kept.length > 0) kept.push(line);
+    else break;
+  }
+  while (kept.length > 0 && kept[kept.length - 1]?.trim() === "") kept.pop();
+  return kept.length > 0 ? `${kept.join("\n")}\n` : "";
+}
+
+/**
+ * Keep the header the file already had.
+ *
+ * The editor writes YAML regenerated from parsed data, which has no comments in it. The
+ * header is where a profile says why it is the way it is -- what was press-tested, what
+ * is an experiment, what must not be flashed -- so it is carried across rather than
+ * being replaced by whatever the serialiser emits.
+ */
+export function preserveHeader(existing: string | null, incoming: string): string {
+  if (existing === null) return incoming;
+  const header = leadingComments(existing);
+  if (header === "") return incoming;
+  const body = incoming.replace(/^(?:#[^\n]*\n|\s*\n)*/, "");
+  return header + body;
+}

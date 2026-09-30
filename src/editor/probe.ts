@@ -367,11 +367,21 @@ function renderDiagram(unitIndex: number): HTMLElement {
       cell.append(el("span", { class: "pin" }, [mapped ?? ""]));
       dial.append(cell);
     }
+    const pressPin = layout.stickPress === null ? undefined : capture.pins[layout.stickPress];
+    const pressActive = isActive && prompt.position === layout.stickPress;
     dial.append(
-      el("div", { class: "dir hub" }, [
-        el("span", { class: "pos" }, ["stick"]),
-        el("span", { class: "pin" }, [String(device.positions[layout.stick]?.pin ?? "")]),
-      ]),
+      el(
+        "div",
+        {
+          class: `dir hub${pressPin === undefined ? "" : " done"}${pressActive ? " active" : ""}`,
+        },
+        [
+          el("span", { class: "pos" }, [layout.stickPress ?? "stick"]),
+          el("span", { class: "pin" }, [
+            pressPin === undefined ? "click" : `pin ${String(pressPin)}`,
+          ]),
+        ],
+      ),
     );
     thumb.append(dial);
   }
@@ -524,6 +534,31 @@ function renderSummary(): HTMLElement {
 
 let mountPoint: HTMLElement | null = null;
 
+/** The key the probe profile binds to whatever is being asked for. */
+function expectedKey(): string | null {
+  if (state.mode === "zero") {
+    const push = PHYSICAL_PUSHES[state.zeroStep];
+    if (!push) return null;
+    return state.payload.stickAssignments.find((entry) => entry.sector === push.id)?.key ?? null;
+  }
+  const prompt = currentPrompt();
+  if (prompt.direction) {
+    return (
+      state.payload.assignments.find(
+        (entry) => entry.kind === "stick" && entry.direction === prompt.direction,
+      )?.key ?? null
+    );
+  }
+  if (prompt.position === null) return null;
+  const device = deviceOf(currentUnit().device);
+  const pin = device.positions[prompt.position]?.pin;
+  if (pin === undefined) return null;
+  return (
+    state.payload.assignments.find((entry) => entry.kind === "button" && entry.pin === pin)?.key ??
+    null
+  );
+}
+
 function render(): void {
   const root = mountPoint;
   if (!root) return;
@@ -614,15 +649,22 @@ function render(): void {
     }
   }
   const sampling = Object.values(state.burstVotes).reduce((sum, count) => sum + count, 0);
+  const expected = expectedKey();
+  if (expected !== null) {
+    banner.append(el("span", { class: "muted" }, [`expecting ${expected}`]));
+  }
+  if (state.lastKey !== null) {
+    banner.append(el("span", { class: "muted" }, [`last key seen: ${state.lastKey}`]));
+  }
   if (state.message) banner.append(el("span", { class: "bad" }, [state.message]));
   else if (sampling > 0)
     banner.append(
-      el("span", { class: "muted" }, [`sampling... ${String(sampling)} reading(s), hold it`]),
+      el("span", { class: "muted sampling" }, [
+        `sampling... ${String(sampling)} reading(s), hold it`,
+      ]),
     );
   else if (state.burstNote)
-    banner.append(el("span", { class: "muted" }, [`read ${state.burstNote}`]));
-  else if (state.lastKey)
-    banner.append(el("span", { class: "muted" }, [`last key: ${state.lastKey}`]));
+    banner.append(el("span", { class: "muted read" }, [`read ${state.burstNote}`]));
   root.append(banner);
 
   const workspace = el("div", { class: "workspace" });

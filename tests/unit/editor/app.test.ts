@@ -21,7 +21,7 @@ describe("the editor", () => {
 
   it("draws both units of an akimbo set side by side", () => {
     const setSelect = document.querySelectorAll("header select")[1] as HTMLSelectElement;
-    setSelect.value = "akimbo-v6";
+    setSelect.value = "akimbo-v9";
     setSelect.dispatchEvent(new Event("change"));
 
     const hands = document.querySelectorAll(".hand");
@@ -113,7 +113,16 @@ describe("the editor's modes", () => {
 describe("key cards", () => {
   beforeEach(() => {
     mount();
+    // Pinned to the golden profile: it must rebuild its template byte for byte, so its
+    // bindings cannot drift, and these assertions stay about the rendering.
+    show("single-v5");
   });
+
+  function show(set: string): void {
+    const sets = document.querySelectorAll("header select")[1] as HTMLSelectElement;
+    sets.value = set;
+    sets.dispatchEvent(new Event("change"));
+  }
 
   function card(position: string): HTMLElement {
     const found = [...document.querySelectorAll<HTMLElement>(".key")].find(
@@ -127,12 +136,20 @@ describe("key cards", () => {
     // They were inline spans, which ran together as "pinky_1Consumable 1tap: Consumable 1".
     const key = card("pinky_1");
     expect(key.querySelector(".pos")?.textContent).toBe("pinky_1");
-    expect(key.querySelector(".name")?.textContent).toBe("Consumable 1");
-    expect(key.querySelectorAll(".sub").length).toBe(0);
+    expect(key.querySelector(".name")?.textContent).toBe("Consume 1");
+    // Each run of text is its own leaf element, so none of them concatenate.
+    expect(key.children.length).toBeGreaterThanOrEqual(2);
+    expect([...key.children].every((child) => child.children.length === 0)).toBe(true);
+    // The label here abbreviates the action, so the action is spelled out under it.
+    expect([...key.querySelectorAll(".sub")].map((node) => node.textContent)).toEqual([
+      "Consumable 1",
+    ]);
   });
 
   it("marks an unbound position as empty and gives it no label", () => {
-    const key = card("pinky_side");
+    // The golden profile binds everything, so the empty state comes from the live pair.
+    show("akimbo-v9");
+    const key = card("pinky_5");
     expect(key.classList.contains("empty")).toBe(true);
     expect(key.querySelector(".name")).toBeNull();
   });
@@ -148,7 +165,7 @@ describe("key cards", () => {
     expect(dial?.querySelector(".up .name")?.textContent).toBe("Throttle up");
     expect(dial?.querySelector(".left .name")?.textContent).toBe("Strafe left");
     // The hub is the stick pressed in, so it shows that key's binding.
-    expect(dial?.querySelector(".hub .name")?.textContent).toBe("Menu (Tab)");
+    expect(dial?.querySelector(".hub .name")?.textContent).toBe("Inertia Dampeners");
   });
 
   it("selects the stick when a direction cell is clicked", () => {
@@ -158,6 +175,7 @@ describe("key cards", () => {
   });
 
   it("can hide the side rails so the pair gets the full width", () => {
+    show("akimbo-v9");
     const toggle = [...document.querySelectorAll("header button")].find(
       (button) => button.textContent === "Wide",
     );
@@ -169,6 +187,7 @@ describe("key cards", () => {
   });
 
   it("keeps both units on one row rather than wrapping one under the other", () => {
+    show("akimbo-v9");
     const stage = document.querySelector<HTMLElement>(".stage");
     expect(stage?.parentElement?.className).toBe("stage-wrap");
     expect(stage?.querySelectorAll(".hand").length).toBe(2);
@@ -189,8 +208,7 @@ describe("data sources", () => {
   it("lists each set in the selected game", () => {
     const sets = document.querySelectorAll("header select")[1] as HTMLSelectElement;
     const names = [...sets.options].map((option) => option.value);
-    expect(names).toContain("akimbo-v6");
-    expect(names).toContain("akimbo-v7");
+    expect(names).toContain("akimbo-v9");
     expect(names).toContain("single-v5");
   });
 
@@ -208,7 +226,7 @@ describe("data sources", () => {
     sets.dispatchEvent(new Event("change"));
     expect(document.querySelectorAll(".hand").length).toBe(1);
 
-    sets.value = "akimbo-v7";
+    sets.value = "akimbo-v9";
     sets.dispatchEvent(new Event("change"));
     expect(document.querySelectorAll(".hand").length).toBe(2);
   });
@@ -223,11 +241,13 @@ describe("the repo tab", () => {
     (tab as HTMLButtonElement).click();
   });
 
-  it("explains itself rather than offering buttons that cannot work", () => {
-    // The save API is only there when `azeron serve` is behind the page.
+  it("explains what still needs a server, but keeps what does not", () => {
+    // Detection is the browser talking to USB, so it works either way.
     const panel = document.querySelector(".panel");
     expect(panel?.textContent).toContain("azeron serve");
-    expect(panel?.querySelector("button")).toBeNull();
+    expect(panel?.querySelector(".panel.inset h2")?.textContent).toBe("Units connected");
+    const labels = [...(panel?.querySelectorAll("button") ?? [])].map((n) => n.textContent);
+    expect(labels).toEqual(["Detect units"]);
   });
 
   it("offers the operations once a server is behind it", () => {
@@ -256,7 +276,7 @@ describe("stick modes in the editor", () => {
   beforeEach(() => {
     mount();
     const sets = document.querySelectorAll("header select")[1] as HTMLSelectElement;
-    sets.value = "akimbo-v7";
+    sets.value = "akimbo-v9";
     sets.dispatchEvent(new Event("change"));
   });
 

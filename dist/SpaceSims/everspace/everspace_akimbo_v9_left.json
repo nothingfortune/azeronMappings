@@ -2,19 +2,87 @@
   "version": "2.0.2",
   "profiles": [
     {
+      "isSoftware": true,
+      "isFavorite": false,
+      "metaData": {
+        "schemeName": "azeron-profile-v1",
+        "device": 8,
+        "createdAt": "2026-09-22T02:03:23.467Z",
+        "createdBy": "2.0.2",
+        "changedLogs": [
+          {
+            "timestampt": "2026-09-22T02:03:23.467Z",
+            "softwareVersion": "2.0.2",
+            "type": "created"
+          },
+          {
+            "timestampt": "2026-09-29T00:26:41.165Z",
+            "softwareVersion": "2.0.2",
+            "type": "imported"
+          }
+        ]
+      },
+      "profileTags": [],
+      "systemTags": [
+        "MOUSE"
+      ],
+      "profileIconId": "",
+      "profileBackgroundImageId": "",
       "id": "52ea554b-bdb5-4cb4-9347-8451c44e7864",
+      "name": "Everspace 2 akimbo v9 (left)",
+      "version": 1,
+      "profileSettings": {
+        "profileSensitivitySettings": {
+          "currentSensitivityIndex": 1,
+          "sensitivityValues": [
+            1000,
+            4000,
+            7500,
+            10000,
+            15000
+          ]
+        },
+        "isSensorOn": true,
+        "mouseSensorAngle": 0,
+        "ledSettings": {
+          "ledState": [
+            {
+              "r": 55,
+              "g": 173,
+              "b": 173
+            },
+            {
+              "r": 55,
+              "g": 173,
+              "b": 173
+            },
+            {
+              "r": 55,
+              "g": 173,
+              "b": 173
+            }
+          ],
+          "isLedsOn": [
+            true,
+            true,
+            true
+          ],
+          "ledEffect": 1,
+          "ledBrightness": 50
+        }
+      },
       "inputs": [
         {
           "id": 1,
-          "pinOne": 2,
-          "pinTwo": 255,
           "types": [
             "1",
             "11",
             "11"
           ],
+          "pinOne": 2,
+          "pinTwo": 255,
           "keyValues": [
-            "Digit8",
+            "KeyF",
             "0",
             "0",
             "0"
@@ -46,6 +114,15 @@
             "0",
             "0"
           ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
           "macro": {
             "repeat": false,
             "steps": [],
@@ -61,8 +138,18 @@
             "steps": [],
             "v": 1
           },
+          "label": "Interact / fling",
           "featureDelay": 500,
           "doubleDelay": 150,
+          "subType": "11",
+          "x": 0,
+          "y": 0,
+          "interval": 0,
+          "yInterval": 0,
+          "xLong": 0,
+          "yLong": 0,
+          "xDouble": 0,
+          "yDouble": 0,
           "isHold": false,
           "isHoldLong": false,
           "isHoldDouble": false,
@@ -203,2490 +290,19 @@
             "invertXAxis": false,
             "invertYAxis": false
           },
-          "x": 0,
-          "y": 0,
-          "interval": 0,
-          "yInterval": 0,
-          "subType": "11",
-          "label": "Consumable 4"
+          "scrollSpeed": 1,
+          "scrollThreshold": 10,
+          "isSmoothScroll": false
         },
         {
           "id": 2,
+          "types": [
+            "1",
+            "11",
+            "11"
+          ],
           "pinOne": 3,
           "pinTwo": 255,
-          "types": [
-            "11",
-            "11",
-            "11"
-          ],
-          "keyValues": [
-            "0",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValues": [
-            "0",
-            "0",
-            "0"
-          ],
-          "keyValuesLong": [
-            "0",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValuesLong": [
-            "0",
-            "0",
-            "0"
-          ],
-          "keyValuesDouble": [
-            "0",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValuesDouble": [
-            "0",
-            "0",
-            "0"
-          ],
-          "macro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "longMacro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "doubleMacro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "featureDelay": 500,
-          "doubleDelay": 150,
-          "isHold": false,
-          "isHoldLong": false,
-          "isHoldDouble": false,
-          "holdTime": 0,
-          "holdTimeLong": 0,
-          "holdTimeDouble": 0,
-          "isTurbo": false,
-          "isTurboLong": false,
-          "isTurboDouble": false,
-          "turboInterval": 0,
-          "turboIntervalLong": 0,
-          "turboIntervalDouble": 0,
-          "sequenceTriggerSettings": {
-            "isPingPongLoop": false,
-            "sequenceSteps": []
-          },
-          "analogSettings": {
-            "angle": 0,
-            "lowerLimit": 0,
-            "upperLimit": 0,
-            "sensitivity": 0,
-            "analogKeys": {
-              "left": {
-                "up": [
-                  0,
-                  0,
-                  0
-                ],
-                "right": [
-                  0,
-                  0,
-                  0
-                ],
-                "down": [
-                  0,
-                  0,
-                  0
-                ],
-                "left": [
-                  0,
-                  0,
-                  0
-                ]
-              },
-              "right": {
-                "up": [
-                  0,
-                  0,
-                  0
-                ],
-                "right": [
-                  0,
-                  0,
-                  0
-                ],
-                "down": [
-                  0,
-                  0,
-                  0
-                ],
-                "left": [
-                  0,
-                  0,
-                  0
-                ]
-              }
-            },
-            "diagonalKeys": {
-              "left": {
-                "up_right": [
-                  0,
-                  0,
-                  0
-                ],
-                "up_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_right": [
-                  0,
-                  0,
-                  0
-                ]
-              },
-              "right": {
-                "up_right": [
-                  0,
-                  0,
-                  0
-                ],
-                "up_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_right": [
-                  0,
-                  0,
-                  0
-                ]
-              }
-            },
-            "analogCones": {
-              "verticalCone": 45,
-              "horizontalCone": 45
-            },
-            "isEightDirectionalTrigger": false,
-            "mouseSensitivity": 5,
-            "analogThrottle": 0,
-            "isAnalogSmoothing": false,
-            "triggerMagnitude": 4,
-            "isCombinedAnalog": false,
-            "combinedAnalogMagnitude": 6,
-            "isHoldTrigger": false,
-            "holdMagnitude": 9,
-            "holdType": "1",
-            "holdKeyValues": [
-              "16",
-              "0",
-              "0"
-            ],
-            "rotateStickButtonId": 0,
-            "isAngleLock": false,
-            "lockZoneAngle": 70,
-            "lockZoneSize": 30,
-            "isRightAnalog": false,
-            "invertXAxis": false,
-            "invertYAxis": false
-          },
-          "x": 0,
-          "y": 0,
-          "interval": 0,
-          "yInterval": 0,
-          "subType": "11"
-        },
-        {
-          "id": 3,
-          "pinOne": 4,
-          "pinTwo": 255,
-          "types": [
-            "11",
-            "11",
-            "11"
-          ],
-          "keyValues": [
-            "0",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValues": [
-            "0",
-            "0",
-            "0"
-          ],
-          "keyValuesLong": [
-            "0",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValuesLong": [
-            "0",
-            "0",
-            "0"
-          ],
-          "keyValuesDouble": [
-            "0",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValuesDouble": [
-            "0",
-            "0",
-            "0"
-          ],
-          "macro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "longMacro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "doubleMacro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "featureDelay": 500,
-          "doubleDelay": 150,
-          "isHold": false,
-          "isHoldLong": false,
-          "isHoldDouble": false,
-          "holdTime": 0,
-          "holdTimeLong": 0,
-          "holdTimeDouble": 0,
-          "isTurbo": false,
-          "isTurboLong": false,
-          "isTurboDouble": false,
-          "turboInterval": 0,
-          "turboIntervalLong": 0,
-          "turboIntervalDouble": 0,
-          "sequenceTriggerSettings": {
-            "isPingPongLoop": false,
-            "sequenceSteps": []
-          },
-          "analogSettings": {
-            "angle": 0,
-            "lowerLimit": 0,
-            "upperLimit": 0,
-            "sensitivity": 0,
-            "analogKeys": {
-              "left": {
-                "up": [
-                  0,
-                  0,
-                  0
-                ],
-                "right": [
-                  0,
-                  0,
-                  0
-                ],
-                "down": [
-                  0,
-                  0,
-                  0
-                ],
-                "left": [
-                  0,
-                  0,
-                  0
-                ]
-              },
-              "right": {
-                "up": [
-                  0,
-                  0,
-                  0
-                ],
-                "right": [
-                  0,
-                  0,
-                  0
-                ],
-                "down": [
-                  0,
-                  0,
-                  0
-                ],
-                "left": [
-                  0,
-                  0,
-                  0
-                ]
-              }
-            },
-            "diagonalKeys": {
-              "left": {
-                "up_right": [
-                  0,
-                  0,
-                  0
-                ],
-                "up_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_right": [
-                  0,
-                  0,
-                  0
-                ]
-              },
-              "right": {
-                "up_right": [
-                  0,
-                  0,
-                  0
-                ],
-                "up_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_right": [
-                  0,
-                  0,
-                  0
-                ]
-              }
-            },
-            "analogCones": {
-              "verticalCone": 45,
-              "horizontalCone": 45
-            },
-            "isEightDirectionalTrigger": false,
-            "mouseSensitivity": 5,
-            "analogThrottle": 0,
-            "isAnalogSmoothing": false,
-            "triggerMagnitude": 4,
-            "isCombinedAnalog": false,
-            "combinedAnalogMagnitude": 6,
-            "isHoldTrigger": false,
-            "holdMagnitude": 9,
-            "holdType": "1",
-            "holdKeyValues": [
-              "16",
-              "0",
-              "0"
-            ],
-            "rotateStickButtonId": 0,
-            "isAngleLock": false,
-            "lockZoneAngle": 70,
-            "lockZoneSize": 30,
-            "isRightAnalog": false,
-            "invertXAxis": false,
-            "invertYAxis": false
-          },
-          "x": 0,
-          "y": 0,
-          "interval": 0,
-          "yInterval": 0,
-          "subType": "11"
-        },
-        {
-          "id": 4,
-          "pinOne": 5,
-          "pinTwo": 255,
-          "types": [
-            "1",
-            "11",
-            "11"
-          ],
-          "keyValues": [
-            "Escape",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValues": [
-            "0",
-            "0",
-            "0"
-          ],
-          "keyValuesLong": [
-            "0",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValuesLong": [
-            "0",
-            "0",
-            "0"
-          ],
-          "keyValuesDouble": [
-            "0",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValuesDouble": [
-            "0",
-            "0",
-            "0"
-          ],
-          "macro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "longMacro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "doubleMacro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "featureDelay": 500,
-          "doubleDelay": 150,
-          "isHold": false,
-          "isHoldLong": false,
-          "isHoldDouble": false,
-          "holdTime": 0,
-          "holdTimeLong": 0,
-          "holdTimeDouble": 0,
-          "isTurbo": false,
-          "isTurboLong": false,
-          "isTurboDouble": false,
-          "turboInterval": 0,
-          "turboIntervalLong": 0,
-          "turboIntervalDouble": 0,
-          "sequenceTriggerSettings": {
-            "isPingPongLoop": false,
-            "sequenceSteps": []
-          },
-          "analogSettings": {
-            "angle": 0,
-            "lowerLimit": 0,
-            "upperLimit": 0,
-            "sensitivity": 0,
-            "analogKeys": {
-              "left": {
-                "up": [
-                  0,
-                  0,
-                  0
-                ],
-                "right": [
-                  0,
-                  0,
-                  0
-                ],
-                "down": [
-                  0,
-                  0,
-                  0
-                ],
-                "left": [
-                  0,
-                  0,
-                  0
-                ]
-              },
-              "right": {
-                "up": [
-                  0,
-                  0,
-                  0
-                ],
-                "right": [
-                  0,
-                  0,
-                  0
-                ],
-                "down": [
-                  0,
-                  0,
-                  0
-                ],
-                "left": [
-                  0,
-                  0,
-                  0
-                ]
-              }
-            },
-            "diagonalKeys": {
-              "left": {
-                "up_right": [
-                  0,
-                  0,
-                  0
-                ],
-                "up_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_right": [
-                  0,
-                  0,
-                  0
-                ]
-              },
-              "right": {
-                "up_right": [
-                  0,
-                  0,
-                  0
-                ],
-                "up_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_right": [
-                  0,
-                  0,
-                  0
-                ]
-              }
-            },
-            "analogCones": {
-              "verticalCone": 45,
-              "horizontalCone": 45
-            },
-            "isEightDirectionalTrigger": false,
-            "mouseSensitivity": 5,
-            "analogThrottle": 0,
-            "isAnalogSmoothing": false,
-            "triggerMagnitude": 4,
-            "isCombinedAnalog": false,
-            "combinedAnalogMagnitude": 6,
-            "isHoldTrigger": false,
-            "holdMagnitude": 9,
-            "holdType": "1",
-            "holdKeyValues": [
-              "16",
-              "0",
-              "0"
-            ],
-            "rotateStickButtonId": 0,
-            "isAngleLock": false,
-            "lockZoneAngle": 70,
-            "lockZoneSize": 30,
-            "isRightAnalog": false,
-            "invertXAxis": false,
-            "invertYAxis": false
-          },
-          "x": 0,
-          "y": 0,
-          "interval": 0,
-          "yInterval": 0,
-          "subType": "11",
-          "label": "Escape menu"
-        },
-        {
-          "id": 5,
-          "pinOne": 8,
-          "pinTwo": 255,
-          "types": [
-            "1",
-            "11",
-            "11"
-          ],
-          "keyValues": [
-            "Digit7",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValues": [
-            "0",
-            "0",
-            "0"
-          ],
-          "keyValuesLong": [
-            "0",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValuesLong": [
-            "0",
-            "0",
-            "0"
-          ],
-          "keyValuesDouble": [
-            "0",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValuesDouble": [
-            "0",
-            "0",
-            "0"
-          ],
-          "macro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "longMacro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "doubleMacro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "featureDelay": 500,
-          "doubleDelay": 150,
-          "isHold": false,
-          "isHoldLong": false,
-          "isHoldDouble": false,
-          "holdTime": 0,
-          "holdTimeLong": 0,
-          "holdTimeDouble": 0,
-          "isTurbo": false,
-          "isTurboLong": false,
-          "isTurboDouble": false,
-          "turboInterval": 0,
-          "turboIntervalLong": 0,
-          "turboIntervalDouble": 0,
-          "sequenceTriggerSettings": {
-            "isPingPongLoop": false,
-            "sequenceSteps": []
-          },
-          "analogSettings": {
-            "angle": 0,
-            "lowerLimit": 0,
-            "upperLimit": 0,
-            "sensitivity": 0,
-            "analogKeys": {
-              "left": {
-                "up": [
-                  0,
-                  0,
-                  0
-                ],
-                "right": [
-                  0,
-                  0,
-                  0
-                ],
-                "down": [
-                  0,
-                  0,
-                  0
-                ],
-                "left": [
-                  0,
-                  0,
-                  0
-                ]
-              },
-              "right": {
-                "up": [
-                  0,
-                  0,
-                  0
-                ],
-                "right": [
-                  0,
-                  0,
-                  0
-                ],
-                "down": [
-                  0,
-                  0,
-                  0
-                ],
-                "left": [
-                  0,
-                  0,
-                  0
-                ]
-              }
-            },
-            "diagonalKeys": {
-              "left": {
-                "up_right": [
-                  0,
-                  0,
-                  0
-                ],
-                "up_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_right": [
-                  0,
-                  0,
-                  0
-                ]
-              },
-              "right": {
-                "up_right": [
-                  0,
-                  0,
-                  0
-                ],
-                "up_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_right": [
-                  0,
-                  0,
-                  0
-                ]
-              }
-            },
-            "analogCones": {
-              "verticalCone": 45,
-              "horizontalCone": 45
-            },
-            "isEightDirectionalTrigger": false,
-            "mouseSensitivity": 5,
-            "analogThrottle": 0,
-            "isAnalogSmoothing": false,
-            "triggerMagnitude": 4,
-            "isCombinedAnalog": false,
-            "combinedAnalogMagnitude": 6,
-            "isHoldTrigger": false,
-            "holdMagnitude": 9,
-            "holdType": "1",
-            "holdKeyValues": [
-              "16",
-              "0",
-              "0"
-            ],
-            "rotateStickButtonId": 0,
-            "isAngleLock": false,
-            "lockZoneAngle": 70,
-            "lockZoneSize": 30,
-            "isRightAnalog": false,
-            "invertXAxis": false,
-            "invertYAxis": false
-          },
-          "x": 0,
-          "y": 0,
-          "interval": 0,
-          "yInterval": 0,
-          "subType": "11",
-          "label": "Consumable 3"
-        },
-        {
-          "id": 6,
-          "pinOne": 9,
-          "pinTwo": 255,
-          "types": [
-            "1",
-            "11",
-            "11"
-          ],
-          "keyValues": [
-            "KeyR",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValues": [
-            "0",
-            "0",
-            "0"
-          ],
-          "keyValuesLong": [
-            "0",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValuesLong": [
-            "0",
-            "0",
-            "0"
-          ],
-          "keyValuesDouble": [
-            "0",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValuesDouble": [
-            "0",
-            "0",
-            "0"
-          ],
-          "macro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "longMacro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "doubleMacro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "featureDelay": 500,
-          "doubleDelay": 150,
-          "isHold": false,
-          "isHoldLong": false,
-          "isHoldDouble": false,
-          "holdTime": 0,
-          "holdTimeLong": 0,
-          "holdTimeDouble": 0,
-          "isTurbo": false,
-          "isTurboLong": false,
-          "isTurboDouble": false,
-          "turboInterval": 0,
-          "turboIntervalLong": 0,
-          "turboIntervalDouble": 0,
-          "sequenceTriggerSettings": {
-            "isPingPongLoop": false,
-            "sequenceSteps": []
-          },
-          "analogSettings": {
-            "angle": 0,
-            "lowerLimit": 0,
-            "upperLimit": 0,
-            "sensitivity": 0,
-            "analogKeys": {
-              "left": {
-                "up": [
-                  0,
-                  0,
-                  0
-                ],
-                "right": [
-                  0,
-                  0,
-                  0
-                ],
-                "down": [
-                  0,
-                  0,
-                  0
-                ],
-                "left": [
-                  0,
-                  0,
-                  0
-                ]
-              },
-              "right": {
-                "up": [
-                  0,
-                  0,
-                  0
-                ],
-                "right": [
-                  0,
-                  0,
-                  0
-                ],
-                "down": [
-                  0,
-                  0,
-                  0
-                ],
-                "left": [
-                  0,
-                  0,
-                  0
-                ]
-              }
-            },
-            "diagonalKeys": {
-              "left": {
-                "up_right": [
-                  0,
-                  0,
-                  0
-                ],
-                "up_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_right": [
-                  0,
-                  0,
-                  0
-                ]
-              },
-              "right": {
-                "up_right": [
-                  0,
-                  0,
-                  0
-                ],
-                "up_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_right": [
-                  0,
-                  0,
-                  0
-                ]
-              }
-            },
-            "analogCones": {
-              "verticalCone": 45,
-              "horizontalCone": 45
-            },
-            "isEightDirectionalTrigger": false,
-            "mouseSensitivity": 5,
-            "analogThrottle": 0,
-            "isAnalogSmoothing": false,
-            "triggerMagnitude": 4,
-            "isCombinedAnalog": false,
-            "combinedAnalogMagnitude": 6,
-            "isHoldTrigger": false,
-            "holdMagnitude": 9,
-            "holdType": "1",
-            "holdKeyValues": [
-              "16",
-              "0",
-              "0"
-            ],
-            "rotateStickButtonId": 0,
-            "isAngleLock": false,
-            "lockZoneAngle": 70,
-            "lockZoneSize": 30,
-            "isRightAnalog": false,
-            "invertXAxis": false,
-            "invertYAxis": false
-          },
-          "x": 0,
-          "y": 0,
-          "interval": 0,
-          "yInterval": 0,
-          "subType": "11",
-          "label": "R"
-        },
-        {
-          "id": 7,
-          "pinOne": 10,
-          "pinTwo": 255,
-          "types": [
-            "1",
-            "11",
-            "11"
-          ],
-          "keyValues": [
-            "F6",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValues": [
-            "0",
-            "0",
-            "0"
-          ],
-          "keyValuesLong": [
-            "0",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValuesLong": [
-            "0",
-            "0",
-            "0"
-          ],
-          "keyValuesDouble": [
-            "0",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValuesDouble": [
-            "0",
-            "0",
-            "0"
-          ],
-          "macro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "longMacro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "doubleMacro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "featureDelay": 500,
-          "doubleDelay": 150,
-          "isHold": false,
-          "isHoldLong": false,
-          "isHoldDouble": false,
-          "holdTime": 0,
-          "holdTimeLong": 0,
-          "holdTimeDouble": 0,
-          "isTurbo": false,
-          "isTurboLong": false,
-          "isTurboDouble": false,
-          "turboInterval": 0,
-          "turboIntervalLong": 0,
-          "turboIntervalDouble": 0,
-          "sequenceTriggerSettings": {
-            "isPingPongLoop": false,
-            "sequenceSteps": []
-          },
-          "analogSettings": {
-            "angle": 0,
-            "lowerLimit": 0,
-            "upperLimit": 0,
-            "sensitivity": 0,
-            "analogKeys": {
-              "left": {
-                "up": [
-                  0,
-                  0,
-                  0
-                ],
-                "right": [
-                  0,
-                  0,
-                  0
-                ],
-                "down": [
-                  0,
-                  0,
-                  0
-                ],
-                "left": [
-                  0,
-                  0,
-                  0
-                ]
-              },
-              "right": {
-                "up": [
-                  0,
-                  0,
-                  0
-                ],
-                "right": [
-                  0,
-                  0,
-                  0
-                ],
-                "down": [
-                  0,
-                  0,
-                  0
-                ],
-                "left": [
-                  0,
-                  0,
-                  0
-                ]
-              }
-            },
-            "diagonalKeys": {
-              "left": {
-                "up_right": [
-                  0,
-                  0,
-                  0
-                ],
-                "up_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_right": [
-                  0,
-                  0,
-                  0
-                ]
-              },
-              "right": {
-                "up_right": [
-                  0,
-                  0,
-                  0
-                ],
-                "up_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_right": [
-                  0,
-                  0,
-                  0
-                ]
-              }
-            },
-            "analogCones": {
-              "verticalCone": 45,
-              "horizontalCone": 45
-            },
-            "isEightDirectionalTrigger": false,
-            "mouseSensitivity": 5,
-            "analogThrottle": 0,
-            "isAnalogSmoothing": false,
-            "triggerMagnitude": 4,
-            "isCombinedAnalog": false,
-            "combinedAnalogMagnitude": 6,
-            "isHoldTrigger": false,
-            "holdMagnitude": 9,
-            "holdType": "1",
-            "holdKeyValues": [
-              "16",
-              "0",
-              "0"
-            ],
-            "rotateStickButtonId": 0,
-            "isAngleLock": false,
-            "lockZoneAngle": 70,
-            "lockZoneSize": 30,
-            "isRightAnalog": false,
-            "invertXAxis": false,
-            "invertYAxis": false
-          },
-          "x": 0,
-          "y": 0,
-          "interval": 0,
-          "yInterval": 0,
-          "subType": "11",
-          "label": "Secondary 3"
-        },
-        {
-          "id": 8,
-          "pinOne": 11,
-          "pinTwo": 255,
-          "types": [
-            "11",
-            "11",
-            "11"
-          ],
-          "keyValues": [
-            "0",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValues": [
-            "0",
-            "0",
-            "0"
-          ],
-          "keyValuesLong": [
-            "0",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValuesLong": [
-            "0",
-            "0",
-            "0"
-          ],
-          "keyValuesDouble": [
-            "0",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValuesDouble": [
-            "0",
-            "0",
-            "0"
-          ],
-          "macro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "longMacro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "doubleMacro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "featureDelay": 500,
-          "doubleDelay": 150,
-          "isHold": false,
-          "isHoldLong": false,
-          "isHoldDouble": false,
-          "holdTime": 0,
-          "holdTimeLong": 0,
-          "holdTimeDouble": 0,
-          "isTurbo": false,
-          "isTurboLong": false,
-          "isTurboDouble": false,
-          "turboInterval": 0,
-          "turboIntervalLong": 0,
-          "turboIntervalDouble": 0,
-          "sequenceTriggerSettings": {
-            "isPingPongLoop": false,
-            "sequenceSteps": []
-          },
-          "analogSettings": {
-            "angle": 0,
-            "lowerLimit": 0,
-            "upperLimit": 0,
-            "sensitivity": 0,
-            "analogKeys": {
-              "left": {
-                "up": [
-                  0,
-                  0,
-                  0
-                ],
-                "right": [
-                  0,
-                  0,
-                  0
-                ],
-                "down": [
-                  0,
-                  0,
-                  0
-                ],
-                "left": [
-                  0,
-                  0,
-                  0
-                ]
-              },
-              "right": {
-                "up": [
-                  0,
-                  0,
-                  0
-                ],
-                "right": [
-                  0,
-                  0,
-                  0
-                ],
-                "down": [
-                  0,
-                  0,
-                  0
-                ],
-                "left": [
-                  0,
-                  0,
-                  0
-                ]
-              }
-            },
-            "diagonalKeys": {
-              "left": {
-                "up_right": [
-                  0,
-                  0,
-                  0
-                ],
-                "up_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_right": [
-                  0,
-                  0,
-                  0
-                ]
-              },
-              "right": {
-                "up_right": [
-                  0,
-                  0,
-                  0
-                ],
-                "up_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_right": [
-                  0,
-                  0,
-                  0
-                ]
-              }
-            },
-            "analogCones": {
-              "verticalCone": 45,
-              "horizontalCone": 45
-            },
-            "isEightDirectionalTrigger": false,
-            "mouseSensitivity": 5,
-            "analogThrottle": 0,
-            "isAnalogSmoothing": false,
-            "triggerMagnitude": 4,
-            "isCombinedAnalog": false,
-            "combinedAnalogMagnitude": 6,
-            "isHoldTrigger": false,
-            "holdMagnitude": 9,
-            "holdType": "1",
-            "holdKeyValues": [
-              "16",
-              "0",
-              "0"
-            ],
-            "rotateStickButtonId": 0,
-            "isAngleLock": false,
-            "lockZoneAngle": 70,
-            "lockZoneSize": 30,
-            "isRightAnalog": false,
-            "invertXAxis": false,
-            "invertYAxis": false
-          },
-          "x": 0,
-          "y": 0,
-          "interval": 0,
-          "yInterval": 0,
-          "subType": "11"
-        },
-        {
-          "id": 9,
-          "pinOne": 14,
-          "pinTwo": 255,
-          "types": [
-            "1",
-            "11",
-            "11"
-          ],
-          "keyValues": [
-            "Digit6",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValues": [
-            "0",
-            "0",
-            "0"
-          ],
-          "keyValuesLong": [
-            "0",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValuesLong": [
-            "0",
-            "0",
-            "0"
-          ],
-          "keyValuesDouble": [
-            "0",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValuesDouble": [
-            "0",
-            "0",
-            "0"
-          ],
-          "macro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "longMacro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "doubleMacro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "featureDelay": 500,
-          "doubleDelay": 150,
-          "isHold": false,
-          "isHoldLong": false,
-          "isHoldDouble": false,
-          "holdTime": 0,
-          "holdTimeLong": 0,
-          "holdTimeDouble": 0,
-          "isTurbo": false,
-          "isTurboLong": false,
-          "isTurboDouble": false,
-          "turboInterval": 0,
-          "turboIntervalLong": 0,
-          "turboIntervalDouble": 0,
-          "sequenceTriggerSettings": {
-            "isPingPongLoop": false,
-            "sequenceSteps": []
-          },
-          "analogSettings": {
-            "angle": 0,
-            "lowerLimit": 0,
-            "upperLimit": 0,
-            "sensitivity": 0,
-            "analogKeys": {
-              "left": {
-                "up": [
-                  0,
-                  0,
-                  0
-                ],
-                "right": [
-                  0,
-                  0,
-                  0
-                ],
-                "down": [
-                  0,
-                  0,
-                  0
-                ],
-                "left": [
-                  0,
-                  0,
-                  0
-                ]
-              },
-              "right": {
-                "up": [
-                  0,
-                  0,
-                  0
-                ],
-                "right": [
-                  0,
-                  0,
-                  0
-                ],
-                "down": [
-                  0,
-                  0,
-                  0
-                ],
-                "left": [
-                  0,
-                  0,
-                  0
-                ]
-              }
-            },
-            "diagonalKeys": {
-              "left": {
-                "up_right": [
-                  0,
-                  0,
-                  0
-                ],
-                "up_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_right": [
-                  0,
-                  0,
-                  0
-                ]
-              },
-              "right": {
-                "up_right": [
-                  0,
-                  0,
-                  0
-                ],
-                "up_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_right": [
-                  0,
-                  0,
-                  0
-                ]
-              }
-            },
-            "analogCones": {
-              "verticalCone": 45,
-              "horizontalCone": 45
-            },
-            "isEightDirectionalTrigger": false,
-            "mouseSensitivity": 5,
-            "analogThrottle": 0,
-            "isAnalogSmoothing": false,
-            "triggerMagnitude": 4,
-            "isCombinedAnalog": false,
-            "combinedAnalogMagnitude": 6,
-            "isHoldTrigger": false,
-            "holdMagnitude": 9,
-            "holdType": "1",
-            "holdKeyValues": [
-              "16",
-              "0",
-              "0"
-            ],
-            "rotateStickButtonId": 0,
-            "isAngleLock": false,
-            "lockZoneAngle": 70,
-            "lockZoneSize": 30,
-            "isRightAnalog": false,
-            "invertXAxis": false,
-            "invertYAxis": false
-          },
-          "x": 0,
-          "y": 0,
-          "interval": 0,
-          "yInterval": 0,
-          "subType": "11",
-          "label": "Consumable 2"
-        },
-        {
-          "id": 10,
-          "pinOne": 15,
-          "pinTwo": 255,
-          "types": [
-            "1",
-            "11",
-            "11"
-          ],
-          "keyValues": [
-            "0",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValues": [
-            "16",
-            "0",
-            "0"
-          ],
-          "keyValuesLong": [
-            "0",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValuesLong": [
-            "0",
-            "0",
-            "0"
-          ],
-          "keyValuesDouble": [
-            "0",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValuesDouble": [
-            "0",
-            "0",
-            "0"
-          ],
-          "macro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "longMacro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "doubleMacro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "featureDelay": 500,
-          "doubleDelay": 150,
-          "isHold": false,
-          "isHoldLong": false,
-          "isHoldDouble": false,
-          "holdTime": 0,
-          "holdTimeLong": 0,
-          "holdTimeDouble": 0,
-          "isTurbo": false,
-          "isTurboLong": false,
-          "isTurboDouble": false,
-          "turboInterval": 0,
-          "turboIntervalLong": 0,
-          "turboIntervalDouble": 0,
-          "sequenceTriggerSettings": {
-            "isPingPongLoop": false,
-            "sequenceSteps": []
-          },
-          "analogSettings": {
-            "angle": 0,
-            "lowerLimit": 0,
-            "upperLimit": 0,
-            "sensitivity": 0,
-            "analogKeys": {
-              "left": {
-                "up": [
-                  0,
-                  0,
-                  0
-                ],
-                "right": [
-                  0,
-                  0,
-                  0
-                ],
-                "down": [
-                  0,
-                  0,
-                  0
-                ],
-                "left": [
-                  0,
-                  0,
-                  0
-                ]
-              },
-              "right": {
-                "up": [
-                  0,
-                  0,
-                  0
-                ],
-                "right": [
-                  0,
-                  0,
-                  0
-                ],
-                "down": [
-                  0,
-                  0,
-                  0
-                ],
-                "left": [
-                  0,
-                  0,
-                  0
-                ]
-              }
-            },
-            "diagonalKeys": {
-              "left": {
-                "up_right": [
-                  0,
-                  0,
-                  0
-                ],
-                "up_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_right": [
-                  0,
-                  0,
-                  0
-                ]
-              },
-              "right": {
-                "up_right": [
-                  0,
-                  0,
-                  0
-                ],
-                "up_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_right": [
-                  0,
-                  0,
-                  0
-                ]
-              }
-            },
-            "analogCones": {
-              "verticalCone": 45,
-              "horizontalCone": 45
-            },
-            "isEightDirectionalTrigger": false,
-            "mouseSensitivity": 5,
-            "analogThrottle": 0,
-            "isAnalogSmoothing": false,
-            "triggerMagnitude": 4,
-            "isCombinedAnalog": false,
-            "combinedAnalogMagnitude": 6,
-            "isHoldTrigger": false,
-            "holdMagnitude": 9,
-            "holdType": "1",
-            "holdKeyValues": [
-              "16",
-              "0",
-              "0"
-            ],
-            "rotateStickButtonId": 0,
-            "isAngleLock": false,
-            "lockZoneAngle": 70,
-            "lockZoneSize": 30,
-            "isRightAnalog": false,
-            "invertXAxis": false,
-            "invertYAxis": false
-          },
-          "x": 0,
-          "y": 0,
-          "interval": 0,
-          "yInterval": 0,
-          "subType": "11",
-          "label": "Boost"
-        },
-        {
-          "id": 11,
-          "pinOne": 16,
-          "pinTwo": 255,
-          "types": [
-            "1",
-            "11",
-            "11"
-          ],
-          "keyValues": [
-            "F5",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValues": [
-            "0",
-            "0",
-            "0"
-          ],
-          "keyValuesLong": [
-            "0",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValuesLong": [
-            "0",
-            "0",
-            "0"
-          ],
-          "keyValuesDouble": [
-            "0",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValuesDouble": [
-            "0",
-            "0",
-            "0"
-          ],
-          "macro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "longMacro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "doubleMacro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "featureDelay": 500,
-          "doubleDelay": 150,
-          "isHold": false,
-          "isHoldLong": false,
-          "isHoldDouble": false,
-          "holdTime": 0,
-          "holdTimeLong": 0,
-          "holdTimeDouble": 0,
-          "isTurbo": false,
-          "isTurboLong": false,
-          "isTurboDouble": false,
-          "turboInterval": 0,
-          "turboIntervalLong": 0,
-          "turboIntervalDouble": 0,
-          "sequenceTriggerSettings": {
-            "isPingPongLoop": false,
-            "sequenceSteps": []
-          },
-          "analogSettings": {
-            "angle": 0,
-            "lowerLimit": 0,
-            "upperLimit": 0,
-            "sensitivity": 0,
-            "analogKeys": {
-              "left": {
-                "up": [
-                  0,
-                  0,
-                  0
-                ],
-                "right": [
-                  0,
-                  0,
-                  0
-                ],
-                "down": [
-                  0,
-                  0,
-                  0
-                ],
-                "left": [
-                  0,
-                  0,
-                  0
-                ]
-              },
-              "right": {
-                "up": [
-                  0,
-                  0,
-                  0
-                ],
-                "right": [
-                  0,
-                  0,
-                  0
-                ],
-                "down": [
-                  0,
-                  0,
-                  0
-                ],
-                "left": [
-                  0,
-                  0,
-                  0
-                ]
-              }
-            },
-            "diagonalKeys": {
-              "left": {
-                "up_right": [
-                  0,
-                  0,
-                  0
-                ],
-                "up_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_right": [
-                  0,
-                  0,
-                  0
-                ]
-              },
-              "right": {
-                "up_right": [
-                  0,
-                  0,
-                  0
-                ],
-                "up_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_right": [
-                  0,
-                  0,
-                  0
-                ]
-              }
-            },
-            "analogCones": {
-              "verticalCone": 45,
-              "horizontalCone": 45
-            },
-            "isEightDirectionalTrigger": false,
-            "mouseSensitivity": 5,
-            "analogThrottle": 0,
-            "isAnalogSmoothing": false,
-            "triggerMagnitude": 4,
-            "isCombinedAnalog": false,
-            "combinedAnalogMagnitude": 6,
-            "isHoldTrigger": false,
-            "holdMagnitude": 9,
-            "holdType": "1",
-            "holdKeyValues": [
-              "16",
-              "0",
-              "0"
-            ],
-            "rotateStickButtonId": 0,
-            "isAngleLock": false,
-            "lockZoneAngle": 70,
-            "lockZoneSize": 30,
-            "isRightAnalog": false,
-            "invertXAxis": false,
-            "invertYAxis": false
-          },
-          "x": 0,
-          "y": 0,
-          "interval": 0,
-          "yInterval": 0,
-          "subType": "11",
-          "label": "Secondary 2"
-        },
-        {
-          "id": 12,
-          "pinOne": 17,
-          "pinTwo": 255,
-          "types": [
-            "11",
-            "11",
-            "11"
-          ],
-          "keyValues": [
-            "0",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValues": [
-            "0",
-            "0",
-            "0"
-          ],
-          "keyValuesLong": [
-            "0",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValuesLong": [
-            "0",
-            "0",
-            "0"
-          ],
-          "keyValuesDouble": [
-            "0",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValuesDouble": [
-            "0",
-            "0",
-            "0"
-          ],
-          "macro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "longMacro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "doubleMacro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "featureDelay": 500,
-          "doubleDelay": 150,
-          "isHold": false,
-          "isHoldLong": false,
-          "isHoldDouble": false,
-          "holdTime": 0,
-          "holdTimeLong": 0,
-          "holdTimeDouble": 0,
-          "isTurbo": false,
-          "isTurboLong": false,
-          "isTurboDouble": false,
-          "turboInterval": 0,
-          "turboIntervalLong": 0,
-          "turboIntervalDouble": 0,
-          "sequenceTriggerSettings": {
-            "isPingPongLoop": false,
-            "sequenceSteps": []
-          },
-          "analogSettings": {
-            "angle": 0,
-            "lowerLimit": 0,
-            "upperLimit": 0,
-            "sensitivity": 0,
-            "analogKeys": {
-              "left": {
-                "up": [
-                  0,
-                  0,
-                  0
-                ],
-                "right": [
-                  0,
-                  0,
-                  0
-                ],
-                "down": [
-                  0,
-                  0,
-                  0
-                ],
-                "left": [
-                  0,
-                  0,
-                  0
-                ]
-              },
-              "right": {
-                "up": [
-                  0,
-                  0,
-                  0
-                ],
-                "right": [
-                  0,
-                  0,
-                  0
-                ],
-                "down": [
-                  0,
-                  0,
-                  0
-                ],
-                "left": [
-                  0,
-                  0,
-                  0
-                ]
-              }
-            },
-            "diagonalKeys": {
-              "left": {
-                "up_right": [
-                  0,
-                  0,
-                  0
-                ],
-                "up_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_right": [
-                  0,
-                  0,
-                  0
-                ]
-              },
-              "right": {
-                "up_right": [
-                  0,
-                  0,
-                  0
-                ],
-                "up_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_right": [
-                  0,
-                  0,
-                  0
-                ]
-              }
-            },
-            "analogCones": {
-              "verticalCone": 45,
-              "horizontalCone": 45
-            },
-            "isEightDirectionalTrigger": false,
-            "mouseSensitivity": 5,
-            "analogThrottle": 0,
-            "isAnalogSmoothing": false,
-            "triggerMagnitude": 4,
-            "isCombinedAnalog": false,
-            "combinedAnalogMagnitude": 6,
-            "isHoldTrigger": false,
-            "holdMagnitude": 9,
-            "holdType": "1",
-            "holdKeyValues": [
-              "16",
-              "0",
-              "0"
-            ],
-            "rotateStickButtonId": 0,
-            "isAngleLock": false,
-            "lockZoneAngle": 70,
-            "lockZoneSize": 30,
-            "isRightAnalog": false,
-            "invertXAxis": false,
-            "invertYAxis": false
-          },
-          "x": 0,
-          "y": 0,
-          "interval": 0,
-          "yInterval": 0,
-          "subType": "11"
-        },
-        {
-          "id": 13,
-          "pinOne": 13,
-          "pinTwo": 255,
-          "types": [
-            "1",
-            "11",
-            "11"
-          ],
-          "keyValues": [
-            "KeyJ",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValues": [
-            "0",
-            "0",
-            "0"
-          ],
-          "keyValuesLong": [
-            "0",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValuesLong": [
-            "0",
-            "0",
-            "0"
-          ],
-          "keyValuesDouble": [
-            "0",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValuesDouble": [
-            "0",
-            "0",
-            "0"
-          ],
-          "macro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "longMacro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "doubleMacro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "featureDelay": 500,
-          "doubleDelay": 150,
-          "isHold": false,
-          "isHoldLong": false,
-          "isHoldDouble": false,
-          "holdTime": 0,
-          "holdTimeLong": 0,
-          "holdTimeDouble": 0,
-          "isTurbo": false,
-          "isTurboLong": false,
-          "isTurboDouble": false,
-          "turboInterval": 0,
-          "turboIntervalLong": 0,
-          "turboIntervalDouble": 0,
-          "sequenceTriggerSettings": {
-            "isPingPongLoop": false,
-            "sequenceSteps": []
-          },
-          "analogSettings": {
-            "angle": 0,
-            "lowerLimit": 0,
-            "upperLimit": 0,
-            "sensitivity": 0,
-            "analogKeys": {
-              "left": {
-                "up": [
-                  0,
-                  0,
-                  0
-                ],
-                "right": [
-                  0,
-                  0,
-                  0
-                ],
-                "down": [
-                  0,
-                  0,
-                  0
-                ],
-                "left": [
-                  0,
-                  0,
-                  0
-                ]
-              },
-              "right": {
-                "up": [
-                  0,
-                  0,
-                  0
-                ],
-                "right": [
-                  0,
-                  0,
-                  0
-                ],
-                "down": [
-                  0,
-                  0,
-                  0
-                ],
-                "left": [
-                  0,
-                  0,
-                  0
-                ]
-              }
-            },
-            "diagonalKeys": {
-              "left": {
-                "up_right": [
-                  0,
-                  0,
-                  0
-                ],
-                "up_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_right": [
-                  0,
-                  0,
-                  0
-                ]
-              },
-              "right": {
-                "up_right": [
-                  0,
-                  0,
-                  0
-                ],
-                "up_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_right": [
-                  0,
-                  0,
-                  0
-                ]
-              }
-            },
-            "analogCones": {
-              "verticalCone": 45,
-              "horizontalCone": 45
-            },
-            "isEightDirectionalTrigger": false,
-            "mouseSensitivity": 5,
-            "analogThrottle": 0,
-            "isAnalogSmoothing": false,
-            "triggerMagnitude": 4,
-            "isCombinedAnalog": false,
-            "combinedAnalogMagnitude": 6,
-            "isHoldTrigger": false,
-            "holdMagnitude": 9,
-            "holdType": "1",
-            "holdKeyValues": [
-              "16",
-              "0",
-              "0"
-            ],
-            "rotateStickButtonId": 0,
-            "isAngleLock": false,
-            "lockZoneAngle": 70,
-            "lockZoneSize": 30,
-            "isRightAnalog": false,
-            "invertXAxis": false,
-            "invertYAxis": false
-          },
-          "x": 0,
-          "y": 0,
-          "interval": 0,
-          "yInterval": 0,
-          "subType": "11",
-          "label": "Perks"
-        },
-        {
-          "id": 14,
-          "pinOne": 23,
-          "pinTwo": 255,
-          "types": [
-            "1",
-            "11",
-            "11"
-          ],
           "keyValues": [
             "Digit5",
             "0",
@@ -2720,6 +336,15 @@
             "0",
             "0"
           ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
           "macro": {
             "repeat": false,
             "steps": [],
@@ -2735,8 +360,18 @@
             "steps": [],
             "v": 1
           },
+          "label": "Consumable 5",
           "featureDelay": 500,
           "doubleDelay": 150,
+          "subType": "11",
+          "x": 0,
+          "y": 0,
+          "interval": 0,
+          "yInterval": 0,
+          "xLong": 0,
+          "yLong": 0,
+          "xDouble": 0,
+          "yDouble": 0,
           "isHold": false,
           "isHoldLong": false,
           "isHoldDouble": false,
@@ -2877,12 +512,2673 @@
             "invertXAxis": false,
             "invertYAxis": false
           },
+          "scrollSpeed": 1,
+          "scrollThreshold": 10,
+          "isSmoothScroll": false
+        },
+        {
+          "id": 3,
+          "types": [
+            "1",
+            "11",
+            "11"
+          ],
+          "pinOne": 4,
+          "pinTwo": 255,
+          "keyValues": [
+            "Digit8",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValues": [
+            "0",
+            "0",
+            "0"
+          ],
+          "keyValuesLong": [
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValuesLong": [
+            "0",
+            "0",
+            "0"
+          ],
+          "keyValuesDouble": [
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValuesDouble": [
+            "0",
+            "0",
+            "0"
+          ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "label": "Consumable 4",
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "subType": "11",
           "x": 0,
           "y": 0,
           "interval": 0,
           "yInterval": 0,
+          "xLong": 0,
+          "yLong": 0,
+          "xDouble": 0,
+          "yDouble": 0,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "analogKeys": {
+              "left": {
+                "up": [
+                  0,
+                  0,
+                  0
+                ],
+                "right": [
+                  0,
+                  0,
+                  0
+                ],
+                "down": [
+                  0,
+                  0,
+                  0
+                ],
+                "left": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "right": {
+                "up": [
+                  0,
+                  0,
+                  0
+                ],
+                "right": [
+                  0,
+                  0,
+                  0
+                ],
+                "down": [
+                  0,
+                  0,
+                  0
+                ],
+                "left": [
+                  0,
+                  0,
+                  0
+                ]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": [
+                  0,
+                  0,
+                  0
+                ],
+                "up_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_right": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "right": {
+                "up_right": [
+                  0,
+                  0,
+                  0
+                ],
+                "up_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_right": [
+                  0,
+                  0,
+                  0
+                ]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "mouseSensitivity": 5,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": [
+              "16",
+              "0",
+              "0"
+            ],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          },
+          "scrollSpeed": 1,
+          "scrollThreshold": 10,
+          "isSmoothScroll": false
+        },
+        {
+          "id": 4,
+          "types": [
+            "1",
+            "11",
+            "11"
+          ],
+          "pinOne": 5,
+          "pinTwo": 255,
+          "keyValues": [
+            "Escape",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValues": [
+            "0",
+            "0",
+            "0"
+          ],
+          "keyValuesLong": [
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValuesLong": [
+            "0",
+            "0",
+            "0"
+          ],
+          "keyValuesDouble": [
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValuesDouble": [
+            "0",
+            "0",
+            "0"
+          ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "label": "Esc",
+          "featureDelay": 500,
+          "doubleDelay": 150,
           "subType": "11",
-          "label": "Consumable 1"
+          "x": 0,
+          "y": 0,
+          "interval": 0,
+          "yInterval": 0,
+          "xLong": 0,
+          "yLong": 0,
+          "xDouble": 0,
+          "yDouble": 0,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "analogKeys": {
+              "left": {
+                "up": [
+                  0,
+                  0,
+                  0
+                ],
+                "right": [
+                  0,
+                  0,
+                  0
+                ],
+                "down": [
+                  0,
+                  0,
+                  0
+                ],
+                "left": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "right": {
+                "up": [
+                  0,
+                  0,
+                  0
+                ],
+                "right": [
+                  0,
+                  0,
+                  0
+                ],
+                "down": [
+                  0,
+                  0,
+                  0
+                ],
+                "left": [
+                  0,
+                  0,
+                  0
+                ]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": [
+                  0,
+                  0,
+                  0
+                ],
+                "up_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_right": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "right": {
+                "up_right": [
+                  0,
+                  0,
+                  0
+                ],
+                "up_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_right": [
+                  0,
+                  0,
+                  0
+                ]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "mouseSensitivity": 5,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": [
+              "16",
+              "0",
+              "0"
+            ],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          },
+          "scrollSpeed": 1,
+          "scrollThreshold": 10,
+          "isSmoothScroll": false
+        },
+        {
+          "id": 5,
+          "types": [
+            "1",
+            "11",
+            "11"
+          ],
+          "pinOne": 8,
+          "pinTwo": 255,
+          "keyValues": [
+            "F6",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValues": [
+            "0",
+            "0",
+            "0"
+          ],
+          "keyValuesLong": [
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValuesLong": [
+            "0",
+            "0",
+            "0"
+          ],
+          "keyValuesDouble": [
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValuesDouble": [
+            "0",
+            "0",
+            "0"
+          ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "label": "Secondary 3",
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "subType": "11",
+          "x": 0,
+          "y": 0,
+          "interval": 0,
+          "yInterval": 0,
+          "xLong": 0,
+          "yLong": 0,
+          "xDouble": 0,
+          "yDouble": 0,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "analogKeys": {
+              "left": {
+                "up": [
+                  0,
+                  0,
+                  0
+                ],
+                "right": [
+                  0,
+                  0,
+                  0
+                ],
+                "down": [
+                  0,
+                  0,
+                  0
+                ],
+                "left": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "right": {
+                "up": [
+                  0,
+                  0,
+                  0
+                ],
+                "right": [
+                  0,
+                  0,
+                  0
+                ],
+                "down": [
+                  0,
+                  0,
+                  0
+                ],
+                "left": [
+                  0,
+                  0,
+                  0
+                ]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": [
+                  0,
+                  0,
+                  0
+                ],
+                "up_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_right": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "right": {
+                "up_right": [
+                  0,
+                  0,
+                  0
+                ],
+                "up_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_right": [
+                  0,
+                  0,
+                  0
+                ]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "mouseSensitivity": 5,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": [
+              "16",
+              "0",
+              "0"
+            ],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          },
+          "scrollSpeed": 1,
+          "scrollThreshold": 10,
+          "isSmoothScroll": false
+        },
+        {
+          "id": 6,
+          "types": [
+            "1",
+            "11",
+            "11"
+          ],
+          "pinOne": 9,
+          "pinTwo": 255,
+          "keyValues": [
+            "KeyR",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValues": [
+            "0",
+            "0",
+            "0"
+          ],
+          "keyValuesLong": [
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValuesLong": [
+            "0",
+            "0",
+            "0"
+          ],
+          "keyValuesDouble": [
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValuesDouble": [
+            "0",
+            "0",
+            "0"
+          ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "label": "R",
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "subType": "11",
+          "x": 0,
+          "y": 0,
+          "interval": 0,
+          "yInterval": 0,
+          "xLong": 0,
+          "yLong": 0,
+          "xDouble": 0,
+          "yDouble": 0,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "analogKeys": {
+              "left": {
+                "up": [
+                  0,
+                  0,
+                  0
+                ],
+                "right": [
+                  0,
+                  0,
+                  0
+                ],
+                "down": [
+                  0,
+                  0,
+                  0
+                ],
+                "left": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "right": {
+                "up": [
+                  0,
+                  0,
+                  0
+                ],
+                "right": [
+                  0,
+                  0,
+                  0
+                ],
+                "down": [
+                  0,
+                  0,
+                  0
+                ],
+                "left": [
+                  0,
+                  0,
+                  0
+                ]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": [
+                  0,
+                  0,
+                  0
+                ],
+                "up_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_right": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "right": {
+                "up_right": [
+                  0,
+                  0,
+                  0
+                ],
+                "up_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_right": [
+                  0,
+                  0,
+                  0
+                ]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "mouseSensitivity": 5,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": [
+              "16",
+              "0",
+              "0"
+            ],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          },
+          "scrollSpeed": 1,
+          "scrollThreshold": 10,
+          "isSmoothScroll": false
+        },
+        {
+          "id": 7,
+          "types": [
+            "1",
+            "11",
+            "11"
+          ],
+          "pinOne": 10,
+          "pinTwo": 255,
+          "keyValues": [
+            "Digit7",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValues": [
+            "0",
+            "0",
+            "0"
+          ],
+          "keyValuesLong": [
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValuesLong": [
+            "0",
+            "0",
+            "0"
+          ],
+          "keyValuesDouble": [
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValuesDouble": [
+            "0",
+            "0",
+            "0"
+          ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "label": "Consumable 3",
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "subType": "11",
+          "x": 0,
+          "y": 0,
+          "interval": 0,
+          "yInterval": 0,
+          "xLong": 0,
+          "yLong": 0,
+          "xDouble": 0,
+          "yDouble": 0,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "analogKeys": {
+              "left": {
+                "up": [
+                  0,
+                  0,
+                  0
+                ],
+                "right": [
+                  0,
+                  0,
+                  0
+                ],
+                "down": [
+                  0,
+                  0,
+                  0
+                ],
+                "left": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "right": {
+                "up": [
+                  0,
+                  0,
+                  0
+                ],
+                "right": [
+                  0,
+                  0,
+                  0
+                ],
+                "down": [
+                  0,
+                  0,
+                  0
+                ],
+                "left": [
+                  0,
+                  0,
+                  0
+                ]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": [
+                  0,
+                  0,
+                  0
+                ],
+                "up_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_right": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "right": {
+                "up_right": [
+                  0,
+                  0,
+                  0
+                ],
+                "up_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_right": [
+                  0,
+                  0,
+                  0
+                ]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "mouseSensitivity": 5,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": [
+              "16",
+              "0",
+              "0"
+            ],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          },
+          "scrollSpeed": 1,
+          "scrollThreshold": 10,
+          "isSmoothScroll": false
+        },
+        {
+          "id": 8,
+          "types": [
+            "1",
+            "11",
+            "11"
+          ],
+          "pinOne": 11,
+          "pinTwo": 255,
+          "keyValues": [
+            "37",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValues": [
+            "0",
+            "0",
+            "0"
+          ],
+          "keyValuesLong": [
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValuesLong": [
+            "0",
+            "0",
+            "0"
+          ],
+          "keyValuesDouble": [
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValuesDouble": [
+            "0",
+            "0",
+            "0"
+          ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "subType": "11",
+          "x": 0,
+          "y": 0,
+          "interval": 0,
+          "yInterval": 0,
+          "xLong": 0,
+          "yLong": 0,
+          "xDouble": 0,
+          "yDouble": 0,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "analogKeys": {
+              "left": {
+                "up": [
+                  0,
+                  0,
+                  0
+                ],
+                "right": [
+                  0,
+                  0,
+                  0
+                ],
+                "down": [
+                  0,
+                  0,
+                  0
+                ],
+                "left": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "right": {
+                "up": [
+                  0,
+                  0,
+                  0
+                ],
+                "right": [
+                  0,
+                  0,
+                  0
+                ],
+                "down": [
+                  0,
+                  0,
+                  0
+                ],
+                "left": [
+                  0,
+                  0,
+                  0
+                ]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": [
+                  0,
+                  0,
+                  0
+                ],
+                "up_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_right": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "right": {
+                "up_right": [
+                  0,
+                  0,
+                  0
+                ],
+                "up_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_right": [
+                  0,
+                  0,
+                  0
+                ]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "mouseSensitivity": 5,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": [
+              "16",
+              "0",
+              "0"
+            ],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          },
+          "scrollSpeed": 1,
+          "scrollThreshold": 10,
+          "isSmoothScroll": false,
+          "label": "Cycle weapon left"
+        },
+        {
+          "id": 9,
+          "types": [
+            "1",
+            "11",
+            "11"
+          ],
+          "pinOne": 14,
+          "pinTwo": 255,
+          "keyValues": [
+            "F5",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValues": [
+            "0",
+            "0",
+            "0"
+          ],
+          "keyValuesLong": [
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValuesLong": [
+            "0",
+            "0",
+            "0"
+          ],
+          "keyValuesDouble": [
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValuesDouble": [
+            "0",
+            "0",
+            "0"
+          ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "label": "Secondary 2",
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "subType": "11",
+          "x": 0,
+          "y": 0,
+          "interval": 0,
+          "yInterval": 0,
+          "xLong": 0,
+          "yLong": 0,
+          "xDouble": 0,
+          "yDouble": 0,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "analogKeys": {
+              "left": {
+                "up": [
+                  0,
+                  0,
+                  0
+                ],
+                "right": [
+                  0,
+                  0,
+                  0
+                ],
+                "down": [
+                  0,
+                  0,
+                  0
+                ],
+                "left": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "right": {
+                "up": [
+                  0,
+                  0,
+                  0
+                ],
+                "right": [
+                  0,
+                  0,
+                  0
+                ],
+                "down": [
+                  0,
+                  0,
+                  0
+                ],
+                "left": [
+                  0,
+                  0,
+                  0
+                ]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": [
+                  0,
+                  0,
+                  0
+                ],
+                "up_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_right": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "right": {
+                "up_right": [
+                  0,
+                  0,
+                  0
+                ],
+                "up_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_right": [
+                  0,
+                  0,
+                  0
+                ]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "mouseSensitivity": 5,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": [
+              "16",
+              "0",
+              "0"
+            ],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          },
+          "scrollSpeed": 1,
+          "scrollThreshold": 10,
+          "isSmoothScroll": false
+        },
+        {
+          "id": 10,
+          "types": [
+            "1",
+            "11",
+            "11"
+          ],
+          "pinOne": 15,
+          "pinTwo": 255,
+          "keyValues": [
+            "39",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValues": [
+            "0",
+            "0",
+            "0"
+          ],
+          "keyValuesLong": [
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValuesLong": [
+            "0",
+            "0",
+            "0"
+          ],
+          "keyValuesDouble": [
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValuesDouble": [
+            "0",
+            "0",
+            "0"
+          ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "subType": "11",
+          "x": 0,
+          "y": 0,
+          "interval": 0,
+          "yInterval": 0,
+          "xLong": 0,
+          "yLong": 0,
+          "xDouble": 0,
+          "yDouble": 0,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "analogKeys": {
+              "left": {
+                "up": [
+                  0,
+                  0,
+                  0
+                ],
+                "right": [
+                  0,
+                  0,
+                  0
+                ],
+                "down": [
+                  0,
+                  0,
+                  0
+                ],
+                "left": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "right": {
+                "up": [
+                  0,
+                  0,
+                  0
+                ],
+                "right": [
+                  0,
+                  0,
+                  0
+                ],
+                "down": [
+                  0,
+                  0,
+                  0
+                ],
+                "left": [
+                  0,
+                  0,
+                  0
+                ]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": [
+                  0,
+                  0,
+                  0
+                ],
+                "up_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_right": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "right": {
+                "up_right": [
+                  0,
+                  0,
+                  0
+                ],
+                "up_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_right": [
+                  0,
+                  0,
+                  0
+                ]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "mouseSensitivity": 5,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": [
+              "16",
+              "0",
+              "0"
+            ],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          },
+          "scrollSpeed": 1,
+          "scrollThreshold": 10,
+          "isSmoothScroll": false,
+          "label": "Cycle weapon right"
+        },
+        {
+          "id": 11,
+          "types": [
+            "1",
+            "11",
+            "11"
+          ],
+          "pinOne": 16,
+          "pinTwo": 255,
+          "keyValues": [
+            "Digit6",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValues": [
+            "0",
+            "0",
+            "0"
+          ],
+          "keyValuesLong": [
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValuesLong": [
+            "0",
+            "0",
+            "0"
+          ],
+          "keyValuesDouble": [
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValuesDouble": [
+            "0",
+            "0",
+            "0"
+          ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "label": "Consumable 2",
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "subType": "11",
+          "x": 0,
+          "y": 0,
+          "interval": 0,
+          "yInterval": 0,
+          "xLong": 0,
+          "yLong": 0,
+          "xDouble": 0,
+          "yDouble": 0,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "analogKeys": {
+              "left": {
+                "up": [
+                  0,
+                  0,
+                  0
+                ],
+                "right": [
+                  0,
+                  0,
+                  0
+                ],
+                "down": [
+                  0,
+                  0,
+                  0
+                ],
+                "left": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "right": {
+                "up": [
+                  0,
+                  0,
+                  0
+                ],
+                "right": [
+                  0,
+                  0,
+                  0
+                ],
+                "down": [
+                  0,
+                  0,
+                  0
+                ],
+                "left": [
+                  0,
+                  0,
+                  0
+                ]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": [
+                  0,
+                  0,
+                  0
+                ],
+                "up_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_right": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "right": {
+                "up_right": [
+                  0,
+                  0,
+                  0
+                ],
+                "up_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_right": [
+                  0,
+                  0,
+                  0
+                ]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "mouseSensitivity": 5,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": [
+              "16",
+              "0",
+              "0"
+            ],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          },
+          "scrollSpeed": 1,
+          "scrollThreshold": 10,
+          "isSmoothScroll": false
+        },
+        {
+          "id": 12,
+          "types": [
+            "1",
+            "11",
+            "11"
+          ],
+          "pinOne": 17,
+          "pinTwo": 255,
+          "keyValues": [
+            "Tab",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValues": [
+            "0",
+            "0",
+            "0"
+          ],
+          "keyValuesLong": [
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValuesLong": [
+            "0",
+            "0",
+            "0"
+          ],
+          "keyValuesDouble": [
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValuesDouble": [
+            "0",
+            "0",
+            "0"
+          ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "label": "Menu (Tab)",
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "subType": "11",
+          "x": 0,
+          "y": 0,
+          "interval": 0,
+          "yInterval": 0,
+          "xLong": 0,
+          "yLong": 0,
+          "xDouble": 0,
+          "yDouble": 0,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "analogKeys": {
+              "left": {
+                "up": [
+                  0,
+                  0,
+                  0
+                ],
+                "right": [
+                  0,
+                  0,
+                  0
+                ],
+                "down": [
+                  0,
+                  0,
+                  0
+                ],
+                "left": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "right": {
+                "up": [
+                  0,
+                  0,
+                  0
+                ],
+                "right": [
+                  0,
+                  0,
+                  0
+                ],
+                "down": [
+                  0,
+                  0,
+                  0
+                ],
+                "left": [
+                  0,
+                  0,
+                  0
+                ]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": [
+                  0,
+                  0,
+                  0
+                ],
+                "up_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_right": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "right": {
+                "up_right": [
+                  0,
+                  0,
+                  0
+                ],
+                "up_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_right": [
+                  0,
+                  0,
+                  0
+                ]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "mouseSensitivity": 5,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": [
+              "16",
+              "0",
+              "0"
+            ],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          },
+          "scrollSpeed": 1,
+          "scrollThreshold": 10,
+          "isSmoothScroll": false
+        },
+        {
+          "id": 13,
+          "types": [
+            "1",
+            "11",
+            "11"
+          ],
+          "pinOne": 13,
+          "pinTwo": 255,
+          "keyValues": [
+            "KeyJ",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValues": [
+            "0",
+            "0",
+            "0"
+          ],
+          "keyValuesLong": [
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValuesLong": [
+            "0",
+            "0",
+            "0"
+          ],
+          "keyValuesDouble": [
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValuesDouble": [
+            "0",
+            "0",
+            "0"
+          ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "label": "Perks",
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "subType": "11",
+          "x": 0,
+          "y": 0,
+          "interval": 0,
+          "yInterval": 0,
+          "xLong": 0,
+          "yLong": 0,
+          "xDouble": 0,
+          "yDouble": 0,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "analogKeys": {
+              "left": {
+                "up": [
+                  0,
+                  0,
+                  0
+                ],
+                "right": [
+                  0,
+                  0,
+                  0
+                ],
+                "down": [
+                  0,
+                  0,
+                  0
+                ],
+                "left": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "right": {
+                "up": [
+                  0,
+                  0,
+                  0
+                ],
+                "right": [
+                  0,
+                  0,
+                  0
+                ],
+                "down": [
+                  0,
+                  0,
+                  0
+                ],
+                "left": [
+                  0,
+                  0,
+                  0
+                ]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": [
+                  0,
+                  0,
+                  0
+                ],
+                "up_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_right": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "right": {
+                "up_right": [
+                  0,
+                  0,
+                  0
+                ],
+                "up_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_right": [
+                  0,
+                  0,
+                  0
+                ]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "mouseSensitivity": 5,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": [
+              "16",
+              "0",
+              "0"
+            ],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          },
+          "scrollSpeed": 1,
+          "scrollThreshold": 10,
+          "isSmoothScroll": false
+        },
+        {
+          "id": 14,
+          "types": [
+            "1",
+            "11",
+            "11"
+          ],
+          "pinOne": 23,
+          "pinTwo": 255,
+          "keyValues": [
+            "F4",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValues": [
+            "0",
+            "0",
+            "0"
+          ],
+          "keyValuesLong": [
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValuesLong": [
+            "0",
+            "0",
+            "0"
+          ],
+          "keyValuesDouble": [
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValuesDouble": [
+            "0",
+            "0",
+            "0"
+          ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "label": "Secondary 1",
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "subType": "11",
+          "x": 0,
+          "y": 0,
+          "interval": 0,
+          "yInterval": 0,
+          "xLong": 0,
+          "yLong": 0,
+          "xDouble": 0,
+          "yDouble": 0,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "analogKeys": {
+              "left": {
+                "up": [
+                  0,
+                  0,
+                  0
+                ],
+                "right": [
+                  0,
+                  0,
+                  0
+                ],
+                "down": [
+                  0,
+                  0,
+                  0
+                ],
+                "left": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "right": {
+                "up": [
+                  0,
+                  0,
+                  0
+                ],
+                "right": [
+                  0,
+                  0,
+                  0
+                ],
+                "down": [
+                  0,
+                  0,
+                  0
+                ],
+                "left": [
+                  0,
+                  0,
+                  0
+                ]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": [
+                  0,
+                  0,
+                  0
+                ],
+                "up_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_right": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "right": {
+                "up_right": [
+                  0,
+                  0,
+                  0
+                ],
+                "up_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_right": [
+                  0,
+                  0,
+                  0
+                ]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "mouseSensitivity": 5,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": [
+              "16",
+              "0",
+              "0"
+            ],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          },
+          "scrollSpeed": 1,
+          "scrollThreshold": 10,
+          "isSmoothScroll": false
         },
         {
           "id": 15,
@@ -2926,6 +3222,15 @@
             "0",
             "0"
           ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
           "macro": {
             "repeat": false,
             "steps": [],
@@ -2942,6 +3247,450 @@
             "v": 1
           },
           "label": "Fire Secondary",
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "subType": "11",
+          "x": 0,
+          "y": 0,
+          "interval": 0,
+          "yInterval": 0,
+          "xLong": 0,
+          "yLong": 0,
+          "xDouble": 0,
+          "yDouble": 0,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "analogKeys": {
+              "left": {
+                "up": [
+                  0,
+                  0,
+                  0
+                ],
+                "right": [
+                  0,
+                  0,
+                  0
+                ],
+                "down": [
+                  0,
+                  0,
+                  0
+                ],
+                "left": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "right": {
+                "up": [
+                  0,
+                  0,
+                  0
+                ],
+                "right": [
+                  0,
+                  0,
+                  0
+                ],
+                "down": [
+                  0,
+                  0,
+                  0
+                ],
+                "left": [
+                  0,
+                  0,
+                  0
+                ]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": [
+                  0,
+                  0,
+                  0
+                ],
+                "up_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_right": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "right": {
+                "up_right": [
+                  0,
+                  0,
+                  0
+                ],
+                "up_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_right": [
+                  0,
+                  0,
+                  0
+                ]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "mouseSensitivity": 5,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": [
+              "16",
+              "0",
+              "0"
+            ],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          },
+          "scrollSpeed": 1,
+          "scrollThreshold": 10,
+          "isSmoothScroll": false
+        },
+        {
+          "id": 16,
+          "types": [
+            "1",
+            "11",
+            "11"
+          ],
+          "pinOne": 25,
+          "pinTwo": 255,
+          "keyValues": [
+            "Digit5",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValues": [
+            "0",
+            "0",
+            "0"
+          ],
+          "keyValuesLong": [
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValuesLong": [
+            "0",
+            "0",
+            "0"
+          ],
+          "keyValuesDouble": [
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValuesDouble": [
+            "0",
+            "0",
+            "0"
+          ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "label": "Consumable 1",
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "subType": "11",
+          "x": 0,
+          "y": 0,
+          "interval": 0,
+          "yInterval": 0,
+          "xLong": 0,
+          "yLong": 0,
+          "xDouble": 0,
+          "yDouble": 0,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "analogKeys": {
+              "left": {
+                "up": [
+                  0,
+                  0,
+                  0
+                ],
+                "right": [
+                  0,
+                  0,
+                  0
+                ],
+                "down": [
+                  0,
+                  0,
+                  0
+                ],
+                "left": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "right": {
+                "up": [
+                  0,
+                  0,
+                  0
+                ],
+                "right": [
+                  0,
+                  0,
+                  0
+                ],
+                "down": [
+                  0,
+                  0,
+                  0
+                ],
+                "left": [
+                  0,
+                  0,
+                  0
+                ]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": [
+                  0,
+                  0,
+                  0
+                ],
+                "up_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_right": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "right": {
+                "up_right": [
+                  0,
+                  0,
+                  0
+                ],
+                "up_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_left": [
+                  0,
+                  0,
+                  0
+                ],
+                "down_right": [
+                  0,
+                  0,
+                  0
+                ]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "mouseSensitivity": 5,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": [
+              "16",
+              "0",
+              "0"
+            ],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          },
+          "scrollSpeed": 1,
+          "scrollThreshold": 10,
+          "isSmoothScroll": false
+        },
+        {
+          "id": 17,
+          "types": [
+            "1",
+            "11",
+            "11"
+          ],
+          "pinOne": 26,
+          "pinTwo": 255,
+          "keyValues": [
+            "F4",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValues": [
+            "0",
+            "0",
+            "0"
+          ],
+          "keyValuesLong": [
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValuesLong": [
+            "0",
+            "0",
+            "0"
+          ],
+          "keyValuesDouble": [
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "metaValuesDouble": [
+            "0",
+            "0",
+            "0"
+          ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "label": "Next target",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -3102,426 +3851,14 @@
           "isSmoothScroll": false
         },
         {
-          "id": 16,
-          "pinOne": 25,
-          "pinTwo": 255,
-          "types": [
-            "1",
-            "11",
-            "11"
-          ],
-          "keyValues": [
-            "F4",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValues": [
-            "0",
-            "0",
-            "0"
-          ],
-          "keyValuesLong": [
-            "0",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValuesLong": [
-            "0",
-            "0",
-            "0"
-          ],
-          "keyValuesDouble": [
-            "0",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValuesDouble": [
-            "0",
-            "0",
-            "0"
-          ],
-          "macro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "longMacro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "doubleMacro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "featureDelay": 500,
-          "doubleDelay": 150,
-          "isHold": false,
-          "isHoldLong": false,
-          "isHoldDouble": false,
-          "holdTime": 0,
-          "holdTimeLong": 0,
-          "holdTimeDouble": 0,
-          "isTurbo": false,
-          "isTurboLong": false,
-          "isTurboDouble": false,
-          "turboInterval": 0,
-          "turboIntervalLong": 0,
-          "turboIntervalDouble": 0,
-          "sequenceTriggerSettings": {
-            "isPingPongLoop": false,
-            "sequenceSteps": []
-          },
-          "analogSettings": {
-            "angle": 0,
-            "lowerLimit": 0,
-            "upperLimit": 0,
-            "sensitivity": 0,
-            "analogKeys": {
-              "left": {
-                "up": [
-                  0,
-                  0,
-                  0
-                ],
-                "right": [
-                  0,
-                  0,
-                  0
-                ],
-                "down": [
-                  0,
-                  0,
-                  0
-                ],
-                "left": [
-                  0,
-                  0,
-                  0
-                ]
-              },
-              "right": {
-                "up": [
-                  0,
-                  0,
-                  0
-                ],
-                "right": [
-                  0,
-                  0,
-                  0
-                ],
-                "down": [
-                  0,
-                  0,
-                  0
-                ],
-                "left": [
-                  0,
-                  0,
-                  0
-                ]
-              }
-            },
-            "diagonalKeys": {
-              "left": {
-                "up_right": [
-                  0,
-                  0,
-                  0
-                ],
-                "up_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_right": [
-                  0,
-                  0,
-                  0
-                ]
-              },
-              "right": {
-                "up_right": [
-                  0,
-                  0,
-                  0
-                ],
-                "up_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_right": [
-                  0,
-                  0,
-                  0
-                ]
-              }
-            },
-            "analogCones": {
-              "verticalCone": 45,
-              "horizontalCone": 45
-            },
-            "isEightDirectionalTrigger": false,
-            "mouseSensitivity": 5,
-            "analogThrottle": 0,
-            "isAnalogSmoothing": false,
-            "triggerMagnitude": 4,
-            "isCombinedAnalog": false,
-            "combinedAnalogMagnitude": 6,
-            "isHoldTrigger": false,
-            "holdMagnitude": 9,
-            "holdType": "1",
-            "holdKeyValues": [
-              "16",
-              "0",
-              "0"
-            ],
-            "rotateStickButtonId": 0,
-            "isAngleLock": false,
-            "lockZoneAngle": 70,
-            "lockZoneSize": 30,
-            "isRightAnalog": false,
-            "invertXAxis": false,
-            "invertYAxis": false
-          },
-          "x": 0,
-          "y": 0,
-          "interval": 0,
-          "yInterval": 0,
-          "subType": "11",
-          "label": "Secondary 1"
-        },
-        {
-          "id": 17,
-          "pinOne": 26,
-          "pinTwo": 255,
-          "types": [
-            "1",
-            "11",
-            "11"
-          ],
-          "keyValues": [
-            "Tab",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValues": [
-            "0",
-            "0",
-            "0"
-          ],
-          "keyValuesLong": [
-            "0",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValuesLong": [
-            "0",
-            "0",
-            "0"
-          ],
-          "keyValuesDouble": [
-            "0",
-            "0",
-            "0",
-            "0"
-          ],
-          "metaValuesDouble": [
-            "0",
-            "0",
-            "0"
-          ],
-          "macro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "longMacro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "doubleMacro": {
-            "repeat": false,
-            "steps": [],
-            "v": 1
-          },
-          "featureDelay": 500,
-          "doubleDelay": 150,
-          "isHold": false,
-          "isHoldLong": false,
-          "isHoldDouble": false,
-          "holdTime": 0,
-          "holdTimeLong": 0,
-          "holdTimeDouble": 0,
-          "isTurbo": false,
-          "isTurboLong": false,
-          "isTurboDouble": false,
-          "turboInterval": 0,
-          "turboIntervalLong": 0,
-          "turboIntervalDouble": 0,
-          "sequenceTriggerSettings": {
-            "isPingPongLoop": false,
-            "sequenceSteps": []
-          },
-          "analogSettings": {
-            "angle": 0,
-            "lowerLimit": 0,
-            "upperLimit": 0,
-            "sensitivity": 0,
-            "analogKeys": {
-              "left": {
-                "up": [
-                  0,
-                  0,
-                  0
-                ],
-                "right": [
-                  0,
-                  0,
-                  0
-                ],
-                "down": [
-                  0,
-                  0,
-                  0
-                ],
-                "left": [
-                  0,
-                  0,
-                  0
-                ]
-              },
-              "right": {
-                "up": [
-                  0,
-                  0,
-                  0
-                ],
-                "right": [
-                  0,
-                  0,
-                  0
-                ],
-                "down": [
-                  0,
-                  0,
-                  0
-                ],
-                "left": [
-                  0,
-                  0,
-                  0
-                ]
-              }
-            },
-            "diagonalKeys": {
-              "left": {
-                "up_right": [
-                  0,
-                  0,
-                  0
-                ],
-                "up_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_right": [
-                  0,
-                  0,
-                  0
-                ]
-              },
-              "right": {
-                "up_right": [
-                  0,
-                  0,
-                  0
-                ],
-                "up_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_left": [
-                  0,
-                  0,
-                  0
-                ],
-                "down_right": [
-                  0,
-                  0,
-                  0
-                ]
-              }
-            },
-            "analogCones": {
-              "verticalCone": 45,
-              "horizontalCone": 45
-            },
-            "isEightDirectionalTrigger": false,
-            "mouseSensitivity": 5,
-            "analogThrottle": 0,
-            "isAnalogSmoothing": false,
-            "triggerMagnitude": 4,
-            "isCombinedAnalog": false,
-            "combinedAnalogMagnitude": 6,
-            "isHoldTrigger": false,
-            "holdMagnitude": 9,
-            "holdType": "1",
-            "holdKeyValues": [
-              "16",
-              "0",
-              "0"
-            ],
-            "rotateStickButtonId": 0,
-            "isAngleLock": false,
-            "lockZoneAngle": 70,
-            "lockZoneSize": 30,
-            "isRightAnalog": false,
-            "invertXAxis": false,
-            "invertYAxis": false
-          },
-          "x": 0,
-          "y": 0,
-          "interval": 0,
-          "yInterval": 0,
-          "subType": "11",
-          "label": "Menu (Tab)"
-        },
-        {
           "id": 18,
+          "types": [
+            "1",
+            "11",
+            "11"
+          ],
           "pinOne": 22,
           "pinTwo": 255,
-          "types": [
-            "1",
-            "11",
-            "11"
-          ],
           "keyValues": [
             "KeyO",
             "0",
@@ -3555,6 +3892,15 @@
             "0",
             "0"
           ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
           "macro": {
             "repeat": false,
             "steps": [],
@@ -3570,8 +3916,18 @@
             "steps": [],
             "v": 1
           },
+          "label": "Ship",
           "featureDelay": 500,
           "doubleDelay": 150,
+          "subType": "11",
+          "x": 0,
+          "y": 0,
+          "interval": 0,
+          "yInterval": 0,
+          "xLong": 0,
+          "yLong": 0,
+          "xDouble": 0,
+          "yDouble": 0,
           "isHold": false,
           "isHoldLong": false,
           "isHoldDouble": false,
@@ -3712,30 +4068,27 @@
             "invertXAxis": false,
             "invertYAxis": false
           },
-          "x": 0,
-          "y": 0,
-          "interval": 0,
-          "yInterval": 0,
-          "subType": "11",
-          "label": "Ship"
+          "scrollSpeed": 1,
+          "scrollThreshold": 10,
+          "isSmoothScroll": false
         },
         {
           "id": 19,
-          "pinOne": 27,
-          "pinTwo": 255,
           "types": [
             "1",
             "11",
             "11"
           ],
+          "pinOne": 27,
+          "pinTwo": 255,
           "keyValues": [
-            "KeyF",
+            "0",
             "0",
             "0",
             "0"
           ],
           "metaValues": [
-            "0",
+            "ShiftLeft",
             "0",
             "0"
           ],
@@ -3761,6 +4114,15 @@
             "0",
             "0"
           ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
           "macro": {
             "repeat": false,
             "steps": [],
@@ -3776,8 +4138,22 @@
             "steps": [],
             "v": 1
           },
+          "label": "Boost",
           "featureDelay": 500,
           "doubleDelay": 150,
+          "subType": "11",
+          "x": 0,
+          "y": 0,
+          "interval": 20,
+          "yInterval": 20,
+          "xLong": 0,
+          "yLong": 0,
+          "intervalLong": 20,
+          "yIntervalLong": 20,
+          "xDouble": 0,
+          "yDouble": 0,
+          "intervalDouble": 20,
+          "yIntervalDouble": 20,
           "isHold": false,
           "isHoldLong": false,
           "isHoldDouble": false,
@@ -3791,8 +4167,8 @@
           "turboIntervalLong": 0,
           "turboIntervalDouble": 0,
           "sequenceTriggerSettings": {
-            "isPingPongLoop": false,
-            "sequenceSteps": []
+            "sequenceSteps": [],
+            "isPingPongLoop": false
           },
           "analogSettings": {
             "angle": 0,
@@ -3918,22 +4294,19 @@
             "invertXAxis": false,
             "invertYAxis": false
           },
-          "x": 0,
-          "y": 0,
-          "interval": 0,
-          "yInterval": 0,
-          "subType": "11",
-          "label": "Interact / fling"
+          "scrollSpeed": 1,
+          "scrollThreshold": 10,
+          "isSmoothScroll": false
         },
         {
           "id": 20,
-          "pinOne": 19,
-          "pinTwo": 255,
           "types": [
             "1",
             "11",
             "11"
           ],
+          "pinOne": 19,
+          "pinTwo": 255,
           "keyValues": [
             "Equal",
             "0",
@@ -3967,6 +4340,15 @@
             "0",
             "0"
           ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
           "macro": {
             "repeat": false,
             "steps": [],
@@ -3982,8 +4364,18 @@
             "steps": [],
             "v": 1
           },
+          "label": "Place marker",
           "featureDelay": 500,
           "doubleDelay": 150,
+          "subType": "11",
+          "x": 0,
+          "y": 0,
+          "interval": 0,
+          "yInterval": 0,
+          "xLong": 0,
+          "yLong": 0,
+          "xDouble": 0,
+          "yDouble": 0,
           "isHold": false,
           "isHoldLong": false,
           "isHoldDouble": false,
@@ -4124,19 +4516,16 @@
             "invertXAxis": false,
             "invertYAxis": false
           },
-          "x": 0,
-          "y": 0,
-          "interval": 0,
-          "yInterval": 0,
-          "subType": "11",
-          "label": "Place marker"
+          "scrollSpeed": 1,
+          "scrollThreshold": 10,
+          "isSmoothScroll": false
         },
         {
           "id": 21,
           "types": [
             "2",
-            "0",
-            "0"
+            "11",
+            "11"
           ],
           "pinOne": 0,
           "pinTwo": 0,
@@ -4173,6 +4562,15 @@
             "0",
             "0"
           ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
           "macro": {
             "repeat": false,
             "steps": [],
@@ -4350,14 +4748,14 @@
         {
           "id": 22,
           "types": [
-            "11",
+            "1",
             "11",
             "11"
           ],
           "pinOne": 37,
           "pinTwo": 255,
           "keyValues": [
-            "0",
+            "KeyG",
             "0",
             "0",
             "0"
@@ -4389,6 +4787,15 @@
             "0",
             "0"
           ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
           "macro": {
             "repeat": false,
             "steps": [],
@@ -4404,6 +4811,7 @@
             "steps": [],
             "v": 1
           },
+          "label": "Ultimate",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -4565,13 +4973,13 @@
         },
         {
           "id": 23,
-          "pinOne": 32,
-          "pinTwo": 255,
           "types": [
-            "11",
+            "1",
             "11",
             "11"
           ],
+          "pinOne": 32,
+          "pinTwo": 255,
           "keyValues": [
             "0",
             "0",
@@ -4579,7 +4987,7 @@
             "0"
           ],
           "metaValues": [
-            "0",
+            "AltLeft",
             "0",
             "0"
           ],
@@ -4605,6 +5013,15 @@
             "0",
             "0"
           ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
           "macro": {
             "repeat": false,
             "steps": [],
@@ -4620,8 +5037,18 @@
             "steps": [],
             "v": 1
           },
+          "label": "Inertial Dampen",
           "featureDelay": 500,
           "doubleDelay": 150,
+          "subType": "11",
+          "x": 0,
+          "y": 0,
+          "interval": 0,
+          "yInterval": 0,
+          "xLong": 0,
+          "yLong": 0,
+          "xDouble": 0,
+          "yDouble": 0,
           "isHold": false,
           "isHoldLong": false,
           "isHoldDouble": false,
@@ -4762,11 +5189,9 @@
             "invertXAxis": false,
             "invertYAxis": false
           },
-          "x": 0,
-          "y": 0,
-          "interval": 0,
-          "yInterval": 0,
-          "subType": "11"
+          "scrollSpeed": 1,
+          "scrollThreshold": 10,
+          "isSmoothScroll": false
         },
         {
           "id": 24,
@@ -4810,6 +5235,15 @@
             "0",
             "0"
           ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
           "macro": {
             "repeat": false,
             "steps": [],
@@ -4851,14 +5285,14 @@
             "isPingPongLoop": false
           },
           "analogSettings": {
-            "angle": 0,
+            "angle": -1,
             "lowerLimit": 0,
             "upperLimit": 0,
             "sensitivity": 3,
             "analogKeys": {
               "left": {
                 "up": [
-                  38,
+                  120,
                   0,
                   0
                 ],
@@ -4868,7 +5302,7 @@
                   0
                 ],
                 "down": [
-                  40,
+                  121,
                   0,
                   0
                 ],
@@ -5020,6 +5454,15 @@
             "0",
             "0"
           ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
           "macro": {
             "repeat": false,
             "steps": [],
@@ -5230,6 +5673,15 @@
             "0",
             "0"
           ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
           "macro": {
             "repeat": false,
             "steps": [],
@@ -5440,6 +5892,15 @@
             "0",
             "0"
           ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
           "macro": {
             "repeat": false,
             "steps": [],
@@ -5618,7 +6079,7 @@
           "pinOne": 34,
           "pinTwo": 255,
           "keyValues": [
-            "KeyG",
+            "38",
             "0",
             "0",
             "0"
@@ -5650,6 +6111,12 @@
             "0",
             "0"
           ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
           "layeringProfileIdDouble": "",
           "isBelkinDouble": false,
           "isToggleOnHoldDouble": false,
@@ -5668,18 +6135,16 @@
             "steps": [],
             "v": 1
           },
-          "label": "Ultimate",
+          "label": "Cycle weapon up",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
           "x": 0,
           "y": 0,
-          "interval": 20,
-          "yInterval": 20,
+          "interval": 0,
+          "yInterval": 0,
           "xLong": 0,
           "yLong": 0,
-          "intervalLong": 20,
-          "yIntervalLong": 20,
           "xDouble": 0,
           "yDouble": 0,
           "isHold": false,
@@ -5695,8 +6160,8 @@
           "turboIntervalLong": 0,
           "turboIntervalDouble": 0,
           "sequenceTriggerSettings": {
-            "sequenceSteps": [],
-            "isPingPongLoop": false
+            "isPingPongLoop": false,
+            "sequenceSteps": []
           },
           "analogSettings": {
             "angle": 0,
@@ -5836,7 +6301,7 @@
           "pinOne": 35,
           "pinTwo": 255,
           "keyValues": [
-            "F1",
+            "F2",
             "0",
             "0",
             "0"
@@ -5868,6 +6333,15 @@
             "0",
             "0"
           ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
           "macro": {
             "repeat": false,
             "steps": [],
@@ -5883,22 +6357,18 @@
             "steps": [],
             "v": 1
           },
-          "label": "Primary 1",
+          "label": "Prev Primary",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
           "x": 0,
           "y": 0,
-          "interval": 20,
-          "yInterval": 20,
+          "interval": 0,
+          "yInterval": 0,
           "xLong": 0,
           "yLong": 0,
-          "intervalLong": 20,
-          "yIntervalLong": 20,
           "xDouble": 0,
           "yDouble": 0,
-          "intervalDouble": 20,
-          "yIntervalDouble": 20,
           "isHold": false,
           "isHoldLong": false,
           "isHoldDouble": false,
@@ -5912,8 +6382,8 @@
           "turboIntervalLong": 0,
           "turboIntervalDouble": 0,
           "sequenceTriggerSettings": {
-            "sequenceSteps": [],
-            "isPingPongLoop": false
+            "isPingPongLoop": false,
+            "sequenceSteps": []
           },
           "analogSettings": {
             "angle": 0,
@@ -6053,7 +6523,7 @@
           "pinOne": 36,
           "pinTwo": 255,
           "keyValues": [
-            "F2",
+            "40",
             "0",
             "0",
             "0"
@@ -6085,6 +6555,15 @@
             "0",
             "0"
           ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
           "macro": {
             "repeat": false,
             "steps": [],
@@ -6100,22 +6579,18 @@
             "steps": [],
             "v": 1
           },
-          "label": "Primary 2",
+          "label": "Cycle weapon down",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
           "x": 0,
           "y": 0,
-          "interval": 20,
-          "yInterval": 20,
+          "interval": 0,
+          "yInterval": 0,
           "xLong": 0,
           "yLong": 0,
-          "intervalLong": 20,
-          "yIntervalLong": 20,
           "xDouble": 0,
           "yDouble": 0,
-          "intervalDouble": 20,
-          "yIntervalDouble": 20,
           "isHold": false,
           "isHoldLong": false,
           "isHoldDouble": false,
@@ -6129,8 +6604,8 @@
           "turboIntervalLong": 0,
           "turboIntervalDouble": 0,
           "sequenceTriggerSettings": {
-            "sequenceSteps": [],
-            "isPingPongLoop": false
+            "isPingPongLoop": false,
+            "sequenceSteps": []
           },
           "analogSettings": {
             "angle": 0,
@@ -6270,7 +6745,7 @@
           "pinOne": 33,
           "pinTwo": 255,
           "keyValues": [
-            "F3",
+            "F1",
             "0",
             "0",
             "0"
@@ -6302,6 +6777,15 @@
             "0",
             "0"
           ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
           "macro": {
             "repeat": false,
             "steps": [],
@@ -6317,22 +6801,18 @@
             "steps": [],
             "v": 1
           },
-          "label": "Primary 3",
+          "label": "Next Primary",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
           "x": 0,
           "y": 0,
-          "interval": 20,
-          "yInterval": 20,
+          "interval": 0,
+          "yInterval": 0,
           "xLong": 0,
           "yLong": 0,
-          "intervalLong": 20,
-          "yIntervalLong": 20,
           "xDouble": 0,
           "yDouble": 0,
-          "intervalDouble": 20,
-          "yIntervalDouble": 20,
           "isHold": false,
           "isHoldLong": false,
           "isHoldDouble": false,
@@ -6346,8 +6826,8 @@
           "turboIntervalLong": 0,
           "turboIntervalDouble": 0,
           "sequenceTriggerSettings": {
-            "sequenceSteps": [],
-            "isPingPongLoop": false
+            "isPingPongLoop": false,
+            "sequenceSteps": []
           },
           "analogSettings": {
             "angle": 0,
@@ -6519,6 +6999,15 @@
             "0",
             "0"
           ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
           "macro": {
             "repeat": false,
             "steps": [],
@@ -6729,6 +7218,15 @@
             "0",
             "0"
           ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
           "macro": {
             "repeat": false,
             "steps": [],
@@ -6939,6 +7437,15 @@
             "0",
             "0"
           ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
           "macro": {
             "repeat": false,
             "steps": [],
@@ -7149,6 +7656,15 @@
             "0",
             "0"
           ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
           "macro": {
             "repeat": false,
             "steps": [],
@@ -7319,15 +7835,15 @@
         },
         {
           "id": 36,
-          "pinOne": 6,
-          "pinTwo": 255,
           "types": [
             "1",
             "11",
             "11"
           ],
+          "pinOne": 6,
+          "pinTwo": 255,
           "keyValues": [
-            "F4",
+            "Escape",
             "0",
             "0",
             "0"
@@ -7359,6 +7875,15 @@
             "0",
             "0"
           ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
           "macro": {
             "repeat": false,
             "steps": [],
@@ -7374,8 +7899,18 @@
             "steps": [],
             "v": 1
           },
+          "label": "Escape menu",
           "featureDelay": 500,
           "doubleDelay": 150,
+          "subType": "11",
+          "x": 0,
+          "y": 0,
+          "interval": 0,
+          "yInterval": 0,
+          "xLong": 0,
+          "yLong": 0,
+          "xDouble": 0,
+          "yDouble": 0,
           "isHold": false,
           "isHoldLong": false,
           "isHoldDouble": false,
@@ -7516,22 +8051,19 @@
             "invertXAxis": false,
             "invertYAxis": false
           },
-          "x": 0,
-          "y": 0,
-          "interval": 0,
-          "yInterval": 0,
-          "subType": "11",
-          "label": "Next target"
+          "scrollSpeed": 1,
+          "scrollThreshold": 10,
+          "isSmoothScroll": false
         },
         {
           "id": 37,
-          "pinOne": 1,
-          "pinTwo": 255,
           "types": [
             "11",
             "11",
             "11"
           ],
+          "pinOne": 1,
+          "pinTwo": 255,
           "keyValues": [
             "0",
             "0",
@@ -7565,6 +8097,15 @@
             "0",
             "0"
           ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
           "macro": {
             "repeat": false,
             "steps": [],
@@ -7582,6 +8123,15 @@
           },
           "featureDelay": 500,
           "doubleDelay": 150,
+          "subType": "11",
+          "x": 0,
+          "y": 0,
+          "interval": 0,
+          "yInterval": 0,
+          "xLong": 0,
+          "yLong": 0,
+          "xDouble": 0,
+          "yDouble": 0,
           "isHold": false,
           "isHoldLong": false,
           "isHoldDouble": false,
@@ -7722,21 +8272,19 @@
             "invertXAxis": false,
             "invertYAxis": false
           },
-          "x": 0,
-          "y": 0,
-          "interval": 0,
-          "yInterval": 0,
-          "subType": "11"
+          "scrollSpeed": 1,
+          "scrollThreshold": 10,
+          "isSmoothScroll": false
         },
         {
           "id": 38,
-          "pinOne": 7,
-          "pinTwo": 255,
           "types": [
             "1",
             "11",
             "11"
           ],
+          "pinOne": 7,
+          "pinTwo": 255,
           "keyValues": [
             "KeyK",
             "0",
@@ -7770,6 +8318,15 @@
             "0",
             "0"
           ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
           "macro": {
             "repeat": false,
             "steps": [],
@@ -7785,8 +8342,18 @@
             "steps": [],
             "v": 1
           },
+          "label": "Missions",
           "featureDelay": 500,
           "doubleDelay": 150,
+          "subType": "11",
+          "x": 0,
+          "y": 0,
+          "interval": 0,
+          "yInterval": 0,
+          "xLong": 0,
+          "yLong": 0,
+          "xDouble": 0,
+          "yDouble": 0,
           "isHold": false,
           "isHoldLong": false,
           "isHoldDouble": false,
@@ -7927,17 +8494,14 @@
             "invertXAxis": false,
             "invertYAxis": false
           },
-          "x": 0,
-          "y": 0,
-          "interval": 0,
-          "yInterval": 0,
-          "subType": "11",
-          "label": "Missions"
+          "scrollSpeed": 1,
+          "scrollThreshold": 10,
+          "isSmoothScroll": false
         },
         {
           "id": 39,
           "types": [
-            "11",
+            "30",
             "11",
             "11"
           ],
@@ -7976,6 +8540,15 @@
             "0",
             "0"
           ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
           "macro": {
             "repeat": false,
             "steps": [],
@@ -7993,7 +8566,7 @@
           },
           "featureDelay": 500,
           "doubleDelay": 100,
-          "subType": "11",
+          "subType": "31",
           "x": 0,
           "y": 0,
           "xLong": 0,
@@ -8147,7 +8720,7 @@
         {
           "id": 40,
           "types": [
-            "11",
+            "29",
             "11",
             "11"
           ],
@@ -8186,6 +8759,15 @@
             "0",
             "0"
           ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
           "macro": {
             "repeat": false,
             "steps": [],
@@ -8203,7 +8785,7 @@
           },
           "featureDelay": 500,
           "doubleDelay": 100,
-          "subType": "29",
+          "subType": "31",
           "x": 0,
           "y": 0,
           "xLong": 0,
@@ -8356,13 +8938,13 @@
         },
         {
           "id": 41,
-          "pinOne": 20,
-          "pinTwo": 255,
           "types": [
             "1",
             "11",
             "11"
           ],
+          "pinOne": 20,
+          "pinTwo": 255,
           "keyValues": [
             "KeyF",
             "0",
@@ -8396,6 +8978,15 @@
             "0",
             "0"
           ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
           "macro": {
             "repeat": false,
             "steps": [],
@@ -8411,8 +9002,18 @@
             "steps": [],
             "v": 1
           },
+          "label": "Cruise drive",
           "featureDelay": 500,
           "doubleDelay": 150,
+          "subType": "11",
+          "x": 0,
+          "y": 0,
+          "interval": 0,
+          "yInterval": 0,
+          "xLong": 0,
+          "yLong": 0,
+          "xDouble": 0,
+          "yDouble": 0,
           "isHold": false,
           "isHoldLong": false,
           "isHoldDouble": false,
@@ -8553,12 +9154,9 @@
             "invertXAxis": false,
             "invertYAxis": false
           },
-          "x": 0,
-          "y": 0,
-          "interval": 0,
-          "yInterval": 0,
-          "subType": "11",
-          "label": "Cruise drive"
+          "scrollSpeed": 1,
+          "scrollThreshold": 10,
+          "isSmoothScroll": false
         },
         {
           "id": 42,
@@ -8602,6 +9200,15 @@
             "0",
             "0"
           ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
           "macro": {
             "repeat": false,
             "steps": [],
@@ -8812,6 +9419,15 @@
             "0",
             "0"
           ],
+          "layeringProfileId": "",
+          "isBelkin": false,
+          "isToggleOnHold": false,
+          "layeringProfileIdLong": "",
+          "isBelkinLong": false,
+          "isToggleOnHoldLong": false,
+          "layeringProfileIdDouble": "",
+          "isBelkinDouble": false,
+          "isToggleOnHoldDouble": false,
           "macro": {
             "repeat": false,
             "steps": [],
@@ -8980,69 +9596,7 @@
           "scrollThreshold": 10,
           "isSmoothScroll": false
         }
-      ],
-      "name": "Everspace 2 akimbo v6 (left)",
-      "isSoftware": true,
-      "profileSettings": {
-        "profileSensitivitySettings": {
-          "currentSensitivityIndex": 1,
-          "sensitivityValues": [
-            1000,
-            4000,
-            7500,
-            10000,
-            15000
-          ]
-        },
-        "isSensorOn": true,
-        "mouseSensorAngle": 0,
-        "ledSettings": {
-          "ledState": [
-            {
-              "r": 55,
-              "g": 173,
-              "b": 173
-            },
-            {
-              "r": 55,
-              "g": 173,
-              "b": 173
-            },
-            {
-              "r": 55,
-              "g": 173,
-              "b": 173
-            }
-          ],
-          "isLedsOn": [
-            true,
-            true,
-            true
-          ],
-          "ledEffect": 1,
-          "ledBrightness": 50
-        }
-      },
-      "isFavorite": false,
-      "version": 1,
-      "systemTags": [
-        "HOLD",
-        "MOUSE"
-      ],
-      "profileTags": [],
-      "metaData": {
-        "schemeName": "azeron-profile-v1",
-        "device": 8,
-        "createdAt": "2026-09-22T02:03:23.467Z",
-        "createdBy": "2.0.2",
-        "changedLogs": [
-          {
-            "timestampt": "2026-09-22T02:03:23.467Z",
-            "softwareVersion": "2.0.2",
-            "type": "created"
-          }
-        ]
-      }
+      ]
     }
   ]
 }

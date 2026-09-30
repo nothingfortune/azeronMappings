@@ -30,9 +30,19 @@ actions:
   supralight:         {label: Jump / supralight drive, tags: [travel, required]}
 
   # --- weapons and targeting ----------------------------------------------------
-  primary_1:          {label: Primary 1,         tags: [combat, required]}
-  primary_2:          {label: Primary 2,         tags: [combat, required]}
+  # These cycle the primary weapon rather than selecting a numbered one; the ids are
+  # kept because every profile references them, but the labels say what they do.
+  primary_1:          {label: Next primary,      tags: [combat, required]}
+  primary_2:          {label: Previous primary,  tags: [combat, required]}
   primary_3:          {label: Primary 3,         tags: [combat]}
+  # Not `required`: with a mouse these sit on it, and only a keypad-only setup has to
+  # find keys for them. Which is true depends on the layout, not on the genre.
+  fire_primary:       {label: Fire primary,      tags: [combat]}
+  fire_secondary:     {label: Fire secondary,    tags: [combat]}
+  next_secondary:     {label: Next secondary,    tags: [combat]}
+  secondary_1:        {label: Equip secondary 1, tags: [combat]}
+  secondary_2:        {label: Equip secondary 2, tags: [combat]}
+  secondary_3:        {label: Equip secondary 3, tags: [combat]}
   device_1:           {label: Device 1,          tags: [combat, required]}
   device_2:           {label: Device 2,          tags: [combat, required]}
   device_3:           {label: Device 3,          tags: [combat, required]}
@@ -42,7 +52,9 @@ actions:
   consume_3:          {label: Consumable 3,      tags: [combat, required]}
   consume_4:          {label: Consumable 4,      tags: [combat, required]}
   ultimate:           {label: Ultimate,          tags: [combat, required]}
-  next_target:        {label: Next target,       tags: [combat, required]}
+  # F4 in Everspace 2 equips secondary 1; the game's own NextTarget is unbound. The id
+  # is historical.
+  next_target:        {label: "Equip secondary 1 (F4)", tags: [combat, required]}
   lock_target:        {label: Lock target,       tags: [combat, required]}
   weapon_cycle_up:    {label: Cycle weapon (up),    tags: [combat]}
   weapon_cycle_down:  {label: Cycle weapon (down),  tags: [combat]}

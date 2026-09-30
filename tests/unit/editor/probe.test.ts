@@ -221,13 +221,13 @@ describe("stick bursts", () => {
   it("says it is still sampling while the stick is held", () => {
     press(sectorKey("right"));
     press(sectorKey("right"));
-    expect(document.querySelector(".prompt .muted")?.textContent).toContain("2 reading(s)");
+    expect(document.querySelector(".prompt .sampling")?.textContent).toContain("2 reading(s)");
   });
 
   it("reports how many readings the committed one won from", () => {
     for (const sector of ["down", "down", "down_left"]) press(sectorKey(sector));
     vi.advanceTimersByTime(500);
-    expect(document.querySelector(".prompt .muted")?.textContent).toContain("best of 3");
+    expect(document.querySelector(".prompt .read")?.textContent).toContain("best of 3");
   });
 
   it("ignores the tail of a burst that has already been committed", () => {
@@ -275,25 +275,25 @@ describe("unit detection", () => {
     probePayload = payload();
   });
 
-  function openPressTest(): void {
+  function openRepo(): void {
     startEditor(buildEditorPayload());
     const tab = [...document.querySelectorAll("header button")].find(
-      (button) => button.textContent === "Press test",
+      (button) => button.textContent === "Repo",
     );
     (tab as HTMLButtonElement).click();
   }
 
   it("does not claim anything before it has been asked", () => {
-    openPressTest();
+    openRepo();
     const panel = [...document.querySelectorAll(".panel")].find(
-      (node) => node.querySelector("h2")?.textContent === "Units",
+      (node) => node.querySelector("h2")?.textContent === "Units connected",
     );
     expect(panel?.textContent).toContain("Not checked yet");
     expect([...(panel?.querySelectorAll("button") ?? [])][0]?.textContent).toBe("Detect units");
   });
 
   it("says plainly when the browser cannot do it", async () => {
-    openPressTest();
+    openRepo();
     const button = [...document.querySelectorAll("button")].find(
       (node) => node.textContent === "Detect units",
     );
@@ -301,8 +301,41 @@ describe("unit detection", () => {
     button?.click();
     await new Promise((resolve) => setTimeout(resolve, 0));
     const panel = [...document.querySelectorAll(".panel")].find(
-      (node) => node.querySelector("h2")?.textContent === "Units",
+      (node) => node.querySelector("h2")?.textContent === "Units connected",
     );
     expect(panel?.textContent).toContain("no WebHID");
+  });
+});
+
+describe("diagnosing a direction that does nothing", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    localStorage.clear();
+    document.body.innerHTML = '<div id="app"></div>';
+    probePayload = payload();
+    start(probePayload, document.getElementById("app") ?? undefined);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("says which key it is waiting for, so silence is diagnosable", () => {
+    // A direction that sends nothing is otherwise indistinguishable from a bug here.
+    const banner = document.querySelector(".prompt")?.textContent ?? "";
+    expect(banner).toContain("expecting");
+  });
+
+  it("echoes whatever key did arrive, even a wrong one", () => {
+    document.dispatchEvent(
+      new KeyboardEvent("keydown", { code: "Backquote", bubbles: true, cancelable: true }),
+    );
+    expect(document.querySelector(".prompt")?.textContent).toContain("last key seen: Backquote");
+  });
+
+  it("draws the stick click, which is prompted for like any other key", () => {
+    const hub = document.querySelector(".stick-dial .hub");
+    expect(hub?.querySelector(".pos")?.textContent).toBe("stick_press");
+    expect(hub?.querySelector(".pin")?.textContent).toBe("click");
   });
 });

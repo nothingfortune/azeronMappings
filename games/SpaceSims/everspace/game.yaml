@@ -14,79 +14,49 @@ lint:
   # Findings that are real but accepted on a specific profile. Each one is a decision,
   # not a mute: say why, and revisit it when that profile is revised.
   acknowledged:
-    - {profile: akimbo-v7, rule: akimbo-role-mismatch, position: pinky_1,
-       reason: "v7 specialises the hands -- the right flies (throttle, strafe,
-                vertical) and the left fights -- instead of mirroring roles. That is a
-                deliberate departure from the 2026-09-28 lesson, and is the main thing
-                the first v7 playtest has to judge."}
-    - {profile: akimbo-v7, rule: akimbo-role-mismatch, position: index_1,
-       reason: "v7 specialises the hands -- the right flies (throttle, strafe,
-                vertical) and the left fights -- instead of mirroring roles. That is a
-                deliberate departure from the 2026-09-28 lesson, and is the main thing
-                the first v7 playtest has to judge."}
-    - {profile: akimbo-v7, rule: akimbo-role-mismatch, position: index_2,
-       reason: "v7 specialises the hands -- the right flies (throttle, strafe,
-                vertical) and the left fights -- instead of mirroring roles. That is a
-                deliberate departure from the 2026-09-28 lesson, and is the main thing
-                the first v7 playtest has to judge."}
-    - {profile: akimbo-v7, rule: akimbo-role-mismatch, position: index_4,
-       reason: "v7 specialises the hands -- the right flies (throttle, strafe,
-                vertical) and the left fights -- instead of mirroring roles. That is a
-                deliberate departure from the 2026-09-28 lesson, and is the main thing
-                the first v7 playtest has to judge."}
-    - {profile: akimbo-v7, rule: akimbo-role-mismatch, position: index_side,
-       reason: "v7 specialises the hands -- the right flies (throttle, strafe,
-                vertical) and the left fights -- instead of mirroring roles. That is a
-                deliberate departure from the 2026-09-28 lesson, and is the main thing
-                the first v7 playtest has to judge."}
-    - {profile: akimbo-v7, rule: akimbo-role-mismatch, position: dpad_up,
-       reason: "v7 specialises the hands -- the right flies (throttle, strafe,
-                vertical) and the left fights -- instead of mirroring roles. That is a
-                deliberate departure from the 2026-09-28 lesson, and is the main thing
-                the first v7 playtest has to judge."}
-    - {profile: akimbo-v7, rule: akimbo-role-mismatch, position: dpad_left,
-       reason: "v7 specialises the hands -- the right flies (throttle, strafe,
-                vertical) and the left fights -- instead of mirroring roles. That is a
-                deliberate departure from the 2026-09-28 lesson, and is the main thing
-                the first v7 playtest has to judge."}
-    - {profile: akimbo-v7, rule: akimbo-role-mismatch, position: dpad_right,
-       reason: "v7 specialises the hands -- the right flies (throttle, strafe,
-                vertical) and the left fights -- instead of mirroring roles. That is a
-                deliberate departure from the 2026-09-28 lesson, and is the main thing
-                the first v7 playtest has to judge."}
-    - {profile: akimbo-v7, rule: akimbo-role-mismatch, position: dpad_down,
-       reason: "v7 specialises the hands -- the right flies (throttle, strafe,
-                vertical) and the left fights -- instead of mirroring roles. That is a
-                deliberate departure from the 2026-09-28 lesson, and is the main thing
-                the first v7 playtest has to judge."}
-    - {profile: akimbo-v7, rule: akimbo-role-mismatch, position: thumb_aux_lower,
-       reason: "v7 specialises the hands -- the right flies (throttle, strafe,
-                vertical) and the left fights -- instead of mirroring roles. That is a
-                deliberate departure from the 2026-09-28 lesson, and is the main thing
-                the first v7 playtest has to judge."}
-    - {profile: akimbo-v7-left, rule: duplicate-output-key, key: F4,
-       reason: "Next target is reachable from index_2 and pinky_side on the left unit.
-                Harmless as redundancy; check one of the two was not meant to be a
-                different action."}
-    - {profile: akimbo-v7-right, rule: duplicate-output-key, key: KeyW,
-       reason: "EXPERIMENT: thrust forward is on three keys on purpose -- full on
-                dpad_up, pulsed at two intervals on dpad_press and middle_2 -- so the
-                three can be compared with the same thumb. Delete the two pulsed keys
-                and this line together once a playtest has judged them."}
-    # --- akimbo v7: imported from the units on 2026-09-28, questions still open ---
-    - {profile: akimbo-v7-left, rule: unbound-key, position: middle_2,
-       reason: "Sends F5. What F5 does in Everspace 2 is not recorded; add an action for
-                it once confirmed and this acknowledgement goes stale."}
-    - {profile: akimbo-v7-left, rule: unbound-key, position: ring_2,
-       reason: "Sends F6. Same as F5 -- unidentified, pending confirmation in game."}
-    - {profile: akimbo-v7-left, rule: unbound-key, position: ring_3,
-       reason: "Sends R. Unidentified in Everspace 2; confirm and add an action."}
-    - {profile: akimbo-v7-left, rule: unbound-key, position: index_3,
-       reason: "Mouse button code 3. Only code 2 (middle) is confirmed; which physical
-                button 3 is, and what it does in game, are both unconfirmed."}
-    - {profile: akimbo-v7-right, rule: unbound-key, position: index_3,
-       reason: "Mouse button code 1, as above -- physical button and in-game action both
-                unconfirmed."}
+    - {profile: akimbo-v9, rule: akimbo-role-mismatch, position: dpad_down,
+       reason: "v8 and v9 specialise the hands rather than mirroring them: the right unit flies and the left fights. A deliberate departure from the 2026-09-28 lesson, and what a playtest has to judge."}
+    - {profile: akimbo-v9, rule: akimbo-role-mismatch, position: dpad_left,
+       reason: "v8 and v9 specialise the hands rather than mirroring them: the right unit flies and the left fights. A deliberate departure from the 2026-09-28 lesson, and what a playtest has to judge."}
+    - {profile: akimbo-v9, rule: akimbo-role-mismatch, position: dpad_press,
+       reason: "v8 and v9 specialise the hands rather than mirroring them: the right unit flies and the left fights. A deliberate departure from the 2026-09-28 lesson, and what a playtest has to judge."}
+    - {profile: akimbo-v9, rule: akimbo-role-mismatch, position: dpad_right,
+       reason: "v8 and v9 specialise the hands rather than mirroring them: the right unit flies and the left fights. A deliberate departure from the 2026-09-28 lesson, and what a playtest has to judge."}
+    - {profile: akimbo-v9, rule: akimbo-role-mismatch, position: dpad_up,
+       reason: "v8 and v9 specialise the hands rather than mirroring them: the right unit flies and the left fights. A deliberate departure from the 2026-09-28 lesson, and what a playtest has to judge."}
+    - {profile: akimbo-v9, rule: akimbo-role-mismatch, position: index_2,
+       reason: "v8 and v9 specialise the hands rather than mirroring them: the right unit flies and the left fights. A deliberate departure from the 2026-09-28 lesson, and what a playtest has to judge."}
+    - {profile: akimbo-v9, rule: akimbo-role-mismatch, position: index_4,
+       reason: "v8 and v9 specialise the hands rather than mirroring them: the right unit flies and the left fights. A deliberate departure from the 2026-09-28 lesson, and what a playtest has to judge."}
+    - {profile: akimbo-v9, rule: akimbo-role-mismatch, position: pinky_1,
+       reason: "v8 and v9 specialise the hands rather than mirroring them: the right unit flies and the left fights. A deliberate departure from the 2026-09-28 lesson, and what a playtest has to judge."}
+    - {profile: akimbo-v9, rule: akimbo-role-mismatch, position: pinky_side,
+       reason: "v8 and v9 specialise the hands rather than mirroring them: the right unit flies and the left fights. A deliberate departure from the 2026-09-28 lesson, and what a playtest has to judge."}
+    - {profile: akimbo-v9, rule: akimbo-role-mismatch, position: thumb_aux_lower,
+       reason: "v8 and v9 specialise the hands rather than mirroring them: the right unit flies and the left fights. A deliberate departure from the 2026-09-28 lesson, and what a playtest has to judge."}
+    - {profile: akimbo-v9-left, rule: duplicate-output-key, key: Digit5,
+       reason: "Deliberate: the action is reachable from more than one position in this layout."}
+    - {profile: akimbo-v9-left, rule: duplicate-output-key, key: Escape,
+       reason: "Deliberate: the action is reachable from more than one position in this layout."}
+    - {profile: akimbo-v9-left, rule: duplicate-output-key, key: F4,
+       reason: "Deliberate: the action is reachable from more than one position in this layout."}
+    - {profile: akimbo-v9-right, rule: duplicate-output-key, key: KeyA,
+       reason: "Deliberate: the action is reachable from more than one position in this layout."}
+    - {profile: akimbo-v9-right, rule: duplicate-output-key, key: KeyD,
+       reason: "Deliberate: the action is reachable from more than one position in this layout."}
+    - {profile: akimbo-v9-right, rule: duplicate-output-key, key: KeyS,
+       reason: "Deliberate: the action is reachable from more than one position in this layout."}
+    - {profile: akimbo-v9, rule: akimbo-role-mismatch, position: middle_1,
+       reason: "EXPERIMENT: middle_1 and middle_4 carry pulsed thrust on the right unit,
+                opposite menu and combat keys on the left. They exist to be flown and
+                deleted, not to be mirrored."}
+    - {profile: akimbo-v9, rule: akimbo-role-mismatch, position: middle_4,
+       reason: "EXPERIMENT: as middle_1 -- pulsed thrust, pending a playtest."}
+    - {profile: akimbo-v9-right, rule: duplicate-output-key, key: KeyW,
+       reason: "EXPERIMENT: thrust forward is on four inputs on purpose -- the stick, a
+                key from the imported layout, and two pulsed keys at different intervals
+                -- so they can be compared in one session. Delete the pulsed keys and
+                this line together once judged."}
     - {profile: single-v5, rule: duplicate-output-key, key: Tab,
        reason: "Tab reaches the menu from two places (perks double-tap, ULT long-press).
                 Both are menu actions, so there is no combat ambiguity."}

@@ -38,6 +38,11 @@ actions:
   consume_4:          {key: Digit8}
   ultimate:           {key: KeyG}
   next_target:        {key: F4}
+  fire_primary:       {mouse: left}
+  fire_secondary:     {mouse: right}
+  next_secondary:     {key: KeyR}
+  secondary_2:        {key: F5, note: "F5 is also Quick save in game -- a real collision."}
+  secondary_3:        {key: F6}
   lock_target:        {mouse: middle}
 
   # The arrow keys are rebound to weapon cycling, so the game default (pitch and yaw on

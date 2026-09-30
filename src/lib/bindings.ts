@@ -9,7 +9,7 @@
 
 import { SLOTS } from "../types/azeron.js";
 import type { ActionSpec, KeySlotSpec, RawSlotSpec } from "../types/profile.js";
-import { iterBindings, ROLE_TAGS } from "./lint.js";
+import { actionsByEmittedKey, emittedKey, iterBindings, ROLE_TAGS } from "./lint.js";
 import type { ActionSet, Profile } from "./model-core.js";
 
 export interface BindingRow {
@@ -62,6 +62,7 @@ export function bindingSheet(
 ): BindingSheet {
   const sentFrom = new Map<string, string[]>();
   const undeclared = new Map<string, string[]>();
+  const actionByKey = actionsByEmittedKey(actions);
 
   for (const profile of profiles) {
     const unit = profile.unit ?? profile.slug;
@@ -69,10 +70,15 @@ export function bindingSheet(
       const where = SLOTS.includes(slot as never)
         ? `${unit}:${position}`
         : `${unit}:${position}.${slot.replace("stick_", "")}`;
-      if (action) {
-        const list = sentFrom.get(action) ?? [];
+      // A slot edited in the app holds a key rather than an action id. It is still that
+      // action being sent, and the linter already resolves it, so the sheet must agree:
+      // only a key no action declares belongs under `undeclared`.
+      const sends =
+        action ?? (raw ? actionByKey.get(emittedKey(actions, null, raw) ?? "") : undefined);
+      if (sends) {
+        const list = sentFrom.get(sends) ?? [];
         if (!list.includes(where)) list.push(where);
-        sentFrom.set(action, list);
+        sentFrom.set(sends, list);
         continue;
       }
       if (!raw) continue;

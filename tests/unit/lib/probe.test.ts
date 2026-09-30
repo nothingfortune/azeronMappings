@@ -260,11 +260,11 @@ describe("stick key encodings", () => {
   it("keeps the stick bindings from an app-edited export", () => {
     // These were silently dropped when only integer keycodes were understood.
     const game = new Game("games/SpaceSims/everspace");
-    const profile = loadProfile("games/SpaceSims/everspace/profiles/akimbo-v7-left.yaml", game);
+    const profile = loadProfile("games/SpaceSims/everspace/profiles/akimbo-v9-left.yaml", game);
     expect(profile.positions.stick?.directions).toEqual({
-      up: "weapon_cycle_up",
+      up: "hover_up",
       right: "roll_right",
-      down: "weapon_cycle_down",
+      down: "hover_down",
       left: "roll_left",
     });
   });

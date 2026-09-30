@@ -46,8 +46,19 @@ const NAME_TO_LEGACY: Record<string, string> = Object.fromEntries(
   Object.entries(LEGACY_KEY_TOKENS).map(([token, name]) => [name, token]),
 );
 
-/** "2" = middle click is confirmed in the app UI. The rest are not, so they are absent. */
-export const MOUSE_BUTTONS: Record<string, string> = { "2": "middle" };
+/**
+ * Mouse button codes.
+ *
+ * All three confirmed 2026-09-29 from two sides at once: a profile labelled "Fire
+ * Primary" sends 1 and "Fire Secondary" sends 3, and Everspace 2's own config binds
+ * FirePrimary to LeftMouseButton and FireSecondary to RightMouseButton. 2 was already
+ * confirmed as middle in the app UI.
+ */
+export const MOUSE_BUTTONS: Record<string, string> = {
+  "1": "left",
+  "2": "middle",
+  "3": "right",
+};
 const MOUSE_BY_NAME: Record<string, string> = Object.fromEntries(
   Object.entries(MOUSE_BUTTONS).map(([code, name]) => [name, code]),
 );
@@ -101,6 +112,22 @@ export const ANALOG_KEYCODES: Record<string, number> = {
   ShiftLeft: 16,
   ControlLeft: 17,
   AltLeft: 18,
+  // F1-F12 are 112-123. The function keys are verified as ordinary bindings (v5 sends
+  // F1, F2, F4, F9 and F10); whether the firmware accepts one in a stick direction is
+  // not. Without them an action like hover -- F9 and F10 in Everspace 2 -- could never
+  // sit on a stick at all.
+  F1: 112,
+  F2: 113,
+  F3: 114,
+  F4: 115,
+  F5: 116,
+  F6: 117,
+  F7: 118,
+  F8: 119,
+  F9: 120,
+  F10: 121,
+  F11: 122,
+  F12: 123,
 };
 
 const ANALOG_BY_CODE: Record<number, string> = Object.fromEntries(

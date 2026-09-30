@@ -41,8 +41,21 @@ describe("the in-game bindings editor", () => {
 
   it("shows the key each action is bound to, and where it is sent from", () => {
     expect(keyInput("Consumable 1").value).toBe("Digit5");
+    // Which position carries it is a layout choice, so the row is checked against the
+    // payload rather than against a position name that a revision is free to move.
+    const set = (document.querySelectorAll("header select")[1] as HTMLSelectElement).value;
+    const expected = buildPayload()
+      .games.flatMap((game) => game.profiles)
+      .filter((profile) => profile.data.profile.set === set)
+      .flatMap((profile) =>
+        Object.entries(profile.data.positions)
+          .filter(([, spec]) => spec.tap === "consume_1")
+          .map(([position]) => position),
+      );
+    expect(expected.length).toBeGreaterThan(0);
     const row = keyInput("Consumable 1").closest(".ingame-row");
-    expect(row?.querySelector(".who small")?.textContent).toContain("pinky_1");
+    const where = row?.querySelector(".who small")?.textContent ?? "";
+    for (const position of expected) expect(where).toContain(position);
   });
 
   it("says which actions do not come from a keypad key at all", () => {

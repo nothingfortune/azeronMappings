@@ -78,7 +78,7 @@ export function* iterBindings(profile: Profile): Generator<Binding> {
  * canonical name before comparison. Otherwise the same physical key read from two
  * profiles compares unequal.
  */
-function emittedKey(
+export function emittedKey(
   actions: ActionSet,
   action: string | null,
   raw: RawSlotSpec | KeySlotSpec | null,
@@ -99,6 +99,19 @@ function emittedKey(
   const meta = namedMeta ?? keys.metaToName(rawMeta);
   if (key === null && meta === null) return null;
   return [meta, key].filter((part): part is string => Boolean(part)).join("+");
+}
+
+/**
+ * Every action indexed by the key it emits, so a slot that holds a raw key can be traced
+ * back to the action that declares it.
+ */
+export function actionsByEmittedKey(actions: ActionSet): Map<string, string> {
+  const byKey = new Map<string, string>();
+  for (const id of Object.keys(actions.actions)) {
+    const key = emittedKey(actions, id, null);
+    if (key !== null && !byKey.has(key)) byKey.set(key, id);
+  }
+  return byKey;
 }
 
 /** Rules that live in actions.yaml itself. */
@@ -142,11 +155,7 @@ export function checkProfile(profile: Profile, actions: ActionSet, config: LintC
   const device = profile.device;
   const allowKeys = new Set(actions.duplicateKeyAllowlist.map((entry) => entry.key));
   const keySources = new Map<string, { position: string; slot: string; action: string | null }[]>();
-  const actionByKey = new Map<string, string>();
-  for (const id of Object.keys(actions.actions)) {
-    const key = emittedKey(actions, id, null);
-    if (key !== null && !actionByKey.has(key)) actionByKey.set(key, id);
-  }
+  const actionByKey = actionsByEmittedKey(actions);
 
   for (const { position, slot, action, raw } of iterBindings(profile)) {
     if (!(position in device.positions)) {

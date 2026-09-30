@@ -24,7 +24,13 @@ import { loadDevice, loadTemplate, writeText } from "./lib/io.js";
 import { buildProbeProfile, buildStickCalibrationProfile } from "./lib/probe.js";
 import { compareToGame, gameCollisions, parseInput } from "./lib/ingame.js";
 import { gameConfig, seedActions, unnamedPositions } from "./lib/scaffold.js";
-import { CONTENT_TYPES, SaveRejected, parseSaveRequest, resolveSavePath } from "./lib/serve.js";
+import {
+  CONTENT_TYPES,
+  SaveRejected,
+  parseSaveRequest,
+  preserveHeader,
+  resolveSavePath,
+} from "./lib/serve.js";
 import {
   buildAll,
   importExport,
@@ -382,6 +388,14 @@ function cmdServe(port: number): number {
     return 1;
   }
 
+  // Cached because building it re-reads every device, genre, game and template. Cleared
+  // whenever something writes, so a reload always shows what is on disk.
+  let cached: ReturnType<typeof buildPayload> | null = null;
+  const payload = (): ReturnType<typeof buildPayload> => (cached ??= buildPayload());
+  const invalidate = (): void => {
+    cached = null;
+  };
+
   const server = createServer((request, response) => {
     const send = (status: number, body: string, type = "application/json"): void => {
       response.writeHead(status, { "content-type": type, "cache-control": "no-store" });
@@ -391,11 +405,11 @@ function cmdServe(port: number): number {
     const url = request.url ?? "/";
     if (request.method === "GET" && (url === "/" || url === "/index.html")) {
       // Built fresh per request, so a file edited on disk shows up on reload.
-      send(200, renderEditorHtml(buildPayload(), bundle, true), CONTENT_TYPES[".html"]);
+      send(200, renderEditorHtml(payload(), bundle, true), CONTENT_TYPES[".html"]);
       return;
     }
     if (request.method === "GET" && url === "/api/payload") {
-      send(200, JSON.stringify(buildPayload()));
+      send(200, JSON.stringify(payload()));
       return;
     }
     if (request.method === "GET" && url.startsWith("/api/ingame")) {
@@ -442,6 +456,7 @@ function cmdServe(port: number): number {
             templatePath: templatePathFor(game, parsed.set, unit),
             meta: { set: parsed.set, output: `${game.slug}_${parsed.set}_${unit}.json` },
           });
+          invalidate();
           send(200, JSON.stringify({ ok: true, ...result, yaml: undefined }));
         } catch (error) {
           send(400, JSON.stringify({ ok: false, error: (error as Error).message }));
@@ -460,7 +475,9 @@ function cmdServe(port: number): number {
           const { path, content } = parseSaveRequest(body);
           const target = resolveSavePath(repoRoot, path);
           mkdirSync(dirname(target), { recursive: true });
-          writeFileSync(target, content, "utf8");
+          const existing = existsSync(target) ? readFileSync(target, "utf8") : null;
+          writeFileSync(target, preserveHeader(existing, content), "utf8");
+          invalidate();
 
           // The point of saving into the repo is getting the verdict back, and dist/
           // should not lag behind what was just written.

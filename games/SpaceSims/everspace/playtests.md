@@ -2,16 +2,24 @@
 
 What each layout actually felt like. Dated, newest first.
 
-## 2026-09-29 — pulsed thrust, not yet flown
+## 2026-09-29 — akimbo v9, not yet flown
 
-On branch `experiment/pulsed-thrust`. Thrust forward sits on three keys of the right
-unit so they can be compared with the same thumb:
+On branch `experiment/pulsed-thrust`. Two changes to judge, both untested.
 
-| Key | What it sends |
+**The sticks fly.** The imported layout had both sticks cycling weapons while thrust sat
+on a d-pad, which put the discrete job on the only input that is not discrete. v9 uses
+stick mode 2: the right stick thrusts and strafes, the left climbs and rolls, and weapon
+cycling moves to four keys. The left unit's sensor aims and the right unit's is off —
+they were both on, driving the same pointer against each other.
+
+**Pulsed thrust.** Thrust forward is also on two keys of the right unit, so a pulsed
+press can be compared against the stick holding it:
+
+| Input | What it sends |
 | --- | --- |
-| `dpad_up` | W held — full thrust, unchanged |
-| `dpad_press` | W repeated every 40 |
-| `middle_2` | W repeated every 100 |
+| right stick up | W held — full thrust |
+| `middle_1` | W repeated every 40 |
+| `middle_4` | W repeated every 100 |
 
 The question is whether a repeated key reads as part power or as judder. Everspace 2's
 `MoveFwd` is a digital half-axis on keyboard — W is 100%, released is 0% — so a key that

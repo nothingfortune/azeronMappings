@@ -45,13 +45,29 @@ describe("detection", () => {
           productId: AZERON_PRODUCT_ID,
           productName: "Azeron Cyborg II",
           collections: 5,
+          isAzeron: true,
         },
       ],
     });
   });
 
-  it("ignores devices that are not an Azeron", async () => {
-    expect((await alreadyGranted(hid([unit(0x0001)]))).status).toBe("none");
+  it("labels a device that is not an Azeron rather than hiding it", () => {
+    // The picker cannot filter by product id alone, so everything granted is listed and
+    // the label says which is which.
+    return alreadyGranted(hid([unit(0x0001)])).then((result) => {
+      expect(result.status).toBe("found");
+      expect(result).toHaveProperty("units", [expect.objectContaining({ isAzeron: false })]);
+    });
+  });
+
+  it("reports a picker that failed rather than going quiet", async () => {
+    const failing: HidLike = {
+      getDevices: () => Promise.resolve([]),
+      requestDevice: () => Promise.reject(new Error("must provide a vendor ID")),
+    };
+    const result = await requestUnits(failing);
+    expect(result.status).toBe("unsupported");
+    expect(result).toHaveProperty("reason", expect.stringContaining("vendor ID"));
   });
 
   it("distinguishes 'not granted yet' from 'nothing connected'", async () => {
@@ -73,17 +89,17 @@ describe("matching a detection to a device map", () => {
     { name: "cyborg2-right", softwareDeviceId: "29993" },
   ];
 
+  const detected = () => ({ ...unit(), collections: 5, isAzeron: true });
+
   it("names both maps when both units are connected", () => {
-    expect(
-      matchToDevices(
-        [unit(), unit()].map((d) => ({ ...d, collections: 5 })),
-        maps,
-      ),
-    ).toEqual(["cyborg2-left", "cyborg2-right"]);
+    expect(matchToDevices([detected(), detected()], maps)).toEqual([
+      "cyborg2-left",
+      "cyborg2-right",
+    ]);
   });
 
   it("refuses to guess which unit a single connection is", () => {
     // Both units report the same product id, so USB alone cannot tell them apart.
-    expect(matchToDevices([{ ...unit(), collections: 5 }], maps)).toEqual([]);
+    expect(matchToDevices([detected()], maps)).toEqual([]);
   });
 });

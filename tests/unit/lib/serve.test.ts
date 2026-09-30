@@ -11,8 +11,8 @@ const ROOT = "/repo";
 
 describe("resolveSavePath", () => {
   it("accepts the data the editor owns", () => {
-    expect(resolveSavePath(ROOT, "games/SpaceSims/everspace/profiles/akimbo-v7-left.yaml")).toBe(
-      "/repo/games/SpaceSims/everspace/profiles/akimbo-v7-left.yaml",
+    expect(resolveSavePath(ROOT, "games/SpaceSims/everspace/profiles/akimbo-v9-left.yaml")).toBe(
+      "/repo/games/SpaceSims/everspace/profiles/akimbo-v9-left.yaml",
     );
     expect(resolveSavePath(ROOT, "games/SpaceSims/everspace/actions.yaml")).toBe(
       "/repo/games/SpaceSims/everspace/actions.yaml",

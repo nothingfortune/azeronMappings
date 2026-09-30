@@ -20,6 +20,8 @@ const sheet = (profiles = game.loadedProfiles()) => bindingSheet(game.name, game
 
 describe("bindingSheet", () => {
   it("lists every unit and position that sends an action", () => {
+    // Boost is held as a raw Shift on the left unit -- the app wrote it that way -- and
+    // still counts as the boost action being sent.
     const row = sheet().rows.find((entry) => entry.action === "boost");
     expect(row?.key).toBe("ShiftLeft");
     expect(row?.sentFrom.length).toBeGreaterThan(0);
@@ -40,25 +42,26 @@ describe("bindingSheet", () => {
   });
 
   it("flags a key that no action declares, which is how app-side edits show up", () => {
-    const base = loadProfile("games/SpaceSims/everspace/profiles/akimbo-v6-left.yaml", game);
+    const base = loadProfile("games/SpaceSims/everspace/profiles/akimbo-v9-left.yaml", game);
     const data = structuredClone(base.data);
-    data.positions.middle_1 = { label: "Edited in the app", tap: { key: "F5" } };
+    data.positions.middle_1 = { label: "Edited in the app", tap: { key: "F12" } };
     const edited = new Profile(data, base.device, { path: base.path, game });
 
     const result = sheet([edited]);
-    expect(result.undeclared).toEqual([{ key: "F5", sentFrom: ["left:middle_1"] }]);
+    expect(result.undeclared).toEqual([{ key: "F12", sentFrom: ["left:middle_1"] }]);
   });
 });
 
 describe("rendering", () => {
   it("marks a required action that nothing sends as MISSING in the csv", () => {
-    const base = loadProfile("games/SpaceSims/everspace/profiles/akimbo-v6-left.yaml", game);
+    const base = loadProfile("games/SpaceSims/everspace/profiles/akimbo-v9-left.yaml", game);
     const csv = renderBindingsCsv(sheet([base]));
     const missing = csv
       .split("\n")
       .filter((line) => line.endsWith('"MISSING"'))
       .join("\n");
-    expect(missing).toContain("hover_up");
+    // Target locking lives on the right unit, so the left one alone cannot send it.
+    expect(missing).toContain("lock_target");
   });
 
   it("writes a table a controls screen can be read against", () => {
