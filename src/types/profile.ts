@@ -7,6 +7,13 @@ export interface RawSlotSpec {
   meta_raw?: string;
 }
 
+/**
+ * A stick direction written inline: a key, a mouse button, or -- for a keycode this repo
+ * cannot name -- the token verbatim. Every field is optional, so reading one never needs
+ * a narrowing check.
+ */
+export type DirectionSpec = KeySlotSpec & RawSlotSpec;
+
 /** A slot spec written as a key, a modifier, or a mouse button. */
 export interface KeySlotSpec {
   key?: string | null;
@@ -50,7 +57,11 @@ export interface PositionSpec {
   double?: SlotSpec;
   /** Stick only. */
   mode?: string;
-  directions?: Partial<Record<StickDirection, string | KeySlotSpec>>;
+  /**
+   * An action id, an inline key, or -- for a direction whose keycode this repo does not
+   * understand -- the token verbatim, so a build does not write 0 over it.
+   */
+  directions?: Partial<Record<StickDirection, string | DirectionSpec>>;
   feature_delay?: number;
   double_delay?: number;
   hold?: boolean;
@@ -66,7 +77,14 @@ export interface PositionSpec {
   turbo?: boolean;
   turbo_long?: boolean;
   turbo_double?: boolean;
+  /**
+   * The interval, per slot. The export carries one for each, so a single field silently
+   * collapsed a record that set two of them to whichever was read last.
+   * `turbo_interval` is the tap's.
+   */
   turbo_interval?: number;
+  turbo_interval_long?: number;
+  turbo_interval_double?: number;
   /** Type codes we cannot derive, preserved verbatim. */
   raw?: { types?: string[] };
 }

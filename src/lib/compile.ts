@@ -106,14 +106,19 @@ function applyStick(
       if (name === null) {
         throw new CompileError(`${position}: stick ${direction} -> action '${ref}' sends no key`);
       }
+    } else if (typeof ref.key_raw === "string") {
+      // A token decompiling could not name. Written back exactly as it came.
+      live[field][0] = ref.key_raw;
+      continue;
     } else {
       name = ref.key ?? null;
+      if (name === null) {
+        throw new CompileError(`${position}: stick ${direction} names no key`);
+      }
     }
     const analog = keys.nameToAnalog(name);
     if (analog === null) {
-      throw new CompileError(
-        `${position}: stick ${direction} -> no analog keycode for '${String(name)}'`,
-      );
+      throw new CompileError(`${position}: stick ${direction} -> no analog keycode for '${name}'`);
     }
     live[field][0] = analog;
   }
@@ -161,9 +166,12 @@ function applyPosition(
     const turboField = slot === "tap" ? "turbo" : (`turbo_${slot}` as const);
     if (spec[turboField]) {
       record[TURBO_FIELDS[slot]] = true;
-      if (spec.turbo_interval !== undefined) {
-        record[TURBO_INTERVAL_FIELDS[slot]] = spec.turbo_interval;
-      }
+      // Per slot, because the export carries three. A slot with no interval of its own
+      // falls back to the tap's, which is what a profile setting only `turbo_interval`
+      // means.
+      const intervalField = slot === "tap" ? "turbo_interval" : (`turbo_interval_${slot}` as const);
+      const interval = spec[intervalField] ?? spec.turbo_interval;
+      if (interval !== undefined) record[TURBO_INTERVAL_FIELDS[slot]] = interval;
     }
   }
 }

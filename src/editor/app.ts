@@ -13,6 +13,7 @@ import type { Finding } from "../lib/lint.js";
 import { handLayout } from "../lib/layout.js";
 import { applyMode, detectMode } from "../lib/stickmodes.js";
 import type { StickModeSet } from "../lib/stickmodes.js";
+import { describeDirection } from "../lib/binding.js";
 import { ActionSet, Device, Profile } from "../lib/model-core.js";
 import { SLOTS, STICK_DIRECTIONS } from "../types/azeron.js";
 import type { Slot } from "../types/azeron.js";
@@ -211,7 +212,7 @@ function keyCard(slug: string, position: string, extraClass = ""): HTMLElement {
     for (const direction of STICK_DIRECTIONS) {
       const value = spec.directions?.[direction];
       if (value === undefined) continue;
-      const label = typeof value === "string" ? actions.label(value) : (value.key ?? "raw");
+      const label = describeDirection((id) => actions.label(id), value) ?? "raw";
       card.append(el("span", { class: "sub" }, [`${direction}  ${label}`]));
     }
   } else {
@@ -260,12 +261,7 @@ function stickDial(slug: string, position: string, press: string | null): HTMLEl
 
   for (const direction of STICK_DIRECTIONS) {
     const value = spec?.directions?.[direction];
-    const label =
-      value === undefined
-        ? null
-        : typeof value === "string"
-          ? actions.label(value)
-          : (value.key ?? "raw");
+    const label = describeDirection((id) => actions.label(id), value);
     const cell = el("button", {
       class: `dir ${direction}${label === null ? " empty" : ""}`,
       type: "button",

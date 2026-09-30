@@ -399,3 +399,75 @@ describe("records the compiler must not rewrite", () => {
     expect(after?.label).toBe("Consume 1");
   });
 });
+
+describe("what decompiling must not lose", () => {
+  /**
+   * The rule is that anything which will not round-trip canonically is kept raw rather
+   * than dropped. Two paths broke it silently, and silence is the problem: a binding the
+   * app holds disappears, the next build writes 0 over it, and nothing says so.
+   */
+  const RIGHT = "games/SpaceSims/everspace/profiles/akimbo-v9-right.yaml";
+
+  function loaded() {
+    const game = new Game("games/SpaceSims/everspace");
+    const profile = loadProfile(RIGHT, game);
+    const templatePath = profile.data.profile.template;
+    if (templatePath === undefined) throw new Error("no template");
+    return { game, profile, template: loadTemplate(templatePath) };
+  }
+
+  it("keeps a stick direction whose keycode it cannot name", () => {
+    const { game, profile, template } = loaded();
+    const doc = compileProfile(profile, { template, actions: game.actions.actions });
+    const pin = profile.device.positions.stick?.pin;
+    const record = doc.profiles[0]?.inputs.find((input) => input.pinOne === pin);
+    const settings = record?.analogSettings;
+    if (!settings) throw new Error("no analogSettings");
+    // 8 is Backspace -- a real keycode this repo has no analog entry for.
+    activeAnalogKeys(settings).up[0] = 8;
+
+    const back = decompile(doc, profile.device, { actions: game.actions });
+    expect(back.positions.stick?.directions?.up).toEqual({ key_raw: "8" });
+
+    // And it survives the next build rather than being zeroed.
+    const rebuilt = compileProfile(
+      new Profile(back, profile.device, { path: profile.path, game }),
+      { template, actions: game.actions.actions },
+    );
+    const again = rebuilt.profiles[0]?.inputs.find((input) => input.pinOne === pin);
+    const settingsAgain = again?.analogSettings;
+    if (!settingsAgain) throw new Error("no analogSettings");
+    expect(activeAnalogKeys(settingsAgain).up[0]).toBe("8");
+  });
+
+  it("keeps a repeat interval per slot rather than collapsing them", () => {
+    const { game, profile, template } = loaded();
+    const loadedTemplate = structuredClone(template);
+    const pin = profile.device.positions.middle_1?.pin;
+    const record = loadedTemplate.profiles[0]?.inputs.find((input) => input.pinOne === pin);
+    if (!record) throw new Error("no record");
+    record.isTurbo = true;
+    record.turboInterval = 40;
+    record.isTurboLong = true;
+    record.turboIntervalLong = 120;
+
+    const doc = compileProfile(profile, {
+      template: loadedTemplate,
+      actions: game.actions.actions,
+    });
+    const built = doc.profiles[0]?.inputs.find((input) => input.pinOne === pin);
+    // The profile asks for a tap repeat at 40, and says nothing about a long press.
+    expect(built?.turboInterval).toBe(40);
+    expect(built?.isTurboLong).toBe(false);
+
+    // Decompiling a record that sets both keeps both numbers.
+    const two = structuredClone(doc);
+    const slot = two.profiles[0]?.inputs.find((input) => input.pinOne === pin);
+    if (!slot) throw new Error("no record");
+    slot.isTurboLong = true;
+    slot.turboIntervalLong = 120;
+    const back = decompile(two, profile.device, { actions: game.actions });
+    expect(back.positions.middle_1?.turbo_interval).toBe(40);
+    expect(back.positions.middle_1?.turbo_interval_long).toBe(120);
+  });
+});

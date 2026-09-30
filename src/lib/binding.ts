@@ -1,7 +1,13 @@
 /** Translation between a YAML slot spec and the export's (type, key, meta) triple. */
 
 import { TYPE_KEYBOARD, TYPE_MOUSE, TYPE_NONE } from "../types/azeron.js";
-import type { ActionSpec, KeySlotSpec, RawSlotSpec, SlotSpec } from "../types/profile.js";
+import type {
+  ActionSpec,
+  DirectionSpec,
+  KeySlotSpec,
+  RawSlotSpec,
+  SlotSpec,
+} from "../types/profile.js";
 import * as keys from "./keys.js";
 
 export type Triple = readonly [type: string, key: string, meta: string];
@@ -155,4 +161,22 @@ export function matchAction(
     return diff !== 0 ? diff : a.localeCompare(b);
   });
   return scored[0] ?? first;
+}
+
+/**
+ * How a stick direction reads on a diagram.
+ *
+ * A direction is an action id, an inline key, or a token decompiling could not name. Every
+ * surface that draws a stick needs the same answer, so it is decided once here.
+ */
+export function describeDirection(
+  label: (id: string) => string,
+  value: string | DirectionSpec | undefined,
+): string | null {
+  if (value === undefined) return null;
+  if (typeof value === "string") return label(value);
+  if (typeof value.key === "string") return value.key;
+  if (typeof value.mouse === "string") return `mouse ${value.mouse}`;
+  if (typeof value.key_raw === "string") return `raw ${value.key_raw}`;
+  return null;
 }

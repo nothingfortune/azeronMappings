@@ -46,8 +46,15 @@ function stickSpec(record: InputRecord, actions: ActionSet | null): PositionSpec
   const live = settings ? activeAnalogKeys(settings) : undefined;
   if (live) {
     for (const direction of STICK_DIRECTIONS) {
-      const name = keys.analogToName(live[direction][0]);
-      if (name === null) continue;
+      const token = live[direction][0];
+      if (token === 0 || token === "0" || token === undefined) continue;
+      const name = keys.analogToName(token);
+      if (name === null) {
+        // Dropping it would make the next build write 0 over a binding the app holds.
+        // `raw.types` does not carry directions, so the token itself is kept.
+        directions[direction] = { key_raw: String(token) };
+        continue;
+      }
       const action = matchAction({ key: name }, actions?.actions ?? null, direction);
       directions[direction] = action ?? { key: name };
     }
@@ -111,7 +118,13 @@ export function decompilePosition(
       else if (slot === "long") spec.turbo_long = true;
       else spec.turbo_double = true;
       const interval = record[TURBO_INTERVAL_FIELDS[slot]];
-      if (typeof interval === "number" && interval > 0) spec.turbo_interval = interval;
+      if (typeof interval === "number" && interval > 0) {
+        // Kept per slot. One field took whichever slot was read last, so a record with a
+        // different interval on its long press came back with the wrong number on both.
+        if (slot === "tap") spec.turbo_interval = interval;
+        else if (slot === "long") spec.turbo_interval_long = interval;
+        else spec.turbo_interval_double = interval;
+      }
     }
   }
 
