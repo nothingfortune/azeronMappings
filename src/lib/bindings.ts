@@ -8,7 +8,7 @@
  */
 
 import { SLOTS } from "../types/azeron.js";
-import type { ActionSpec, KeySlotSpec, RawSlotSpec } from "../types/profile.js";
+import type { ActionSpec } from "../types/profile.js";
 import { actionsByEmittedKey, emittedKey, iterBindings, ROLE_TAGS } from "./lint.js";
 import type { ActionSet, Profile } from "./model-core.js";
 
@@ -44,17 +44,6 @@ function role(spec: ActionSpec): string {
   return ROLE_TAGS.find((tag) => tags.has(tag)) ?? "other";
 }
 
-function rawKeyOf(raw: KeySlotSpec & RawSlotSpec): string | null {
-  const mouse = raw.mouse;
-  if (typeof mouse === "string") return `mouse ${mouse}`;
-  const key = raw.key ?? raw.key_raw;
-  const meta = raw.meta ?? raw.meta_raw;
-  const parts = [meta, key].filter(
-    (part): part is string => typeof part === "string" && part !== "0",
-  );
-  return parts.length > 0 ? parts.join(" + ") : null;
-}
-
 export function bindingSheet(
   gameName: string,
   actions: ActionSet,
@@ -82,7 +71,7 @@ export function bindingSheet(
         continue;
       }
       if (!raw) continue;
-      const key = rawKeyOf(raw);
+      const key = emittedKey(actions, null, raw);
       if (key === null) continue;
       const list = undeclared.get(key) ?? [];
       if (!list.includes(where)) list.push(where);
@@ -99,8 +88,11 @@ export function bindingSheet(
     note: spec.note,
   }));
 
-  const order = (row: BindingRow): number =>
-    ROLE_TAGS.indexOf(role(actions.actions[row.action] ?? {}) as never);
+  const order = (row: BindingRow): number => {
+    const index = ROLE_TAGS.indexOf(role(actions.actions[row.action] ?? {}) as never);
+    // An untagged action has no role, and belongs after the ones that do.
+    return index === -1 ? ROLE_TAGS.length : index;
+  };
   all.sort((a, b) => order(a) - order(b) || a.label.localeCompare(b.label));
 
   return {

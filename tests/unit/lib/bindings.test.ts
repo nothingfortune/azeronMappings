@@ -13,7 +13,7 @@ import {
 } from "../../../src/lib/bindings.js";
 import { loadProfile } from "../../../src/lib/io.js";
 import { Game } from "../../../src/lib/model.js";
-import { Profile } from "../../../src/lib/model-core.js";
+import { ActionSet, Profile } from "../../../src/lib/model-core.js";
 
 const game = new Game("games/SpaceSims/everspace");
 const sheet = (profiles = game.loadedProfiles()) => bindingSheet(game.name, game.actions, profiles);
@@ -50,6 +50,20 @@ describe("bindingSheet", () => {
     const result = sheet([edited]);
     expect(result.undeclared).toEqual([{ key: "F12", sentFrom: ["left:middle_1"] }]);
   });
+
+  it("spells an undeclared key the way the linter spells it", () => {
+    // The app writes a modifier as a legacy keycode. Reported verbatim as `17`, it could
+    // not be matched against the linter's `unbound-key`, which names the same binding
+    // ControlLeft. No action declares ControlLeft, so this one really is undeclared.
+    const base = loadProfile("games/SpaceSims/everspace/profiles/single-v5.yaml", game);
+    const data = structuredClone(base.data);
+    data.positions.middle_1 = { label: "Edited in the app", tap: { meta_raw: "17" } };
+    const edited = new Profile(data, base.device, { path: base.path, game });
+
+    expect(sheet([edited]).undeclared).toEqual([
+      { key: "ControlLeft", sentFrom: ["left:middle_1"] },
+    ]);
+  });
 });
 
 describe("rendering", () => {
@@ -62,6 +76,26 @@ describe("rendering", () => {
       .join("\n");
     // Target locking lives on the right unit, so the left one alone cannot send it.
     expect(missing).toContain("lock_target");
+  });
+
+  it("puts an untagged action after the ones that carry a role", () => {
+    // `indexOf` returns -1 for an action with no role tag, which sorted it above combat.
+    // Every action in the vocabulary is tagged today, so one is introduced here rather
+    // than relying on the layout to supply the case.
+    const base = loadProfile("games/SpaceSims/everspace/profiles/single-v5.yaml", game);
+    const actions = new ActionSet({
+      actions: { ...game.actions.actions, untagged_probe: { key: "F12" } },
+    });
+    const data = structuredClone(base.data);
+    data.positions.middle_1 = { label: "Untagged", tap: "untagged_probe" };
+    const edited = new Profile(data, base.device, { path: base.path, game });
+
+    const rows = bindingSheet(game.name, actions, [edited]).rows;
+    const untagged = rows.findIndex((row) => row.action === "untagged_probe");
+    const combat = rows.findIndex((row) => row.tags.includes("combat"));
+    expect(untagged).toBeGreaterThan(-1);
+    expect(combat).toBeGreaterThan(-1);
+    expect(untagged).toBeGreaterThan(combat);
   });
 
   it("writes a table a controls screen can be read against", () => {
