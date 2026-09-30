@@ -13,30 +13,34 @@ If a key here does not match the game, fix `actions.yaml` -- not the profile.
 | Device 2 | `Digit2` | right:ring_2, left:ring_2 | combat, required |
 | Device 3 | `Digit3` | right:pinky_2, left:ring_3 | combat, required |
 | Device 4 | `Digit4` | right:pinky_1, left:ring_4 | combat, required |
-| Equip secondary 1 | `F4` | left:index_1, left:index_4, left:middle_4 | combat |
+| Equip secondary 1 | `F4` | left:index_4, left:middle_4 | combat |
 | Equip secondary 2 | `F5` | left:middle_4 | combat |
 | Equip secondary 3 | `F6` | left:ring_4 | combat |
 | Fire primary | `mouse left` | right:middle_3 | combat |
 | Fire secondary | `mouse right` | left:index_3, right:index_3 | combat |
+| Lock nearest target | `KeyN` | left:middle_3 | combat |
 | Lock target | `mouse middle` | right:thumb_aux_lower, left:index_2 | combat, required |
-| Next primary | `F1` | left:dpad_right, left:middle_1 | combat, required |
-| Next secondary | `KeyR` | left:ring_3 | combat |
-| Previous primary | `F2` | left:dpad_left, left:middle_2 | combat, required |
+| Next primary | `F1` | left:dpad_right, right:pinky_3, left:middle_1 | combat, required |
+| Next secondary | `KeyR` | left:ring_3, left:dpad_up | combat |
+| Next target | `KeyT` | left:index_1 | combat |
+| Previous primary | `F2` | left:dpad_left, right:ring_3, left:middle_2 | combat, required |
+| Previous secondary | `KeyX` | left:dpad_down | combat |
+| Previous target | `KeyY` | left:ring_1 | combat |
 | Ultimate | `KeyG` | left:dpad_press | combat, required |
 | Boost | `ShiftLeft` | left:index_side, right:index_side, left:index_3 | movement, required |
-| Hover down | `F10` | left:stick.down, right:dpad_down, left:index_4 | movement, required |
-| Hover up | `F9` | left:stick.up, right:dpad_up, left:index_1 | movement, required |
+| Hover down | `F10` | left:stick.down, left:index_4 | movement, required |
+| Hover up | `F9` | left:stick.up, left:index_1 | movement, required |
 | Inertia dampeners | `AltLeft` | left:stick_press, right:stick_press | movement, required |
-| Pitch down | `ArrowDown` | left:dpad_down | movement |
-| Pitch up | `ArrowUp` | left:dpad_up | movement |
-| Roll left | `KeyQ` | left:stick.left, left:pinky_side | movement, required |
-| Roll right | `KeyE` | left:stick.right, left:index_side | movement, required |
-| Strafe left | `KeyA` | right:dpad_right, right:stick.left, left:stick.left | movement, required |
-| Strafe right | `KeyD` | right:dpad_left, right:stick.right, left:stick.right | movement, required |
+| Pitch down | `ArrowDown` | right:dpad_down, left:dpad_down | movement |
+| Pitch up | `ArrowUp` | right:dpad_up, left:dpad_up | movement |
+| Roll left | `KeyQ` | right:dpad_left, left:pinky_side | movement, required |
+| Roll right | `KeyE` | right:dpad_right, left:index_side | movement, required |
+| Strafe left | `KeyA` | right:stick.left, left:stick.left | movement, required |
+| Strafe right | `KeyD` | right:stick.right, left:stick.right | movement, required |
 | Thrust backward | `KeyS` | right:index_4, right:stick.down, left:stick.down | movement, required |
 | Thrust forward | `KeyW` | right:index_2, right:stick.up, right:middle_1, right:middle_4, left:stick.up | movement, required |
-| Yaw left | `ArrowLeft` | left:ring_1, right:ring_3, left:dpad_left | movement |
-| Yaw right | `ArrowRight` | left:middle_3, right:pinky_3, left:dpad_right | movement |
+| Yaw left | `ArrowLeft` | left:stick.left, left:dpad_left | movement |
+| Yaw right | `ArrowRight` | left:stick.right, left:dpad_right | movement |
 | Cruise drive | `KeyF` | left:thumb_aux_upper | travel, required |
 | Jump / supralight drive | `KeyC` | right:thumb_aux_upper, left:thumb_aux_lower | travel, required |
 | Crafting | `KeyU` | right:ring_5, left:dpad_up | menu |
@@ -59,10 +63,6 @@ If a key here does not match the game, fix `actions.yaml` -- not the profile.
 - Equip primary 1 (`Digit9`)
 - Equip primary 2 (`Digit0`)
 - Equip primary 3 (`F3`)
-- Lock nearest target (`KeyN`)
-- Next target (`KeyT`)
-- Previous secondary (`KeyX`)
-- Previous target (`KeyY`)
 - Pointer left/right (`(sensor)`)
 - Pointer up/down (`(sensor)`)
 - Load most recent save (`F8`)

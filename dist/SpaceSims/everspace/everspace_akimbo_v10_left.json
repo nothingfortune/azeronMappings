@@ -29,7 +29,7 @@
       "profileIconId": "",
       "profileBackgroundImageId": "",
       "id": "52ea554b-bdb5-4cb4-9347-8451c44e7864",
-      "name": "Everspace 2 akimbo v9 (left)",
+      "name": "Everspace 2 akimbo v10 (left)",
       "version": 1,
       "profileSettings": {
         "profileSensitivitySettings": {
@@ -360,7 +360,7 @@
             "steps": [],
             "v": 1
           },
-          "label": "Consumable 5",
+          "label": "Consumable 1",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -804,7 +804,7 @@
             "steps": [],
             "v": 1
           },
-          "label": "Esc",
+          "label": "Escape menu",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -1026,7 +1026,7 @@
             "steps": [],
             "v": 1
           },
-          "label": "Secondary 3",
+          "label": "Equip secondary 3",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -1248,7 +1248,7 @@
             "steps": [],
             "v": 1
           },
-          "label": "R",
+          "label": "Next secondary",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -1636,7 +1636,7 @@
           "pinOne": 11,
           "pinTwo": 255,
           "keyValues": [
-            "37",
+            "KeyY",
             "0",
             "0",
             "0"
@@ -1846,7 +1846,7 @@
           "scrollSpeed": 1,
           "scrollThreshold": 10,
           "isSmoothScroll": false,
-          "label": "Cycle weapon left"
+          "label": "Previous target"
         },
         {
           "id": 9,
@@ -1914,7 +1914,7 @@
             "steps": [],
             "v": 1
           },
-          "label": "Secondary 2",
+          "label": "Equip secondary 2",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -2080,7 +2080,7 @@
           "pinOne": 15,
           "pinTwo": 255,
           "keyValues": [
-            "39",
+            "KeyN",
             "0",
             "0",
             "0"
@@ -2290,7 +2290,7 @@
           "scrollSpeed": 1,
           "scrollThreshold": 10,
           "isSmoothScroll": false,
-          "label": "Cycle weapon right"
+          "label": "Lock nearest target"
         },
         {
           "id": 11,
@@ -2580,7 +2580,7 @@
             "steps": [],
             "v": 1
           },
-          "label": "Menu (Tab)",
+          "label": "Menu",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -3024,7 +3024,7 @@
             "steps": [],
             "v": 1
           },
-          "label": "Secondary 1",
+          "label": "Equip secondary 1",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -3246,7 +3246,7 @@
             "steps": [],
             "v": 1
           },
-          "label": "Fire Secondary",
+          "label": "Fire secondary",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -3634,7 +3634,7 @@
           "pinOne": 26,
           "pinTwo": 255,
           "keyValues": [
-            "F4",
+            "KeyT",
             "0",
             "0",
             "0"
@@ -5037,7 +5037,7 @@
             "steps": [],
             "v": 1
           },
-          "label": "Inertial Dampen",
+          "label": "Inertia dampeners",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -5297,7 +5297,7 @@
                   0
                 ],
                 "right": [
-                  69,
+                  39,
                   0,
                   0
                 ],
@@ -5307,7 +5307,7 @@
                   0
                 ],
                 "left": [
-                  81,
+                  37,
                   0,
                   0
                 ]
@@ -6079,7 +6079,7 @@
           "pinOne": 34,
           "pinTwo": 255,
           "keyValues": [
-            "38",
+            "KeyR",
             "0",
             "0",
             "0"
@@ -6135,7 +6135,7 @@
             "steps": [],
             "v": 1
           },
-          "label": "Cycle weapon up",
+          "label": "Next secondary",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -6357,7 +6357,7 @@
             "steps": [],
             "v": 1
           },
-          "label": "Prev Primary",
+          "label": "Previous primary",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -6523,7 +6523,7 @@
           "pinOne": 36,
           "pinTwo": 255,
           "keyValues": [
-            "40",
+            "KeyX",
             "0",
             "0",
             "0"
@@ -6579,7 +6579,7 @@
             "steps": [],
             "v": 1
           },
-          "label": "Cycle weapon down",
+          "label": "Previous secondary",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -6801,7 +6801,7 @@
             "steps": [],
             "v": 1
           },
-          "label": "Next Primary",
+          "label": "Next primary",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",

@@ -29,7 +29,7 @@
       "profileIconId": "",
       "profileBackgroundImageId": "",
       "id": "03e60aef-5647-4d2f-8ede-3436552761d5",
-      "name": "Everspace 2 akimbo v9 (right)",
+      "name": "Everspace 2 akimbo v10 (right)",
       "version": 1,
       "profileSettings": {
         "profileSensitivitySettings": {
@@ -303,7 +303,7 @@
           "pinOne": 3,
           "pinTwo": 255,
           "keyValues": [
-            "39",
+            "F1",
             "0",
             "0",
             "0"
@@ -359,7 +359,7 @@
             "steps": [],
             "v": 1
           },
-          "label": "Cycle weapon right",
+          "label": "Next primary",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -1198,7 +1198,7 @@
           "pinOne": 9,
           "pinTwo": 255,
           "keyValues": [
-            "37",
+            "F2",
             "0",
             "0",
             "0"
@@ -1254,7 +1254,7 @@
             "steps": [],
             "v": 1
           },
-          "label": "Cycle weapon left",
+          "label": "Previous primary",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -2145,7 +2145,7 @@
             "steps": [],
             "v": 1
           },
-          "label": "Fire Primary",
+          "label": "Fire primary",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -3035,7 +3035,7 @@
             "steps": [],
             "v": 1
           },
-          "label": "Strafe Back",
+          "label": "Thrust backward",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -3257,7 +3257,7 @@
             "steps": [],
             "v": 1
           },
-          "label": "Fire Secondary",
+          "label": "Fire secondary",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -3479,7 +3479,7 @@
             "steps": [],
             "v": 1
           },
-          "label": "Strafe Forward",
+          "label": "Thrust forward",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -4817,7 +4817,7 @@
             "steps": [],
             "v": 1
           },
-          "label": "Interact / Fling",
+          "label": "Interact / fling",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -6085,7 +6085,7 @@
           "pinOne": 34,
           "pinTwo": 255,
           "keyValues": [
-            "F10",
+            "40",
             "0",
             "0",
             "0"
@@ -6141,7 +6141,7 @@
             "steps": [],
             "v": 1
           },
-          "label": "Hover down",
+          "label": "Pitch down",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -6307,7 +6307,7 @@
           "pinOne": 35,
           "pinTwo": 255,
           "keyValues": [
-            "KeyA",
+            "KeyE",
             "0",
             "0",
             "0"
@@ -6363,7 +6363,7 @@
             "steps": [],
             "v": 1
           },
-          "label": "Strafe Left",
+          "label": "Roll right",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -6529,7 +6529,7 @@
           "pinOne": 36,
           "pinTwo": 255,
           "keyValues": [
-            "F9",
+            "38",
             "0",
             "0",
             "0"
@@ -6585,7 +6585,7 @@
             "steps": [],
             "v": 1
           },
-          "label": "Hover up",
+          "label": "Pitch up",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -6751,7 +6751,7 @@
           "pinOne": 33,
           "pinTwo": 255,
           "keyValues": [
-            "KeyD",
+            "KeyQ",
             "0",
             "0",
             "0"
@@ -6807,7 +6807,7 @@
             "steps": [],
             "v": 1
           },
-          "label": "Strafe Right",
+          "label": "Roll left",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -7905,7 +7905,7 @@
             "steps": [],
             "v": 1
           },
-          "label": "View ship",
+          "label": "Switch camera",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -9009,7 +9009,7 @@
             "steps": [],
             "v": 1
           },
-          "label": "Supralight drive",
+          "label": "Jump / supralight drive",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",

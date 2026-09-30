@@ -6,10 +6,30 @@
  * the round trip leaves the file as it was.
  */
 
-import { readFileSync, writeFileSync } from "node:fs";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { expect, test } from "@playwright/test";
+import { LIVE_SET, live } from "../helpers/fixtures.js";
 
-const PROFILE = "games/SpaceSims/everspace/profiles/akimbo-v9-left.yaml";
+const PROFILE = live("left");
+const DIST = "dist/SpaceSims/everspace";
+
+/**
+ * Every file a save can rewrite. The save rebuilds dist/ from the edited profile, so
+ * restoring the profile alone left the compiled JSON describing an edit that was undone
+ * -- a stale import that the dist gate would then fail on, or that could be committed.
+ */
+function snapshot(): Map<string, string> {
+  const files = new Map<string, string>([[PROFILE, readFileSync(PROFILE, "utf8")]]);
+  for (const name of readdirSync(DIST)) {
+    if (name.endsWith(".json")) files.set(join(DIST, name), readFileSync(join(DIST, name), "utf8"));
+  }
+  return files;
+}
+
+function restore(files: Map<string, string>): void {
+  for (const [path, text] of files) writeFileSync(path, text, "utf8");
+}
 
 test.describe("the served editor", () => {
   test("boots with both units drawn and the linter clean", async ({ page }) => {
@@ -36,8 +56,11 @@ test.describe("the served editor", () => {
   });
 
   test("edits a key and saves it back into the repo", async ({ page }) => {
-    // Read and restore the exact file the edit lands in, not a sibling.
-    const before = readFileSync(PROFILE, "utf8");
+    // Read and restore the exact files the edit lands in, not siblings.
+    const saved = snapshot();
+    const before = saved.get(PROFILE) ?? "";
+    const header = before.slice(0, before.indexOf("\nprofile:") + 1);
+    expect(header.startsWith("#")).toBe(true);
     try {
       await page.goto("/");
 
@@ -58,21 +81,26 @@ test.describe("the served editor", () => {
       const after = readFileSync(PROFILE, "utf8");
       expect(after).toContain("Edited end to end");
       // The header says why the profile is the way it is; a save must not eat it.
-      expect(after.startsWith("# Everspace 2 -- akimbo v9")).toBe(true);
+      expect(after.startsWith(header)).toBe(true);
     } finally {
-      writeFileSync(PROFILE, before, "utf8");
+      restore(saved);
     }
   });
 
   test("applies a stick mode to both sticks at once", async ({ page }) => {
     await page.goto("/");
-    await page.locator("header select").nth(1).selectOption("akimbo-v9");
+    await page.locator("header select").nth(1).selectOption(LIVE_SET);
 
-    await page.locator(".mode-row", { hasText: "Mode 2" }).click();
+    // By its exact label: "Mode 2, roll for yaw" also contains "Mode 2".
+    await page
+      .locator(".mode-row")
+      .filter({ has: page.locator("b", { hasText: /^Mode 2 \(RC default\)/ }) })
+      .click();
 
     const dials = page.locator(".stick-dial");
     await expect(dials.nth(0).locator(".up .name")).toHaveText("Hover up");
-    await expect(dials.nth(1).locator(".up .name")).toHaveText("Throttle up");
+    await expect(dials.nth(0).locator(".right .name")).toHaveText("Yaw right");
+    await expect(dials.nth(1).locator(".up .name")).toHaveText("Thrust forward");
     await expect(page.locator(".save-note")).toContainText("Save each unit");
   });
 

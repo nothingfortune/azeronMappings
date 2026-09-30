@@ -4,50 +4,69 @@
 # stick's vertical and horizontal, and the right stick's. Applying one rewrites the two
 # `stick.directions` blocks and nothing else.
 #
-# The RC convention names four axes: throttle (altitude), pitch (forward/back), yaw and
-# roll. Only four axes fit on two sticks, and in keyboard mode a Cyborg II stick can only
-# send keys, so these modes use the four that Everspace 2 has keyboard bindings for:
+# An RC transmitter has four axes on two gimbals. On a quadcopter they are: throttle
+# (climb), pitch (tilt forward, which moves it forward), roll (tilt sideways, which moves
+# it sideways) and yaw (turn). Translated to a ship that is:
 #
-#   thrust    MoveFwd     forward / backward
-#   vertical  MoveUp      hover up / down      <- the RC "throttle" axis
-#   strafe    MoveRight   left / right
-#   roll      Roll        roll left / right    <- stands in for the RC "yaw" axis,
-#                                                 because yaw is on the unit's sensor
+#   RC throttle  ->  vertical   MoveUp      hover up / down
+#   RC pitch     ->  thrust     MoveForward forward / backward
+#   RC roll      ->  strafe     MoveRight   left / right
+#   RC yaw       ->  yaw        Yaw         turn left / right
 #
-# Which one is right is a matter of what your hands already know. Fly them.
+# A ship has six axes -- those four, plus pitch and roll as rotations -- and two thumbs.
+# The d-pad sits under the same thumb as the stick, so it adds room but not a third hand:
+# at any instant each thumb drives one of the two. Which four go on the sticks is the
+# choice a mode makes, and it depends on what the pointer does in flight. If moving the
+# pointer turns the ship, pitch and yaw are already covered and roll wants a stick; if it
+# only aims, yaw does. `mode2_roll` is there to fly the two against each other.
+#
+# Earlier versions of this file put roll where yaw belongs in every mode and said roll
+# "stands in for" yaw. It does not -- one turns the nose, the other banks the ship -- and
+# the reason given, that yaw is on the sensor, was never checked.
 genre: SpaceSims
 
 modes:
   mode1:
     label: Mode 1
-    note: Left stick flies the ship forward and rolls it; right stick climbs and strafes.
-    left: { vertical: thrust, horizontal: roll }
+    note: Left stick flies forward and turns; right stick climbs and strafes.
+    left: { vertical: thrust, horizontal: yaw }
     right: { vertical: vertical, horizontal: strafe }
 
   mode2:
     label: Mode 2 (RC default)
-    note: Left stick climbs and rolls; right stick flies forward and strafes.
-    left: { vertical: vertical, horizontal: roll }
+    note: Left stick climbs and turns; right stick flies forward and strafes.
+    left: { vertical: vertical, horizontal: yaw }
     right: { vertical: thrust, horizontal: strafe }
 
   mode3:
     label: Mode 3
-    note: Left stick flies forward and strafes; right stick climbs and rolls.
+    note: Left stick flies forward and strafes; right stick climbs and turns.
     left: { vertical: thrust, horizontal: strafe }
-    right: { vertical: vertical, horizontal: roll }
+    right: { vertical: vertical, horizontal: yaw }
 
-  split:
-    label: Split (flight left, selection right)
+  mode2_roll:
+    label: Mode 2, roll for yaw
     note: >-
-      Not an RC mode. The left stick flies as a flight stick and the right stick is left
-      for weapon cycling, which is what akimbo v7 does today.
-    left: { vertical: thrust, horizontal: strafe }
-    right: { vertical: pitch, horizontal: roll }
+      Mode 2 with roll where yaw would be -- for when the pointer already turns the ship.
+      This is what akimbo v9 flew.
+    left: { vertical: vertical, horizontal: roll }
+    right: { vertical: thrust, horizontal: strafe }
 
-# Which action each axis sends at each end.
+  twin_stick:
+    label: Twin-stick (the game's gamepad layout)
+    note: >-
+      Not an RC mode. Everspace 2's own gamepad layout: the left stick moves the ship and
+      the right stick turns it. The game puts yaw and roll on the same gamepad axis; a
+      keyboard-mode stick sends one key per direction, so this takes yaw.
+    left: { vertical: thrust, horizontal: strafe }
+    right: { vertical: pitch, horizontal: yaw }
+
+# Which action each axis sends at each end. `up` is the stick pushed up for a vertical
+# axis and pushed right for a horizontal one.
 axes:
   thrust: { up: throttle_up, down: throttle_down }
   vertical: { up: hover_up, down: hover_down }
   strafe: { up: strafe_right, down: strafe_left }
-  roll: { up: roll_right, down: roll_left }
+  yaw: { up: yaw_right, down: yaw_left }
   pitch: { up: pitch_up, down: pitch_down }
+  roll: { up: roll_right, down: roll_left }

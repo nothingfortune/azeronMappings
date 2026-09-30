@@ -5,7 +5,8 @@
 
 import { describe, expect, it } from "vitest";
 
-import { loadDevice, loadProfile, loadTemplate } from "../../../src/lib/io.js";
+import { decompile } from "../../../src/lib/decompile.js";
+import { loadDevice, loadTemplate } from "../../../src/lib/io.js";
 import { Game } from "../../../src/lib/model.js";
 import type { DeviceData } from "../../../src/types/profile.js";
 import {
@@ -258,14 +259,13 @@ describe("stick key encodings", () => {
   });
 
   it("keeps the stick bindings from an app-edited export", () => {
-    // These were silently dropped when only integer keycodes were understood.
+    // These were silently dropped when only integer keycodes were understood. Read from the
+    // committed export, which holds the code-string encoding -- not from a live profile,
+    // whose stick changes whenever a mode is applied.
     const game = new Game("games/SpaceSims/everspace");
-    const profile = loadProfile("games/SpaceSims/everspace/profiles/akimbo-v9-left.yaml", game);
-    expect(profile.positions.stick?.directions).toEqual({
-      up: "hover_up",
-      right: "roll_right",
-      down: "hover_down",
-      left: "roll_left",
-    });
+    const exported = loadTemplate("templates/everspace2-akimbo-left.json");
+    const data = decompile(exported, loadDevice("cyborg2-left"), { actions: game.actions });
+    const directions = data.positions.stick?.directions ?? {};
+    expect(Object.keys(directions).sort()).toEqual(["down", "left", "right", "up"]);
   });
 });

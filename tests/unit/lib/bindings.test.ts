@@ -14,6 +14,7 @@ import {
 import { loadProfile } from "../../../src/lib/io.js";
 import { Game } from "../../../src/lib/model.js";
 import { ActionSet, Profile } from "../../../src/lib/model-core.js";
+import { live } from "../../helpers/fixtures.js";
 
 const game = new Game("games/SpaceSims/everspace");
 const sheet = (profiles = game.loadedProfiles()) => bindingSheet(game.name, game.actions, profiles);
@@ -42,7 +43,7 @@ describe("bindingSheet", () => {
   });
 
   it("flags a key that no action declares, which is how app-side edits show up", () => {
-    const base = loadProfile("games/SpaceSims/everspace/profiles/akimbo-v9-left.yaml", game);
+    const base = loadProfile(live("left"), game);
     const data = structuredClone(base.data);
     data.positions.middle_1 = { label: "Edited in the app", tap: { key: "F12" } };
     const edited = new Profile(data, base.device, { path: base.path, game });
@@ -68,7 +69,7 @@ describe("bindingSheet", () => {
 
 describe("rendering", () => {
   it("marks a required action that nothing sends as MISSING in the csv", () => {
-    const base = loadProfile("games/SpaceSims/everspace/profiles/akimbo-v9-left.yaml", game);
+    const base = loadProfile(live("left"), game);
     const csv = renderBindingsCsv(sheet([base]));
     const missing = csv
       .split("\n")

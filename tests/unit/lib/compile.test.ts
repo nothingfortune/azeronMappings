@@ -26,6 +26,7 @@ import { decompile } from "../../../src/lib/decompile.js";
 import { loadProfile, loadTemplate } from "../../../src/lib/io.js";
 import { Game } from "../../../src/lib/model.js";
 import { Profile } from "../../../src/lib/model-core.js";
+import { live } from "../../helpers/fixtures.js";
 
 const GOLDEN = "templates/everspace2-v5.json";
 const SINGLE_V5 = "games/SpaceSims/everspace/profiles/single-v5.yaml";
@@ -301,7 +302,7 @@ describe("a right-hand unit's stick", () => {
    * to the akimbo right unit: the profile said the stick thrusts and strafes while the
    * block the device reads still held thrust and roll from the imported layout.
    */
-  const RIGHT = "games/SpaceSims/everspace/profiles/akimbo-v9-right.yaml";
+  const RIGHT = live("right");
 
   function rightStick() {
     const game = new Game("games/SpaceSims/everspace");
@@ -406,7 +407,7 @@ describe("what decompiling must not lose", () => {
    * than dropped. Two paths broke it silently, and silence is the problem: a binding the
    * app holds disappears, the next build writes 0 over it, and nothing says so.
    */
-  const RIGHT = "games/SpaceSims/everspace/profiles/akimbo-v9-right.yaml";
+  const RIGHT = live("right");
 
   function loaded() {
     const game = new Game("games/SpaceSims/everspace");

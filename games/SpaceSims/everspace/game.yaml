@@ -22,54 +22,49 @@ lint:
   # Findings that are real but accepted on a specific profile. Each one is a decision,
   # not a mute: say why, and revisit it when that profile is revised.
   acknowledged:
-    - {profile: akimbo-v9, rule: akimbo-role-mismatch, position: dpad_left,
-       reason: "v8 and v9 specialise the hands rather than mirroring them: the right unit flies and the left fights. A deliberate departure from the 2026-09-28 lesson, and what a playtest has to judge."}
-    - {profile: akimbo-v9, rule: akimbo-role-mismatch, position: dpad_press,
-       reason: "v8 and v9 specialise the hands rather than mirroring them: the right unit flies and the left fights. A deliberate departure from the 2026-09-28 lesson, and what a playtest has to judge."}
-    - {profile: akimbo-v9, rule: akimbo-role-mismatch, position: dpad_right,
-       reason: "v8 and v9 specialise the hands rather than mirroring them: the right unit flies and the left fights. A deliberate departure from the 2026-09-28 lesson, and what a playtest has to judge."}
-    - {profile: akimbo-v9, rule: akimbo-role-mismatch, position: index_2,
-       reason: "v8 and v9 specialise the hands rather than mirroring them: the right unit flies and the left fights. A deliberate departure from the 2026-09-28 lesson, and what a playtest has to judge."}
-    - {profile: akimbo-v9, rule: akimbo-role-mismatch, position: index_4,
-       reason: "v8 and v9 specialise the hands rather than mirroring them: the right unit flies and the left fights. A deliberate departure from the 2026-09-28 lesson, and what a playtest has to judge."}
-    - {profile: akimbo-v9, rule: akimbo-role-mismatch, position: pinky_1,
-       reason: "v8 and v9 specialise the hands rather than mirroring them: the right unit flies and the left fights. A deliberate departure from the 2026-09-28 lesson, and what a playtest has to judge."}
-    - {profile: akimbo-v9, rule: akimbo-role-mismatch, position: pinky_side,
-       reason: "v8 and v9 specialise the hands rather than mirroring them: the right unit flies and the left fights. A deliberate departure from the 2026-09-28 lesson, and what a playtest has to judge."}
-    - {profile: akimbo-v9, rule: akimbo-role-mismatch, position: thumb_aux_lower,
-       reason: "v8 and v9 specialise the hands rather than mirroring them: the right unit flies and the left fights. A deliberate departure from the 2026-09-28 lesson, and what a playtest has to judge."}
-    - {profile: akimbo-v9-left, rule: duplicate-output-key, key: Digit5,
+    - {profile: akimbo-v10, rule: akimbo-role-mismatch, position: dpad_left,
+       reason: "v10 specialises the hands rather than mirroring them: the right unit flies and the left fights, so the two thumb pads do different jobs by design. A deliberate departure from the 2026-09-28 lesson, and what a playtest has to judge."}
+    - {profile: akimbo-v10, rule: akimbo-role-mismatch, position: dpad_press,
+       reason: "v10 specialises the hands rather than mirroring them: the right unit flies and the left fights, so the two thumb pads do different jobs by design. A deliberate departure from the 2026-09-28 lesson, and what a playtest has to judge."}
+    - {profile: akimbo-v10, rule: akimbo-role-mismatch, position: dpad_right,
+       reason: "v10 specialises the hands rather than mirroring them: the right unit flies and the left fights, so the two thumb pads do different jobs by design. A deliberate departure from the 2026-09-28 lesson, and what a playtest has to judge."}
+    - {profile: akimbo-v10, rule: akimbo-role-mismatch, position: index_2,
+       reason: "v10 specialises the hands rather than mirroring them: the right unit flies and the left fights, so the two thumb pads do different jobs by design. A deliberate departure from the 2026-09-28 lesson, and what a playtest has to judge."}
+    - {profile: akimbo-v10, rule: akimbo-role-mismatch, position: index_4,
+       reason: "v10 specialises the hands rather than mirroring them: the right unit flies and the left fights, so the two thumb pads do different jobs by design. A deliberate departure from the 2026-09-28 lesson, and what a playtest has to judge."}
+    - {profile: akimbo-v10, rule: akimbo-role-mismatch, position: pinky_1,
+       reason: "v10 specialises the hands rather than mirroring them: the right unit flies and the left fights, so the two thumb pads do different jobs by design. A deliberate departure from the 2026-09-28 lesson, and what a playtest has to judge."}
+    - {profile: akimbo-v10, rule: akimbo-role-mismatch, position: pinky_side,
+       reason: "v10 specialises the hands rather than mirroring them: the right unit flies and the left fights, so the two thumb pads do different jobs by design. A deliberate departure from the 2026-09-28 lesson, and what a playtest has to judge."}
+    - {profile: akimbo-v10, rule: akimbo-role-mismatch, position: thumb_aux_lower,
+       reason: "v10 specialises the hands rather than mirroring them: the right unit flies and the left fights, so the two thumb pads do different jobs by design. A deliberate departure from the 2026-09-28 lesson, and what a playtest has to judge."}
+    - {profile: akimbo-v10-left, rule: duplicate-output-key, key: Digit5,
+       reason: "Not a choice anyone made: the imported layout labelled pinky_3 'Consumable 5', and
+                the game has four -- it sent consumable 1, as index_2 does. Kept rather than
+                guessed at; give pinky_3 a job once a playtest says what the pinky wants."}
+    - {profile: akimbo-v10-left, rule: duplicate-output-key, key: Escape,
+       reason: "From the imported layout: Escape on pinky_1 and on the pinky side key. Both are
+                pinky positions away from the consumables, so constraint 5 holds either way."}
+    - {profile: akimbo-v10-right, rule: duplicate-output-key, key: KeyS,
        reason: "Deliberate: the action is reachable from more than one position in this layout."}
-    - {profile: akimbo-v9-left, rule: duplicate-output-key, key: Escape,
-       reason: "Deliberate: the action is reachable from more than one position in this layout."}
-    - {profile: akimbo-v9-left, rule: duplicate-output-key, key: F4,
-       reason: "Deliberate: the action is reachable from more than one position in this layout."}
-    - {profile: akimbo-v9-right, rule: duplicate-output-key, key: KeyA,
-       reason: "Deliberate: the action is reachable from more than one position in this layout."}
-    - {profile: akimbo-v9-right, rule: duplicate-output-key, key: KeyD,
-       reason: "Deliberate: the action is reachable from more than one position in this layout."}
-    - {profile: akimbo-v9-right, rule: duplicate-output-key, key: KeyS,
-       reason: "Deliberate: the action is reachable from more than one position in this layout."}
-    - {profile: akimbo-v9, rule: akimbo-role-mismatch, position: middle_1,
+    - {profile: akimbo-v10, rule: akimbo-role-mismatch, position: middle_1,
        reason: "EXPERIMENT: middle_1 and middle_4 carry pulsed thrust on the right unit,
                 opposite menu and combat keys on the left. They exist to be flown and
                 deleted, not to be mirrored."}
-    - {profile: akimbo-v9, rule: akimbo-role-mismatch, position: middle_4,
+    - {profile: akimbo-v10, rule: akimbo-role-mismatch, position: middle_4,
        reason: "EXPERIMENT: as middle_1 -- pulsed thrust, pending a playtest."}
-    - {profile: akimbo-v9-right, rule: duplicate-output-key, key: KeyW,
+    - {profile: akimbo-v10-right, rule: duplicate-output-key, key: KeyW,
        reason: "EXPERIMENT: thrust forward is on four inputs on purpose -- the stick, a
                 key from the imported layout, and two pulsed keys at different intervals
                 -- so they can be compared in one session. Delete the pulsed keys and
                 this line together once judged."}
-    - {profile: akimbo-v9, rule: akimbo-role-mismatch, position: middle_3,
-       reason: "The keys v9 labels as weapon cycling send the arrows, and the game binds the
-                arrows to pitch and yaw -- it has no weapon cycling on four keys at all. So
-                these finger keys yaw the ship. True of v9 as imported; v10 maps them by what
-                they were meant to do."}
-    - {profile: akimbo-v9, rule: akimbo-role-mismatch, position: pinky_3,
-       reason: "As middle_3: labelled weapon cycling, sends an arrow, yaws the ship."}
-    - {profile: akimbo-v9, rule: akimbo-role-mismatch, position: ring_3,
-       reason: "As middle_3: labelled weapon cycling, sends an arrow, yaws the ship."}
+    - {profile: akimbo-v10, rule: akimbo-role-mismatch, position: dpad_up,
+       reason: "As the other pad positions: the left pad cycles weapons, the right pad pitches."}
+    - {profile: akimbo-v10, rule: akimbo-role-mismatch, position: dpad_down,
+       reason: "As the other pad positions: the left pad cycles weapons, the right pad pitches."}
+    - {profile: akimbo-v10-left, rule: duplicate-output-key, key: KeyR,
+       reason: "ring_3 keeps the R the imported layout had, and the d-pad cycles secondaries both
+                ways, gamepad-style. Drop one once a playtest shows which the hand reaches for."}
     - {profile: single-v5, rule: duplicate-output-key, key: Tab,
        reason: "Tab reaches the menu from two places (perks double-tap, ULT long-press).
                 Both are menu actions, so there is no combat ambiguity."}

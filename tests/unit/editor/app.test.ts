@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { start } from "../../../src/editor/app.js";
 import { buildPayload } from "../../../src/lib/editor/payload.js";
+import { LIVE_SET } from "../../helpers/fixtures.js";
 
 function mount(): void {
   document.body.innerHTML = '<div id="app"></div>';
@@ -21,7 +22,7 @@ describe("the editor", () => {
 
   it("draws both units of an akimbo set side by side", () => {
     const setSelect = document.querySelectorAll("header select")[1] as HTMLSelectElement;
-    setSelect.value = "akimbo-v9";
+    setSelect.value = LIVE_SET;
     setSelect.dispatchEvent(new Event("change"));
 
     const hands = document.querySelectorAll(".hand");
@@ -149,7 +150,7 @@ describe("key cards", () => {
 
   it("marks an unbound position as empty and gives it no label", () => {
     // The golden profile binds everything, so the empty state comes from the live pair.
-    show("akimbo-v9");
+    show(LIVE_SET);
     const key = card("pinky_5");
     expect(key.classList.contains("empty")).toBe(true);
     expect(key.querySelector(".name")).toBeNull();
@@ -176,7 +177,7 @@ describe("key cards", () => {
   });
 
   it("can hide the side rails so the pair gets the full width", () => {
-    show("akimbo-v9");
+    show(LIVE_SET);
     const toggle = [...document.querySelectorAll("header button")].find(
       (button) => button.textContent === "Wide",
     );
@@ -188,7 +189,7 @@ describe("key cards", () => {
   });
 
   it("keeps both units on one row rather than wrapping one under the other", () => {
-    show("akimbo-v9");
+    show(LIVE_SET);
     const stage = document.querySelector<HTMLElement>(".stage");
     expect(stage?.parentElement?.className).toBe("stage-wrap");
     expect(stage?.querySelectorAll(".hand").length).toBe(2);
@@ -209,7 +210,7 @@ describe("data sources", () => {
   it("lists each set in the selected game", () => {
     const sets = document.querySelectorAll("header select")[1] as HTMLSelectElement;
     const names = [...sets.options].map((option) => option.value);
-    expect(names).toContain("akimbo-v9");
+    expect(names).toContain(LIVE_SET);
     expect(names).toContain("single-v5");
   });
 
@@ -227,7 +228,7 @@ describe("data sources", () => {
     sets.dispatchEvent(new Event("change"));
     expect(document.querySelectorAll(".hand").length).toBe(1);
 
-    sets.value = "akimbo-v9";
+    sets.value = LIVE_SET;
     sets.dispatchEvent(new Event("change"));
     expect(document.querySelectorAll(".hand").length).toBe(2);
   });
@@ -277,7 +278,7 @@ describe("stick modes in the editor", () => {
   beforeEach(() => {
     mount();
     const sets = document.querySelectorAll("header select")[1] as HTMLSelectElement;
-    sets.value = "akimbo-v9";
+    sets.value = LIVE_SET;
     sets.dispatchEvent(new Event("change"));
   });
 

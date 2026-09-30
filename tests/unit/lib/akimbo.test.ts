@@ -13,11 +13,9 @@ import { applyAcknowledgements, checkSet, iterBindings } from "../../../src/lib/
 import { loadProfile } from "../../../src/lib/io.js";
 import { Game } from "../../../src/lib/model.js";
 import type { Profile } from "../../../src/lib/model-core.js";
+import { LIVE_SET, live } from "../../helpers/fixtures.js";
 
-const PAIR = [
-  "games/SpaceSims/everspace/profiles/akimbo-v9-left.yaml",
-  "games/SpaceSims/everspace/profiles/akimbo-v9-right.yaml",
-];
+const PAIR = [live("left"), live("right")];
 
 const game = new Game("games/SpaceSims/everspace");
 const profiles = PAIR.map((path) => loadProfile(path, game));
@@ -79,7 +77,7 @@ describe("the akimbo pair", () => {
       "missing-required",
     ];
     const excused = (game.lintConfig.acknowledged ?? [])
-      .filter((ack) => (ack.profile ?? "").startsWith("akimbo-v9"))
+      .filter((ack) => (ack.profile ?? "").startsWith(LIVE_SET))
       .map((ack) => String(ack.rule))
       .filter((rule) => unexcusable.includes(rule));
     expect(excused).toEqual([]);

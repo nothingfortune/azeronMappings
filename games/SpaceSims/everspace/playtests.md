@@ -2,38 +2,58 @@
 
 What each layout actually felt like. Dated, newest first.
 
-## 2026-09-29 — akimbo v9, not yet flown
+## 2026-09-29 — akimbo v10, not yet flown
 
-On branch `experiment/pulsed-thrust`. Two changes to judge, both untested.
+On branch `experiment/pulsed-thrust`. Import both units fresh: v9 was never flown, and
+nothing it would have done is what its files said.
 
-**The sticks fly.** The imported layout had both sticks cycling weapons while thrust sat
-on a d-pad, which put the discrete job on the only input that is not discrete. v9 uses
-stick mode 2: the right stick thrusts and strafes, the left climbs and rolls, and weapon
-cycling moves to four keys. The left unit's sensor aims and the right unit's is off —
-they were both on, driving the same pointer against each other.
+**What v9 got wrong, which v10 is the first layout without.** The keys labelled weapon
+cycling sent the arrows, and the game has the arrows on pitch and yaw — it has no
+weapon cycling on four keys at all. The right stick wrote a direction block the unit
+does not read, so it never strafed; it rolled. And the game had A and D swapped against
+every label. The first two are fixed in the compiler and the layout; the third by
+generating the game's bindings from `actions.yaml`, so the game and the keypads cannot
+drift apart again.
 
-**Pulsed thrust.** Thrust forward is also on two keys of the right unit, so a pulsed
-press can be compared against the stick holding it:
+**Before flying: apply the game's bindings.** Close the game, run
+`npm run azeron -- ingame --apply`, then open Settings → Controls and spot-check that
+strafe left is A and hover up is F9 with nothing else on it. The previous file is kept
+beside it as `Input.ini.bak-<time>`.
+
+**The sticks, in stick mode 2.** Left stick climbs and turns (hover, yaw); right stick
+flies forward and strafes (thrust, strafe). The right thumb pad pitches and rolls.
+
+Check these first — they are the questions a file cannot answer:
+
+1. **Push the right stick right. Does the ship strafe right?** The right unit's stick is
+   mounted rotated and carries `invertXAxis`. If it strafes left, that is a one-line fix
+   on the device, not a layout change — say which way it went.
+2. **Does moving the pointer turn the ship, or only aim?** This decides the layout. If it
+   turns the ship, pitch and yaw are covered twice and roll wants the left stick instead:
+   switch to *Mode 2, roll for yaw* in the editor and fly the same stretch again.
+3. **Is yaw on a stick useful at all** with the pointer doing what it does?
+
+**Pulsed thrust**, unchanged from v9 and still unflown:
 
 | Input | What it sends |
 | --- | --- |
 | right stick up | W held — full thrust |
-| `middle_1` | W repeated every 40 |
-| `middle_4` | W repeated every 100 |
+| right `middle_1` | W repeated, interval 40 |
+| right `middle_4` | W repeated, interval 100 |
 
-The question is whether a repeated key reads as part power or as judder. Everspace 2's
-`MoveFwd` is a digital half-axis on keyboard — W is 100%, released is 0% — so a key that
-spends part of its time up is the only part-power press available without an analog axis.
-Two intervals because the units of `turbo_interval` are unverified; flying both says
-whether a larger number pulses slower or holds longer, and whether either is usable.
+`MoveForward` is a thrust axis, not a throttle: W is +1, S is −1, and nothing accumulates.
+What a pulsed W does depends on **inertia dampeners**. With them on, the gaps brake, so it
+should average to a lower speed. With them off, the ship coasts through the gaps and
+only reaches full speed more slowly — no part power at all. Dampeners are a toggle on
+either stick click, so **note the state on every run**, and compare top speeds as
+numbers from the HUD rather than by feel.
 
-What to record: does either feel like part throttle, or does the ship judder? Is one
-interval clearly better? Does it help at all with the complaint that thrust reads like a
-strafe?
+Try this before the pulsed keys: **dampeners off, tap W, let go.** If the ship holds the
+speed it reached, W and S already are a throttle — tap to add speed, tap S to shed it —
+and the pulsed keys can go.
 
-If neither works, delete the two keys and the acknowledgement in `game.yaml` and the
-answer is that notches are not available this way — which leaves the Joystick group,
-since the game has one and `MoveFwd` accepts an axis.
+If neither works, the game has an unbound `Joystick` group with a thrust axis
+(`MoveForward`, `bIsAxis=True`), which is the real proportional throttle.
 
 ## 2026-09-28 — akimbo Mode 2 attempt
 
@@ -51,6 +71,7 @@ them before it is ever flashed to a device.
 
 ## Baseline — single-unit v5
 
-The known-good profile, in `profiles/single-v5.yaml`. Linting it surfaced a 1000 ms tap
-delay on all five thumb-pad keys (ULT and the four weapon-cycle arrows); not yet
-playtested against, but it is the first thing to try changing in v6.
+The known-good profile, in `profiles/single-v5.yaml`, kept as the compiler's golden
+fixture. Linting it surfaced a 1000 ms tap delay on all five thumb-pad keys — the
+ultimate and the four arrows. v5 labelled the arrows as weapon cycling; in the game they
+are pitch and yaw, so holding one past the long-press window also opened a menu.

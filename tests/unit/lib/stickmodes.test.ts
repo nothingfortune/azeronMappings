@@ -12,6 +12,7 @@ import {
   StickModeError,
 } from "../../../src/lib/stickmodes.js";
 import type { StickModeSet } from "../../../src/lib/stickmodes.js";
+import { loadActionSet } from "../../../src/lib/io.js";
 import { loadInherited } from "../../../src/lib/yaml-io.js";
 
 const set = loadInherited("genres/SpaceSims/stick-modes.yaml") as unknown as StickModeSet;
@@ -28,11 +29,13 @@ describe("the shipped modes", () => {
   it("gives each stick four directions", () => {
     const mode = set.modes.mode2;
     if (!mode) throw new Error("mode2 missing");
+    // Mode 2 is DJI's: the left stick climbs and turns. Earlier versions put roll here and
+    // called it a stand-in for yaw; one banks the ship and the other turns its nose.
     expect(directionsFor(set, mode, "left")).toEqual({
       up: "hover_up",
       down: "hover_down",
-      right: "roll_right",
-      left: "roll_left",
+      right: "yaw_right",
+      left: "yaw_left",
     });
     expect(directionsFor(set, mode, "right")).toEqual({
       up: "throttle_up",
@@ -40,6 +43,24 @@ describe("the shipped modes", () => {
       right: "strafe_right",
       left: "strafe_left",
     });
+  });
+
+  it("keeps roll available, for flying it against yaw on the same stick", () => {
+    const variant = set.modes.mode2_roll;
+    if (!variant) throw new Error("mode2_roll missing");
+    expect(directionsFor(set, variant, "left").right).toBe("roll_right");
+    expect(directionsFor(set, variant, "right")).toEqual(
+      directionsFor(set, set.modes.mode2 ?? variant, "right"),
+    );
+  });
+
+  it("names only actions the vocabulary declares", () => {
+    // A mode that sends an action nothing binds compiles to a stick that does nothing.
+    const declared = new Set(Object.keys(loadActionSet("genres/SpaceSims/actions.yaml").actions));
+    for (const [axis, ends] of Object.entries(set.axes)) {
+      expect(declared.has(ends.up), `${axis} up: ${ends.up}`).toBe(true);
+      expect(declared.has(ends.down), `${axis} down: ${ends.down}`).toBe(true);
+    }
   });
 
   it("puts thrust on a different stick in mode 1 than in mode 2", () => {
