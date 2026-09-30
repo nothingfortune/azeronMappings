@@ -48,7 +48,7 @@ modes:
     label: Mode 2, roll for yaw
     note: >-
       Mode 2 with roll where yaw would be -- for when the pointer already turns the ship.
-      This is what akimbo v9 flew.
+      Akimbo v9 was written for this, though it never flew.
     left: { vertical: vertical, horizontal: roll }
     right: { vertical: thrust, horizontal: strafe }
 

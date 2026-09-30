@@ -37,20 +37,22 @@ impulse: 0% or 100%, nothing between. A stick in keyboard mode does not change t
 is a four-way switch, not an axis, so deflecting it half way sends the same key as
 deflecting it fully.
 
-The layout change: v5 and v6 put throttle on the left stick's up/down. v7 moved it to the
-right thumb pad as two buttons (`thumb_up`, `thumb_down`). Both are digital, so neither
-gives proportional thrust, but a thumb deflection reads as a throttle in a way a button
-press does not — which is the likely reason it feels worse now than it did.
+**There is no throttle in the game to bind.** Checked in `Input.ini` since: Everspace 2
+has no throttle steps or presets. `MoveForward` is a thrust axis — its display name is
+"Thrust axis" — with W at +1 and S at -1, and nothing accumulates. So what a W press
+does depends on **inertia dampeners**, which is a toggle:
 
-**Check the controls screen before anything else.** If Everspace 2 offers throttle steps
-or presets — "increase/decrease throttle", or "throttle 25/50/75/100%" — then discrete
-keys are exactly the right shape for it, the thumb pad is a good home for a four-way
-preset bank, and this problem is solved without touching the analog question. Whether the
-game has those bindings is not recorded here and has not been checked.
+- **Dampeners on**: releasing W brakes the ship. A key that is down part of the time
+  alternates thrust and braking, and should average to a lower speed.
+- **Dampeners off**: releasing W coasts. The ship holds whatever speed it reached, so W
+  and S already behave as a throttle — tap to add speed, tap S to shed it — and a pulsed
+  key only reaches the same top speed more slowly.
 
-If it does not, there is no proportional throttle without an analog axis, and the options
-below are the only ones. Note that cruise and boost already give a crude three-notch
-speed (normal, cruise, boost), which may be as close as the game allows.
+That makes the dampener state the thing to control for in any test, and it suggests the
+throttle asked for may already exist: dampeners off, tap W. It is the first thing on the
+akimbo v10 playtest list.
+
+Cruise and boost give a crude three-notch speed on top (normal, cruise, boost).
 
 ## What "mouse" means on a Cyborg II
 
@@ -63,18 +65,21 @@ Four separate things, worth keeping apart:
 2. **A stick in mouse mode.** The stick drives the pointer instead of sending keys;
    `analogSettings.mouseSensitivity` shapes it. The type code for this mode has never
    been captured, so the compiler refuses to emit it.
-3. **Mouse buttons on keys.** Type `"15"`, with codes 1, 2 and 3 seen in the wild; only
-   2 (middle) is confirmed.
+3. **Mouse buttons on keys.** Type `"15"`: 1 is left, 2 middle, 3 right, all confirmed —
+   2 in the app's UI, 1 and 3 from a profile labelled "Fire Primary"/"Fire Secondary"
+   against the game's own bindings for those.
 4. **Scroll.** `scrollSpeed`, `scrollThreshold`, `isSmoothScroll` per input.
 
-**Two units means two sensors, and they drive the same pointer.** Both akimbo v7
-profiles shipped with `isSensorOn: true`, inherited from the v5 template, because
+**Two units means two sensors, and they drive the same pointer.** The imported akimbo
+profiles both had `isSensorOn: true`, inherited from the template, because
 `profileSettings` passes through untouched and nothing could say otherwise. A profile can
-now set `sensor: true|false` and `dpi: <step>`; the pair is set so the left unit aims and
-the right unit's sensor is off.
+now set `sensor: true|false` and `dpi: <step>`; the live pair has the left unit's sensor
+on and the right unit's off.
 
-What the sensor cannot do is throttle. In Everspace 2's own config the mouse axes reach
-only `CameraPitch` and `CameraYaw` — aim. `MoveForward`'s axis row is `Key1=None` in the
+What the sensor cannot do is throttle. In Everspace 2's binding file the mouse axes reach
+only `CameraPitch` and `CameraYaw`, and those sit with the photo-mode controls — so what
+the pointer does in flight is not in the file at all. Whether moving it turns the ship or
+only aims is untested, and it decides whether a stick should carry yaw or roll. `MoveForward`'s axis row is `Key1=None` in the
 Keyboard group, and the only keyboard bindings it has are W and S at scale +1 and -1.
 Whether `MouseY` can be bound to `MoveFwd` instead has not been tried; it would cost the
 aim axis, which is probably a bad trade, but it is the one untested way to get a

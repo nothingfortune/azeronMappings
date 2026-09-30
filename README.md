@@ -1,204 +1,126 @@
 # azeronMappings
 
-Azeron Cyborg II profiles as code. Profiles are authored in YAML that maps a **physical
-position** to a **game action**, compiled into the Azeron app's import JSON, checked by a
-linter that knows what has already gone wrong in game, and committed so any past version
-can be imported straight from git history.
+Azeron Cyborg II profiles as code. A profile says which **game action** each **physical
+position** on a keypad sends; this repo compiles it into the Azeron app's import JSON,
+checks it against what has already gone wrong in play, and generates the game's own key
+bindings to match — so a layout is changed on the keypads alone.
 
-There is also a side-by-side editor that shows **both hands at once** and runs the real
-compiler and linter in the browser.
+Everything below is done from one page, the editor. The terminal is only for starting it.
 
-## Quick start
-
-> **Pick one shell and stay in it.** This repo sits on a Windows drive that WSL also
-> mounts, and one `node_modules` cannot serve both: npm writes `.cmd` shims only when it
-> installs on Windows, and esbuild ships a per-platform binary. Installing in WSL and then
-> running `npm run ...` from PowerShell gives you `'tsc' is not recognized`. If you switch
-> shells, delete `node_modules` and reinstall. `npm run build` checks for the mismatch and
-> says so. Everything works from either shell — `azeron install` finds the Azeron app's
-> store natively on Windows and through `/mnt/c` from WSL.
+## First run
 
 ```sh
 npm install
-npm run check          # the gate: build + typecheck + lint + format + tests
-npm run build          # compile TypeScript and bundle the editor
-
-./bin/azeron build     # games/**/profiles/*.yaml -> dist/
-./bin/azeron lint      # the constraint rules
-./bin/azeron editor    # dist/editor.html -- open it in a browser
+npm start          # builds, then serves the editor at http://localhost:4173
 ```
 
-Any command takes a game: `./bin/azeron build everspace`.
+> **Pick one shell and stay in it.** The repo sits on a Windows drive that WSL also
+> mounts, and one `node_modules` cannot serve both. If you switch between WSL and
+> PowerShell, delete `node_modules` and run `npm install` again in the one you mean to
+> use. Every command checks for this and says so.
 
-## The editor
+The CLI is `npm run azeron -- <command>`, which works in either shell (`./bin/azeron`
+works in bash only). `npm run azeron -- help` lists everything.
 
-```sh
-npm run build && ./bin/azeron serve      # http://localhost:4173, saves into the repo
-./bin/azeron editor                      # one file, works offline, downloads only
-```
+## Getting a pair onto the units
 
-Served, the editor is the whole interface: the **Repo** tab builds profiles, imports an
-Azeron export back into the repo, and reads the game's own binding file, so the CLI is
-only needed to start it. The **Save** buttons write straight into `games/…/profiles/*.yaml` and
-`actions.yaml` and report what the linter says. Opened as a file, the same buttons hand
-you a download to copy in — the header says which you are in, so a click never silently
-does nothing.
+1. **Give the game its bindings.** Close Everspace 2, then
+   `npm run azeron -- ingame --apply`. This writes the game's `Input.ini` from
+   `games/SpaceSims/everspace/actions.yaml`, keeping the previous file beside it. You do
+   this once, and again only when a key in `actions.yaml` changes — never from the game's
+   own controls screen.
+2. **Build.** The editor's Repo tab has a button, or `npm run azeron -- build`.
+3. **Import both files** in the Azeron app (2.0.2), each onto its own unit:
+   - `dist/SpaceSims/everspace/everspace_akimbo_v10_left.json` → the unit on your left hand
+   - `dist/SpaceSims/everspace/everspace_akimbo_v10_right.json` → the unit on your right
+4. **Write each profile to its unit, then close the app before playing.** Profiles run
+   onboard, and the app rewrites its own files while it is open.
 
-```sh
-npm run build && ./bin/azeron editor
-```
+Both units report the same USB product id, so nothing on the computer can tell them
+apart for you — the app lists them separately, and the press test (below) will confirm
+which is which if you are unsure.
 
-Open `dist/editor.html`. One page covers every game: pick the game and the set from the
-two selectors in the header — they are data, not separate pages.
+## Changing a binding
 
-It is a single self-contained file: no server, no network. The payload is embedded
-because a page opened from `file://` is not allowed to fetch a sibling JSON.
-`azeron editor` also writes `dist/editor-data.json`, so a page you already have open can
-be pointed at newer data with the **Data** button rather than regenerated.
+There are only ever two things to change, and each lives in one place:
 
-- Both units side by side, laid out like the hardware, facing each other.
-- Click a key to edit its tap / long / double, label, delays and latch.
-- The action palette shows what is bound where and what is still missing, so the "right
-  hand had too few bindings" failure is visible while you build rather than in game.
-- Live checks come from the same `lint.ts` the CLI runs — not a reimplementation.
-- Export the profile YAML to paste back into `games/…/profiles/`, or the import JSON
-  directly. The JSON is produced by the same compiler `azeron build` uses.
+- **Which position does what** — in the editor. Click a key, click an action, Save. The
+  label follows the action, the linter's verdict comes back with the save, and `dist/`
+  is rebuilt. Re-import that unit.
+- **Which key the game listens for** — one line in `actions.yaml`, then
+  `npm run azeron -- ingame --apply`. Every profile follows; nothing needs re-importing.
 
-After pasting YAML back, run `npm run azeron -- build && npm run azeron -- lint`.
+Stick modes (DJI Mode 1/2/3, the game's own twin-stick layout, and a roll variant) are
+applied to both sticks in one click from the editor's side panel.
 
-## Checking the game against the units
+## Learning a layout
 
-```sh
-./bin/azeron bindings
-```
+- **The Sheet tab** draws each unit with its bindings, the same page as
+  `dist/.../cheatsheets/<set>.html`.
+- `npm run azeron -- bindings` writes `dist/.../<game>-ingame-bindings.md` and `.csv`:
+  every action the units send, its key, and where it is sent from.
+- `npm run azeron -- ingame` compares the game's `Input.ini` with `actions.yaml` and
+  lists any row the game has put on another key.
 
-Writes `dist/<genre>/<game>/<game>-ingame-bindings.md` and `.csv`: every action the
-profiles send, the key it assumes in game, and which unit and position sends it. Three
-sections, because three things can go wrong — keys that are sent, actions the game needs
-that nothing sends, and keys a unit sends that no action declares (which is how an edit
-made in the Azeron app shows up).
+## Where things are
 
-## Importing a profile
+| Path                    | What it is                                                                                |
+| ----------------------- | ----------------------------------------------------------------------------------------- |
+| `games/<Genre>/<game>/` | `actions.yaml` (the in-game keys), `profiles/` (the layouts), `game.yaml`, `playtests.md` |
+| `devices/`              | Which physical pin each position is, per unit — measured, not guessed                     |
+| `genres/<Genre>/`       | The action vocabulary and stick modes a kind of game shares                               |
+| `templates/`            | Real exports from the app, which the compiler builds on                                   |
+| `dist/`                 | **What you import.** Compiled JSON, cheatsheets, the game's bindings. Committed.          |
+| `build/`                | Compiled TypeScript. Throwaway, not committed — nothing here is for you.                  |
 
-1. `./bin/azeron build`
-2. In the Azeron software (2.0.2), import
-   `dist/SpaceSims/everspace/everspace_left.json`.
-3. Write the profile to the device, then **close the app before playing** — profiles run
-   onboard.
+## When it refuses
 
-### Or write into the app's library directly
+The linter's rules came from real play sessions. Each finding names its rule:
 
-```sh
-./bin/azeron install everspace --device-id <id> --dry-run   # lists devices, changes nothing
-./bin/azeron install everspace --device-id <id> --yes
-```
+| Rule                                  | Level   | What it catches                                                   |
+| ------------------------------------- | ------- | ----------------------------------------------------------------- |
+| `missing-required`                    | error   | An action you need that no unit sends — the reach for the gamepad |
+| `key-collision`                       | error   | Two different actions claiming one key                            |
+| `unbound-key`                         | error   | A key no action declares, usually an edit made in the app         |
+| `unknown-position` / `unknown-action` | error   | A typo in a profile                                               |
+| `stick-not-keyboard`                  | error   | A stick in gamepad mode, which made the game stutter              |
+| `stick-double-correction`             | error   | Two corrections for one stick rotation                            |
+| `combat-tap-delayed`                  | warning | A long or double press delaying a fight or flight key             |
+| `menu-with-combat`                    | warning | A menu on a key you mash or hold in a fight                       |
+| `hold-on-movement`                    | warning | A latching flight key — boost must not latch                      |
+| `duplicate-output-key`                | warning | The same key sent from two positions                              |
+| `akimbo-role-mismatch`                | warning | The same finger doing unrelated jobs on each hand                 |
+| `unverified-device`                   | warning | A device map nobody has press-tested                              |
+| `stale-acknowledgement`               | note    | An acceptance for a finding that no longer exists                 |
 
-This drops the profile straight into the Azeron app's own store. It refuses to run while
-the app is open, backs up anything it would overwrite, and shapes the file like a profile
-the app itself wrote. It is a shortcut, not the supported path — see CLAUDE.md.
+A finding that is real but accepted goes in `game.yaml` under `lint.acknowledged`, with a
+reason. [CLAUDE.md](CLAUDE.md) has the constraint behind each rule.
 
-## Finding out what a unit's keys really are
+## Less often
 
-The Azeron software is built for a left-handed unit, and the right one is **not** a 1:1
-mirror of it. Rather than reason about it, press every key and write down what happens:
+**Press-testing a unit.** The right unit is not a mirror of the left — its thumb cluster
+is rotated half a turn — so each map is measured. `npm run azeron -- probe` writes
+`dist/probe/probe-1-pins.json`, a profile where every pin sends a different key, and
+`probe-2-stick-zero.json` for the stick. Import one onto a unit, open the editor's
+**Press test** tab, and press what it highlights; it records which pin fired and exports
+a corrected `devices/<unit>.yaml`.
 
-```sh
-npm run build && ./bin/azeron probe
-```
+**Bringing an edit made in the app home.** The editor's Repo tab takes an export and
+turns it back into profile YAML (`npm run azeron -- decompile` from the terminal).
+Anything that will not round-trip is kept raw rather than guessed at.
 
-That writes `dist/probe/probe-profile.json` — a profile where every pin sends a different
-key — and `dist/probe/press-test.html`. Import the profile onto a unit, open the page, and
-it walks you through the layout one key at a time: it highlights a position, you press it,
-and it records which pin actually fired. Do both units; it keeps them apart, shows you
-where each disagrees with the assumed map, tells you which positions differ between the
-two hands, and exports a corrected `devices/<unit>.yaml`.
-
-It also measures the **stick's zero**. The second profile it writes, `probe-stick.json`,
-binds all eight sectors (the export has `diagonalKeys` and an eight-directional mode), so
-switching the page to **Stick zero** and pushing in eight physical directions tells you
-which way the firmware thinks is "up" — at 45-degree resolution, taking the most-voted
-rotation so one sloppy diagonal cannot move the answer. The result lands on the device as
-`stick_zero` and `stick_angle`, and the compiler writes `analogSettings.angle` only for a
-device that has actually been measured.
-
-Until a unit has been press-tested its map is marked `verified: false`, and the linter
-says so on every profile that uses it.
-
-## Round-tripping an edit made in the Azeron app
-
-Edits made in the app are welcome; they just have to come home as a diff.
-
-```sh
-./bin/azeron decompile path/to/export.json \
-    --device cyborg2-left --game everspace \
-    --set single-v5 --template templates/everspace2-v5.json \
-    -o games/SpaceSims/everspace/profiles/single-v5.yaml
-./bin/azeron build && git diff
-```
-
-Anything the YAML schema cannot express canonically comes back as a `*_raw` value or a
-`raw: {types: [...]}` block, so unknown fields are preserved rather than guessed at.
-
-## Starting a new game
-
-```sh
-./bin/azeron import path/to/export.json \
-    --genre FPS --game hellDivers --name "Helldivers" \
-    --device cyborg2-left --set v1 \
-    --export-to "C:/Users/you/Documents/Helldivers"
-```
-
-Creates `games/FPS/hellDivers/` with `game.yaml`, `actions.yaml` and a decompiled
-profile, and keeps the export in `templates/` as the compiler's template. The vocabulary
-is seeded with one action per distinct key the export sends, each named after its key and
-marked `(unnamed)` — an export says which keys are pressed, not what they do in the game,
+**Starting a new game.** Upload an export from the Repo tab, or
+`npm run azeron -- import <export.json> --genre G --game SLUG`. Each distinct key becomes
+an action named after the key — an export says which keys are pressed, not what they do,
 so naming them is the first job.
 
-`--export-to` records a directory outside the repo that `azeron build` copies profiles
-into as well. `dist/` stays the committed copy.
+**Writing into the app's library directly.** `npm run azeron -- install everspace --yes`
+drops each profile into the app's store under its own unit (`--dry-run` first). It
+refuses while the app is open and backs up what it replaces. Importing through the app
+stays the supported path.
 
-## Genre defaults
+## Contributing
 
-`genres/<Genre>/` holds a shared action vocabulary and a default layout for a kind of
-game. The defaults carry **roles, not keys** — enough for every ergonomic rule to run on
-them, while keys stay a per-game concern. Both ship lint-clean with zero acknowledgements,
-which is the point: a default that violates a constraint hands that violation to every
-game built on it.
-
-Start a new game from one:
-
-```yaml
-# games/FPS/hellDivers/actions.yaml
-extends: genres/FPS/actions.yaml
-game: Helldivers
-actions:
-  sprint: { key: ShiftLeft }
-  # ... just the keys; roles and tags come from the genre
-```
-
-```yaml
-# games/FPS/hellDivers/profiles/single.yaml
-extends: genres/FPS/default.yaml
-profile:
-  id: <a stable uuid>
-  name: Helldivers
-  template: templates/everspace2-v5.json
-positions:
-  middle_1: { label: Stratagem, tap: ability_1 } # only what differs
-```
-
-## What the linter enforces
-
-Errors (fail the build): a `required` action bound on no unit; one key claimed by two
-different actions; a key no action declares; a stick in anything but keyboard mode.
-
-Warnings: a combat tap delayed by a long/double on the same key; a latching movement
-action; a menu action sharing a key with a combat action; the same key sent from two
-positions; mirrored akimbo positions doing unrelated jobs.
-
-A finding that is real but accepted goes in `game.yaml` under `lint.acknowledged` with a
-reason. Acknowledgements are matched per profile and rule, and a stale one is reported —
-so accepting a risk stays a visible decision rather than a silent mute.
-
-See [CLAUDE.md](CLAUDE.md) for the hardware constraints behind each rule and the
-reverse-engineered export format.
+`npm run check` is the gate: build, typecheck, lint, format, unit tests and CLI smoke
+tests. The pre-commit hook runs every unit test; pre-push runs the whole gate.
+`npm run test:e2e` drives the served editor in a browser. See [CLAUDE.md](CLAUDE.md).

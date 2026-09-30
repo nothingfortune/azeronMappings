@@ -1,84 +1,76 @@
 # Changelog
 
-Every profile change, and why.
+Every profile change, and why. `playtests.md` records what each layout felt like.
 
 ## Unreleased
 
 ### Added
 
-- Toolchain in strict TypeScript, following the `nothingfortune/base` conventions:
-  `npm run check` is the gate (build, typecheck, lint, format, Vitest, CLI smoke tests),
-  CI runs exactly that, and `.githooks` wires a quick pre-commit gate plus a full
-  pre-push one.
-- `bin/azeron` with `build`, `lint`, `roundtrip`, `cheatsheet`, `decompile`, `editor` and
-  `install`.
-- **Side-by-side editor** (`azeron editor`): both units at once, click-to-edit, live
-  coverage and constraint checks, and export to either profile YAML or import JSON. It
-  imports the same compiler and linter the CLI uses, so there is no second implementation
-  to drift.
-- **`azeron install`**: writes a compiled profile into the Azeron app's own profile store
-  (`Storage/DevicesStorage/<deviceId>/ProfileStorage/`). Refuses while the app is running,
-  backs up what it would overwrite, and projects the profile onto the shape the app itself
-  writes, because the stored schema is a strict subset of the export schema.
-- `devices/cyborg2-left.yaml` and `devices/cyborg2-right.yaml`. Both units export the same
-  pin numbers; the right map is flagged `mirrored` with a TODO to press-test the thumb-pad
-  directions.
-- Genre layer: `genres/SpaceSims/` and `genres/FPS/`, each with an action vocabulary and a
-  default layout. Both lint clean with zero acknowledgements. Games inherit with
-  `extends:` and supply only keys.
-- `games/SpaceSims/everspace/`: `actions.yaml` (keys only, vocabulary inherited),
-  `single-v5.yaml` decompiled from the known-good export, and the **akimbo v6 draft** for
-  both hands.
-- `templates/everspace2-v5.json`, the known-good export from Azeron software 2.0.2, committed
-  untouched as both the compiler template and the golden test fixture.
+- **The editor is the interface.** `npm start` builds and serves it: both units side by
+  side, click a key and an action, Save writes the profile into the repo, rebuilds
+  `dist/` and returns the linter's verdict. It imports the same compiler and linter as the
+  CLI, so there is one implementation of each rule. `azeron editor` writes the same page
+  as one offline file that can only download.
+- **The game's bindings are generated.** Each action in `actions.yaml` names its row in
+  Everspace 2's `Input.ini`, and `azeron ingame --apply` writes every keyboard row live
+  while flying from it, keeping the previous file. A layout changes on the keypads alone;
+  the game's controls screen is never edited by hand. `dist/.../Input.ini` records what
+  the game was given and is gated like the compiled JSON.
+- **Stick modes**: DJI Mode 1/2/3 translated to a ship, the game's own twin-stick layout,
+  and Mode 2 with roll for yaw. Applied to both sticks in one click.
+- **Press test**: a profile where every pin sends a distinguishable key, captured in the
+  editor's Press test tab, which exports a measured `devices/<unit>.yaml`. Both units are
+  press-tested and `verified: true`; `unverified-device` warns on any map that is not.
+- Import an app export from the editor to start a game or bring an app-side edit home;
+  unit detection over WebHID; `azeron bindings` for the list to check the game against;
+  `azeron install` to write into the app's own store (unsupported, and it says so).
+- Turbo (`turbo`, `turbo_interval` per slot) and the sensor (`sensor`, `dpi`) are
+  expressible in a profile.
 
-### Added (press test)
+### Layouts
 
-- **`azeron probe`**: a generated profile where every pin sends a distinguishable key,
-  plus a guided capture page. It prompts for one position at a time on a diagram of the
-  unit, records which pin actually fired, handles both units separately, diffs each
-  against the assumed map and the two against each other, and exports corrected device
-  YAML. The least reliable probe keys (F13+) are reserved for the pins nobody has
-  identified, so a firmware limitation cannot cost a known position.
-- **Stick zero calibration**: a second, stick-only probe profile with all eight sectors
-  bound and eight-directional mode on, plus a calibration pass in the page that asks for
-  eight physical pushes and derives the rotation by majority vote. Writes `stick_zero`
-  and `stick_angle` onto the device; the compiler writes `analogSettings.angle` only when
-  a device has been measured, because that field's units are unverified.
-- `verified` on a device map, and the `unverified-device` lint warning for any profile
-  built on a map that has not been press-tested.
-- `stick_directions` on a device map: redirects a physical stick direction onto the
-  export field it actually drives, for a unit that does not match the left-handed
-  software's assumption.
-- `docs/guides/analog-input.md`: what is actually known about getting analog axes into
-  Everspace 2, the three untested ways it might work, and the one dead end.
+- **akimbo v10** is the live pair: stick mode 2 with yaw on the left stick, pitch and roll
+  on the right thumb pad, weapons and targeting on the left hand, every label the
+  action's own. Not yet flown. v6 to v9 are in git history; none was flown, and none did
+  what its files said — see below.
+- `single-v5` is the known-good export, kept as the compiler's golden fixture.
 
 ### Changed
 
-- **`devices/cyborg2-right.yaml` no longer claims the right unit mirrors the left.** It
-  did, on the strength of an earlier note. The two are not 1:1, particularly the
-  directions. Every position in it is now flagged as an inherited guess
-  and the file is `verified: false` until the press test says otherwise. The akimbo v6
-  right-hand draft carries an acknowledgement saying it must not be flashed before then.
+- **The vocabulary says what each key does in the game.** `weapon_cycle_*` sent the
+  arrows, which Everspace 2 binds to pitch and yaw — it has no weapon cycling on four
+  keys — so they are `pitch_*` and `yaw_*`. `primary_1`/`_2` are `next_primary` and
+  `previous_primary`; `next_target` was equip secondary 1 and is now the game's own
+  NextTarget. The sensor's axes are `pointer_x`/`_y`: they move the pointer, which is not
+  the same as pitching or yawing the ship.
+- `combat-tap-delayed` and `menu-with-combat` cover flight actions as well as combat.
+  They missed boost, which constraint 4 names, and a menu on a held flight key.
+- `next_target` is no longer `required`: no layout has ever bound it.
 
-- The compiler now reproduces the golden export **byte for byte**, not merely field for
-  field: `label` is overwritten in place instead of being deleted and re-appended, so key
-  order and therefore the `dist/` diff stay stable.
+### Fixed
 
-### Findings from linting the v5 baseline
-
-Acknowledged in `game.yaml` rather than silenced, and the agenda for v6:
-
-- The five thumb-pad keys carry a 1000 ms `featureDelay`, so the ULT tap and all four
-  weapon-cycle taps wait a full second before firing (constraint 4).
-- Those same five keys pair a combat tap with a menu long-press (constraint 5's shape,
-  though Tab is not Escape).
-- `Tab` and `KeyI` are each sent from two positions; both are deliberate.
+- **The right unit's stick never did what its profile said.** A right-hand unit reads
+  `analogKeys.right`; the compiler wrote `.left`. `activeAnalogKeys` chooses now.
+- The compiler rewrote any pin the device map named, whatever its type; the profile
+  switch was safe only by accident. Records it does not understand pass through.
+- Decompiling dropped a stick direction whose keycode it could not name, and collapsed
+  per-slot turbo intervals into one. Both are kept.
+- In the game: A and D were swapped, hover up shared F9 with quick load, equip secondary
+  2 shared F5 with quick save, and place marker was on a key no profile sent.
+- In the editor: rebinding a key left the old action's name on it and in the export; the
+  armed slot was invisible and never reset; unsaved edits were lost without asking;
+  importing over an existing set destroyed its committed template.
+- The binding sheet and the linter disagreed about raw keys from app edits.
 
 ### Known gaps
 
-- `primary_3` (F3) is not bound in the single-unit baseline, so it is not `required`.
-- Mouse button codes other than middle-click are unverified, as are the type codes for a
-  stick in mouse or gamepad mode; the compiler refuses to invent them.
-- The akimbo draft is **not playtested**. Its two sticks deliberately do different jobs,
-  which is the first thing to judge in a session.
+- Whether moving the pointer turns the ship in flight, or only aims, is untested — and it
+  decides whether yaw or roll belongs on the left stick.
+- Whether the right unit's stick, mounted rotated with `invertXAxis`, strafes the right
+  way is untested.
+- The pulsed-thrust keys on v10's right unit are unflown; what they do depends on the
+  inertia dampener state. See `docs/guides/analog-input.md`.
+- A keyboard-mode stick sends one direction at a time, so thrust and strafe on one stick
+  cannot be held together. Eight-directional mode exists in the export but is unverified.
+- Type codes `"6"`, `"0"`, `"29"`, `"30"` and `subType` `"29"`/`"31"` are not understood;
+  they are preserved, never written.

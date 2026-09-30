@@ -220,9 +220,10 @@ array of per-key records.
   numeric JS keyCodes (arrows as `"37"`–`"40"`, Shift as `"16"`). `keys.ts` records which
   encoding the app actually uses per key; a token that does not survive name→token→name
   is kept raw rather than rewritten.
-- Mouse buttons: `"2"` is middle, confirmed in the app UI. Codes `"1"` and `"3"` have been
-  seen in app-edited profiles but which physical button each is has not been confirmed, so
-  they stay raw. The compiler refuses to emit a button it cannot confirm.
+- Mouse buttons: `"1"` left, `"2"` middle, `"3"` right. Middle was confirmed in the app
+  UI; left and right on 2026-09-29, from a profile labelled "Fire Primary" / "Fire
+  Secondary" sending 1 and 3 against the game binding those to the left and right
+  buttons. The compiler refuses to emit a button outside that table.
 - Keyboard-mode stick directions live in `analogSettings.analogKeys.<block>.<direction>[0]`
   as **integer** JS keyCodes in the v5 export, and as `KeyboardEvent.code` strings in a
   profile edited by 2.0.2; both are read, and integers are emitted.

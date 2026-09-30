@@ -1,3 +1,6 @@
+> **Historical.** The original brief, from 2026-09-28, kept as written. The layout and
+> tool names in it are not the current ones — CLAUDE.md and the README are.
+
 # Brief: Azeron Profiles as Code
 
 ## Goal
