@@ -156,26 +156,34 @@ mouse movement. The game is launched through Steam and only ever sees keyboard a
 
 ## Option D — a real joystick, neither gamepad nor keyboard
 
-The appealing idea: stop pretending to be either device and present as a flight stick.
-Whether that is possible turns on one fact nobody here has checked yet.
+**Checked 2026-09-30: Everspace 2 reads DirectInput joysticks natively.** Its `Input.ini`
+has a Joystick group alongside Keyboard and Gamepad, and already holds 24 bindings to a
+Thrustmaster T.16000M, named `JS-1_T16000M_Button0` and so on — the game names each device
+`JS-<n>_<device>_…`. `GameUserSettings.ini` carries `InputMethod=MouseAndJoystick`: mouse
+and joystick together is a mode the game is built for, not a mix it flips between. The
+stutter in constraint 1 was gamepad against keyboard and mouse; this is not that.
 
-**Everspace 2 is Unreal Engine, and Unreal reads XInput gamepads and keyboard/mouse.** A
-generic HID joystick — the DirectInput class a HOTAS uses — is not something a UE game
-reads unless the developer wired it up deliberately. Plenty of space sims do; plenty of
-UE ones do not.
+The Joystick group's flight rows are axes waiting for one: `MoveForward`, `MoveRight`,
+`MoveUp`, `Pitch`, `Yaw` and `Roll`, each `bIsAxis=True` with `Key1=None`, a 0.1 dead zone
+and, for `MoveForward` alone, `bInvert=True` — the shape of a throttle lever.
 
-**Check this before spending an evening on it.** Plug in any joystick, open Settings >
-Input > Customize Controls, and see whether the game offers joystick axes at all, or
-lists the device. Two minutes, and it decides everything below.
+**This is the route being taken.** Logitech Pro Flight rudder pedals, bought 2026-09-30,
+give three axes: the rudder, which springs back to centre, and two toe brakes, which rest
+at one end and are pressed towards the other.
 
-- **If the game does read joysticks natively:** this is the best available answer. A
-  virtual joystick (vJoy) fed from the Azerons gives real analog axes in a device class
-  the game reads directly, with no gamepad to flip to and no mouse to share. Worth doing
-  properly if it works.
-- **If it does not:** "joystick" has to be translated into something the game does read,
-  and there are only two targets — an XInput gamepad, which _is_ a controller and brings
-  back the mixing problem, or keyboard and mouse, which is where we already are. The
-  third option is not actually a third option.
+- **Rudder to yaw** is the natural fit: proportional, and it centres itself — what neither
+  the pointer (a position you have to return) nor a keyboard-mode stick (full rate or
+  nothing) can give.
+- **A toe brake to thrust** is the proportional throttle this whole guide has been
+  looking for, with one question first. `MoveForward` expects a centred axis, −1 to +1,
+  and a toe brake rests at an end. If the game reads a resting toe as −1, then bound
+  straight to thrust it means full reverse — or, with the default invert, full forward —
+  with your foot off the pedal. Bind it and watch the ship at rest before anything else.
+
+The names the game gives the pedals' axes are not known until it has seen them, and the
+repo does not invent names: bind them in the game's own controls screen first, then they
+come under `actions.yaml` like everything else. Until then, `azeron ingame --apply` leaves
+every Joystick row exactly as it is — it owns keyboard rows only.
 
 One thing we cannot do either way: the Azeron itself cannot be made to present as a
 joystick. It exposes a fixed set of USB HID interfaces, with configuration over hidraw on
@@ -193,5 +201,4 @@ analog axes without a virtual gamepad, and a virtual gamepad re-triggers constra
 ## If you test one of these
 
 Capture the result here and in `playtests.md`, and say which option, for how long, and
-whether the stutter returned. If option B works, it is the best outcome available: analog
-pitch and yaw, no gamepad, no mode switching, and the rest of the layout unchanged.
+whether the stutter returned.

@@ -2,13 +2,35 @@
 
 What each layout actually felt like. Dated, newest first.
 
+## 2026-09-30 — rudder pedals, not yet connected
+
+Logitech Pro Flight rudder pedals: a rudder that springs back to centre, and two toe
+brakes that rest at one end. Everspace 2 reads DirectInput joysticks itself (it already
+has a T.16000M bound) and is set to `InputMethod=MouseAndJoystick`, so no translation
+layer is needed. See `docs/guides/analog-input.md`, option D.
+
+First session, in this order:
+
+1. **Windows first.** "Set up USB game controllers" (`joy.cpl`): the rudder and both toe
+   brakes should each move one axis. If a toe brake barely moves its bar, calibrate there.
+2. **Rudder to yaw**, in the game's Settings → Controls, Joystick column, `Yaw` axis. Fly.
+   Does the ship yaw in proportion to the pedal, and stop when it centres?
+3. **Stutter.** Fly for a few minutes using keys, the sensor and the pedals together.
+   Constraint 1 was gamepad against keyboard; this should not repeat it, but watch.
+4. **A toe brake to thrust**, `MoveForward` axis. **With your foot off, watch the ship.**
+   If it moves on its own, the game reads the resting toe as full thrust one way — note
+   which, and the ship's speed at half and full press.
+5. **Quit the game** so it writes `Input.ini`, then the bindings can come into the repo.
+
 ## 2026-09-30 — a stick in mouse mode
 
 Set in the Azeron app, not in the repo (the compiler cannot emit mouse mode). **The ship
 spins, and there is no way to bring it back to centre.**
 
-Why, as far as can be told: Everspace 2 steers by where the pointer is — off centre, the
-ship turns, until the pointer comes back. A stick moves the pointer at a rate, so
+Why: Everspace 2 steers by where the pointer is — off centre, the ship turns, until the
+pointer comes back into a dead zone at the centre. The game's own settings confirm it:
+`MouseDeadzoneAtCenterFactor=0.5`, and `bShowMouseDeadZone`, off here, draws that zone on
+screen. Turning it on shows where "stop" is, for the sensor as much as anything. A stick moves the pointer at a rate, so
 letting go leaves it wherever it got to, and stopping means counter-deflecting for
 exactly as long. A mouse, or the unit's sensor, is a position device: you move it back.
 
