@@ -25,6 +25,12 @@ export interface AnalogDiagonals {
 export interface AnalogSettings {
   analogKeys: { left: AnalogDirections; right: AnalogDirections };
   diagonalKeys?: { left: AnalogDiagonals; right: AnalogDiagonals };
+  /**
+   * Which of the two `analogKeys` blocks the unit actually reads. A right-hand unit
+   * exports `true` and drives `analogKeys.right`; the left-handed software the format was
+   * designed around exports `false` and drives `analogKeys.left`.
+   */
+  isRightAnalog?: boolean;
   /** Rotation of the stick's zero. Semantics unverified -- only written when measured. */
   angle?: number;
   isEightDirectionalTrigger?: boolean;
@@ -145,3 +151,16 @@ export const TURBO_INTERVAL_FIELDS: Record<
  */
 export const STICK_MODES: Record<string, string> = { [TYPE_STICK_KEYBOARD]: "keyboard" };
 export const STICK_MODE_CODES: Record<string, string> = { keyboard: TYPE_STICK_KEYBOARD };
+
+/**
+ * The `analogKeys` block the unit actually reads.
+ *
+ * A right-hand unit exports `isRightAnalog: true` and drives `analogKeys.right`; the
+ * left-handed software the format was designed around drives `analogKeys.left`. Writing
+ * the wrong one compiles and lints cleanly and does nothing on the hardware, which is
+ * what happened to the akimbo right unit's stick. The other block is left exactly as the
+ * template had it -- it is inert, and rewriting it would churn the export for no reason.
+ */
+export function activeAnalogKeys(settings: AnalogSettings): AnalogDirections {
+  return settings.isRightAnalog === true ? settings.analogKeys.right : settings.analogKeys.left;
+}

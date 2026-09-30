@@ -8,7 +8,7 @@
  * action visibly needing a real name rather than silently inventing one.
  */
 
-import { SLOTS, STICK_DIRECTIONS } from "../types/azeron.js";
+import { activeAnalogKeys, SLOTS, STICK_DIRECTIONS } from "../types/azeron.js";
 import type { ExportDocument } from "../types/azeron.js";
 import type { ActionSpec, DeviceData, GameConfig, ProfileData } from "../types/profile.js";
 import * as keys from "./keys.js";
@@ -42,10 +42,11 @@ function keyNamesIn(exported: ExportDocument, profileIndex: number): string[] {
       if (key !== null) found.add(key);
       else if (meta !== null) found.add(meta);
     });
-    const left = record.analogSettings?.analogKeys.left;
-    if (!left) continue;
+    const settings = record.analogSettings;
+    if (!settings) continue;
+    const live = activeAnalogKeys(settings);
     for (const direction of STICK_DIRECTIONS) {
-      const name = keys.analogToName(left[direction][0]);
+      const name = keys.analogToName(live[direction][0]);
       if (name !== null) found.add(name);
     }
   }

@@ -5298,6 +5298,28 @@
             "analogKeys": {
               "left": {
                 "up": [
+                  "ArrowDown",
+                  0,
+                  0
+                ],
+                "right": [
+                  "KeyQ",
+                  0,
+                  0
+                ],
+                "down": [
+                  "ArrowUp",
+                  0,
+                  0
+                ],
+                "left": [
+                  "KeyE",
+                  0,
+                  0
+                ]
+              },
+              "right": {
+                "up": [
                   87,
                   0,
                   0
@@ -5314,28 +5336,6 @@
                 ],
                 "left": [
                   65,
-                  0,
-                  0
-                ]
-              },
-              "right": {
-                "up": [
-                  "KeyW",
-                  0,
-                  0
-                ],
-                "right": [
-                  "KeyE",
-                  0,
-                  0
-                ],
-                "down": [
-                  "KeyS",
-                  0,
-                  0
-                ],
-                "left": [
-                  "KeyQ",
                   0,
                   0
                 ]

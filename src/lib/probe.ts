@@ -16,6 +16,7 @@ import {
   TYPE_MOUSE,
   TYPE_NONE,
   TYPE_STICK_KEYBOARD,
+  activeAnalogKeys,
 } from "../types/azeron.js";
 import type { DeviceData, DevicePosition } from "../types/profile.js";
 import * as keys from "./keys.js";
@@ -137,12 +138,13 @@ export function buildProbeProfile(
     clearSlots(record);
     if (isStick) {
       record.types[0] = TYPE_STICK_KEYBOARD;
-      const left = record.analogSettings?.analogKeys.left;
+      const settings = record.analogSettings;
+      const live = settings ? activeAnalogKeys(settings) : undefined;
       for (const direction of STICK_DIRECTIONS) {
         const key = takeKey(true);
         const code = keys.nameToAnalog(key);
         if (code === null) throw new ProbeError(`no analog keycode for probe key ${key}`);
-        if (left) left[direction][0] = code;
+        if (live) live[direction][0] = code;
         assignments.push({ key, pin: record.pinOne, inputId: record.id, kind: "stick", direction });
       }
       record.label = `PROBE stick ${String(record.pinOne)}`;
@@ -294,9 +296,11 @@ export function buildStickCalibrationProfile(
       const code = keys.nameToAnalog(key);
       if (code === null) throw new ProbeError(`no analog keycode for ${key}`);
       if (isCardinal(sector)) {
-        analog.analogKeys.left[sector][0] = code;
+        activeAnalogKeys(analog)[sector][0] = code;
       } else if (analog.diagonalKeys) {
-        analog.diagonalKeys.left[sector][0] = code;
+        const diagonals =
+          analog.isRightAnalog === true ? analog.diagonalKeys.right : analog.diagonalKeys.left;
+        diagonals[sector][0] = code;
       } else {
         throw new ProbeError("stick record has no diagonalKeys to bind");
       }

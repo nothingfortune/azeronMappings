@@ -21,6 +21,7 @@ import {
   STICK_MODES,
   STICK_MODE_CODES,
   TYPE_NONE,
+  activeAnalogKeys,
 } from "../types/azeron.js";
 import type { ActionSpec, PositionSpec, ProfileData, ProfileMeta } from "../types/profile.js";
 import { describeSlot, matchAction, resolveSlot } from "./binding.js";
@@ -41,10 +42,11 @@ function stickSpec(record: InputRecord, actions: ActionSet | null): PositionSpec
   spec.mode = mode ?? "unknown";
 
   const directions: PositionSpec["directions"] = {};
-  const left = record.analogSettings?.analogKeys.left;
-  if (left) {
+  const settings = record.analogSettings;
+  const live = settings ? activeAnalogKeys(settings) : undefined;
+  if (live) {
     for (const direction of STICK_DIRECTIONS) {
-      const name = keys.analogToName(left[direction][0]);
+      const name = keys.analogToName(live[direction][0]);
       if (name === null) continue;
       const action = matchAction({ key: name }, actions?.actions ?? null, direction);
       directions[direction] = action ?? { key: name };

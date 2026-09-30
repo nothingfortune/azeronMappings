@@ -21,6 +21,7 @@ import {
   TURBO_INTERVAL_FIELDS,
   TYPE_NONE,
 } from "../../../src/types/azeron.js";
+import { activeAnalogKeys } from "../../../src/types/azeron.js";
 import { decompile } from "../../../src/lib/decompile.js";
 import { loadProfile, loadTemplate } from "../../../src/lib/io.js";
 import { Game } from "../../../src/lib/model.js";
@@ -289,5 +290,64 @@ describe("neutralizing what the profile no longer says", () => {
     expect(record?.analogSettings?.analogKeys.left.left[0]).toBe(0);
     // The directions it still names are untouched.
     expect(record?.analogSettings?.analogKeys.left.up[0]).not.toBe(0);
+  });
+});
+
+describe("a right-hand unit's stick", () => {
+  /**
+   * The format was designed around a left-handed unit and has two direction blocks. A
+   * right-hand unit exports `isRightAnalog: true` and reads `analogKeys.right`; writing
+   * `left` compiles, lints clean and does nothing on the hardware. That is what happened
+   * to the akimbo right unit: the profile said the stick thrusts and strafes while the
+   * block the device reads still held thrust and roll from the imported layout.
+   */
+  const RIGHT = "games/SpaceSims/everspace/profiles/akimbo-v9-right.yaml";
+
+  function rightStick() {
+    const game = new Game("games/SpaceSims/everspace");
+    const profile = loadProfile(RIGHT, game);
+    const templatePath = profile.data.profile.template;
+    if (templatePath === undefined) throw new Error("the right profile names no template");
+    const template = loadTemplate(templatePath);
+    const built = compileProfile(profile, { template, actions: game.actions.actions });
+    const pin = profile.device.positions.stick?.pin;
+    const record = built.profiles[0]?.inputs.find((input) => input.pinOne === pin);
+    const settings = record?.analogSettings;
+    if (!settings) throw new Error("the compiled stick record has no analogSettings");
+    return { game, profile, template, settings, pin };
+  }
+
+  it("writes the block the unit actually reads", () => {
+    const { settings } = rightStick();
+    expect(settings.isRightAnalog).toBe(true);
+    const live = activeAnalogKeys(settings);
+    expect(live).toBe(settings.analogKeys.right);
+    // KeyW / KeyD / KeyS / KeyA -- thrust and strafe, as the profile says.
+    expect(live.up[0]).toBe(keys.nameToAnalog("KeyW"));
+    expect(live.right[0]).toBe(keys.nameToAnalog("KeyD"));
+    expect(live.down[0]).toBe(keys.nameToAnalog("KeyS"));
+    expect(live.left[0]).toBe(keys.nameToAnalog("KeyA"));
+  });
+
+  it("leaves the block the unit ignores exactly as the template had it", () => {
+    // Inert, so rewriting it would churn the export for nothing -- and the left unit's
+    // template holds string zeros there, which the byte-for-byte contract depends on.
+    const { settings, template, pin } = rightStick();
+    const before = template.profiles[0]?.inputs.find((input) => input.pinOne === pin);
+    expect(JSON.stringify(settings.analogKeys.left)).toBe(
+      JSON.stringify(before?.analogSettings?.analogKeys.left),
+    );
+  });
+
+  it("reads back the directions it wrote, not the inert ones", () => {
+    const { game, profile, template } = rightStick();
+    const built = compileProfile(profile, { template, actions: game.actions.actions });
+    const back = decompile(built, profile.device, { actions: game.actions });
+    expect(back.positions.stick?.directions).toEqual({
+      up: "throttle_up",
+      right: "strafe_right",
+      down: "throttle_down",
+      left: "strafe_left",
+    });
   });
 });

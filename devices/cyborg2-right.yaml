@@ -16,12 +16,12 @@
 # The stick is rotated the same 180 degrees: the zero pass measured up->down,
 # right->left, down->up, left->right, matching a 180-degree rotation set in the app.
 #
-# How that rotation is handled is NOT settled. The working profiles exported from the
-# units on 2026-09-28 carry analogSettings.angle of -1 (left) and 11 (right) with
-# invertXAxis and invertYAxis both true on both units -- so the half turn is absorbed by
-# the direction assignment and the axis inversion, and `angle` looks like a small trim
-# rather than a rotation in degrees. stick_angle is therefore NOT set here: setting it
-# would overwrite that trim with a value whose units are unconfirmed.
+# That rotation is already in the template. The export from this unit carries
+# analogSettings.angle 176 against the left unit's -1 -- a half turn in degrees, written
+# by the app itself -- and this unit reads analogKeys.right rather than .left, which the
+# compiler now follows via isRightAnalog. stick_angle is therefore NOT set here: the
+# template's own value is measured, and overwriting it would replace a known-good number
+# with one derived from a probe pass.
 #
 # OPEN QUESTION: is row 3 the resting row on this unit too?
 

@@ -14,6 +14,7 @@ import type {
   Slot,
 } from "../types/azeron.js";
 import {
+  activeAnalogKeys,
   DEFAULT_DOUBLE_DELAY,
   DEFAULT_FEATURE_DELAY,
   HOLD_FIELDS,
@@ -54,8 +55,8 @@ function neutralize(record: InputRecord, isStick: boolean): void {
   // key to the end of the record and churn the JSON for no reason; the caller clears it
   // for positions the profile does not mention, and applyPosition overwrites it in place.
   if (isStick && record.analogSettings) {
-    const left = record.analogSettings.analogKeys.left;
-    for (const direction of STICK_DIRECTIONS) left[direction][0] = 0;
+    const live = activeAnalogKeys(record.analogSettings);
+    for (const direction of STICK_DIRECTIONS) live[direction][0] = 0;
   }
 }
 
@@ -85,7 +86,7 @@ function applyStick(
   // unverified, so an unmeasured device leaves whatever the template had.
   if (analogSettings && device.stickAngle !== undefined) analogSettings.angle = device.stickAngle;
   if (!analogSettings) throw new CompileError(`${position}: template record has no analogSettings`);
-  const left: AnalogDirections = analogSettings.analogKeys.left;
+  const live: AnalogDirections = activeAnalogKeys(analogSettings);
 
   for (const direction of STICK_DIRECTIONS) {
     // A mirrored unit may not drive the same field the left-handed software expects,
@@ -93,7 +94,7 @@ function applyStick(
     const field = device.stickDirections[direction] ?? direction;
     const ref = spec.directions?.[direction];
     if (ref === undefined) {
-      left[field][0] = 0;
+      live[field][0] = 0;
       continue;
     }
     let name: string | null;
@@ -113,7 +114,7 @@ function applyStick(
         `${position}: stick ${direction} -> no analog keycode for '${String(name)}'`,
       );
     }
-    left[field][0] = analog;
+    live[field][0] = analog;
   }
 }
 

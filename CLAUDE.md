@@ -184,10 +184,12 @@ These came from real play sessions; each one is a lint rule now.
    180° on the right unit, while the finger columns and side keys match. Never infer one
    unit's map from the other. A device carries `verified: true` only once it has been
    press-tested with `azeron probe`; anything else raises `unverified-device`.
-   How the rotation is absorbed is unsettled: the working profiles use the direction
-   assignment plus `invertXAxis`/`invertYAxis`, not a rotation value. `stick_angle` and
-   `stick_directions` both exist as corrections but neither is in use; they are
-   alternatives, and `stick-double-correction` errors if both are set.
+   The rotation is absorbed by `analogSettings.angle`, which the right unit's own export
+   carries as 176 against the left unit's -1 — a half turn, in degrees, written by the app
+   itself. `stick_angle` and `stick_directions` exist as corrections for a unit whose
+   template does not already carry one; neither is in use, they are alternatives, and
+   `stick-double-correction` errors if both are set.
+   The right unit also reads a **different direction block**: see the export format rules.
 
 See `docs/guides/analog-input.md` for the standing question of how to get real analog axes
 into Everspace 2 without the gamepad-mode stutter.
@@ -214,13 +216,21 @@ array of per-key records.
 - Mouse buttons: `"2"` is middle, confirmed in the app UI. Codes `"1"` and `"3"` have been
   seen in app-edited profiles but which physical button each is has not been confirmed, so
   they stay raw. The compiler refuses to emit a button it cannot confirm.
-- Keyboard-mode stick directions live in `analogSettings.analogKeys.left.<direction>[0]`
+- Keyboard-mode stick directions live in `analogSettings.analogKeys.<block>.<direction>[0]`
   as **integer** JS keyCodes in the v5 export, and as `KeyboardEvent.code` strings in a
   profile edited by 2.0.2; both are read, and integers are emitted.
-  `analogSettings.angle` is **not** understood. Working profiles carry -1 and 11 with
-  `invertXAxis`/`invertYAxis` both true, so the right unit's half turn is absorbed by the
-  direction assignment and the inversion, and `angle` looks like a small trim. It is only
-  written when a device sets `stick_angle`, which no device currently does.
+  **Which block is `<block>` is decided by `isRightAnalog`.** A right-hand unit exports
+  `true` and reads `analogKeys.right`; the left-handed software the format was designed
+  around reads `analogKeys.left`. `activeAnalogKeys` in `types/azeron.ts` is the one place
+  that chooses, and every reader and writer goes through it — writing the wrong block
+  compiles, lints clean and does nothing on the hardware, which is exactly what happened
+  to the akimbo right unit's stick. The other block is left as the template had it: it is
+  inert, and the left unit's template holds string zeros there that the byte-for-byte
+  contract depends on.
+  `analogSettings.angle` is in **degrees**, absolute: the right unit's export carries 176
+  and the left unit's -1, which is the 180° mount rotation plus a small trim. It is only
+  overwritten when a device sets `stick_angle`, which no device currently does — the
+  templates already carry the right value.
 - `profileSettings` passes through from the template, except `isSensorOn` and the
   sensitivity step, which a profile sets with `sensor:` and `dpi:`. Two units both
   running their sensors drive the same pointer, so a pair wants one of them on.
