@@ -11,6 +11,8 @@ import { dumpProfile } from "../lib/decompile.js";
 import { formatFinding, lintProfiles, ROLE_TAGS } from "../lib/lint.js";
 import type { Finding } from "../lib/lint.js";
 import { handLayout } from "../lib/layout.js";
+import { applyMode, detectMode } from "../lib/stickmodes.js";
+import type { StickModeSet } from "../lib/stickmodes.js";
 import { ActionSet, Device, Profile } from "../lib/model-core.js";
 import { SLOTS, STICK_DIRECTIONS } from "../types/azeron.js";
 import type { Slot } from "../types/azeron.js";
@@ -375,6 +377,68 @@ function boundActions(): Map<string, string[]> {
     }
   }
   return bound;
+}
+
+function stickModesFor(): StickModeSet | null {
+  const genre = currentGame().rel.split("/")[1];
+  const found = state.payload.genres.find((entry) => entry.name === genre);
+  return found?.stickModes ?? null;
+}
+
+/**
+ * Set both sticks at once.
+ *
+ * Which stick flies and which selects is the decision that changes a layout most and is
+ * most tedious to make by hand -- eight directions across two profiles. A mode is that
+ * decision as one click, and it touches nothing but the directions.
+ */
+function renderStickModes(): HTMLElement | null {
+  const set = stickModesFor();
+  if (set === null) return null;
+
+  const slugs = slugsInSet();
+  const left = slugs.find((slug) => workingData(slug).profile.unit === "left");
+  const right = slugs.find((slug) => workingData(slug).profile.unit === "right");
+  if (left === undefined || right === undefined) return null;
+
+  const current = detectMode(
+    set,
+    workingData(left).positions.stick,
+    workingData(right).positions.stick,
+  );
+
+  const panel = el("div", { class: "panel" });
+  panel.append(el("h2", {}, ["Stick mode"]));
+  panel.append(
+    el("div", { class: "note" }, [
+      "Sets both sticks at once, the way an RC transmitter names its modes. Nothing but " +
+        "the eight directions changes.",
+    ]),
+  );
+
+  for (const [id, mode] of Object.entries(set.modes)) {
+    const active = id === current;
+    const row = el("button", { class: `mode-row${active ? " active" : ""}`, type: "button" });
+    row.append(
+      el("div", { class: "who" }, [
+        el("b", {}, [mode.label + (active ? "  ·  in use" : "")]),
+        el("small", {}, [mode.note ?? ""]),
+      ]),
+    );
+    row.addEventListener("click", () => {
+      for (const [slug, hand] of [
+        [left, "left"],
+        [right, "right"],
+      ] as const) {
+        const data = workingData(slug);
+        data.positions.stick = applyMode(data.positions.stick, set, mode, hand);
+      }
+      saveNote = `${mode.label} applied to both sticks. Save each unit to keep it.`;
+      render();
+    });
+    panel.append(row);
+  }
+  return panel;
 }
 
 function renderPalette(): HTMLElement {
@@ -1288,7 +1352,10 @@ function render(): void {
 
   if (!state.wide) {
     const right = el("div", {});
-    right.append(renderInspector(), el("div", { style: "height:14px" }), renderChecks());
+    right.append(renderInspector(), el("div", { style: "height:14px" }));
+    const modes = renderStickModes();
+    if (modes) right.append(modes, el("div", { style: "height:14px" }));
+    right.append(renderChecks());
     workspace.append(right);
   }
 

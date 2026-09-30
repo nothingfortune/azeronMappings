@@ -1,4 +1,5 @@
 import type { ExportDocument } from "./azeron.js";
+import type { StickModeSet } from "../lib/stickmodes.js";
 import type { ActionSetData, DeviceData, LintConfig, ProfileData } from "./profile.js";
 
 export interface EditorProfile {
@@ -21,6 +22,8 @@ export interface EditorGenre {
   name: string;
   actions: ActionSetData;
   default: ProfileData;
+  /** Stick modes offered for this genre, if it defines any. */
+  stickModes?: StickModeSet;
 }
 
 /** Everything the editor page needs, embedded at build time. */

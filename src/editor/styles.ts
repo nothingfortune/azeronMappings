@@ -45,6 +45,13 @@ select, .btn {
 }
 .btn:hover, select:hover { border-color: var(--accent); }
 .btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.mode-row { display: block; width: 100%; text-align: left; background: var(--bg);
+            border: 1px solid var(--line); border-radius: 7px; padding: 6px 8px;
+            margin-bottom: 4px; cursor: pointer; color: inherit; }
+.mode-row:hover { border-color: var(--accent); }
+.mode-row.active { border-color: var(--accent); background: var(--panel); }
+.mode-row b { display: block; font-size: 12px; }
+.mode-row small { display: block; color: var(--muted); font-size: 10.5px; line-height: 1.3; }
 .dropzone { border: 1px dashed var(--line); border-radius: 8px; padding: 14px; text-align: center;
             color: var(--muted); font-size: 11.5px; margin-top: 6px; }
 .dropzone.over { border-color: var(--accent); color: var(--fg); background: var(--bg); }

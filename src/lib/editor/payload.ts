@@ -11,6 +11,7 @@ import type { EditorGame, EditorGenre, EditorPayload } from "../../types/editor.
 import type { ActionSetData, DeviceData } from "../../types/profile.js";
 import { loadTemplate } from "../io.js";
 import { Game, Genre } from "../model.js";
+import type { StickModeSet } from "../stickmodes.js";
 
 const DEFAULT_TEMPLATE = join(dataDirs.templates, "everspace2-v5.json");
 
@@ -58,14 +59,21 @@ export function buildPayload(): EditorPayload {
     };
   });
 
-  const genres: EditorGenre[] = Genre.discover().map((genre) => ({
-    name: genre.name,
-    actions: {
-      actions: genre.actions.actions,
-      duplicate_key_allowlist: genre.actions.duplicateKeyAllowlist,
-    } satisfies ActionSetData,
-    default: genre.config,
-  }));
+  const genres: EditorGenre[] = Genre.discover().map((genre) => {
+    const modesPath = join(genre.rel, "stick-modes.yaml");
+    const stickModes = existsSync(repoPath(modesPath))
+      ? (loadInherited(modesPath) as unknown as StickModeSet)
+      : undefined;
+    return {
+      name: genre.name,
+      actions: {
+        actions: genre.actions.actions,
+        duplicate_key_allowlist: genre.actions.duplicateKeyAllowlist,
+      } satisfies ActionSetData,
+      default: genre.config,
+      ...(stickModes ? { stickModes } : {}),
+    };
+  });
 
   return { generatedAt: new Date().toISOString(), devices, templates, games, genres };
 }

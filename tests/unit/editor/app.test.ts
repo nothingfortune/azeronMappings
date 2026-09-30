@@ -251,3 +251,45 @@ describe("the repo tab", () => {
     expect(document.querySelector("header .pill")?.textContent).toBe("downloads only");
   });
 });
+
+describe("stick modes in the editor", () => {
+  beforeEach(() => {
+    mount();
+    const sets = document.querySelectorAll("header select")[1] as HTMLSelectElement;
+    sets.value = "akimbo-v7";
+    sets.dispatchEvent(new Event("change"));
+  });
+
+  function modeButton(label: string): HTMLButtonElement {
+    const found = [...document.querySelectorAll<HTMLButtonElement>(".mode-row")].find((node) =>
+      node.querySelector("b")?.textContent.startsWith(label),
+    );
+    if (!found) throw new Error(`no ${label} button`);
+    return found;
+  }
+
+  it("offers a mode per preset", () => {
+    expect(document.querySelectorAll(".mode-row").length).toBeGreaterThanOrEqual(3);
+    expect(modeButton("Mode 1")).toBeDefined();
+  });
+
+  it("sets both sticks from one click", () => {
+    modeButton("Mode 2").click();
+    const dials = [...document.querySelectorAll(".stick-dial")];
+    expect(dials.length).toBe(2);
+    // Mode 2: left stick climbs, right stick thrusts.
+    expect(dials[0]?.querySelector(".up .name")?.textContent).toBe("Hover up");
+    expect(dials[1]?.querySelector(".up .name")?.textContent).toBe("Throttle up");
+  });
+
+  it("shows which mode a pair is already in", () => {
+    modeButton("Mode 3").click();
+    expect(modeButton("Mode 3").classList.contains("active")).toBe(true);
+    expect(modeButton("Mode 3").textContent).toContain("in use");
+  });
+
+  it("says the change still has to be saved", () => {
+    modeButton("Mode 1").click();
+    expect(document.querySelector(".save-note")?.textContent).toContain("Save each unit");
+  });
+});

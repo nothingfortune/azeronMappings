@@ -1,0 +1,53 @@
+# Stick modes, after the convention RC transmitters use (DJI Mode 1/2/3).
+#
+# A mode says which pair of actions each stick axis drives, across BOTH units: the left
+# stick's vertical and horizontal, and the right stick's. Applying one rewrites the two
+# `stick.directions` blocks and nothing else.
+#
+# The RC convention names four axes: throttle (altitude), pitch (forward/back), yaw and
+# roll. Only four axes fit on two sticks, and in keyboard mode a Cyborg II stick can only
+# send keys, so these modes use the four that Everspace 2 has keyboard bindings for:
+#
+#   thrust    MoveFwd     forward / backward
+#   vertical  MoveUp      hover up / down      <- the RC "throttle" axis
+#   strafe    MoveRight   left / right
+#   roll      Roll        roll left / right    <- stands in for the RC "yaw" axis,
+#                                                 because yaw is on the unit's sensor
+#
+# Which one is right is a matter of what your hands already know. Fly them.
+genre: SpaceSims
+
+modes:
+  mode1:
+    label: Mode 1
+    note: Left stick flies the ship forward and rolls it; right stick climbs and strafes.
+    left: { vertical: thrust, horizontal: roll }
+    right: { vertical: vertical, horizontal: strafe }
+
+  mode2:
+    label: Mode 2 (RC default)
+    note: Left stick climbs and rolls; right stick flies forward and strafes.
+    left: { vertical: vertical, horizontal: roll }
+    right: { vertical: thrust, horizontal: strafe }
+
+  mode3:
+    label: Mode 3
+    note: Left stick flies forward and strafes; right stick climbs and rolls.
+    left: { vertical: thrust, horizontal: strafe }
+    right: { vertical: vertical, horizontal: roll }
+
+  split:
+    label: Split (flight left, selection right)
+    note: >-
+      Not an RC mode. The left stick flies as a flight stick and the right stick is left
+      for weapon cycling, which is what akimbo v7 does today.
+    left: { vertical: thrust, horizontal: strafe }
+    right: { vertical: cycle, horizontal: roll }
+
+# Which action each axis sends at each end.
+axes:
+  thrust: { up: throttle_up, down: throttle_down }
+  vertical: { up: hover_up, down: hover_down }
+  strafe: { up: strafe_right, down: strafe_left }
+  roll: { up: roll_right, down: roll_left }
+  cycle: { up: weapon_cycle_up, down: weapon_cycle_down }

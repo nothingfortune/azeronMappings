@@ -106,6 +106,13 @@ Profiles map position to action id, never position to raw key.
 - `azeron serve` serves the same page over HTTP, where it can POST an edit straight into
   the repo and get the linter's verdict back. The header says which mode the page is in.
 
+`genres/<Genre>/stick-modes.yaml` defines stick modes, after the convention RC
+transmitters use (DJI Mode 1/2/3): a mode assigns four action pairs to the four axes a
+pair of units has, and the editor applies one to both sticks in a click. A mode owns the
+eight directions and nothing else on the position. Only four axes fit on two sticks, so
+the shipped modes use the four Everspace 2 has keyboard bindings for — thrust, vertical,
+strafe and roll — with roll standing in for the RC yaw axis, since yaw is on the sensor.
+
 `src/lib/tasks.ts` holds the operations — build, lint, import an export, read the game's
 config — as functions rather than commands. The CLI and the served editor both call
 them, so what the UI can do is what the CLI can do rather than a subset that drifts. The
