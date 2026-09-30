@@ -27,13 +27,15 @@
     "prebuild": "npm run --silent preflight",
     "pretest": "npm run --silent preflight",
     "pretypecheck": "npm run --silent preflight",
-    "prelint": "npm run --silent preflight"
+    "prelint": "npm run --silent preflight",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "yaml": "^2.8.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.63.0",
     "@types/node": "^26.6.3",
     "esbuild": "^0.25.12",
     "eslint": "^10.11.0",
