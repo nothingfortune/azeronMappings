@@ -358,7 +358,7 @@ describe("assigning an action", () => {
     const before = card("pinky_1").querySelector(".name")?.textContent;
     card("pinky_1").click();
     const long = [...document.querySelectorAll<HTMLElement>(".field")].find(
-      (field) => field.querySelector("label")?.textContent === "long",
+      (field) => field.querySelector("label")?.textContent === "Long press",
     );
     long?.querySelector("select")?.dispatchEvent(new Event("focus"));
     palette("Consumable 3").click();
@@ -370,7 +370,7 @@ describe("assigning an action", () => {
     // it -- so a long press armed on one key stayed armed on the next.
     card("pinky_1").click();
     const long = [...document.querySelectorAll<HTMLElement>(".field")].find(
-      (field) => field.querySelector("label")?.textContent === "long",
+      (field) => field.querySelector("label")?.textContent === "Long press",
     );
     long?.querySelector("select")?.dispatchEvent(new Event("focus"));
     expect(long?.getAttribute("data-active")).toBe("true");
@@ -551,5 +551,125 @@ describe("unsaved edits", () => {
     });
     expect(calls[0]?.path).toBe("/api/actions");
     expect(calls[0]?.body).toEqual({ game: "everspace", changes: { headlight: { key: "KeyL" } } });
+  });
+});
+
+describe("the inspector in plain words", () => {
+  beforeEach(() => {
+    mount();
+    const sets = document.querySelectorAll("header select")[1] as HTMLSelectElement;
+    sets.value = "single-v5";
+    sets.dispatchEvent(new Event("change"));
+  });
+
+  function select(position: string): void {
+    [...document.querySelectorAll<HTMLButtonElement>(".key")]
+      .find((key) => key.querySelector(".pos")?.textContent === position)
+      ?.click();
+  }
+
+  const labels = (): string[] =>
+    [...document.querySelectorAll(".panel .field label")].map((node) => node.textContent);
+
+  it("names the slots and timings the way the Azeron app does, not by their field names", () => {
+    select("pinky_1");
+    expect(labels()).toEqual(
+      expect.arrayContaining(["Tap", "Long press", "Double tap", "Long-press wait (ms)"]),
+    );
+    expect(labels().join(" ")).not.toMatch(/feature_delay|isHold|^long$/);
+  });
+
+  it("can turn a repeat on, and only then asks how often", () => {
+    select("pinky_1");
+    expect(labels()).not.toContain("Every (ms)");
+    const repeat = [...document.querySelectorAll<HTMLElement>(".field")].find(
+      (field) => field.querySelector("label")?.textContent === "Repeat the tap while held",
+    );
+    const box = repeat?.querySelector<HTMLInputElement>("input");
+    if (!box) throw new Error("no repeat checkbox");
+    box.checked = true;
+    box.dispatchEvent(new Event("change"));
+    expect(labels()).toContain("Every (ms)");
+  });
+
+  it("can put a stick back into keyboard mode, which the linter requires", () => {
+    document.querySelector<HTMLButtonElement>(".stick-dial .dir.up")?.click();
+    const mode = [...document.querySelectorAll<HTMLElement>(".field")]
+      .find((field) => field.querySelector("label")?.textContent === "Stick sends")
+      ?.querySelector("select");
+    expect(mode?.value).toBe("keyboard");
+  });
+
+  it("says why there are no stick modes for a single unit instead of hiding the panel", () => {
+    const panels = [...document.querySelectorAll(".panel")].map((panel) => panel.textContent);
+    expect(panels.some((text) => text.includes("needs a left and a right unit"))).toBe(true);
+  });
+});
+
+describe("unit settings", () => {
+  beforeEach(() => {
+    mount();
+  });
+
+  it("lets the sensor be chosen per unit, and warns when both would aim", () => {
+    const boxes = [...document.querySelectorAll<HTMLElement>(".unit-settings .field")]
+      .filter((field) => field.querySelector("label")?.textContent.endsWith("sensor aims"))
+      .map((field) => field.querySelector<HTMLInputElement>("input"));
+    expect(boxes).toHaveLength(2);
+    for (const box of boxes) {
+      if (box && !box.checked) {
+        box.checked = true;
+        box.dispatchEvent(new Event("change"));
+      }
+    }
+    expect(document.querySelector(".unit-settings .finding.warning")?.textContent).toContain(
+      "Both sensors are on",
+    );
+  });
+});
+
+describe("the header", () => {
+  it("labels the two selectors", () => {
+    mount();
+    const names = [...document.querySelectorAll("header .picker span")].map((n) => n.textContent);
+    expect(names).toEqual(["Game", "Layout (both hands)"]);
+  });
+});
+
+describe("the sheet tab", () => {
+  it("can be printed without the editor around it", () => {
+    mount();
+    [...document.querySelectorAll<HTMLButtonElement>("header button")]
+      .find((button) => button.textContent === "Sheet")
+      ?.click();
+    const tools = [...document.querySelectorAll(".sheet-tools button")].map((b) => b.textContent);
+    expect(tools).toEqual(["Print", "Download"]);
+  });
+});
+
+describe("the press test tab", () => {
+  it("keeps its place when something else on the page redraws", () => {
+    // It was started afresh on every render, so the Wide toggle, a selector or the tab
+    // itself put it back at the first position -- and threw away a stick-zero pass.
+    localStorage.clear();
+    mount();
+    const tab = (name: string): HTMLButtonElement => {
+      const found = [...document.querySelectorAll<HTMLButtonElement>("header button")].find(
+        (button) => button.textContent === name,
+      );
+      if (!found) throw new Error(`no ${name}`);
+      return found;
+    };
+    tab("Press test").click();
+    const prompt = (): string => document.querySelector(".prompt b")?.textContent ?? "";
+    const first = prompt();
+    [...document.querySelectorAll<HTMLButtonElement>("button")]
+      .find((button) => button.textContent === "Skip")
+      ?.click();
+    const second = prompt();
+    expect(second).not.toBe(first);
+
+    tab("Wide").click();
+    expect(prompt()).toBe(second);
   });
 });

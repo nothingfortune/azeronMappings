@@ -15,7 +15,13 @@ import { applyMode, detectMode } from "../lib/stickmodes.js";
 import type { StickModeSet } from "../lib/stickmodes.js";
 import { describeDirection } from "../lib/binding.js";
 import { ActionSet, Device, Profile } from "../lib/model-core.js";
-import { SLOTS, STICK_DIRECTIONS } from "../types/azeron.js";
+import {
+  DEFAULT_DOUBLE_DELAY,
+  DEFAULT_FEATURE_DELAY,
+  SLOTS,
+  STICK_DIRECTIONS,
+  STICK_MODE_CODES,
+} from "../types/azeron.js";
 import type { Slot } from "../types/azeron.js";
 import type { EditorGame, EditorPayload } from "../types/editor.js";
 import type { ActionSpec, PositionSpec, ProfileData } from "../types/profile.js";
@@ -53,6 +59,13 @@ interface State {
   selected: { slug: string; position: string } | null;
   slot: Slot;
 }
+
+/** What each slot is called on screen -- the Azeron app says long press, not `long`. */
+const SLOT_NAMES: Record<Slot, string> = {
+  tap: "Tap",
+  long: "Long press",
+  double: "Double tap",
+};
 
 let state: State;
 
@@ -394,13 +407,27 @@ function stickModesFor(): StickModeSet | null {
  * decision as one click, and it touches nothing but the directions.
  */
 function renderStickModes(): HTMLElement | null {
+  // Said, rather than the panel vanishing: a missing feature and an absent one look the
+  // same otherwise.
+  const unavailable = (reason: string): HTMLElement =>
+    el("div", { class: "panel" }, [
+      el("h2", {}, ["Stick modes"]),
+      el("div", { class: "note" }, [reason]),
+    ]);
+
   const set = stickModesFor();
-  if (set === null) return null;
+  if (set === null) {
+    return unavailable(`No stick modes are defined for this game's genre yet.`);
+  }
 
   const slugs = slugsInSet();
   const left = slugs.find((slug) => workingData(slug).profile.unit === "left");
   const right = slugs.find((slug) => workingData(slug).profile.unit === "right");
-  if (left === undefined || right === undefined) return null;
+  if (left === undefined || right === undefined) {
+    return unavailable(
+      "A stick mode sets both sticks at once, so it needs a left and a right unit.",
+    );
+  }
 
   const current = detectMode(
     set,
@@ -560,12 +587,77 @@ function assignToSelection(actionId: string): void {
   render();
 }
 
+/** The DPI steps a unit's template offers, or none when its template is not embedded. */
+function sensitivitySteps(game: EditorGame, slug: string): number[] {
+  try {
+    const settings = templateFor(game, profileFor(slug)).profiles[0]?.profileSettings;
+    return settings?.profileSensitivitySettings?.sensitivityValues ?? [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Per-unit settings that are not on any key: the sensor and its DPI.
+ *
+ * Both units have a sensor, and two sensors on at once drive the same pointer against
+ * each other -- so which one aims is a decision about the pair, made here.
+ */
+function renderUnitSettings(): HTMLElement {
+  const box = el("div", { class: "unit-settings" });
+  const game = currentGame();
+  const slugs = slugsInSet();
+  const on = slugs.filter((slug) => workingData(slug).profile.sensor === true).length;
+
+  for (const slug of slugs) {
+    const data = workingData(slug);
+    const unit = data.profile.unit ?? slug;
+    const sensor = el("input", { type: "checkbox" });
+    if (data.profile.sensor === true) sensor.setAttribute("checked", "checked");
+    sensor.addEventListener("change", () => {
+      data.profile.sensor = sensor.checked;
+      render();
+    });
+
+    const row = el("div", { class: "row2" }, [
+      el("div", { class: "field" }, [el("label", {}, [`${unit} unit's sensor aims`]), sensor]),
+    ]);
+
+    const steps = sensitivitySteps(game, slug);
+    if (steps.length > 0) {
+      const dpi = el("select", {});
+      dpi.append(el("option", { value: "" }, ["as the template has it"]));
+      for (const step of steps) {
+        const option = el("option", { value: String(step) }, [`${String(step)} DPI`]);
+        if (data.profile.dpi === step) option.setAttribute("selected", "selected");
+        dpi.append(option);
+      }
+      dpi.addEventListener("change", () => {
+        if (dpi.value === "") removeKey(data.profile, "dpi");
+        else data.profile.dpi = Number(dpi.value);
+        render();
+      });
+      row.append(el("div", { class: "field" }, [el("label", {}, ["Sensitivity"]), dpi]));
+    }
+    box.append(row);
+  }
+  if (on > 1) {
+    box.append(
+      el("div", { class: "finding warning" }, [
+        "Both sensors are on. They drive the same pointer, so moving either hand aims.",
+      ]),
+    );
+  }
+  return box;
+}
+
 function renderInspector(): HTMLElement {
   const panel = el("div", { class: "panel" });
   panel.append(el("h2", {}, ["Key"]));
   const selection = state.selected;
   if (!selection) {
     panel.append(el("div", { class: "empty-state" }, ["Pick a key to edit it."]));
+    panel.append(renderUnitSettings());
     return panel;
   }
 
@@ -593,6 +685,27 @@ function renderInspector(): HTMLElement {
   panel.append(el("div", { class: "field" }, [el("label", {}, ["Label"]), labelInput]));
 
   if (isStick) {
+    const modeSelect = el("select", {});
+    const current = spec.mode ?? "keyboard";
+    for (const mode of new Set([current, ...Object.keys(STICK_MODE_CODES)])) {
+      const encodable = mode in STICK_MODE_CODES;
+      const option = el("option", { value: mode }, [
+        encodable ? mode : `${mode} -- not allowed, pick keyboard`,
+      ]);
+      if (mode === current) option.setAttribute("selected", "selected");
+      if (!encodable) option.setAttribute("disabled", "disabled");
+      modeSelect.append(option);
+    }
+    modeSelect.addEventListener("change", () => {
+      spec.mode = modeSelect.value;
+      render();
+    });
+    panel.append(
+      el("div", { class: "field" }, [el("label", {}, ["Stick sends"]), modeSelect]),
+      el("div", { class: "note" }, [
+        "Keyboard only: gamepad mode made Everspace 2 flip between input devices and stutter.",
+      ]),
+    );
     for (const direction of STICK_DIRECTIONS) {
       const select = el("select", {});
       select.append(el("option", { value: "" }, ["— none —"]));
@@ -627,7 +740,7 @@ function renderInspector(): HTMLElement {
         else removeKey(spec, slot);
         render();
       });
-      const wrap = el("div", { class: "field" }, [el("label", {}, [slot]), select]);
+      const wrap = el("div", { class: "field" }, [el("label", {}, [SLOT_NAMES[slot]]), select]);
       if (slot === state.slot) wrap.setAttribute("data-active", "true");
       select.addEventListener("focus", () => {
         state.slot = slot;
@@ -640,15 +753,23 @@ function renderInspector(): HTMLElement {
     }
 
     const delays = el("div", { class: "row2" });
-    for (const field of ["feature_delay", "double_delay"] as const) {
-      const input = el("input", { type: "number", value: String(spec[field] ?? "") });
+    const delayFields = [
+      ["feature_delay", "Long-press wait (ms)", DEFAULT_FEATURE_DELAY],
+      ["double_delay", "Double-tap wait (ms)", DEFAULT_DOUBLE_DELAY],
+    ] as const;
+    for (const [field, name, fallback] of delayFields) {
+      const input = el("input", {
+        type: "number",
+        value: String(spec[field] ?? ""),
+        placeholder: String(fallback),
+      });
       input.addEventListener("change", () => {
         const value = Number(input.value);
         if (input.value === "" || Number.isNaN(value)) removeKey(spec, field);
         else spec[field] = value;
         render();
       });
-      delays.append(el("div", { class: "field" }, [el("label", {}, [field]), input]));
+      delays.append(el("div", { class: "field" }, [el("label", {}, [name]), input]));
     }
     panel.append(delays);
 
@@ -656,10 +777,50 @@ function renderInspector(): HTMLElement {
     if (spec.hold) hold.setAttribute("checked", "checked");
     hold.addEventListener("change", () => {
       if (hold.checked) spec.hold = true;
-      else delete spec.hold;
+      else removeKey(spec, "hold");
       render();
     });
-    panel.append(el("div", { class: "field" }, [el("label", {}, ["latch (isHold)"]), hold]));
+    panel.append(
+      el("div", { class: "field" }, [el("label", {}, ["Latch until pressed again"]), hold]),
+    );
+
+    // Repeat while held. A repeated key is down part of the time, so for an action the game
+    // reads as on or off it averages to part power -- the pulsed-thrust experiment.
+    const turbo = el("input", { type: "checkbox" });
+    if (spec.turbo) turbo.setAttribute("checked", "checked");
+    turbo.addEventListener("change", () => {
+      if (turbo.checked) spec.turbo = true;
+      else {
+        removeKey(spec, "turbo");
+        removeKey(spec, "turbo_interval");
+      }
+      render();
+    });
+    const repeat = el("div", { class: "row2" }, [
+      el("div", { class: "field" }, [el("label", {}, ["Repeat the tap while held"]), turbo]),
+    ]);
+    if (spec.turbo) {
+      const interval = el("input", {
+        type: "number",
+        value: String(spec.turbo_interval ?? ""),
+        placeholder: "app default",
+      });
+      interval.addEventListener("change", () => {
+        const value = Number(interval.value);
+        if (interval.value === "" || Number.isNaN(value)) removeKey(spec, "turbo_interval");
+        else spec.turbo_interval = value;
+        render();
+      });
+      repeat.append(el("div", { class: "field" }, [el("label", {}, ["Every (ms)"]), interval]));
+    }
+    panel.append(repeat);
+    if (spec.turbo_long || spec.turbo_double) {
+      panel.append(
+        el("div", { class: "note" }, [
+          "The long press or double tap also repeats; that is kept, and only editable in the YAML.",
+        ]),
+      );
+    }
   }
 
   const clear = el("button", { class: "btn", type: "button" }, ["Clear this key"]);
@@ -685,6 +846,9 @@ function renderChecks(): HTMLElement {
     return panel;
   }
 
+  // Stale acknowledgements are notes, not problems -- but `lint --strict` fails on them,
+  // so hiding them let the page read "Clean" on a tree the gate would reject.
+  const stale = result.live.filter((finding: Finding) => finding.rule === "stale-acknowledgement");
   const live = result.live.filter((finding: Finding) => finding.rule !== "stale-acknowledgement");
   const box = el("div", { class: "checks" });
   if (live.length === 0) {
@@ -694,7 +858,7 @@ function renderChecks(): HTMLElement {
       ]),
     );
   }
-  for (const finding of live) {
+  for (const finding of [...live, ...stale]) {
     const item = el("div", { class: `finding ${finding.level}` });
     item.append(el("b", {}, [`${finding.rule} · ${finding.position ?? finding.key ?? "-"}`]));
     item.append(document.createTextNode(finding.message));
@@ -725,6 +889,9 @@ function canSave(): boolean {
 }
 
 let saveNote: string | null = null;
+
+/** The press test's own element, kept across renders so its progress survives them. */
+let probeHost: HTMLElement | null = null;
 
 /** What the server said about a save, beyond the headline. Cleared by the next save. */
 let saveReport: HTMLElement | null = null;
@@ -935,14 +1102,19 @@ function renderHeader(): HTMLElement {
       [names[mode]],
     );
     tab.addEventListener("click", () => {
-      if (state.mode === "press-test" && mode !== "press-test") stopProbe();
+      if (state.mode === "press-test" && mode !== "press-test") {
+        stopProbe();
+        probeHost = null;
+      }
       state.mode = mode;
       render();
     });
     header.append(tab);
   }
 
-  header.append(gameSelect);
+  // Labelled: a bare "Everspace 2" beside a bare "akimbo-v10" said nothing about which
+  // was which, and "set" is this repo's word, not the user's.
+  header.append(el("label", { class: "picker" }, [el("span", {}, ["Game"]), gameSelect]));
 
   const setSelect = el("select", {});
   for (const name of setsOf(currentGame()).keys()) {
@@ -955,7 +1127,9 @@ function renderHeader(): HTMLElement {
     state.selected = null;
     render();
   });
-  header.append(setSelect);
+  header.append(
+    el("label", { class: "picker" }, [el("span", {}, ["Layout (both hands)"]), setSelect]),
+  );
   header.append(el("span", { class: "spacer" }));
 
   for (const slug of slugsInSet()) {
@@ -1231,6 +1405,34 @@ let repoNote: string | null = null;
 let ingameRows: IngameRow[] | null = null;
 let ingameCollisions: { key: string; actions: string[] }[] = [];
 
+/**
+ * Replace the page's data with the server's current payload, keeping the tab and game.
+ *
+ * Returns false when there is no server or it did not answer, so the caller can fall back
+ * to asking for a reload. Only used when nothing is unsaved -- a fresh payload replaces
+ * the working copies.
+ */
+async function refreshPayload(): Promise<boolean> {
+  if (!canSave() || isDirty()) return false;
+  try {
+    const response = await fetch("/api/payload");
+    if (!response.ok) return false;
+    const payload = (await response.json()) as EditorPayload;
+    const mode = state.mode;
+    const gameSlug = currentGame().slug;
+    start(payload);
+    state.mode = mode;
+    const index = payload.games.findIndex((game) => game.slug === gameSlug);
+    if (index >= 0) {
+      state.gameIndex = index;
+      state.setName = [...setsOf(currentGame()).keys()][0] ?? "";
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function post<T extends object = Record<string, unknown>>(
   path: string,
   body: unknown,
@@ -1351,12 +1553,20 @@ function renderRepo(): HTMLElement {
             render();
             return;
           }
-          repoNote =
-            result.ok === true
-              ? `wrote ${String(result.profilePath)} (${String(result.positions)} positions) ` +
-                `and kept the export at ${String(result.templatePath)}. Reload the page to open it.`
-              : `import refused: ${String(result.error)}`;
-          render();
+          if (result.ok !== true) {
+            repoNote = `import refused: ${String(result.error)}`;
+            render();
+            return;
+          }
+          const done =
+            `wrote ${String(result.profilePath)} (${String(result.positions)} positions) ` +
+            `and kept the export at ${String(result.templatePath)}.`;
+          void refreshPayload().then((refreshed) => {
+            repoNote = refreshed
+              ? `${done} It is in the Layout selector now.`
+              : `${done} Reload the page to open it.`;
+            render();
+          });
         });
       };
       send(false);
@@ -1525,10 +1735,22 @@ function renderPressTest(): HTMLElement {
     controls,
   );
 
-  // The probe renders into the element directly, so it does not need to be attached yet.
-  const host = el("div", {});
-  panel.append(host);
-  startProbe(probePayload(), host);
+  // Mounted once and re-attached after that. Starting it on every render put it back at
+  // step one whenever anything else on the page redrew -- the Wide toggle, a selector,
+  // the tab itself -- and threw away where the user was in the stick-zero pass.
+  if (probeHost === null) {
+    probeHost = el("div", {});
+    startProbe(probePayload(), probeHost, {
+      ...(canSave()
+        ? {
+            save: (path: string, content: string) => {
+              void saveToRepo(path, content);
+            },
+          }
+        : {}),
+    });
+  }
+  panel.append(probeHost);
 
   return panel;
 }
@@ -1536,9 +1758,21 @@ function renderPressTest(): HTMLElement {
 function renderSheet(): HTMLElement {
   const game = currentGame();
   const profiles = slugsInSet().map((slug) => profileFor(slug));
+  const html = renderCheatsheet(profiles, actionSetFor(game));
   const frame = el("iframe", { class: "sheet-frame", title: "cheatsheet" });
-  frame.srcdoc = renderCheatsheet(profiles, actionSetFor(game));
-  return frame;
+  frame.srcdoc = html;
+
+  // The sheet is for learning a layout away from the screen, so it has to leave the page.
+  // The browser's own Print would print the editor around it.
+  const print = el("button", { class: "btn primary", type: "button" }, ["Print"]);
+  print.addEventListener("click", () => {
+    frame.contentWindow?.print();
+  });
+  const save = el("button", { class: "btn", type: "button" }, ["Download"]);
+  save.addEventListener("click", () => {
+    download(`${game.slug}-${state.setName}.html`, html, "text/html");
+  });
+  return el("div", {}, [el("div", { class: "sheet-tools" }, [print, save]), frame]);
 }
 
 /**
@@ -1661,11 +1895,16 @@ function render(): void {
 /** Mount the editor into #app. Exported so tests can drive it against a real DOM. */
 export function start(payload = window.AZERON_PAYLOAD): void {
   if (!payload) throw new Error("no payload embedded in the page");
-  const style = document.createElement("style");
-  style.textContent = CSS;
-  document.head.append(style);
+  // Once: start() runs again whenever the page takes a fresh payload.
+  if (!document.getElementById("azeron-editor-styles")) {
+    const style = document.createElement("style");
+    style.id = "azeron-editor-styles";
+    style.textContent = CSS;
+    document.head.append(style);
+  }
 
   const firstGame = payload.games[0];
+  probeHost = null;
   state = {
     payload,
     mode: "edit",

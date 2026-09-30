@@ -82,6 +82,10 @@ select, .btn {
 .ingame-row .field label { font-size: 8.5px; }
 .ingame-row .field input { padding: 2px 5px; font-size: 11px; }
 .ingame-row .row2 { gap: 5px; }
+header .picker { display: inline-flex; flex-direction: column; gap: 1px; }
+header .picker span { font-size: 9.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.sheet-tools { display: flex; gap: 8px; margin-bottom: 8px; }
+.unit-settings { margin-top: 12px; display: grid; gap: 6px; }
 .action-list.inert { opacity: .45; pointer-events: none; }
 .note { font-size: 11.5px; color: var(--muted); margin-bottom: 10px; }
 .sheet-frame { width: 100%; min-height: 78vh; border: 1px solid var(--line); border-radius: 10px;

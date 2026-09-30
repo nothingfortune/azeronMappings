@@ -76,8 +76,11 @@ test.describe("the served editor", () => {
 
       await page.getByRole("button", { name: /^Save left$/ }).click();
 
-      // The verdict comes back from the server, not from the page guessing.
-      await expect(page.locator(".save-note")).toContainText("lint clean", { timeout: 15_000 });
+      // The verdict comes back from the server, not from the page guessing -- and it says
+      // the file was saved before it says anything else.
+      const report = page.locator(".save-report");
+      await expect(report).toContainText("Lint clean.", { timeout: 15_000 });
+      await expect(report.locator("> div").first()).toHaveText(/^Saved /);
       const after = readFileSync(PROFILE, "utf8");
       expect(after).toContain("Edited end to end");
       // The header says why the profile is the way it is; a save must not eat it.

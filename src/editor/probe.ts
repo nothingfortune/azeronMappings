@@ -314,6 +314,11 @@ function exportDevice(hand: string): void {
     `# Every pin below is an observation, not an inheritance from the left-hand map.\n` +
     `# Save this over devices/${unit.device}.yaml.\n`;
 
+  if (saveDevice !== null) {
+    saveDevice(`devices/${unit.device}.yaml`, dumpYaml(next, header));
+    return;
+  }
+
   // The two passes produce different files for the same unit, so the name says which
   // passes are in it and when -- otherwise the second download is just "(1)".
   download(
@@ -534,6 +539,14 @@ function renderSummary(): HTMLElement {
 
 let mountPoint: HTMLElement | null = null;
 
+/**
+ * Where a measured device map goes when there is somewhere better than Downloads.
+ *
+ * The editor sets this when it is served, so the map lands in `devices/` directly instead
+ * of as a timestamped file to rename and copy over by hand.
+ */
+let saveDevice: ((path: string, content: string) => void) | null = null;
+
 /** The key the probe profile binds to whatever is being asked for. */
 function expectedKey(): string | null {
   if (state.mode === "zero") {
@@ -684,8 +697,13 @@ function render(): void {
 }
 
 /** Mount the press test into a container. Exported so tests can drive it directly. */
-export function start(payload = window.AZERON_PROBE, root?: HTMLElement): void {
+export function start(
+  payload = window.AZERON_PROBE,
+  root?: HTMLElement,
+  options: { save?: (path: string, content: string) => void } = {},
+): void {
   if (!payload) throw new Error("no probe payload embedded in the page");
+  saveDevice = options.save ?? null;
   if (!document.getElementById("azeron-probe-styles")) {
     const style = document.createElement("style");
     style.id = "azeron-probe-styles";
@@ -718,4 +736,5 @@ export function stop(): void {
   document.removeEventListener("keydown", onKey);
   clearBurst();
   mountPoint = null;
+  saveDevice = null;
 }
