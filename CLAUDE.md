@@ -93,7 +93,10 @@ Three inputs meet in the compiler, and are kept separate:
 Profiles map position to action id, never position to raw key.
 
 - `compile.ts` neutralizes every _mapped_ pin in the template, then applies the YAML.
-  Pins in the device's `unknown_pins` and unused `pinOne: 255` slots are never touched.
+  Pins in the device's `unknown_pins` and unused `pinOne: 255` slots are never touched,
+  and neither is a record whose type is not a key, an empty slot, a mouse button or a
+  stick — `isRebindableRecord` decides, shared with the probe. Binding such a position
+  is refused rather than written over.
   `label` is overwritten in place rather than deleted and re-added, so key order — and
   therefore the `dist/` diff — stays stable.
 - `decompile.ts` goes the other way, for edits made in the Azeron app. Anything

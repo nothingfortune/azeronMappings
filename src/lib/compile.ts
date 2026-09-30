@@ -15,6 +15,7 @@ import type {
 } from "../types/azeron.js";
 import {
   activeAnalogKeys,
+  isRebindableRecord,
   DEFAULT_DOUBLE_DELAY,
   DEFAULT_FEATURE_DELAY,
   HOLD_FIELDS,
@@ -227,6 +228,9 @@ export function compileProfile(profile: Profile, options: CompileOptions = {}): 
     if (device.unknownPins.has(position.pin)) continue;
     const record = byPin.get(position.pin);
     if (!record) continue;
+    // A named pin is not automatically a key. The profile switch and the codes nobody has
+    // identified pass through, or the app repairs the profile on import.
+    if (!isRebindableRecord(record)) continue;
     neutralize(record, device.isStick(name));
     if (!(name in profile.positions)) delete record.label;
   }
@@ -240,6 +244,13 @@ export function compileProfile(profile: Profile, options: CompileOptions = {}): 
     if (!record) {
       throw new CompileError(
         `${profile.template ?? "template"}: no input for pin ${String(position.pin)} (${name})`,
+      );
+    }
+    if (!isRebindableRecord(record)) {
+      throw new CompileError(
+        `${profile.path}: position '${name}' is pin ${String(position.pin)}, whose record ` +
+          `carries type '${String(record.types[0])}' -- not a key, a mouse button or a ` +
+          "stick. Binding it would write over something the app owns.",
       );
     }
     applyPosition(record, spec, actions, name, device.isStick(name), device);

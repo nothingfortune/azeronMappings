@@ -9,11 +9,11 @@
 
 import type { ExportDocument, InputRecord, StickDirection, StickSector } from "../types/azeron.js";
 import {
+  isRebindableRecord,
   SECTOR_DEGREES,
   STICK_DIRECTIONS,
   STICK_SECTORS,
   TYPE_KEYBOARD,
-  TYPE_MOUSE,
   TYPE_NONE,
   TYPE_STICK_KEYBOARD,
   activeAnalogKeys,
@@ -48,24 +48,6 @@ export interface ProbeProfile {
 }
 
 export class ProbeError extends Error {}
-
-/**
- * Whether a record is an ordinary key that may be rebound.
- *
- * Pin 0 carries type "2", which the Azeron software repairs if it is overwritten: it is
- * the profile switch, not a key. Rebinding it produced a profile the app had to fix on
- * import. Anything whose type is not a plain key, mouse button or stick is left exactly
- * as the template has it.
- */
-function isRebindable(record: InputRecord): boolean {
-  const type = String(record.types[0]);
-  return (
-    type === TYPE_KEYBOARD ||
-    type === TYPE_NONE ||
-    type === TYPE_MOUSE ||
-    type === TYPE_STICK_KEYBOARD
-  );
-}
 
 function clearSlots(record: InputRecord): void {
   record.types = [TYPE_NONE, TYPE_NONE, TYPE_NONE];
@@ -104,7 +86,9 @@ export function buildProbeProfile(
   target.name = options.name;
 
   const unknown = new Set(options.unknownPins ?? []);
-  const records = target.inputs.filter((record) => record.pinOne !== 255 && isRebindable(record));
+  const records = target.inputs.filter(
+    (record) => record.pinOne !== 255 && isRebindableRecord(record),
+  );
   const ordered = [
     ...records.filter((record) => !unknown.has(record.pinOne)),
     ...records.filter((record) => unknown.has(record.pinOne)),
@@ -280,7 +264,7 @@ export function buildStickCalibrationProfile(
     const isStick =
       record.types[0] === TYPE_STICK_KEYBOARD ||
       (record.pinOne !== 255 && record.pinTwo !== 255 && record.pinTwo !== record.pinOne);
-    if (!isRebindable(record)) continue;
+    if (!isRebindableRecord(record)) continue;
     clearSlots(record);
     if (!isStick) continue;
     found = true;

@@ -351,3 +351,51 @@ describe("a right-hand unit's stick", () => {
     });
   });
 });
+
+describe("records the compiler must not rewrite", () => {
+  /**
+   * A pin the device map names is not automatically a key. Pin 0 carries type "2", the
+   * profile switch, and the app repairs a profile that overwrites it -- that is how pin 0
+   * was identified in the first place. Codes "6", "29" and "30" are not understood at all.
+   * Today pin 0 is safe only because both device files list it under `unknown_pins`; a map
+   * that named it would have had it blanked.
+   */
+  const PIN = "pinky_1";
+
+  function withType(type: string) {
+    const { game, profile, template } = fixture();
+    const pin = profile.device.positions[PIN]?.pin;
+    if (pin === undefined) throw new Error(`the device has no ${PIN}`);
+    const loaded = structuredClone(template);
+    const record = loaded.profiles[0]?.inputs.find((input) => input.pinOne === pin);
+    if (!record) throw new Error("no record for the pin");
+    record.types = [type, TYPE_NONE, TYPE_NONE];
+    record.label = "owned by the app";
+    return { game, profile, loaded, pin, before: structuredClone(record) };
+  }
+
+  it("leaves a record it does not understand exactly as the template had it", () => {
+    const { game, profile, loaded, pin, before } = withType("2");
+    const data = structuredClone(profile.data);
+    removeKey(data.positions, PIN);
+    const silent = new Profile(data, profile.device, { path: profile.path, game });
+    const built = compileProfile(silent, { template: loaded, actions: game.actions.actions });
+    const after = built.profiles[0]?.inputs.find((input) => input.pinOne === pin);
+    expect(JSON.stringify(after)).toBe(JSON.stringify(before));
+  });
+
+  it("refuses to bind one rather than writing over it", () => {
+    const { game, profile, loaded } = withType("2");
+    expect(() =>
+      compileProfile(profile, { template: loaded, actions: game.actions.actions }),
+    ).toThrow(/carries type '2'/);
+  });
+
+  it("still rewrites an empty slot, which is an ordinary unbound key", () => {
+    const { game, profile, loaded, pin } = withType(TYPE_NONE);
+    const built = compileProfile(profile, { template: loaded, actions: game.actions.actions });
+    const after = built.profiles[0]?.inputs.find((input) => input.pinOne === pin);
+    expect(after?.types[0]).toBe("1");
+    expect(after?.label).toBe("Consume 1");
+  });
+});

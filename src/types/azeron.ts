@@ -164,3 +164,22 @@ export const STICK_MODE_CODES: Record<string, string> = { keyboard: TYPE_STICK_K
 export function activeAnalogKeys(settings: AnalogSettings): AnalogDirections {
   return settings.isRightAnalog === true ? settings.analogKeys.right : settings.analogKeys.left;
 }
+
+/**
+ * Whether a record is an ordinary input the compiler may rewrite.
+ *
+ * Pin 0 carries type `"2"`, the profile switch, which the Azeron software repairs if it is
+ * overwritten -- a probe that rebound it produced a profile the app had to fix on import.
+ * The codes `"6"`, `"29"` and `"30"` are not understood at all. Anything whose type is not
+ * a plain key, an empty slot, a mouse button or a stick is left exactly as the template
+ * has it, however the device map names its pin.
+ */
+export function isRebindableRecord(record: InputRecord): boolean {
+  const type = String(record.types[0]);
+  return (
+    type === TYPE_KEYBOARD ||
+    type === TYPE_NONE ||
+    type === TYPE_MOUSE ||
+    type === TYPE_STICK_KEYBOARD
+  );
+}
