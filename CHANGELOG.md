@@ -12,6 +12,44 @@ Every profile change, and why. `playtests.md` records what each layout felt like
   name that becomes a path (the CLI accepted `--game "Deep Rock"` and wrote a folder with a
   space in it, and any genre or device string), refuses to replace a game or layout without
   confirmation, and removes what it wrote if it fails part way.
+- **Pedals are part of a layout.** `devices/logitech-pro-flight-pedals.yaml` describes the
+  Logitech Pro Flight rudder pedals (three axes: the rudder centres, the toe brakes rest
+  at an end), and a game's `sets.yaml` says what a layout's pedals do -- which game axis
+  each drives, with `invert`, `dead_zone`, `scale`, `sensitivity`, `exponent` -- keyed by
+  the same set name as the profiles, so one layout name selects keypads and pedals
+  together. A game axis is named in the genre's vocabulary (`yaw`) and reaches the game's
+  row (`Yaw`) through the action vocabulary.
+- **Pedals are a modifier on the stick mode.** `stick-modes.yaml` says which axes pedals
+  take (`pedals.takes: [yaw]`) and each mode's `with_pedals` says what its sticks do with
+  the slot that frees (roll). `directionsFor`, `applyMode` and `detectMode` take a
+  `withPedals` flag, `detectStickModes` lists every reading, and every mode is unchanged
+  without pedals.
+- **The game's Joystick axis rows are generated too.** `azeron ingame --apply` writes a
+  layout's pedal assignments into the Joystick group's axis rows (`Key1`, and `bInvert`,
+  `DeadZone`, `Scale`, ... where the layout says), under the keyboard side's guarantees:
+  only owned rows, every other line byte-identical (the flight stick's buttons survive),
+  line endings kept, a fixed point. A pedal axis with no game name writes nothing and is
+  reported as waiting; `--require-pedals` makes that a refusal.
+- **Names are read or reasoned, and say how far to trust them.** Each pedal axis's game name
+  in the device file carries a status: `confirmed` (flown; none yet), `inferred`,
+  `unconfirmed`, `bound` (recorded by a capture) or `candidate` (by hand), and generation
+  says which it used. The game registers three inputs for the pedals, which its own log
+  confirms (`JS0_SaitekProFlightRudderPedals_Axis0` to `_Axis2`; the index is SDL's and can
+  be negative, as in the flight stick's `JS-1_T16000M_Button0`); which is which is inferred:
+  the rudder is `Axis2`, the toes `Axis0` and `Axis1` in an order that is less certain.
+- `azeron ingame --capture-pedals` reads a file the pedals were bound in and records new
+  names as `bound`. A capture shows what the game wrote, not which pedal moved -- a toe
+  rests at the end of its travel and wins a bind meant for the rudder, which is how the
+  owner's file came to have Yaw on a toe -- so it places a name only when the layout makes
+  that unambiguous, reports a recorded name found on the wrong row as a conflict without
+  changing either, and leaves the rest. `--candidate pedal_axis=NAME` writes a hand-made
+  name as a `candidate`; the repo never picks one.
+- Lint: `pedal-axis-assigned-twice`, `pedal-shared-mismatch`, `pedal-unknown-game-axis`,
+  `pedal-unknown-axis`, `pedals-no-device`, `pedals-set-unknown`, `pedal-duplicates-stick`,
+  `pedals-mode-without-pedals`, and `pedal-rest-on-centred`, which warns that a toe brake
+  (rests at one end) bound to a game axis read about a centre is a full deflection with the
+  foot off -- measured: -1.0 at rest, +1.0 pressed, and no field of the game's row can
+  re-centre it. The editor payload carries the pedals device and each layout's assignments.
 - **The editor is the interface.** `npm start` builds and serves it: both units side by
   side, click a key and an action, Save writes the profile into the repo, rebuilds
   `dist/` and returns the linter's verdict. It imports the same compiler and linter as the
@@ -35,7 +73,12 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Layouts
 
-- **akimbo v10** is the live pair: stick mode 2 with yaw on the left stick, pitch and roll
+- **akimbo v10** now has pedals: the rudder on yaw, and its sticks are Mode 2 _with pedals_
+  -- roll, not yaw, on the left stick, since the pedals carry the turn. The toe brakes are
+  bound to nothing: they read a full deflection at rest on any centred game axis (see
+  `playtests.md`). The rudder's name is inferred, not flown. Not yet flown.
+- **akimbo v10** is the live pair: stick mode 2 with yaw on the left stick (now roll, with
+  the pedals; see above), pitch and roll
   on the right thumb pad, weapons and targeting on the left hand, every label the
   action's own. Not yet flown. v6 to v9 are in git history; none was flown, and none did
   what its files said — see below.

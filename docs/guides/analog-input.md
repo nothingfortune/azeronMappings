@@ -158,8 +158,9 @@ mouse movement. The game is launched through Steam and only ever sees keyboard a
 
 **Checked 2026-09-30: Everspace 2 reads DirectInput joysticks natively.** Its `Input.ini`
 has a Joystick group alongside Keyboard and Gamepad, and already holds 24 bindings to a
-Thrustmaster T.16000M, named `JS-1_T16000M_Button0` and so on — the game names each device
-`JS-<n>_<device>_…`. `GameUserSettings.ini` carries `InputMethod=MouseAndJoystick`: mouse
+Thrustmaster T.16000M, named `JS-1_T16000M_Button0` and so on — the game names each input
+`JS<index>_<Device>_<Input>`, and the index is its own count of devices, negative for a
+stick that is not plugged in. `GameUserSettings.ini` carries `InputMethod=MouseAndJoystick`: mouse
 and joystick together is a mode the game is built for, not a mix it flips between. The
 stutter in constraint 1 was gamepad against keyboard and mouse; this is not that.
 
@@ -174,16 +175,50 @@ at one end and are pressed towards the other.
 - **Rudder to yaw** is the natural fit: proportional, and it centres itself — what neither
   the pointer (a position you have to return) nor a keyboard-mode stick (full rate or
   nothing) can give.
-- **A toe brake to thrust** is the proportional throttle this whole guide has been
-  looking for, with one question first. `MoveForward` expects a centred axis, −1 to +1,
-  and a toe brake rests at an end. If the game reads a resting toe as −1, then bound
-  straight to thrust it means full reverse — or, with the default invert, full forward —
-  with your foot off the pedal. Bind it and watch the ship at rest before anything else.
+- **A toe brake to thrust** looked like the proportional throttle this whole guide has been
+  looking for, with one question first: `MoveForward` expects a centred axis, −1 to +1, and
+  a toe brake rests at an end. **That question now has a measured answer, and it is no.**
+  With no Windows calibration stored, each toe reads −1.0 at rest and +1.0 fully pressed. On
+  any game axis read about a centre — all six flight axes — a toe is therefore a full
+  deflection with the foot off, and the fields the game's row offers (`bInvert`, `Scale`,
+  `DeadZone`, `Sensitivity`, `Exponent`) cannot re-centre it: none of them is an offset.
+  The toes are not bound to anything.
 
-The names the game gives the pedals' axes are not known until it has seen them, and the
-repo does not invent names: bind them in the game's own controls screen first, then they
-come under `actions.yaml` like everything else. Until then, `azeron ingame --apply` leaves
-every Joystick row exactly as it is — it owns keyboard rows only.
+**This has a home in the repo.** The pedals are a device (`devices/logitech-pro-flight-
+pedals.yaml`), what a layout does with them is in the game's `sets.yaml` beside its profiles
+(`akimbo-v10`: the rudder on yaw), and the stick mode has a with-pedals variant that hands
+the stick axis the rudder now carries to roll. `azeron ingame --apply` writes the layout's
+pedals into the Joystick group's axis rows, under the keyboard side's guarantees; see "The
+game's own binding file" in `CLAUDE.md`.
+
+**What is known about the names, and what is not.** The pedals are sold as Logitech and
+report as Saitek (USB 06a3:0763); Windows lists three axes, X, Y and Rz, which the driver
+labels "Left Toe", "Right Toe" and "Rudder". The game reads joysticks through SDL and its own
+log (`LogJoystickPlugin_*.log`) registers exactly three inputs for them, zero-based:
+`JS0_SaitekProFlightRudderPedals_Axis0`, `_Axis1`, `_Axis2`. Those three names are
+confirmed. Which is which is not:
+
+- The rudder is the last axis in every ordering (DirectInput's X, Y, Rz and the raw HID
+  order Y, X, Rz), so it is **`Axis2`** — strong, but inferred, and not flown.
+- Under SDL's DirectInput ordering `Axis0` is the left toe and `Axis1` the right toe. Which
+  toe is which is the less certain part; they are recorded as unconfirmed.
+- The owner's own `Input.ini` had Yaw on `Axis1`. That is a toe: the game's bind screen
+  takes whatever moves first, and a toe reads full deflection from the start, so it won a
+  capture meant for the rudder. It was a mis-capture, not a fact about the rudder, and it
+  is the reason a capture is recorded as `bound` (what the game wrote) and never as
+  confirmed. `azeron ingame --apply` moves it: Yaw takes `Axis2`.
+
+Each name in the device file carries a status — `confirmed` (flown; none yet), `inferred`,
+`unconfirmed`, `bound`, `candidate` — and generation says which it used, so a name that is
+not yet flown is never mistaken for one that is.
+
+**What to do next.** Apply, then fly the rudder: does the ship yaw in proportion to the
+pedal, and stop when it centres? If it yaws on its own or the wrong way, the inference is
+wrong and `azeron ingame --capture-pedals` will say where the file and the device data
+disagree. Nothing about the toes can be settled until someone finds what the game does with
+a one-sided axis — a half-range option in its controls screen, say (none is known to
+exist). `pedal-rest-on-centred` warns on any
+rest-at-end axis assigned to a centred game axis, so binding one is a visible decision.
 
 One thing we cannot do either way: the Azeron itself cannot be made to present as a
 joystick. It exposes a fixed set of USB HID interfaces, with configuration over hidraw on

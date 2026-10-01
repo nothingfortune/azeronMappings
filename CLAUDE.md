@@ -40,37 +40,39 @@ mean to work in.
 The CLI is `bin/azeron` (also `npm run azeron -- <command>`), and it runs the built
 output, so `npm run build` first:
 
-| Command                                             | Purpose                                                |
-| --------------------------------------------------- | ------------------------------------------------------ |
-| `azeron build [game] [--check]`                     | compile profile YAML into `dist/`                      |
-| `azeron lint [game] [--strict]`                     | the constraint rules; `--show-acknowledged` too        |
-| `azeron roundtrip [game]`                           | golden profiles must rebuild their template exactly    |
-| `azeron cheatsheet [game]`                          | per-profile layout diagram + binding checklist         |
-| `azeron bindings [game]`                            | the in-game key list, to check against the game        |
-| `azeron ingame [game] [--apply]`                    | compare the game's `Input.ini`; `--apply` rewrites it  |
-| `azeron serve [--port N]`                           | the editor, able to save back into the repo            |
-| `azeron editor`                                     | the side-by-side editor, one self-contained HTML       |
-| `azeron probe [--device D]`                         | press-test profile + capture page for the real pin map |
-| `azeron import <export.json> --genre G --game SLUG` | start a game folder from an export                     |
-| `azeron decompile <export.json> [-o ...]`           | an app export back into profile YAML                   |
-| `azeron install [game] --device-id ID`              | write straight into the Azeron app's profile store     |
+| Command                                             | Purpose                                                      |
+| --------------------------------------------------- | ------------------------------------------------------------ |
+| `azeron build [game] [--check]`                     | compile profile YAML into `dist/`                            |
+| `azeron lint [game] [--strict]`                     | the constraint rules; `--show-acknowledged` too              |
+| `azeron roundtrip [game]`                           | golden profiles must rebuild their template exactly          |
+| `azeron cheatsheet [game]`                          | per-profile layout diagram + binding checklist               |
+| `azeron bindings [game]`                            | the in-game key list, to check against the game              |
+| `azeron ingame [game] [--apply]`                    | compare the game's `Input.ini`; `--apply` rewrites it        |
+| `azeron ingame [game] --capture-pedals`             | record the pedals' game names from a file they were bound in |
+| `azeron ingame [game] --candidate axis=NAME`        | write a hand-written pedal name (a candidate)                |
+| `azeron serve [--port N]`                           | the editor, able to save back into the repo                  |
+| `azeron editor`                                     | the side-by-side editor, one self-contained HTML             |
+| `azeron probe [--device D]`                         | press-test profile + capture page for the real pin map       |
+| `azeron import <export.json> --genre G --game SLUG` | start a game folder from an export                           |
+| `azeron decompile <export.json> [-o ...]`           | an app export back into profile YAML                         |
+| `azeron install [game] --device-id ID`              | write straight into the Azeron app's profile store           |
 
 ## Layout
 
-| Path                    | Contents                                                           |
-| ----------------------- | ------------------------------------------------------------------ |
-| `src/lib/`              | The toolchain. Pure modules; `io.ts` holds every filesystem touch. |
-| `src/editor/`           | Browser editor. `main.ts` is the bundle entry, `app.ts` the code.  |
-| `src/types/`            | Shared types: the export format, the YAML schemas, the payload.    |
-| `src/config/paths.ts`   | Repo root and the data directory names.                            |
-| `tests/unit/`           | Vitest specs mirroring `src/`.                                     |
-| `tests/bin/run.sh`      | CLI smoke tests.                                                   |
-| `devices/`              | Pin map per unit.                                                  |
-| `genres/<Genre>/`       | Shared action vocabulary and default layout for a kind of game.    |
-| `games/<Genre>/<game>/` | `game.yaml`, `actions.yaml`, `profiles/*.yaml`, `playtests.md`.    |
-| `templates/`            | Real Azeron exports, committed untouched.                          |
-| `dist/`                 | Compiled import JSON and cheatsheets. **Committed.**               |
-| `build/`                | TypeScript output. Gitignored. Not to be confused with `dist/`.    |
+| Path                    | Contents                                                                     |
+| ----------------------- | ---------------------------------------------------------------------------- |
+| `src/lib/`              | The toolchain. Pure modules; `io.ts` holds every filesystem touch.           |
+| `src/editor/`           | Browser editor. `main.ts` is the bundle entry, `app.ts` the code.            |
+| `src/types/`            | Shared types: the export format, the YAML schemas, the payload.              |
+| `src/config/paths.ts`   | Repo root and the data directory names.                                      |
+| `tests/unit/`           | Vitest specs mirroring `src/`.                                               |
+| `tests/bin/run.sh`      | CLI smoke tests.                                                             |
+| `devices/`              | Pin map per unit; and `kind: pedals` devices (axes, no pins).                |
+| `genres/<Genre>/`       | Shared action vocabulary and default layout for a kind of game.              |
+| `games/<Genre>/<game>/` | `game.yaml`, `actions.yaml`, `sets.yaml`, `profiles/*.yaml`, `playtests.md`. |
+| `templates/`            | Real Azeron exports, committed untouched.                                    |
+| `dist/`                 | Compiled import JSON and cheatsheets. **Committed.**                         |
+| `build/`                | TypeScript output. Gitignored. Not to be confused with `dist/`.              |
 
 ## Architecture
 
@@ -121,6 +123,29 @@ RC throttle is vertical, pitch is thrust, roll is strafe, and yaw is yaw — and
 ship has six axes and two thumbs (the d-pad is under the same thumb as the stick), so
 which four go on the sticks is a choice; roll is not a stand-in for yaw.
 
+**Pedals are a modifier on the stick mode, and part of the layout.** Rudder pedals carry
+yaw, so a stick that still sends it duplicates them. `stick-modes.yaml` says which axes
+pedals take (`pedals.takes`) and each mode's `with_pedals` which slots to replace — in
+every mode, the freed slot goes to roll. `directionsFor` / `applyMode` / `detectMode` take
+a `withPedals` flag and always agree; without it every mode is exactly what it was.
+`detectStickModes` lists every reading, because Mode 2 with pedals is also Mode 2, roll
+for yaw: the sticks cannot say which they are, the layout can, by whether it has pedals.
+
+What a layout's pedals do lives in the game's `sets.yaml`, keyed by set name, beside the
+profiles that carry `set:` — one name selects the keypads and the pedals together, and a
+layout is saved as one control scheme. (A profile is one unit's file and the pedals belong
+to neither; the device file is hardware shared by every game.) Each entry is
+`pedal axis: {drives: yaw, invert, dead_zone, scale, sensitivity, exponent, shared}`.
+`drives` is a game axis in the genre's vocabulary; it reaches the game's row (`Yaw`) through
+the `ingame` row of the action at the axis's `up` end, so nothing names a game row twice.
+One game axis driven by two pedal axes is an error unless every one says `shared: true`.
+The device, `devices/<pedals>.yaml` with `kind: pedals`, has three axes with `rest: centre`
+or `end`, and per game a `names` entry — `{name, status}` — saying what the game calls the
+axis and how far to trust it (`confirmed` flown; `inferred`; `unconfirmed`; `bound` by
+`--capture-pedals`; `candidate` by hand), plus `inputs`, the names the game registers for
+the device, which no axis may step outside of. The editor payload carries it under `pedals`, apart from `devices`, so everything that expects
+a pin map keeps getting only keypads; each game carries its `sets` and `ingameSet`.
+
 `src/lib/tasks.ts` holds the operations — build, lint, import an export, read the game's
 config — as functions rather than commands. The CLI and the served editor both call
 them, so what the UI can do is what the CLI can do rather than a subset that drifts. The
@@ -133,7 +158,7 @@ sets. Sniffing the protocol would claim as much of a static file served by any w
 server, and the buttons would then silently do nothing.
 
 Writes go through `resolveSavePath`, which accepts profile YAML, a game's `actions.yaml`
-and device maps, and nothing else — checked on the resolved path, so no spelling of `..`
+and `sets.yaml`, and device maps (pedals included), and nothing else — checked on the resolved path, so no spelling of `..`
 escapes.
 
 `azeron editor` writes one page for every game: games and sets are data, chosen from the
@@ -282,6 +307,54 @@ A layout then changes on the keypads alone; the in-game half is never edited by 
 `azeron ingame` without `--apply` reports rows that **differ** — the game has the row on
 another key — which is what key matching alone could not see: it found _a_ binding for A
 and called it agreement, while the game had A on "Strafe right".
+
+### The Joystick group, for the pedals
+
+The Joystick group's flight rows are axes (`bIsAxis=True`, `Key1=None`) waiting for a
+device. `game.yaml`'s `ingame_set` names the layout whose pedals `--apply` writes into them
+(the game has one file, so one layout's control scheme at a time). The guarantees are the
+keyboard side's:
+
+- **Owned rows only**: the six flight axis rows (every axis in `stick-modes.yaml`). `Key1`
+  (and `Key2` for a `shared` pair) gets the pedal's game name; `bInvert` / `DeadZone` /
+  `Scale` / `Sensitivity` / `Exponent` are written only where the layout says. Every other
+  line — the T.16000M button bindings above all — is byte-identical, CRLF is kept, and
+  generating twice is generating once. A known pedal name left on an owned row the layout
+  no longer uses is cleared; a binding that is not a pedal's is never overwritten, it is a
+  refusal that names the axis.
+- **Names are read or reasoned, never invented, and say how far to trust them.** The game
+  reads joysticks through SDL and names an input `JS<index>_<Device>_<Input>` —
+  `JS0_SaitekProFlightRudderPedals_Axis2`. The index is SDL's joystick index and **can be
+  negative** (`JS-1_T16000M_Button0` is a stick that is not plugged in), so compare the
+  device part, never the index; the device is the product string with its spaces removed
+  and axes are numbered from zero. The game's own log lists the three inputs it registers
+  for the pedals — those names are confirmed (`inputs`) — but **which is which is not**:
+  the rudder is `Axis2` by enumeration order (`inferred`), and the toes are `Axis0` and
+  `Axis1` in an order that is less certain still (`unconfirmed`). Generation writes any
+  status and says which it used; a pedal axis with no name writes nothing and is reported
+  as waiting; `--require-pedals` turns that into a refusal. The rest of the layout generates
+  regardless.
+- **`azeron ingame --capture-pedals`** reads a file the user has bound the pedals in, finds
+  the Joystick axis rows bound to a device that has no buttons in the file (so not the
+  flight stick), and records each new name as `bound`. What a capture proves is what the
+  _game_ wrote, not which pedal moved: **a toe brake rests at the end of its travel, so
+  touching it wins a capture meant for the rudder** — the owner's own file has Yaw on
+  `Axis1`, a toe, for exactly that reason. So it places a name by the row the layout says
+  that pedal drives only when that is unambiguous, checks a name already recorded against
+  where the file has it and reports a disagreement as a conflict without changing either,
+  and reports anything else unplaced (`--assign NAME=axis` says which, and can move a
+  name). Partly named is ordinary and reported as such.
+- **Candidates.** The game's own controls screen would not take the toes, so a name can be
+  written by hand (`--candidate axis=NAME`, or the file). It is a `candidate`, generated
+  like any other name and flagged by status wherever it is reported. The repo never
+  chooses one.
+- **The toe brakes cannot be bound to a centred game axis as they are.** Measured, with
+  no Windows calibration stored: a toe reads -1.0 at rest and +1.0 fully pressed, so on any
+  game axis read about a centre (all six flight axes) it is a **full deflection with the
+  foot off**, and `invert`, `scale`, `dead_zone`, `sensitivity` and `exponent` — the
+  fields the game's row offers — cannot re-centre it. The toes are modelled and left off
+  every layout. `pedal-rest-on-centred` warns on any rest-at-end axis assigned to a centred
+  game axis. See `docs/guides/analog-input.md`.
 
 ## Detecting the units
 
