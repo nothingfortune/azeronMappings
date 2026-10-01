@@ -9,5 +9,5 @@ genres/
 games/
 templates/
 
-# Generated Azeron import JSON and cheatsheets; byte-for-byte output of the compiler.
+# Generated Azeron import JSON and the game's bindings; byte-for-byte output of the compiler.
 dist/

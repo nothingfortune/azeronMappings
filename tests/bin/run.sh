@@ -51,6 +51,8 @@ says "the pedals are reported with how far each name is trusted" "rudder .*\[inf
 says "capturing finds the recorded rudder where the layout expects it" "already recorded: rudder .*inferred" \
   ./bin/azeron ingame everspace --capture-pedals --config dist/SpaceSims/everspace/Input.ini
 check_fails "unknown command exits non-zero" ./bin/azeron nonsense
+check_fails "the cheatsheet command is gone" ./bin/azeron cheatsheet
+check "no generated HTML is tracked" bash -c '[ -z "$(git ls-files "*.html")" ]'
 check_fails "unknown game exits non-zero" ./bin/azeron lint no-such-game
 says "install refuses without --yes" "Re-run with --yes" ./bin/azeron install everspace
 says "install refuses one device id for a pair" "would send profiles for 2 units" \

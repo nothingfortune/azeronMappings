@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** azeron -- build, decompile, lint, cheatsheet, editor, install. */
+/** azeron -- build, decompile, lint, editor, install. */
 
 import { createServer } from "node:http";
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -9,7 +9,6 @@ import { parseArgs } from "node:util";
 
 import { dataDirs, repoPath, repoRoot } from "./config/paths.js";
 import { bindingSheet, renderBindingsCsv, renderBindingsMarkdown } from "./lib/bindings.js";
-import { renderCheatsheet } from "./lib/cheatsheet.js";
 import { CompileError, compileProfile, dumps } from "./lib/compile.js";
 import { decompile, dumpProfile } from "./lib/decompile.js";
 import { buildPayload } from "./lib/editor/payload.js";
@@ -181,28 +180,6 @@ function cmdRoundtrip(selector: string | undefined): number {
     }
   }
   return failures > 0 ? 1 : 0;
-}
-
-function cmdCheatsheet(selector: string | undefined): number {
-  for (const game of games(selector)) {
-    // One page per set, so a pair is learned as a pair rather than as two sheets.
-    const bySet = new Map<string, Profile[]>();
-    for (const profile of game.loadedProfiles()) {
-      const key = profile.set ?? profile.slug;
-      const list = bySet.get(key) ?? [];
-      list.push(profile);
-      bySet.set(key, list);
-    }
-    for (const [setName, profiles] of [...bySet].sort(([a], [b]) => a.localeCompare(b))) {
-      const ordered = [...profiles].sort(
-        (a, b) => Number(a.unit === "right") - Number(b.unit === "right"),
-      );
-      const outPath = join(game.distDir(), "cheatsheets", `${setName}.html`);
-      writeText(outPath, renderCheatsheet(ordered, game.actions));
-      out(`wrote ${outPath}  (${String(ordered.length)} unit(s))`);
-    }
-  }
-  return 0;
 }
 
 const PROBE_ID = "7c3f5f2e-2a3b-4c21-9b7d-0d2f6a1c4e88";
@@ -922,7 +899,6 @@ function usage(): void {
   lint [game] [--strict] [--show-acknowledged]
                                   the constraint rules from real play sessions
   roundtrip [game]                verify golden profiles rebuild their template
-  cheatsheet [game]               per-profile layout diagram + binding checklist
   bindings [game]                 the in-game key list to check against the game
   ingame [game] [--apply] [--config PATH] [--require-pedals]
                                   compare the game's own bindings; --apply makes them agree
@@ -1002,8 +978,6 @@ export function main(argv: string[]): number {
       return cmdLint(positionals[0], values.strict, values["show-acknowledged"]);
     case "roundtrip":
       return cmdRoundtrip(positionals[0]);
-    case "cheatsheet":
-      return cmdCheatsheet(positionals[0]);
     case "bindings":
       return cmdBindings(positionals[0]);
     case "ingame":

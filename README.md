@@ -71,7 +71,7 @@ applied to both sticks in one click from the editor's side panel.
 | `devices/`              | Which physical pin each position is, per unit — measured, not guessed                     |
 | `genres/<Genre>/`       | The action vocabulary and stick modes a kind of game shares                               |
 | `templates/`            | Real exports from the app, which the compiler builds on                                   |
-| `dist/`                 | **What you import.** Compiled JSON, cheatsheets, the game's bindings. Committed.          |
+| `dist/`                 | **What you import.** Compiled JSON and the game's bindings. Committed.                    |
 | `build/`                | Compiled TypeScript. Throwaway, not committed — nothing here is for you.                  |
 
 ## When it refuses

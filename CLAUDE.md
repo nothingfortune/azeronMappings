@@ -45,7 +45,6 @@ output, so `npm run build` first:
 | `azeron build [game] [--check]`                     | compile profile YAML into `dist/`                            |
 | `azeron lint [game] [--strict]`                     | the constraint rules; `--show-acknowledged` too              |
 | `azeron roundtrip [game]`                           | golden profiles must rebuild their template exactly          |
-| `azeron cheatsheet [game]`                          | per-profile layout diagram + binding checklist               |
 | `azeron bindings [game]`                            | the in-game key list, to check against the game              |
 | `azeron ingame [game] [--apply]`                    | compare the game's `Input.ini`; `--apply` rewrites it        |
 | `azeron ingame [game] --capture-pedals`             | record the pedals' game names from a file they were bound in |
@@ -71,7 +70,7 @@ output, so `npm run build` first:
 | `genres/<Genre>/`       | Shared action vocabulary and default layout for a kind of game.              |
 | `games/<Genre>/<game>/` | `game.yaml`, `actions.yaml`, `sets.yaml`, `profiles/*.yaml`, `playtests.md`. |
 | `templates/`            | Real Azeron exports, committed untouched.                                    |
-| `dist/`                 | Compiled import JSON and cheatsheets. **Committed.**                         |
+| `dist/`                 | Compiled import JSON and the game's bindings. **Committed.**                 |
 | `build/`                | TypeScript output. Gitignored. Not to be confused with `dist/`.              |
 
 ## Architecture

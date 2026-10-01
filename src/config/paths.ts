@@ -16,7 +16,7 @@ export const dataDirs = {
   genres: "genres",
   games: "games",
   templates: "templates",
-  /** Compiled Azeron import JSON and cheatsheets. Committed; not the TypeScript build. */
+  /** Compiled Azeron import JSON and the game's bindings. Committed; not the TypeScript build. */
   dist: "dist",
 } as const;
 

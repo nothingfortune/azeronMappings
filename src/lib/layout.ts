@@ -1,4 +1,4 @@
-/** The physical shape of a Cyborg II, shared by the editor, the cheatsheet and the probe. */
+/** The physical shape of a Cyborg II, shared by the editor and the probe. */
 
 import type { Device } from "./model-core.js";
 
