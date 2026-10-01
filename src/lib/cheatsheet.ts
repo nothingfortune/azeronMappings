@@ -6,7 +6,7 @@
 import { SLOTS, STICK_DIRECTIONS } from "../types/azeron.js";
 import type { Slot } from "../types/azeron.js";
 import type { KeySlotSpec, PositionSpec, SlotSpec } from "../types/profile.js";
-import { handLayout } from "./layout.js";
+import { handLayout, positionLabel, unitLabel, whereLabel } from "./layout.js";
 import { ROLE_TAGS } from "./lint.js";
 import type { ActionSet, Profile } from "./model-core.js";
 import { bindingLabel } from "./keys.js";
@@ -138,7 +138,7 @@ function stickDial(
 
   return (
     `<div class="stick-dial">${cells}` +
-    `<div class="dir hub"><span class="pos">${esc(position)}</span>` +
+    `<div class="dir hub"><span class="pos">${esc(positionLabel(position))}</span>` +
     `<span class="name">${esc(spec.mode ?? "unbound")}</span></div></div>`
   );
 }
@@ -146,7 +146,7 @@ function stickDial(
 function keyCard(profile: Profile, actions: ActionSet, position: string, extraClass = ""): string {
   const spec: PositionSpec | undefined = profile.positions[position];
   if (!spec) {
-    return `<div class="key empty ${extraClass}"><div class="pos">${esc(position)}</div></div>`;
+    return `<div class="key empty ${extraClass}"><div class="pos">${esc(positionLabel(position))}</div></div>`;
   }
 
   if (profile.device.isStick(position)) {
@@ -154,7 +154,7 @@ function keyCard(profile: Profile, actions: ActionSet, position: string, extraCl
   }
 
   const tap = describe(actions, spec.tap);
-  const parts = [`<div class="pos">${esc(position)}</div>`];
+  const parts = [`<div class="pos">${esc(positionLabel(position))}</div>`];
   parts.push(`<div class="tap">${esc(spec.label ?? tap.label ?? "")}</div>`);
   if (tap.label) {
     parts.push(
@@ -200,8 +200,8 @@ function renderHand(profile: Profile, actions: ActionSet): string {
       : `<div class="hand">${columnHtml.join("")}</div>${thumbBlock}`;
 
   return (
-    `<section class="unit"><h2>${esc(profile.unit ?? profile.slug)} unit` +
-    `<span class="sub"> ${esc(device.name)}${device.verified ? "" : " (not press-tested)"}` +
+    `<section class="unit"><h2>${esc(unitLabel(profile.unit))} unit` +
+    `<span class="sub">${device.verified ? "" : " (not press-tested)"}` +
     `</span></h2><div class="layout">${body}</div></section>`
   );
 }
@@ -210,7 +210,7 @@ function renderHand(profile: Profile, actions: ActionSet): string {
 function bindingRows(profiles: readonly Profile[], actions: ActionSet): string {
   const used = new Map<string, string[]>();
   for (const profile of profiles) {
-    const unit = profile.unit ?? profile.slug;
+    const unit = profile.unit;
     for (const [position, spec] of Object.entries(profile.positions)) {
       const values: (SlotSpec | string | undefined)[] = [
         ...SLOTS.map((slot: Slot) => spec[slot]),
@@ -219,7 +219,7 @@ function bindingRows(profiles: readonly Profile[], actions: ActionSet): string {
       for (const value of values) {
         if (typeof value !== "string") continue;
         const where = used.get(value) ?? [];
-        const label = `${unit}:${position}`;
+        const label = whereLabel(unit, position);
         if (!where.includes(label)) where.push(label);
         used.set(value, where);
       }

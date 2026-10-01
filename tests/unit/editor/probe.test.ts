@@ -64,7 +64,7 @@ describe("the press test", () => {
   });
 
   it("asks for one position at a time, sweeping the unit left to right", () => {
-    expect(document.querySelector(".prompt b")?.textContent).toBe("press pinky_side");
+    expect(document.querySelector(".prompt b")?.textContent).toBe("Press Pinky side");
     expect(document.querySelectorAll(".cell.active").length).toBe(1);
   });
 
@@ -72,7 +72,7 @@ describe("the press test", () => {
     expect(document.querySelectorAll(".hand").length).toBe(2);
     expect(document.querySelectorAll(".hand.active-hand").length).toBe(1);
     expect(document.querySelector(".hand.active-hand .hand-title b")?.textContent).toBe(
-      "left unit",
+      "Left unit",
     );
   });
 
@@ -81,7 +81,7 @@ describe("the press test", () => {
     press(keyForPin(1));
     const recorded = document.querySelector(".cell.done .pin")?.textContent;
     expect(recorded).toBe("pin 1");
-    expect(document.querySelector(".prompt b")?.textContent).toBe("press pinky_1");
+    expect(document.querySelector(".prompt b")?.textContent).toBe("Press Pinky 1");
   });
 
   it("refuses a key that is not part of the probe profile", () => {
@@ -89,7 +89,7 @@ describe("the press test", () => {
     expect(document.querySelector(".prompt .bad")?.textContent).toContain(
       "not one of the probe keys",
     );
-    expect(document.querySelector(".prompt b")?.textContent).toBe("press pinky_side");
+    expect(document.querySelector(".prompt b")?.textContent).toBe("Press Pinky side");
   });
 
   it("rejects a button press when it asked for the stick", () => {
@@ -110,7 +110,7 @@ describe("the press test", () => {
     unitSelect.dispatchEvent(new Event("change"));
     expect(document.querySelectorAll(".hand.active-hand .cell.done").length).toBe(0);
     // The mirrored unit sweeps from its own outer edge, which is the other side.
-    expect(document.querySelector(".prompt b")?.textContent).toBe("press index_side");
+    expect(document.querySelector(".prompt b")?.textContent).toBe("Press Index side");
   });
 });
 
@@ -268,7 +268,7 @@ describe("button presses", () => {
     );
     vi.advanceTimersByTime(400);
     expect(document.querySelectorAll(".hand.active-hand .cell.done").length).toBe(1);
-    expect(document.querySelector(".prompt b")?.textContent).toBe("press pinky_1");
+    expect(document.querySelector(".prompt b")?.textContent).toBe("Press Pinky 1");
   });
 });
 
@@ -339,7 +339,7 @@ describe("diagnosing a direction that does nothing", () => {
 
   it("draws the stick click, which is prompted for like any other key", () => {
     const hub = document.querySelector(".stick-dial .hub");
-    expect(hub?.querySelector(".pos")?.textContent).toBe("stick_press");
+    expect(hub?.querySelector(".pos")?.textContent).toBe("Stick press");
     expect(hub?.querySelector(".pin")?.textContent).toBe("click");
   });
 });

@@ -25,7 +25,7 @@ select, .btn { background: var(--panel); border: 1px solid var(--line); border-r
 .btn[disabled] { opacity: .45; cursor: default; }
 .prompt { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap;
           padding: 14px 16px; background: var(--accent); color: var(--accent-fg); }
-.prompt b { font-size: 19px; text-transform: uppercase; letter-spacing: .04em; }
+.prompt b { font-size: 19px; letter-spacing: .01em; }
 .prompt .muted { opacity: .8; }
 .prompt .bad { background: var(--bad); color: #fff; padding: 2px 8px; border-radius: 6px; }
 .workspace { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 14px; padding: 14px 16px;

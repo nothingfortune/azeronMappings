@@ -107,6 +107,27 @@ test.describe("the served editor", () => {
     await expect(page.locator(".save-note")).toContainText("Save each unit");
   });
 
+  test("draws the press test's columns side by side", async ({ page }) => {
+    // The board's own .hand-body rule once reached the press test and stacked every
+    // column into one. A unit test cannot see that; a browser laying the page out can.
+    await page.goto("/");
+    await page.getByRole("button", { name: "Press test", exact: true }).click();
+    const columns = page.locator(".hand").first().locator(".hand-body > *");
+    const first = await columns.nth(0).boundingBox();
+    const second = await columns.nth(1).boundingBox();
+    expect(first && second && second.x > first.x + first.width / 2).toBe(true);
+  });
+
+  test("draws the board's keys big enough to read", async ({ page }) => {
+    // At a common laptop width the pair was drawn at under half size, key text at about
+    // five pixels. Measured, not assumed: the drawn size of a key's name.
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+    const name = page.locator(".hand .key .name").first();
+    const height = await name.evaluate((node) => node.getBoundingClientRect().height);
+    expect(height).toBeGreaterThan(9);
+  });
+
   test("offers detection, and says what it cannot know", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: "Repo", exact: true }).click();

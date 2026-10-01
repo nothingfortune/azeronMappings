@@ -33,8 +33,8 @@ describe("the editor", () => {
     const hands = document.querySelectorAll(".hand");
     expect(hands.length).toBe(2);
     const titles = [...hands].map((hand) => hand.querySelector(".title span")?.textContent ?? "");
-    expect(titles.some((title) => title.includes("left hand"))).toBe(true);
-    expect(titles.some((title) => title.includes("right hand"))).toBe(true);
+    expect(titles.some((title) => title.includes("Left unit"))).toBe(true);
+    expect(titles.some((title) => title.includes("Right unit"))).toBe(true);
   });
 
   it("renders every position on the device", () => {
@@ -58,7 +58,7 @@ describe("the editor", () => {
 
   it("assigns an action to the selected key", () => {
     const keys = [...document.querySelectorAll<HTMLButtonElement>(".key")];
-    const target = keys.find((key) => key.querySelector(".pos")?.textContent === "middle_1");
+    const target = keys.find((key) => key.dataset.position === "middle_1");
     expect(target).toBeDefined();
     target?.click();
 
@@ -69,7 +69,7 @@ describe("the editor", () => {
     entry?.click();
 
     const updated = [...document.querySelectorAll<HTMLButtonElement>(".key")].find(
-      (key) => key.querySelector(".pos")?.textContent === "middle_1",
+      (key) => key.dataset.position === "middle_1",
     );
     expect(updated?.querySelector(".name")?.textContent).toBe(label);
   });
@@ -132,9 +132,7 @@ describe("key cards", () => {
   }
 
   function card(position: string): HTMLElement {
-    const found = [...document.querySelectorAll<HTMLElement>(".key")].find(
-      (key) => key.querySelector(".pos")?.textContent === position,
-    );
+    const found = document.querySelector<HTMLElement>(`.key[data-position="${position}"]`);
     if (!found) throw new Error(`no card for ${position}`);
     return found;
   }
@@ -142,7 +140,8 @@ describe("key cards", () => {
   it("puts the position and the action on separate lines", () => {
     // They were inline spans, which ran together as "pinky_1Consumable 1tap: Consumable 1".
     const key = card("pinky_1");
-    expect(key.querySelector(".pos")?.textContent).toBe("pinky_1");
+    // Named as a person would, not by the id the file uses.
+    expect(key.querySelector(".pos")?.textContent).toBe("Pinky 1");
     expect(key.querySelector(".name")?.textContent).toBe("Consume 1");
     // Each run of text is its own leaf element, so none of them concatenate.
     expect(key.children.length).toBeGreaterThanOrEqual(2);
@@ -330,9 +329,7 @@ describe("assigning an action", () => {
   });
 
   function card(position: string): HTMLButtonElement {
-    const found = [...document.querySelectorAll<HTMLButtonElement>(".key")].find(
-      (key) => key.querySelector(".pos")?.textContent === position,
-    );
+    const found = document.querySelector<HTMLButtonElement>(`.key[data-position="${position}"]`);
     if (!found) throw new Error(`no card for ${position}`);
     return found;
   }
@@ -437,7 +434,7 @@ describe("unsaved edits", () => {
   function edit(position: string, unit: 0 | 1 = 0): void {
     const hand = document.querySelectorAll(".hand")[unit];
     const card = [...(hand?.querySelectorAll<HTMLButtonElement>(".key") ?? [])].find(
-      (key) => key.querySelector(".pos")?.textContent === position,
+      (key) => key.dataset.position === position,
     );
     card?.click();
     document.querySelector<HTMLButtonElement>(".action")?.click();
@@ -561,9 +558,7 @@ describe("the inspector in plain words", () => {
   });
 
   function select(position: string): void {
-    [...document.querySelectorAll<HTMLButtonElement>(".key")]
-      .find((key) => key.querySelector(".pos")?.textContent === position)
-      ?.click();
+    document.querySelector<HTMLButtonElement>(`.key[data-position="${position}"]`)?.click();
   }
 
   const labels = (): string[] =>

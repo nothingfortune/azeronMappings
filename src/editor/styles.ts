@@ -59,7 +59,8 @@ select, .btn {
 .save-note { padding: 6px 16px; background: var(--panel); border-bottom: 1px solid var(--line);
              font-size: 12px; color: var(--muted); display: flex; gap: 12px; align-items: flex-start; }
 .save-report { flex: 1; display: grid; gap: 4px; min-width: 0; }
-.save-report .finding { overflow-wrap: anywhere; }
+.save-report .finding .rule { display: block; font-size: 10px; color: var(--muted); }
+.finding { overflow-wrap: anywhere; }
 .save-report .import-path code { user-select: all; overflow-wrap: anywhere; color: var(--fg); }
 .save-note .dismiss { flex: none; }
 .workspace.single { display: block; }
@@ -124,11 +125,13 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 .hand > .title { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
 .hand > .title b { font-size: 13px; }
 .hand > .title span { color: var(--muted); font-size: 11.5px; }
-.hand-body { display: flex; flex-direction: column; gap: 8px; }
+/* Scoped to the board: the press test draws a hand too, with its own .hand-body, and an
+   unscoped rule here stacked its columns into one. */
+.workspace.board .hand-body { display: flex; flex-direction: column; gap: 8px; }
 .fingers { display: flex; gap: 6px; align-items: flex-start; }
 .thumb-row { display: flex; flex-direction: column; }
-.hand-body.thumb-right .thumb-row { align-items: flex-end; }
-.hand-body.thumb-left .thumb-row { align-items: flex-start; }
+.workspace.board .hand-body.thumb-right .thumb-row { align-items: flex-end; }
+.workspace.board .hand-body.thumb-left .thumb-row { align-items: flex-start; }
 .col { display: flex; flex-direction: column; gap: 4px; }
 .col.side { margin-top: 22px; }
 .col .head, .hand .head {
@@ -147,8 +150,7 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
              justify-content: center; }
 .key.empty .name { display: none; }
 /* Each line is its own block; as inline spans they ran together into one string. */
-.key .pos { display: block; font-size: 9px; color: var(--muted); letter-spacing: .04em;
-            text-transform: uppercase; line-height: 1.2; }
+.key .pos { display: block; font-size: 9.5px; color: var(--muted); line-height: 1.2; }
 .key .name { display: block; font-weight: 600; font-size: 12px; line-height: 1.2;
              overflow-wrap: anywhere; }
 .key .sub { display: block; font-size: 10px; color: var(--muted); line-height: 1.25;

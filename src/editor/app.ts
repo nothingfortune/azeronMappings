@@ -10,7 +10,7 @@ import { compileProfile, dumps } from "../lib/compile.js";
 import { dumpProfile } from "../lib/decompile.js";
 import { formatFinding, lintProfiles, ROLE_TAGS } from "../lib/lint.js";
 import type { Finding } from "../lib/lint.js";
-import { handLayout } from "../lib/layout.js";
+import { handLayout, positionLabel, unitLabel, whereLabel } from "../lib/layout.js";
 import { applyMode, detectMode } from "../lib/stickmodes.js";
 import type { StickModeSet } from "../lib/stickmodes.js";
 import { describeDirection } from "../lib/binding.js";
@@ -216,8 +216,8 @@ function keyCard(slug: string, position: string, extraClass = ""): HTMLElement {
   const classes = ["key", extraClass, role ?? "", spec ? "" : "empty", selected]
     .filter(Boolean)
     .join(" ");
-  const card = el("button", { class: classes, type: "button" });
-  card.append(el("span", { class: "pos" }, [position]));
+  const card = el("button", { class: classes, type: "button", "data-position": position });
+  card.append(el("span", { class: "pos" }, [positionLabel(position)]));
 
   if (!spec) {
     card.classList.add("empty");
@@ -320,7 +320,7 @@ function renderHand(slug: string): HTMLElement {
   wrap.append(
     el("div", { class: "title" }, [
       el("b", {}, [data.profile.name ?? slug]),
-      el("span", {}, [`${device.name} · ${data.profile.unit ?? "?"} hand`]),
+      el("span", {}, [`${unitLabel(data.profile.unit)} unit`]),
     ]),
   );
 
@@ -378,23 +378,43 @@ function renderHand(slug: string): HTMLElement {
   return wrap;
 }
 
+/**
+ * Where a finding is, in words: "Left Pinky 1", or the key, or the whole layout.
+ *
+ * Findings name a profile by its id and a position by its id; the unit is the useful part
+ * of the first, and the second wants its human name.
+ */
+function findingWhere(finding: Finding): string {
+  const unit = /-(left|right)$/.exec(finding.profile ?? "")?.[1];
+  if (finding.position !== undefined) {
+    return unit === undefined
+      ? positionLabel(finding.position)
+      : whereLabel(unit, finding.position);
+  }
+  if (finding.key !== undefined) return keyLabel(finding.key);
+  return "the whole layout";
+}
+
 function boundActions(): Map<string, string[]> {
   const bound = new Map<string, string[]>();
+  const add = (action: string | undefined, where: string): void => {
+    if (!action) return;
+    const list = bound.get(action) ?? [];
+    list.push(where);
+    bound.set(action, list);
+  };
   for (const slug of slugsInSet()) {
     const data = workingData(slug);
-    const unit = data.profile.unit ?? slug;
+    const unit = data.profile.unit;
     for (const [position, spec] of Object.entries(data.positions)) {
-      const values: (string | undefined)[] = [
-        ...SLOTS.map((slot) => (typeof spec[slot] === "string" ? spec[slot] : undefined)),
-        ...Object.values(spec.directions ?? {}).map((value) =>
-          typeof value === "string" ? value : undefined,
-        ),
-      ];
-      for (const value of values) {
-        if (!value) continue;
-        const list = bound.get(value) ?? [];
-        list.push(`${unit}:${position}`);
-        bound.set(value, list);
+      for (const slot of SLOTS) {
+        const value = spec[slot];
+        if (typeof value !== "string") continue;
+        const suffix = slot === "tap" ? "" : ` (${SLOT_NAMES[slot].toLowerCase()})`;
+        add(value, `${whereLabel(unit, position)}${suffix}`);
+      }
+      for (const [direction, value] of Object.entries(spec.directions ?? {})) {
+        if (typeof value === "string") add(value, whereLabel(unit, position, direction));
       }
     }
   }
@@ -679,7 +699,9 @@ function renderInspector(): HTMLElement {
   panel.append(
     el("div", { class: "field" }, [
       el("label", {}, ["Position"]),
-      el("div", {}, [`${selection.position} · ${data.profile.unit ?? "?"} hand`]),
+      el("div", {}, [
+        `${unitLabel(data.profile.unit)} unit · ${positionLabel(selection.position)}`,
+      ]),
     ]),
   );
 
@@ -868,7 +890,10 @@ function renderChecks(): HTMLElement {
   }
   for (const finding of [...live, ...stale]) {
     const item = el("div", { class: `finding ${finding.level}` });
-    item.append(el("b", {}, [`${finding.rule} · ${finding.position ?? finding.key ?? "-"}`]));
+    item.append(
+      el("b", {}, [findingWhere(finding)]),
+      el("small", { class: "rule" }, [finding.rule]),
+    );
     item.append(document.createTextNode(finding.message));
     box.append(item);
   }
@@ -955,8 +980,10 @@ function reportSave(path: string, result: SaveResponse): HTMLElement {
   }
   for (const finding of check.findings) {
     const item = el("div", { class: `finding ${finding.level}` });
-    const where = [finding.profile, finding.position ?? finding.key].filter(Boolean).join(":");
-    item.append(el("b", {}, [`${finding.rule} · ${where}`]));
+    item.append(
+      el("b", {}, [findingWhere(finding)]),
+      el("small", { class: "rule" }, [finding.rule]),
+    );
     item.append(document.createTextNode(finding.message));
     box.append(item);
   }

@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { start } from "../../../src/editor/app.js";
 import { buildPayload } from "../../../src/lib/editor/payload.js";
+import { positionLabel } from "../../../src/lib/layout.js";
 
 function tab(name: string): HTMLButtonElement {
   const found = [...document.querySelectorAll("header button")].find(
@@ -68,7 +69,7 @@ describe("the in-game bindings editor", () => {
       );
     expect(expected.length).toBeGreaterThan(0);
     const where = row("Consumable 1").querySelector(".who small")?.textContent ?? "";
-    for (const position of expected) expect(where).toContain(position);
+    for (const position of expected) expect(where).toContain(positionLabel(position));
   });
 
   it("says which actions do not come from a keypad key at all", () => {

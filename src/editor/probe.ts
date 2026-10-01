@@ -8,7 +8,7 @@
 
 import { deviceFromProbe, PHYSICAL_PUSHES, probeDiff, stickZeroFrom } from "../lib/probe.js";
 import type { ProbeResult } from "../lib/probe.js";
-import { handLayout, probeOrder } from "../lib/layout.js";
+import { handLayout, positionLabel, probeOrder, unitLabel } from "../lib/layout.js";
 import { Device } from "../lib/model-core.js";
 import { dumpYaml } from "../lib/yaml.js";
 import { STICK_DIRECTIONS } from "../types/azeron.js";
@@ -111,7 +111,9 @@ function currentPrompt(): {
 } {
   const buttons = steps();
   const button = buttons[state.step];
-  if (button) return { label: button.position, position: button.position, direction: null };
+  if (button) {
+    return { label: positionLabel(button.position), position: button.position, direction: null };
+  }
   const direction = STICK_DIRECTIONS[state.step - buttons.length];
   if (direction) return { label: `stick ${direction}`, position: "stick", direction };
   return { label: "done", position: null, direction: null };
@@ -344,7 +346,7 @@ function renderDiagram(unitIndex: number): HTMLElement {
       .filter(Boolean)
       .join(" ");
     return el("div", { class: classes }, [
-      el("span", { class: "pos" }, [position]),
+      el("span", { class: "pos" }, [positionLabel(position)]),
       el("span", { class: "pin" }, [done === undefined ? "" : `pin ${String(done)}`]),
     ]);
   };
@@ -381,7 +383,7 @@ function renderDiagram(unitIndex: number): HTMLElement {
           class: `dir hub${pressPin === undefined ? "" : " done"}${pressActive ? " active" : ""}`,
         },
         [
-          el("span", { class: "pos" }, [layout.stickPress ?? "stick"]),
+          el("span", { class: "pos" }, [positionLabel(layout.stickPress ?? "stick")]),
           el("span", { class: "pin" }, [
             pressPin === undefined ? "click" : `pin ${String(pressPin)}`,
           ]),
@@ -407,8 +409,8 @@ function renderDiagram(unitIndex: number): HTMLElement {
   const total = Object.keys(device.positions).length - (layout.stick ? 1 : 0);
   const wrap = el("div", { class: `hand ${isActive ? "active-hand" : ""}` }, [
     el("div", { class: "hand-title" }, [
-      el("b", {}, [`${unit.hand} unit`]),
-      el("span", {}, [`${device.name} -- ${String(done)}/${String(total)} captured`]),
+      el("b", {}, [`${unitLabel(unit.hand)} unit`]),
+      el("span", {}, [`${String(done)} of ${String(total)} captured`]),
       isActive ? el("span", { class: "badge" }, ["testing this one"]) : el("span", {}),
     ]),
     body,
@@ -488,10 +490,12 @@ function renderSummary(): HTMLElement {
     const count = capture ? Object.keys(capture.pins).length : 0;
     const row = el("div", { class: "summary-row" });
     row.append(
-      el("b", {}, [`${unit.hand} hand`]),
-      el("span", {}, [`${String(count)} position(s)`]),
+      el("b", {}, [`${unitLabel(unit.hand)} unit`]),
+      el("span", {}, [`${String(count)} captured`]),
     );
-    const button = el("button", { class: "btn", type: "button" }, [`Export ${unit.device}`]);
+    const button = el("button", { class: "btn", type: "button" }, [
+      saveDevice === null ? "Download its map" : "Save its map",
+    ]);
     button.addEventListener("click", () => {
       exportDevice(unit.hand);
     });
@@ -529,7 +533,7 @@ function renderSummary(): HTMLElement {
         el("div", { class: "note" }, [
           differing.length === 0
             ? "Every position captured on both units reports the same pin."
-            : `${String(differing.length)} position(s) report different pins: ${differing.join(", ")}`,
+            : `${String(differing.length)} position(s) report different pins: ${differing.map(positionLabel).join(", ")}`,
         ]),
       );
     }
@@ -581,7 +585,7 @@ function render(): void {
   header.append(el("h1", {}, ["Press test"]));
   const unitSelect = el("select", {});
   state.payload.units.forEach((unit, index) => {
-    const option = el("option", { value: String(index) }, [`${unit.hand} unit (${unit.device})`]);
+    const option = el("option", { value: String(index) }, [`${unitLabel(unit.hand)} unit`]);
     if (index === state.unitIndex) option.setAttribute("selected", "selected");
     unitSelect.append(option);
   });
@@ -656,7 +660,7 @@ function render(): void {
       banner.append(el("b", {}, ["Done."]), el("span", {}, ["Export the map below."]));
     } else {
       banner.append(
-        el("b", {}, [prompt.direction ? STICK_PROMPTS[prompt.direction] : `press ${prompt.label}`]),
+        el("b", {}, [prompt.direction ? STICK_PROMPTS[prompt.direction] : `Press ${prompt.label}`]),
         el("span", {}, [`${String(state.step + 1)} / ${String(totalSteps())}`]),
       );
     }

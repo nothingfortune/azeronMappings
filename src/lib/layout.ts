@@ -92,3 +92,54 @@ export function probeOrder(device: Device): string[] {
     ...layout.aux,
   ];
 }
+
+const FINGER_NAMES: Record<string, string> = {
+  pinky: "Pinky",
+  ring: "Ring",
+  middle: "Middle",
+  index: "Index",
+};
+
+const NAMED_POSITIONS: Record<string, string> = {
+  pinky_side: "Pinky side",
+  index_side: "Index side",
+  dpad_up: "D-pad up",
+  dpad_down: "D-pad down",
+  dpad_left: "D-pad left",
+  dpad_right: "D-pad right",
+  dpad_press: "D-pad press",
+  thumb_aux_upper: "Thumb upper",
+  thumb_aux_lower: "Thumb lower",
+  stick: "Stick",
+  stick_press: "Stick press",
+};
+
+/**
+ * A position the way a person names it: "Pinky 1", "Index side", "D-pad up".
+ *
+ * The ids are the repo's -- `pinky_1`, `thumb_aux_upper` -- and every screen showed them
+ * as they are stored, down to "PRESS PINKY_SIDE" on the press test. Finger rows are
+ * numbered as the device maps record them, 1 at the top. A name this does not recognise
+ * is tidied rather than guessed at.
+ */
+export function positionLabel(name: string): string {
+  const known = NAMED_POSITIONS[name];
+  if (known !== undefined) return known;
+  const finger = /^(pinky|ring|middle|index)_(\d+)$/.exec(name);
+  if (finger?.[1] && finger[2]) return `${FINGER_NAMES[finger[1]] ?? finger[1]} ${finger[2]}`;
+  const words = name.replace(/_/g, " ");
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+/** "Left" or "Right" for a unit, or the unit as written when it is neither. */
+export function unitLabel(unit: string | undefined): string {
+  if (unit === "left") return "Left";
+  if (unit === "right") return "Right";
+  return unit ?? "?";
+}
+
+/** Where something is sent from, for a list: "Left Pinky 1", "Right Stick up". */
+export function whereLabel(unit: string | undefined, position: string, direction?: string): string {
+  const place = positionLabel(position);
+  return `${unitLabel(unit)} ${direction === undefined ? place : `${place} ${direction}`}`;
+}
