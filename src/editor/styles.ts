@@ -152,12 +152,17 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 .dock { display: grid; grid-template-columns: 280px minmax(0, 1fr) 250px; gap: 12px;
         margin-top: 12px; align-items: start; }
 .dock.ingame { grid-template-columns: minmax(0, 1fr) 300px; }
-.dock-col { display: grid; gap: 12px; }
+.dock-col { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); }
 /* Narrow, or tall and narrow: the checks drop to a row of their own under the other two. */
 @media (max-width: 1150px), (orientation: portrait) {
   .dock { grid-template-columns: 300px minmax(0, 1fr); }
-  .dock > .dock-col { grid-column: 1 / -1; }
+  .dock > .dock-col { grid-column: 1 / -1; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+                      align-items: start; }
+  /* The pedals take the wide column, their three axes side by side, beside the checks. */
+  .dock-col > .pedals { grid-column: 2; grid-row: 1 / span 2; }
 }
+@media (max-width: 760px) { .dock > .dock-col { grid-template-columns: minmax(0, 1fr); }
+                            .dock-col > .pedals { grid-column: 1; grid-row: auto; } }
 @media (max-width: 1150px), (orientation: portrait) { .dock.ingame { grid-template-columns: 1fr; } }
 @media (max-width: 760px) { .dock, .dock.ingame { grid-template-columns: 1fr; } }
 /* A wide landscape window has room for a column beside the board: the key inspector rises
@@ -332,6 +337,42 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
 .new-game-where, .new-game-file { font-size: 11.5px; margin: 4px 0 8px; }
 .new-game .row2 { margin-top: 6px; }
+/* Pedals: the third part of the control scheme, docked beside the checks. Three axes, each a
+   short card -- what it drives and whether it is inverted on top, how far the game's name for
+   it is trusted underneath -- with the tuning folded away. */
+.pedals-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 7px; }
+.pedals-head h2 { margin: 0; }
+.pedals-head .muted { flex: 1; min-width: 0; font-size: 10.5px; overflow: hidden;
+                      text-overflow: ellipsis; white-space: nowrap; }
+.pedal-axes { display: grid; gap: 5px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+.pedal-axis { border: 1px solid var(--line); border-left: 3px solid var(--movement);
+              border-radius: 7px; padding: 3px 7px 4px; background: var(--bg); display: grid; gap: 2px;
+              grid-template-columns: minmax(0, 1fr);
+              align-content: start; }
+.pedal-axis.idle { border-left-color: var(--line); }
+.pedal-line { display: flex; align-items: center; gap: 6px; }
+.pedal-line b { flex: none; font-size: 12px; min-width: 52px; }
+.pedal-line select { flex: 1; min-width: 0; padding: 1px 4px; font-size: 12px; }
+.inv { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; flex: none;
+       cursor: pointer; }
+.inv input { width: auto; margin: 0; }
+.pedal-trust { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 10.5px; }
+.chip { font-size: 10px; line-height: 1.5; padding: 0 7px; border-radius: 99px;
+        border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.chip.trust-confirmed { color: var(--ok); border-color: var(--ok); }
+.chip.trust-unconfirmed, .chip.trust-bound, .chip.trust-candidate, .chip.trust-none {
+  color: var(--warn); border-color: var(--warn); }
+.pedal-warn { font-size: 10.5px; color: var(--warn); line-height: 1.3; }
+.link-btn { background: none; border: 0; padding: 0; font-size: 10.5px; color: var(--accent);
+            cursor: pointer; margin-left: auto; }
+.link-btn:hover { text-decoration: underline; }
+.tune-body { display: grid; gap: 4px; font-size: 10.5px; }
+.tune-body .field { margin-bottom: 3px; }
+.tune-body .field input { padding: 2px 5px; font-size: 11px; }
+.tune-body code { overflow-wrap: anywhere; }
+.pedals-note { margin: 6px 0 0; color: var(--fg); border-left: 3px solid var(--accent);
+               padding-left: 7px; }
+.pedals-verdict { display: grid; gap: 1px; font-size: 11.5px; }
 /* Print: the board and nothing else, in the light palette whatever the screen is on. */
 .print-title { display: none; }
 @media print {

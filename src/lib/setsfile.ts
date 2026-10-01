@@ -173,7 +173,9 @@ export function patchSetPedals(text: string, setName: string, pedals: SetPedals 
   if (setsAt === -1) {
     if (pedals === null) return text;
     if ((lines[lines.length - 1] ?? "") === "") lines.pop();
-    lines.push("", "sets:", ...setLines(setName, pedals), "");
+    // Apart from whatever is above it, unless it is the only thing in the file.
+    if (lines.length > 0) lines.push("");
+    lines.push("sets:", ...setLines(setName, pedals), "");
   } else {
     const header = lines[setsAt] ?? "";
     if (/^sets:\s*(\{\s*\})?\s*(#.*)?$/.test(header)) {

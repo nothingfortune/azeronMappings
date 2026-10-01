@@ -40,6 +40,12 @@ const comments = (text: string): string[] =>
 const read = (text: string) => parseSets(parse(text) as unknown, "test").sets;
 
 describe("patchSetPedals", () => {
+  it("starts an empty file with `sets:` and nothing above it", () => {
+    const patched = patchSetPedals("", "a", { device: "p", assign: {} });
+    expect(patched.startsWith("sets:\n  a:\n")).toBe(true);
+    expect(read(patched).a?.pedals).toEqual({ device: "p", assign: {} });
+  });
+
   it("leaves the file byte for byte alone when nothing changed", () => {
     const pedals = read(REAL)["akimbo-v10"]?.pedals;
     expect(pedals).toBeDefined();

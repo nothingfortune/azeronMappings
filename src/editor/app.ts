@@ -12,6 +12,20 @@ import type { Finding } from "../lib/lint.js";
 import { handLayout, positionLabel, unitLabel, whereLabel } from "../lib/layout.js";
 import { applyMode, detectMode } from "../lib/stickmodes.js";
 import type { StickModeSet } from "../lib/stickmodes.js";
+import { patchSetPedals } from "../lib/setsfile.js";
+import {
+  changedSets,
+  defaultPedals,
+  gameAxisHint,
+  gameAxisLabel,
+  layoutContext,
+  pedalAxisLabel,
+  pedalsCarry,
+  readSticks,
+  restSentence,
+  restsOnCentred,
+  statusWords,
+} from "./pedals-model.js";
 import { describeDirection } from "../lib/binding.js";
 import type { BindingChange } from "../lib/actionfile.js";
 import { ueKeyFor } from "../lib/ingame.js";
@@ -27,6 +41,13 @@ import {
 } from "../types/azeron.js";
 import type { Slot } from "../types/azeron.js";
 import type { EditorGame, EditorPayload } from "../types/editor.js";
+import type {
+  NameStatus,
+  PedalAssignment,
+  PedalsDeviceData,
+  SetPedals,
+  SetsData,
+} from "../types/pedals.js";
 import type { ActionSpec, PositionSpec, ProfileData } from "../types/profile.js";
 import { messageOf, removeKey } from "../lib/object.js";
 import { dumpYaml } from "../lib/yaml.js";
@@ -54,6 +75,11 @@ interface State {
    * Editing a key here re-runs the linter, so a collision shows up immediately.
    */
   workingActions: Record<string, ActionSpec> | null;
+  /**
+   * Working copy of the game's `sets.yaml` -- each layout's pedals. Kept apart from the
+   * profiles, as the file is, but saved with them: one control scheme.
+   */
+  workingSets: SetsData | null;
   gameIndex: number;
   setName: string;
   /** Working copies, keyed by profile slug. Edits live here until exported. */
@@ -144,6 +170,26 @@ function actionSetFor(game: EditorGame): ActionSet {
 function editableActions(): Record<string, ActionSpec> {
   state.workingActions ??= structuredClone(currentGame().actions.actions ?? {});
   return state.workingActions;
+}
+
+/** What each layout's pedals do now, with edits, or as the page loaded them. */
+function currentSets(game: EditorGame = currentGame()): SetsData {
+  return state.workingSets ?? game.sets;
+}
+
+/** Clone on first edit, so the embedded payload stays pristine. */
+function editableSets(): SetsData {
+  state.workingSets ??= structuredClone(currentGame().sets);
+  return state.workingSets;
+}
+
+/** The pedals of the layout on screen, or undefined when it has none. */
+function pedalsOfLayout(): SetPedals | undefined {
+  return currentSets().sets[state.setName]?.pedals;
+}
+
+function pedalDevices(): Record<string, PedalsDeviceData> {
+  return state.payload.pedals;
 }
 
 function setsOf(game: EditorGame): Map<string, string[]> {
@@ -386,6 +432,14 @@ function renderHand(slug: string): HTMLElement {
  * of the first, and the second wants its human name.
  */
 function findingWhere(finding: Finding): string {
+  // A pedal rule's position is a pedal axis, which `positionLabel` would not know.
+  if (finding.rule.startsWith("pedal") && finding.position !== undefined) {
+    const axis = finding.position;
+    const spec = Object.values(state.payload.pedals)
+      .map((device) => device.axes[axis])
+      .find((entry) => entry !== undefined);
+    return `Pedals: ${pedalAxisLabel(axis, spec)}`;
+  }
   const unit = /-(left|right)$/.exec(finding.profile ?? "")?.[1];
   if (finding.position !== undefined) {
     return unit === undefined
@@ -925,7 +979,14 @@ function currentLint(): ReturnType<typeof lintProfiles> | { error: string } {
   const game = currentGame();
   try {
     const profiles = slugsInSet().map((slug) => profileFor(slug));
-    return lintProfiles(actionSetFor(game), profiles, game.lintConfig);
+    // The pedal rules run only with the layouts' context, so the page passes the working
+    // pedals: the same rules `azeron lint` runs, on what is on screen.
+    return lintProfiles(
+      actionSetFor(game),
+      profiles,
+      game.lintConfig,
+      layoutContext(game.slug, currentSets(game), pedalDevices(), stickModesFor() ?? undefined),
+    );
   } catch (error) {
     return { error: messageOf(error) };
   }
@@ -965,6 +1026,304 @@ function renderLintChip(): HTMLElement {
     document.querySelector(".checks")?.scrollIntoView({ behavior: "smooth", block: "center" });
   });
   return chip;
+}
+
+/** Whose tuning is unfolded, by pedal axis; kept across renders. */
+const tuningOpen = new Set<string>();
+
+/** What an edit to the pedals did to how the sticks read, until the next edit. */
+let pedalsNote: string | null = null;
+
+/** How the sticks read now, or null when there is nothing to read them against. */
+function sticksReadingNow(): string | null {
+  const set = stickModesFor();
+  if (set === null) return null;
+  const slugs = slugsInSet();
+  const left = slugs.find((slug) => workingData(slug).profile.unit === "left");
+  const right = slugs.find((slug) => workingData(slug).profile.unit === "right");
+  if (left === undefined || right === undefined) return null;
+  return readSticks(
+    set,
+    workingData(left).positions.stick,
+    workingData(right).positions.stick,
+    pedalsCarry(set, pedalsOfLayout()),
+  ).text;
+}
+
+/**
+ * Change the layout's pedals. The sticks are read against them (a pedal on yaw makes the
+ * sticks' with-pedals variant the one in play), so an edit can change what the sticks are
+ * called without touching them. It says so, rather than rewriting them.
+ */
+function editPedals(change: (pedals: SetPedals | undefined) => SetPedals | undefined): void {
+  const before = sticksReadingNow();
+  const layout = (editableSets().sets[state.setName] ??= {});
+  const next = change(layout.pedals);
+  if (next === undefined) Reflect.deleteProperty(layout, "pedals");
+  else layout.pedals = next;
+  const after = sticksReadingNow();
+  pedalsNote =
+    before !== null && after !== null && before !== after
+      ? `The sticks now read as ${after}; before this edit they read as ${before}. ` +
+        "Nothing on the sticks was changed. Open Stick mode to switch them."
+      : null;
+  render();
+}
+
+function changeAxis(
+  axis: string,
+  change: (assignment: PedalAssignment | undefined) => PedalAssignment | undefined,
+): void {
+  editPedals((pedals) => {
+    if (pedals === undefined) return pedals;
+    const assign = { ...pedals.assign };
+    const next = change(assign[axis]);
+    if (next === undefined) removeKey(assign, axis);
+    else assign[axis] = next;
+    return { ...pedals, assign };
+  });
+}
+
+const TUNING_FIELDS = [
+  ["dead_zone", "Dead zone", "DeadZone: how far the axis must move before the game notices."],
+  ["scale", "Scale", "Scale: multiplies the axis."],
+  ["sensitivity", "Sensitivity", "Sensitivity: the game's own response setting."],
+  ["exponent", "Exponent", "Exponent: bends the response curve."],
+] as const;
+
+/** One pedal axis: what it drives, whether it is inverted, and how far its name is trusted. */
+function renderPedalAxis(
+  axis: string,
+  device: PedalsDeviceData,
+  pedals: SetPedals,
+  modes: StickModeSet,
+): HTMLElement {
+  const game = currentGame();
+  const spec = device.axes[axis];
+  const assignment = pedals.assign[axis];
+  const entry = spec?.names?.[game.slug];
+  const trust = statusWords(entry?.status ?? null);
+  const cell = el("div", {
+    class: `pedal-axis${assignment === undefined ? " idle" : ""}`,
+    "data-axis": axis,
+  });
+
+  const drives = el("select", { "aria-label": `${pedalAxisLabel(axis, spec)} drives` });
+  drives.append(el("option", { value: "" }, ["Nothing"]));
+  const known = Object.keys(modes.axes);
+  if (assignment !== undefined && !known.includes(assignment.drives)) {
+    drives.append(
+      el("option", { value: assignment.drives }, [`${assignment.drives} (not a game axis)`]),
+    );
+  }
+  for (const id of known) {
+    const hint = gameAxisHint(id);
+    drives.append(el("option", { value: id, title: hint }, [gameAxisLabel(id)]));
+  }
+  drives.value = assignment?.drives ?? "";
+  drives.addEventListener("change", () => {
+    const value = drives.value;
+    changeAxis(axis, (current) =>
+      value === ""
+        ? undefined
+        : current === undefined
+          ? { drives: value }
+          : { ...current, drives: value },
+    );
+  });
+
+  const line = el("div", { class: "pedal-line" }, [
+    el("b", { title: restSentence(spec) }, [pedalAxisLabel(axis, spec)]),
+    drives,
+  ]);
+  if (assignment !== undefined) {
+    const invert = el("input", { type: "checkbox", "data-field": "invert" });
+    invert.checked = assignment.invert === true;
+    invert.addEventListener("change", () => {
+      changeAxis(axis, (current) => {
+        if (current === undefined) return current;
+        const next = { ...current };
+        // Unchecked leaves the game's own setting alone, as an axis with no `invert` does.
+        if (invert.checked) next.invert = true;
+        else Reflect.deleteProperty(next, "invert");
+        return next;
+      });
+    });
+    line.append(
+      el(
+        "label",
+        { class: "inv", title: "Reverse the direction. Unchecked leaves the game's own setting." },
+        [invert, "Invert"],
+      ),
+    );
+  }
+  cell.append(line);
+
+  const trustRow = el("div", { class: "pedal-trust" }, [
+    el("span", { class: `chip trust-${entry?.status ?? "none"}`, title: trust.long }, [
+      trust.short,
+    ]),
+  ]);
+  cell.append(trustRow);
+
+  if (assignment !== undefined && restsOnCentred(spec, modes, assignment.drives)) {
+    cell.append(
+      el("div", { class: "pedal-warn" }, [
+        "Rests at one end, so with the foot off the game reads a full deflection.",
+      ]),
+    );
+  }
+
+  const set =
+    TUNING_FIELDS.filter(([field]) => assignment?.[field] !== undefined).length +
+    (assignment?.shared === true ? 1 : 0);
+  // A button on the trust line rather than a row of its own: three rows of "Details" were
+  // enough to push the page past a screen.
+  const open = tuningOpen.has(axis);
+  const toggle = el(
+    "button",
+    { class: "link-btn tune-toggle", type: "button", "aria-expanded": String(open) },
+    [`${open ? "\u25be" : "\u25b8"} Details${set > 0 ? ` \u00b7 ${String(set)} tuned` : ""}`],
+  );
+  toggle.addEventListener("click", () => {
+    if (open) tuningOpen.delete(axis);
+    else tuningOpen.add(axis);
+    render();
+  });
+  trustRow.append(toggle);
+  const body = el("div", { class: "tune-body" });
+  body.append(
+    el("div", { class: "muted" }, [restSentence(spec)]),
+    el("div", { class: "muted" }, [
+      entry === undefined
+        ? "The game has no name recorded for this axis."
+        : `The game calls it ${entry.name}.${entry.note === undefined ? "" : ` ${entry.note}.`}`,
+    ]),
+  );
+  if (assignment !== undefined) {
+    const grid = el("div", { class: "field-grid" });
+    for (const [field, label, tip] of TUNING_FIELDS) {
+      const input = el("input", {
+        type: "number",
+        step: "any",
+        "data-field": field,
+        title: `${tip} Blank leaves the game's value.`,
+        placeholder: "game's own",
+      });
+      const value = assignment[field];
+      if (value !== undefined) input.value = String(value);
+      input.addEventListener("change", () => {
+        const parsed = input.value.trim() === "" ? undefined : Number(input.value);
+        changeAxis(axis, (current) => {
+          if (current === undefined) return current;
+          const next = { ...current };
+          if (parsed === undefined || !Number.isFinite(parsed)) Reflect.deleteProperty(next, field);
+          else next[field] = parsed;
+          return next;
+        });
+      });
+      grid.append(el("div", { class: "field" }, [el("label", {}, [label]), input]));
+    }
+    const shared = el("input", { type: "checkbox", "data-field": "shared" });
+    shared.checked = assignment.shared === true;
+    shared.addEventListener("change", () => {
+      changeAxis(axis, (current) => {
+        if (current === undefined) return current;
+        const next = { ...current };
+        if (shared.checked) next.shared = true;
+        else Reflect.deleteProperty(next, "shared");
+        return next;
+      });
+    });
+    body.append(
+      grid,
+      el(
+        "label",
+        {
+          class: "inv",
+          title: "Two pedal axes may drive one game axis only when each says so.",
+        },
+        [shared, "Shared with another pedal axis"],
+      ),
+    );
+  }
+  if (open) cell.append(body);
+  return cell;
+}
+
+/**
+ * The layout's pedals, drawn with the keypads as one control scheme.
+ *
+ * The three pedal axes, what each drives, and how far the game's name for each is trusted.
+ * Saved with everything else: there is no pedals button.
+ */
+function renderPedals(): HTMLElement {
+  const modes = stickModesFor();
+  const pedals = pedalsOfLayout();
+  const devices = Object.values(pedalDevices());
+  const panel = el("div", { class: "panel pedals" });
+  const head = el("div", { class: "pedals-head" }, [el("h2", {}, ["Pedals"])]);
+  panel.append(head);
+
+  if (modes === null) {
+    panel.append(
+      el("div", { class: "note" }, [
+        "This game's genre defines no game axes, so there is nothing for a pedal to drive.",
+      ]),
+    );
+    return panel;
+  }
+
+  if (pedals === undefined) {
+    const first = devices[0];
+    if (first === undefined) {
+      panel.append(el("div", { class: "note" }, ["No pedals device is defined in devices/."]));
+      return panel;
+    }
+    panel.append(
+      el("div", { class: "note" }, [
+        "This layout has no pedals. Adding them puts the rudder on yaw; the toes are left " +
+          "unassigned.",
+      ]),
+    );
+    const chosen = el("select", { "aria-label": "Pedals device" });
+    for (const device of devices) {
+      chosen.append(el("option", { value: device.device }, [device.name ?? device.device]));
+    }
+    const add = el("button", { class: "btn small add-pedals", type: "button" }, ["Add pedals"]);
+    add.addEventListener("click", () => {
+      const device = pedalDevices()[chosen.value] ?? first;
+      editPedals(() => defaultPedals(device.device, device, modes));
+    });
+    const row = el("div", { class: "row2" }, [add]);
+    if (devices.length > 1) row.prepend(chosen);
+    panel.append(row);
+    if (pedalsNote !== null) panel.append(el("div", { class: "note pedals-note" }, [pedalsNote]));
+    return panel;
+  }
+
+  const device = pedalDevices()[pedals.device];
+  const remove = el("button", { class: "btn small remove-pedals", type: "button" }, ["Remove"]);
+  remove.title = "Take the pedals out of this layout";
+  remove.addEventListener("click", () => {
+    editPedals(() => undefined);
+  });
+  head.append(el("span", { class: "muted" }, [device?.name ?? pedals.device]), remove);
+  if (device === undefined) {
+    panel.append(
+      el("div", { class: "finding error" }, [
+        `This layout names '${pedals.device}', which is not a pedals device.`,
+      ]),
+    );
+    return panel;
+  }
+  const list = el("div", { class: "pedal-axes" });
+  for (const axis of Object.keys(device.axes)) {
+    list.append(renderPedalAxis(axis, device, pedals, modes));
+  }
+  panel.append(list);
+  if (pedalsNote !== null) panel.append(el("div", { class: "note pedals-note" }, [pedalsNote]));
+  return panel;
 }
 
 function renderChecks(): HTMLElement {
@@ -1045,8 +1404,56 @@ interface SaveResponse {
         built: { output: string; importPath: string; mirroredTo?: string; changed: boolean }[];
         findings: Finding[];
         buildErrors: string[];
+        /** Present when the saved file was a game's sets.yaml. */
+        pedals?: {
+          set: string;
+          problem?: string;
+          axes: {
+            pedalAxis: string;
+            label: string;
+            drives: string;
+            row: string | null;
+            name: string | null;
+            status: NameStatus | null;
+          }[];
+        };
       }
     | { error: string };
+}
+
+/**
+ * What the game's pedals came to after a save of sets.yaml: for each axis the row it lands
+ * on, the name the game would be given, and how far that name is trusted. Said in words,
+ * because "saved" is not the same as "will work", and the page can only report the first.
+ */
+function renderPedalsVerdict(
+  pedals: NonNullable<Extract<SaveResponse["check"], { built: unknown }>["pedals"]>,
+): HTMLElement {
+  const box = el("div", { class: "pedals-verdict" });
+  if (pedals.axes.length === 0) {
+    box.append(el("div", {}, [`${pedals.set} has no pedals, so the game's file gets none.`]));
+  } else {
+    box.append(el("div", {}, [`Pedals in ${pedals.set}, as the game's file would get them:`]));
+    for (const axis of pedals.axes) {
+      const trust = statusWords(axis.status).short.toLowerCase();
+      box.append(
+        el("div", { class: "muted" }, [
+          `${axis.label} drives ${gameAxisLabel(axis.drives).toLowerCase()}` +
+            (axis.row === null ? ", which reaches no game row" : ` (the game's ${axis.row} row)`) +
+            (axis.name === null ? ", with no game name recorded yet" : ` as ${axis.name}`) +
+            ` -- ${trust}.`,
+        ]),
+      );
+    }
+  }
+  if (pedals.problem !== undefined) {
+    box.append(
+      el("div", { class: "finding error" }, [
+        `The game's file cannot be written from this layout: ${pedals.problem}`,
+      ]),
+    );
+  }
+  return box;
 }
 
 /**
@@ -1068,6 +1475,7 @@ function reportSave(path: string, result: SaveResponse, also: readonly string[] 
   }
   const changed = check.built.filter((entry) => entry.changed);
   box.append(el("div", {}, [`Saved ${saved}.`]));
+  if (check.pedals !== undefined) box.append(renderPedalsVerdict(check.pedals));
   if (changed.length > 0) {
     box.append(el("div", {}, ["Import in the Azeron app, then write it to the unit:"]));
     for (const entry of changed) {
@@ -1228,6 +1636,8 @@ interface PartSaved {
   result: SaveResponse;
   /** True when the in-game keys were written, which is what leaves the game behind. */
   inGameKeys?: boolean;
+  /** True when the pedals of the layout the game's file is written for were saved. */
+  inGamePedals?: boolean;
 }
 
 /**
@@ -1304,13 +1714,50 @@ function inGameKeysPart(): SchemePart {
 }
 
 /**
- * Everything that belongs to the control scheme.
- *
- * Pedals will be one more entry here -- `{ name: "Pedals", isDirty, save }` -- and appear
- * in the one Save, the unsaved marker and the report without anything else changing.
+ * The layouts' pedals: sets.yaml, patched line by line so its comments and the other
+ * layouts come through. One part for the whole file, because it is one file.
+ */
+function patchedSetsFile(game: EditorGame): { text: string; changed: string[] } {
+  const working = currentSets(game);
+  const changed = changedSets(game.sets, working);
+  let text = game.setsText;
+  for (const name of changed) text = patchSetPedals(text, name, working.sets[name]?.pedals ?? null);
+  return { text, changed };
+}
+
+function pedalsPart(): SchemePart {
+  return {
+    name: "Pedals",
+    isDirty: () =>
+      state.workingSets !== null && changedSets(currentGame().sets, state.workingSets).length > 0,
+    async save() {
+      const game = currentGame();
+      const working = structuredClone(currentSets(game));
+      const { text, changed } = patchedSetsFile(game);
+      const path = `${game.rel}/sets.yaml`;
+      const result = await saveResponse("/api/save", { path, content: text });
+      game.sets = working;
+      game.setsText = text;
+      return {
+        path,
+        result,
+        inGamePedals: game.ingameSet !== undefined && changed.includes(game.ingameSet),
+      };
+    },
+  };
+}
+
+/**
+ * Everything that belongs to the control scheme: both keypads, the in-game keys and the
+ * pedals. The header's Save, the unsaved marker, the unload guard and the report all follow
+ * from this list, so a thing joins the scheme by being an entry here.
  */
 function schemeParts(): SchemePart[] {
-  return [...currentGame().profiles.map((profile) => keypadPart(profile.slug)), inGameKeysPart()];
+  return [
+    ...currentGame().profiles.map((profile) => keypadPart(profile.slug)),
+    inGameKeysPart(),
+    pedalsPart(),
+  ];
 }
 
 /** The parts of the scheme with edits that are not saved yet. */
@@ -1341,12 +1788,14 @@ async function saveScheme(): Promise<void> {
   >();
   let last: SaveResponse | null = null;
   let inGameKeys = false;
+  let inGamePedals = false;
   for (const part of parts) {
     try {
       const done = await part.save();
       saved.push(done.path);
       last = done.result;
       inGameKeys ||= done.inGameKeys === true;
+      inGamePedals ||= done.inGamePedals === true;
       const check = done.result.check;
       if (check && !("error" in check)) {
         for (const entry of check.built) if (entry.changed) built.set(entry.output, entry);
@@ -1368,9 +1817,10 @@ async function saveScheme(): Promise<void> {
       : last;
   saveNote = null;
   const report = reportSave(path, merged, saved);
-  if (inGameKeys) {
+  if (inGameKeys || inGamePedals) {
+    const what = inGameKeys && inGamePedals ? "keys and pedals" : inGamePedals ? "pedals" : "keys";
     const step = el("div", { class: "game-step" }, [
-      el("div", {}, ["The game does not know about the new keys yet."]),
+      el("div", {}, [`The game does not know about the new ${what} yet.`]),
     ]);
     const update = el("button", { class: "btn small", type: "button" }, [
       "Update the game's keys…",
@@ -1390,13 +1840,18 @@ function downloadAll(): void {
 
 /**
  * The layout as YAML, for pasting back into the repo when the page cannot save: each
- * unit's profile, and the in-game keys.
+ * unit's profile, the in-game keys, and the pedals when they were edited.
  */
 function downloadLayoutYaml(): void {
   const game = currentGame();
   for (const slug of slugsInSet()) {
     // No header: the server keeps whatever the file already had.
     download(`${slug}.yaml`, dumpProfile(workingData(slug), ""), "text/yaml");
+  }
+  // The pedals are patched into the file's own text, so this one can replace the file: its
+  // comments and the other layouts are in it.
+  if (pedalsPart().isDirty()) {
+    download("sets.yaml", patchedSetsFile(game).text, "text/yaml");
   }
   // Offline there is no file to patch, so this is the whole vocabulary, flattened. It says
   // so, because pasting it over the real file would lose `extends:` and the allowlist.
@@ -1441,6 +1896,7 @@ function renderHeader(): HTMLElement {
     state.gameIndex = Number(gameSelect.value);
     state.working.clear();
     state.workingActions = null;
+    state.workingSets = null;
     state.selected = null;
     state.setName = [...setsOf(currentGame()).keys()][0] ?? "";
     render();
@@ -1481,6 +1937,7 @@ function renderHeader(): HTMLElement {
     setSelect.append(option);
   }
   setSelect.addEventListener("change", () => {
+    pedalsNote = null;
     state.setName = setSelect.value;
     state.selected = null;
     render();
@@ -1537,8 +1994,8 @@ function renderHeader(): HTMLElement {
     item("Download the import files", downloadAll);
     item("Update the game's keys…", () => {
       // The game is updated from what is saved, so an unsaved key would be left out.
-      if (inGameKeysPart().isDirty()) {
-        saveNote = "Save first: the game is updated from the saved in-game keys.";
+      if (inGameKeysPart().isDirty() || pedalsPart().isDirty()) {
+        saveNote = "Save first: the game is updated from the saved in-game keys and pedals.";
         render();
         return;
       }
@@ -1552,6 +2009,7 @@ function renderHeader(): HTMLElement {
     if (!confirmDiscard("Undoing them")) return;
     state.working.clear();
     state.workingActions = null;
+    state.workingSets = null;
     state.selected = null;
     render();
   });
@@ -2567,7 +3025,7 @@ function render(): void {
   const stageWrap = el("div", { class: "stage-wrap" }, [stage]);
   workspace.append(stageWrap);
 
-  const side = el("div", { class: "dock-col" }, [renderChecks()]);
+  const side = el("div", { class: "dock-col" }, [renderChecks(), renderPedals()]);
   const modes = renderStickModes();
   if (modes) side.append(modes);
   workspace.append(el("div", { class: "dock" }, [renderInspector(), renderPalette(), side]));
@@ -2625,12 +3083,17 @@ export function start(payload = window.AZERON_PAYLOAD): void {
   }
 
   applyStoredTheme();
+  // Page-wide leftovers of the last payload: a note about edits that no longer exist, and
+  // which axes had their details open.
+  pedalsNote = null;
+  tuningOpen.clear();
   const firstGame = payload.games[0];
   probeHost = null;
   state = {
     payload,
     mode: "edit",
     workingActions: null,
+    workingSets: null,
     gameIndex: 0,
     setName: firstGame ? ([...setsOf(firstGame).keys()][0] ?? "") : "",
     working: new Map(),
