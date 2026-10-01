@@ -9,7 +9,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { dataDirs, hostPath, repoPath } from "../config/paths.js";
+import { dataDirs, hostPath, posixJoin, repoPath } from "../config/paths.js";
 import type { ExportDocument } from "../types/azeron.js";
 import type { ProfileMeta } from "../types/profile.js";
 import { compileProfile, dumps } from "./compile.js";
@@ -85,7 +85,7 @@ export function buildAll(games: readonly Game[], check = false): BuildResult {
         continue;
       }
 
-      const outPath = join(game.distDir(), profile.outputName);
+      const outPath = posixJoin(game.distDir(), profile.outputName);
       const previous = existsSync(repoPath(outPath))
         ? readFileSync(repoPath(outPath), "utf8")
         : null;
@@ -514,7 +514,7 @@ export function ingameReport(game: Game, override?: string): IngameReport {
 
 /** The committed copy of the game's binding file, as last generated. */
 export function ingameDistPath(game: Game): string {
-  return join(game.distDir(), "Input.ini");
+  return posixJoin(game.distDir(), "Input.ini");
 }
 
 /**
@@ -691,11 +691,11 @@ export function capturePedalsFrom(game: Game, request: CapturePedalsRequest): Ca
 
 /** Where a decompiled profile should live for a game and set. */
 export function profilePathFor(game: Game, setName: string, unit: string): string {
-  return join(game.rel, "profiles", `${setName}-${unit}.yaml`);
+  return posixJoin(game.rel, "profiles", `${setName}-${unit}.yaml`);
 }
 
 export function templatePathFor(game: Game, setName: string, unit: string): string {
-  return join("templates", `${game.slug}-${setName}-${unit}.json`);
+  return posixJoin("templates", `${game.slug}-${setName}-${unit}.json`);
 }
 
 export interface CheckedBuild {

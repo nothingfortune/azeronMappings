@@ -7,7 +7,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { parseArgs } from "node:util";
 
-import { dataDirs, repoPath, repoRoot } from "./config/paths.js";
+import { dataDirs, isEntryPoint, repoPath, repoRoot } from "./config/paths.js";
 import { bindingSheet, renderBindingsCsv, renderBindingsMarkdown } from "./lib/bindings.js";
 import { CompileError, compileProfile, dumps } from "./lib/compile.js";
 import { decompile, dumpProfile } from "./lib/decompile.js";
@@ -1035,7 +1035,7 @@ export function main(argv: string[]): number {
   }
 }
 
-const invokedDirectly = process.argv[1]?.includes("index") ?? false;
+const invokedDirectly = isEntryPoint(process.argv[1], import.meta.url);
 if (invokedDirectly) {
   try {
     process.exitCode = main(process.argv.slice(2));
