@@ -1,31 +1,25 @@
-/** Injected by the editor at runtime so the whole page ships in one bundle. */
-export const CSS = `
-:root {
+/* Tokens first, so the dark set is written once and used by both ways into it: the user's
+   choice (data-theme) and the OS (prefers-color-scheme) when the user has not chosen. */
+const LIGHT = `
   --bg: #f4f6f8; --panel: #ffffff; --fg: #15181d; --muted: #5d6673; --line: #dae0e7;
   --accent: #2f6f8f; --accent-fg: #ffffff;
   --combat: #b8433a; --movement: #2f7d4f; --menu: #6a4fb3; --travel: #b1701c; --utility: #4a5568;
   --error: #b8433a; --warn: #b1701c; --ok: #2f7d4f;
-  --key-w: 94px;
-}
-:root[data-theme="dark"], :root:not([data-theme="light"]) {
-  color-scheme: light;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #101317; --panel: #1a1e25; --fg: #e8ebf0; --muted: #98a1af; --line: #2e3540;
-    --accent: #6fb6d8; --accent-fg: #0d1014;
-    --combat: #e2786d; --movement: #6fc38f; --menu: #a98fe0; --travel: #d9a05b; --utility: #9aa5b5;
-    --error: #e2786d; --warn: #d9a05b; --ok: #6fc38f;
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
+`;
+const DARK = `
   --bg: #101317; --panel: #1a1e25; --fg: #e8ebf0; --muted: #98a1af; --line: #2e3540;
   --accent: #6fb6d8; --accent-fg: #0d1014;
   --combat: #e2786d; --movement: #6fc38f; --menu: #a98fe0; --travel: #d9a05b; --utility: #9aa5b5;
   --error: #e2786d; --warn: #d9a05b; --ok: #6fc38f;
-  color-scheme: dark;
+`;
+
+/** Injected by the editor at runtime so the whole page ships in one bundle. */
+export const CSS = `
+:root { ${LIGHT} --key-w: 94px; color-scheme: light; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { ${DARK} color-scheme: dark; }
 }
+:root[data-theme="dark"] { ${DARK} color-scheme: dark; }
 * { box-sizing: border-box; }
 body {
   margin: 0; background: var(--bg); color: var(--fg);
@@ -79,6 +73,11 @@ header .tabs .btn + .btn { border-left: 1px solid var(--line); }
 .menu-item { text-align: left; background: none; border: 0; padding: 7px 10px; border-radius: 6px;
              color: var(--fg); cursor: pointer; font: inherit; }
 .menu-item:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+/* Text boxes take the theme too; the browser's own are white in a dark page. */
+input:not([type="checkbox"]):not([type="file"]) {
+  background: var(--bg); border: 1px solid var(--line); border-radius: 7px; padding: 5px 8px;
+}
+input::placeholder { color: var(--muted); }
 select, .btn {
   background: var(--panel); border: 1px solid var(--line); border-radius: 7px;
   padding: 5px 10px; cursor: pointer;
@@ -132,8 +131,8 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 .key-chip.capturing { border-color: var(--accent); color: var(--accent);
                       box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
 .btn.small { padding: 3px 8px; font-size: 12px; }
-.keybind-note { flex-basis: 100%; font-size: 11px; color: var(--warn, #a86b00); }
-.keybind-note.bad { color: var(--bad, #b3261e); }
+.keybind-note { flex-basis: 100%; font-size: 11px; color: var(--warn); }
+.keybind-note.bad { color: var(--error); }
 .action-list.inert { opacity: .45; pointer-events: none; }
 .note { font-size: 11.5px; color: var(--muted); margin-bottom: 10px; }
 .workspace { padding: 12px 14px; }
@@ -295,10 +294,7 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 1
 /* Print: the board and nothing else, in the light palette whatever the screen is on. */
 .print-title { display: none; }
 @media print {
-  :root:root:root {
-    --bg: #f4f6f8; --panel: #ffffff; --fg: #15181d; --muted: #5d6673; --line: #b9c1cb;
-    color-scheme: light;
-  }
+  :root:root:root { ${LIGHT} color-scheme: light; }
   @page { size: landscape; margin: 10mm; }
   header, .save-note, .dock, .menu { display: none !important; }
   body { background: #fff; }

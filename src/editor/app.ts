@@ -36,6 +36,7 @@ import { buildProbeProfile, buildStickCalibrationProfile } from "../lib/probe.js
 import type { ProbePayload } from "../types/probe.js";
 import { start as startProbe, stop as stopProbe } from "./probe.js";
 import { CSS } from "./styles.js";
+import { applyStoredTheme, currentTheme, toggleTheme } from "./theme.js";
 
 declare global {
   interface Window {
@@ -1494,9 +1495,9 @@ function renderHeader(): HTMLElement {
   item("Open a data file…", () => {
     picker.click();
   });
-  item("Switch light / dark", () => {
-    const root = document.documentElement;
-    root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark";
+  item(`Use the ${currentTheme() === "dark" ? "light" : "dark"} theme`, () => {
+    toggleTheme();
+    render();
   });
 
   const menu = el("details", { class: "menu" }, [
@@ -2554,6 +2555,7 @@ export function start(payload = window.AZERON_PAYLOAD): void {
     document.head.append(style);
   }
 
+  applyStoredTheme();
   const firstGame = payload.games[0];
   probeHost = null;
   state = {

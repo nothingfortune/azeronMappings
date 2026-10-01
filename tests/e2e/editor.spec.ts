@@ -9,6 +9,7 @@
 import { readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";
+import type { Page } from "@playwright/test";
 import { LIVE_SET, live } from "../helpers/fixtures.js";
 
 const PROFILE = live("left");
@@ -116,6 +117,62 @@ test.describe("the served editor", () => {
     await expect(page.locator(".print-title")).toBeVisible();
     await expect(page.locator(".hand")).toHaveCount(2);
     for (const hand of await page.locator(".hand").all()) await expect(hand).toBeVisible();
+  });
+
+  test.describe("the theme", () => {
+    // The page follows the OS until it is told otherwise. The first click on a dark OS used
+    // to set "dark" on a page that was already dark, so nothing changed.
+    const DARK_BG = "rgb(16, 19, 23)";
+    const LIGHT_BG = "rgb(244, 246, 248)";
+    const background = (page: Page): Promise<string> =>
+      page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    const choose = async (page: Page, theme: "light" | "dark"): Promise<void> => {
+      await page.locator("header summary.btn").click();
+      await page.getByRole("button", { name: `Use the ${theme} theme` }).click();
+    };
+
+    test("switches on the first click when the OS is dark, and back", async ({ browser }) => {
+      const context = await browser.newContext({ colorScheme: "dark" });
+      const page = await context.newPage();
+      await page.goto("/");
+      expect(await background(page)).toBe(DARK_BG);
+
+      await choose(page, "light");
+      expect(await background(page)).toBe(LIGHT_BG);
+      await choose(page, "dark");
+      expect(await background(page)).toBe(DARK_BG);
+      await context.close();
+    });
+
+    test("switches on a light OS too, remembers it, and covers the press test", async ({
+      browser,
+    }) => {
+      const context = await browser.newContext({ colorScheme: "light" });
+      const page = await context.newPage();
+      await page.goto("/");
+      expect(await background(page)).toBe(LIGHT_BG);
+
+      await choose(page, "dark");
+      expect(await background(page)).toBe(DARK_BG);
+
+      await page.reload();
+      await expect(page.locator(".hand")).toHaveCount(2);
+      expect(await background(page)).toBe(DARK_BG);
+
+      await page.getByRole("button", { name: "Press test", exact: true }).click();
+      expect(await background(page)).toBe(DARK_BG);
+      // Text on the press test's panels takes the theme's colours too, not a fixed one.
+      const panel = await page
+        .locator(".probe .panel")
+        .first()
+        .evaluate((node) => {
+          const style = getComputedStyle(node);
+          return [style.backgroundColor, style.color];
+        });
+      expect(panel[0]).toBe("rgb(26, 30, 37)");
+      expect(panel[1]).toBe("rgb(232, 235, 240)");
+      await context.close();
+    });
   });
 
   test("draws the press test's columns side by side", async ({ page }) => {

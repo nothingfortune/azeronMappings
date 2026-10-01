@@ -121,6 +121,11 @@ Every profile change, and why. `playtests.md` records what each layout felt like
   armed slot was invisible and never reset; unsaved edits were lost without asking;
   importing over an existing set destroyed its committed template.
 - The binding sheet and the linter disagreed about raw keys from app edits.
+- **The light/dark switch did nothing on a dark system.** With no choice made the page
+  follows the OS, and the toggle set `dark` unless it already said `dark`, so the first
+  click on a dark OS "switched" a page that was already dark. It now flips from what is
+  on screen, in both directions, remembers the choice, and the press test and the text
+  boxes take the theme too (the press test's banner and badge were unreadable in it).
 
 ### Known gaps
 

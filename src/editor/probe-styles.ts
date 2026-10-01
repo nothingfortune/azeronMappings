@@ -18,7 +18,7 @@ export const PROBE_CSS = `
 .probe .prompt { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; border-radius: 10px;
                  padding: 14px 16px; background: var(--accent); color: var(--accent-fg); }
 .probe .prompt b { font-size: 19px; letter-spacing: .01em; }
-.probe .prompt .muted { opacity: .8; }
+.probe .prompt .muted { color: inherit; opacity: .8; }
 .probe .prompt .bad { background: var(--bad); color: #fff; padding: 2px 8px; border-radius: 6px; }
 .probe .workspace { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 14px;
                     padding: 14px 0 0; align-items: start; }
@@ -35,7 +35,7 @@ export const PROBE_CSS = `
 .probe .hand-title { display: flex; gap: 8px; align-items: baseline; margin-bottom: 8px; }
 .probe .hand-title b { font-size: 13px; }
 .probe .hand-title span { color: var(--muted); font-size: 11.5px; }
-.probe .badge { background: var(--accent); color: var(--accent-fg); border-radius: 99px;
+.probe .hand-title .badge, .probe .badge { background: var(--accent); color: var(--accent-fg); border-radius: 99px;
                 padding: 1px 8px; font-size: 10px; }
 .probe .col.side { margin-top: 26px; }
 .probe .hand-body { display: flex; flex-direction: row; gap: 7px; align-items: flex-start; }
