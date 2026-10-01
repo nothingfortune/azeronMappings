@@ -141,6 +141,22 @@ test.describe("the pedals in the editor", () => {
     await expect(page.locator("header button.dirty")).toHaveAttribute("title", "Unsaved: Pedals");
   });
 
+  test("apply a mode as written, with yaw on the stick, once the pedals do not carry yaw", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await pedalAxis(page, "rudder").locator("select").selectOption("");
+    await page.locator("details.panel.fold > summary").click();
+    await page
+      .locator(".mode-row")
+      .filter({ has: page.locator("b", { hasText: /^Mode 2 \(RC default\)/ }) })
+      .click();
+    await expect(page.locator(".stick-dial").nth(0).locator(".right .name")).toHaveText(
+      "Yaw right",
+    );
+    await expect(page.locator("[data-reading]")).toHaveText("Mode 2 (RC default)");
+  });
+
   test("offers to add pedals to a layout that has none", async ({ page }) => {
     await page.goto("/");
     await page.locator("header select").nth(1).selectOption("single-v5");

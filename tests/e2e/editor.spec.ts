@@ -119,7 +119,9 @@ test.describe("the served editor", () => {
 
     const dials = page.locator(".stick-dial");
     await expect(dials.nth(0).locator(".up .name")).toHaveText("Hover up");
-    await expect(dials.nth(0).locator(".right .name")).toHaveText("Yaw right");
+    // The live layout's pedals carry yaw, so a mode is applied in its with-pedals variant and
+    // the left stick's horizontal is roll. Without the pedals it is yaw: see pedals.spec.ts.
+    await expect(dials.nth(0).locator(".right .name")).toHaveText("Roll right");
     await expect(dials.nth(1).locator(".up .name")).toHaveText("Thrust forward");
     await expect(page.locator(".save-note")).toContainText("Save to keep it");
   });
