@@ -93,6 +93,13 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Changed
 
+- **Saving is one thing.** A layout is one control scheme, so the header's Save writes
+  everything that changed in it -- both keypad profiles and the in-game keys -- and
+  reports once; the unsaved marker names what it would write. The In-game tab lost its own
+  Save buttons, and the menu's per-unit downloads became "Download the import files".
+  Telling the game stays an explicit step that asks whether it is closed, offered from the
+  save's report and from the menu. New parts of the scheme join the same Save through
+  `schemeParts()` in the editor.
 - **The Sheet tab is gone.** It was a cheatsheet in an iframe, a tall page inside a wide
   one, for learning a layout away from the screen. The Edit board is readable now and is
   that reference; the header's menu has **Print layout**, which prints the board itself
@@ -109,6 +116,8 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Fixed
 
+- Undo all unsaved edits left the in-game keys edited, and switching game carried them
+  to the next game.
 - **The right unit's stick never did what its profile said.** A right-hand unit reads
   `analogKeys.right`; the compiler wrote `.left`. `activeAnalogKeys` chooses now.
 - The compiler rewrote any pin the device map named, whatever its type; the profile

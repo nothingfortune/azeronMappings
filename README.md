@@ -41,14 +41,20 @@ which is which if you are unsure.
 
 ## Changing a binding
 
-There are only ever two things to change, and each is done in the editor:
+A layout is one control scheme: both keypads and the keys the game listens for. There are
+two things to change, both in the editor, and **one Save** (top right) writes whatever
+changed in either:
 
-- **Which key does what** — the **Edit** tab. Click a key on the board, click an action,
-  **Save changes**. The label follows the action, and the save comes back with the linter's
-  verdict and the file to re-import, as a path the Azeron app's dialog takes.
+- **Which key does what** — the **Edit** tab. Click a key on the board, click an action.
+  The label follows the action.
 - **Which key the game listens for** — the **In-game** tab. Click the action's key, press
-  the new one, then **Save and update the game** with the game closed. Every layout
-  follows; nothing needs re-importing.
+  the new one. Every layout follows; nothing needs re-importing.
+
+Save comes back with the linter's verdict and the file to re-import, as a path the Azeron
+app's dialog takes. If in-game keys were saved it also offers **Update the game's keys…**,
+which asks whether the game is closed and then writes its `Input.ini` (the same step is in
+the header's menu). That is the one thing Save does not do on its own, because it writes
+outside the repo.
 
 Stick modes (DJI Mode 1/2/3, the game's own twin-stick layout, and a roll variant) are
 applied to both sticks in one click from the editor's side panel.

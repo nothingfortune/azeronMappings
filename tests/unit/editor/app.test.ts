@@ -369,7 +369,7 @@ describe("stick modes in the editor", () => {
 
   it("says the change still has to be saved", () => {
     modeButton("Mode 1").click();
-    expect(document.querySelector(".save-note")?.textContent).toContain("Save changes");
+    expect(document.querySelector(".save-note")?.textContent).toContain("Save to keep it");
   });
 });
 
@@ -546,7 +546,7 @@ describe("unsaved edits", () => {
     }));
     mount();
     edit("pinky_1");
-    header("Save changes").click();
+    header("Save").click();
     await vi.waitFor(() => {
       expect(document.querySelector(".save-report")).not.toBeNull();
     });
@@ -572,7 +572,7 @@ describe("unsaved edits", () => {
     expect(header("Saved").hasAttribute("disabled")).toBe(true);
 
     edit("pinky_1", 0);
-    header("Save changes").click();
+    header("Save").click();
     await vi.waitFor(() => {
       expect(document.querySelector(".save-report")).not.toBeNull();
     });
@@ -583,20 +583,13 @@ describe("unsaved edits", () => {
     // Pinky 1 already holds what edit() assigns, so a different key changes the left.
     edit("pinky_2", 0);
     edit("pinky_1", 1);
-    header("Save changes").click();
+    header("Save").click();
     await vi.waitFor(() => {
       expect(calls).toHaveLength(3);
     });
   });
 
-  it("sends only the in-game keys that changed, never the whole file", async () => {
-    const calls = served(() => ({
-      ok: true,
-      saved: true,
-      path: "p",
-      check: { game: null, built: [], findings: [], buildErrors: [] },
-    }));
-    mount();
+  function changeHeadlight(): void {
     header("In-game").click();
     const row = [...document.querySelectorAll(".ingame-row")].find(
       (node) => node.querySelector(".who b")?.textContent === "Headlight",
@@ -605,9 +598,20 @@ describe("unsaved edits", () => {
     if (!chip) throw new Error("no key chip for Headlight");
     chip.click();
     document.dispatchEvent(new KeyboardEvent("keydown", { code: "KeyL", bubbles: true }));
-    [...document.querySelectorAll<HTMLButtonElement>("button")]
-      .find((button) => button.textContent === "Save only")
-      ?.click();
+  }
+
+  const OK = {
+    ok: true,
+    saved: true,
+    path: "p",
+    check: { game: null, built: [], findings: [], buildErrors: [] },
+  };
+
+  it("sends only the in-game keys that changed, never the whole file", async () => {
+    const calls = served(() => OK);
+    mount();
+    changeHeadlight();
+    header("Save").click();
     await vi.waitFor(() => {
       expect(calls).toHaveLength(1);
     });
@@ -615,41 +619,120 @@ describe("unsaved edits", () => {
     expect(calls[0]?.body).toEqual({ game: "everspace", changes: { headlight: { key: "KeyL" } } });
   });
 
-  it("saves a key and tells the game in one step, after asking that the game is closed", async () => {
-    // It took two tabs: save here, then Repo, then write the game's bindings.
+  it("counts an in-game key as unsaved, and says what Save would write", () => {
+    served(() => OK);
+    mount();
+    expect(header("Saved").hasAttribute("disabled")).toBe(true);
+    changeHeadlight();
+    const save = header("Save");
+    expect(save.hasAttribute("disabled")).toBe(false);
+    expect(save.title).toBe("Unsaved: In-game keys");
+  });
+
+  it("saves both keypads and the in-game keys with one Save and one report", async () => {
+    // A layout is one control scheme. The In-game tab had its own save buttons, so a
+    // change to a key and a change to the keypads were saved in two places.
+    const calls = served(() => OK);
+    mount();
+    edit("pinky_1", 1);
+    changeHeadlight();
+    expect(header("Save").title).toBe("Unsaved: Right unit, In-game keys");
+    header("Save").click();
+    await vi.waitFor(() => {
+      expect(calls.map((call) => call.path)).toEqual(["/api/save", "/api/actions"]);
+    });
+    await vi.waitFor(() => {
+      expect(document.querySelectorAll(".save-report")).toHaveLength(1);
+    });
+    expect(document.querySelector(".save-report")?.firstElementChild?.textContent).toMatch(
+      /^Saved .*profiles.* and .*actions\.yaml\.$/,
+    );
+    expect(header("Saved").hasAttribute("disabled")).toBe(true);
+  });
+
+  it("has no save buttons of its own on the In-game tab, nor per-unit downloads", () => {
+    served(() => OK);
+    mount();
+    header("In-game").click();
+    const labels = [...document.querySelectorAll("button")].map((button) => button.textContent);
+    for (const gone of ["Save only", "Save and update the game", "Export actions.yaml"]) {
+      expect(labels).not.toContain(gone);
+    }
+    const menu = [...document.querySelectorAll(".menu-item")].map((item) => item.textContent);
+    expect(menu).toContain("Download the import files");
+    expect(menu.filter((label) => label.includes("unit's"))).toEqual([]);
+  });
+
+  it("names the part that failed and what was already saved", async () => {
+    let first = true;
+    served((path) => {
+      if (path === "/api/save" && first) {
+        first = false;
+        return OK;
+      }
+      return { ok: false, error: "disk full" };
+    });
+    mount();
+    edit("pinky_1", 1);
+    changeHeadlight();
+    header("Save").click();
+    await vi.waitFor(() => {
+      expect(document.querySelector(".save-note")?.textContent).toContain("disk full");
+    });
+    const note = document.querySelector(".save-note")?.textContent ?? "";
+    expect(note).toContain("In-game keys");
+    expect(note).toContain("Already saved");
+  });
+
+  it("offers to tell the game after saving keys, and asks that it is closed first", async () => {
     const calls = served((path) =>
       path === "/api/ingame/apply"
         ? {
             ok: true,
             result: { changes: [{ display: "Headlight", from: "B", to: "L" }], backup: null },
           }
-        : {
-            ok: true,
-            saved: true,
-            path: "p",
-            check: { game: null, built: [], findings: [], buildErrors: [] },
-          },
+        : OK,
     );
     const confirm = vi.fn(() => true);
     vi.stubGlobal("confirm", confirm);
     mount();
-    header("In-game").click();
-    const row = [...document.querySelectorAll(".ingame-row")].find(
-      (node) => node.querySelector(".who b")?.textContent === "Headlight",
-    );
-    row?.querySelector<HTMLButtonElement>(".key-chip")?.click();
-    document.dispatchEvent(new KeyboardEvent("keydown", { code: "KeyL", bubbles: true }));
-    [...document.querySelectorAll<HTMLButtonElement>("button")]
-      .find((button) => button.textContent === "Save and update the game")
-      ?.click();
+    changeHeadlight();
+    header("Save").click();
+    await vi.waitFor(() => {
+      expect(document.querySelector(".game-step")).not.toBeNull();
+    });
+    // Saving never touches the game on its own.
+    expect(calls.map((call) => call.path)).toEqual(["/api/actions"]);
+    expect(confirm).not.toHaveBeenCalled();
+
+    document.querySelector<HTMLButtonElement>(".game-step button")?.click();
+    expect(confirm).toHaveBeenCalledOnce();
     await vi.waitFor(() => {
       expect(calls.map((call) => call.path)).toEqual(["/api/actions", "/api/ingame/apply"]);
     });
-    expect(confirm).toHaveBeenCalledOnce();
     await vi.waitFor(() => {
       expect(document.querySelector(".save-report")?.textContent).toContain("Updated the game");
     });
   });
+
+  it("does not offer to tell the game when no in-game key was saved", async () => {
+    served(() => OK);
+    mount();
+    edit("pinky_1", 1);
+    header("Save").click();
+    await vi.waitFor(() => {
+      expect(document.querySelector(".save-report")).not.toBeNull();
+    });
+    expect(document.querySelector(".game-step")).toBeNull();
+  });
+
+  function menuItem(label: string): HTMLButtonElement {
+    const found = [...document.querySelectorAll<HTMLButtonElement>(".menu-item")].find(
+      (button) => button.textContent === label,
+    );
+    if (!found) throw new Error(`no menu item ${label}`);
+    return found;
+  }
 
   it("does nothing to the game when the user says it is still running", () => {
     const calls = served(() => ({ ok: true }));
@@ -658,11 +741,33 @@ describe("unsaved edits", () => {
       vi.fn(() => false),
     );
     mount();
-    header("In-game").click();
-    [...document.querySelectorAll<HTMLButtonElement>("button")]
-      .find((button) => button.textContent === "Save and update the game")
-      ?.click();
+    menuItem("Update the game's keys…").click();
     expect(calls).toEqual([]);
+  });
+
+  it("will not update the game from keys that are not saved yet", () => {
+    const calls = served(() => ({ ok: true }));
+    const confirm = vi.fn(() => true);
+    vi.stubGlobal("confirm", confirm);
+    mount();
+    changeHeadlight();
+    menuItem("Update the game's keys…").click();
+    expect(calls).toEqual([]);
+    expect(confirm).not.toHaveBeenCalled();
+    expect(document.querySelector(".save-note")?.textContent).toContain("Save first");
+  });
+
+  it("undoes in-game key edits along with the keypads'", () => {
+    served(() => OK);
+    mount();
+    vi.stubGlobal(
+      "confirm",
+      vi.fn(() => true),
+    );
+    changeHeadlight();
+    expect(header("Save").hasAttribute("disabled")).toBe(false);
+    menuItem("Undo all unsaved edits").click();
+    expect(header("Saved").hasAttribute("disabled")).toBe(true);
   });
 });
 

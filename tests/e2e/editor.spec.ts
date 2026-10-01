@@ -74,7 +74,7 @@ test.describe("the served editor", () => {
       await label.fill("Edited end to end");
       await label.blur();
 
-      await page.getByRole("button", { name: "Save changes" }).click();
+      await page.locator("header button.primary.dirty").click();
 
       // The verdict comes back from the server, not from the page guessing -- and it says
       // the file was saved before it says anything else.
@@ -106,7 +106,7 @@ test.describe("the served editor", () => {
     await expect(dials.nth(0).locator(".up .name")).toHaveText("Hover up");
     await expect(dials.nth(0).locator(".right .name")).toHaveText("Yaw right");
     await expect(dials.nth(1).locator(".up .name")).toHaveText("Thrust forward");
-    await expect(page.locator(".save-note")).toContainText("Save changes");
+    await expect(page.locator(".save-note")).toContainText("Save to keep it");
   });
 
   test("prints the board and nothing around it", async ({ page }) => {

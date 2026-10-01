@@ -499,7 +499,7 @@ function renderStickModes(): HTMLElement | null {
         const data = workingData(slug);
         data.positions.stick = applyMode(data.positions.stick, set, mode, hand);
       }
-      saveNote = `${mode.label} applied to both sticks. Save changes to keep it.`;
+      saveNote = `${mode.label} applied to both sticks. Save to keep it.`;
       render();
     });
     panel.append(row);
@@ -629,18 +629,10 @@ function renderPalette(): HTMLElement {
  *
  * A working copy is made the first time a profile is read, and every render reads, so
  * having one says nothing -- the page would call itself dirty the moment it drew. Each
- * copy is compared with what the page loaded instead.
+ * part of the control scheme compares its copy with what the page loaded instead.
  */
 function isDirty(): boolean {
-  const game = currentGame();
-  for (const [slug, data] of state.working) {
-    const source = game.profiles.find((profile) => profile.slug === slug);
-    if (!source || JSON.stringify(source.data) !== JSON.stringify(data)) return true;
-  }
-  return (
-    state.workingActions !== null &&
-    JSON.stringify(state.workingActions) !== JSON.stringify(game.actions.actions ?? {})
-  );
+  return unsavedParts().length > 0;
 }
 
 /** Ask before throwing edits away. Returns false when the user would rather not. */
@@ -1156,12 +1148,6 @@ function download(name: string, text: string, type: string): void {
 }
 
 /**
- * Save the in-game keys that changed, and only those.
- *
- * The server patches each action's line in place, so actions.yaml keeps its `extends:`,
- * its allowlist and its comments. Regenerating it lost all three.
- */
-/**
  * Tell the game: write its binding file from actions.yaml, and say what changed.
  *
  * Appends to the save report when there is one, so a save and an update read as one
@@ -1201,17 +1187,28 @@ async function updateGame(game: EditorGame): Promise<void> {
 }
 
 /**
- * Save the in-game keys that changed, and only those -- and, if asked, tell the game.
- *
- * The server patches each action's line in place, so actions.yaml keeps its `extends:`,
- * its allowlist and its comments. Changing a key used to take two tabs: Save here, then
- * Repo, then write the game's bindings.
+ * Ask whether the game is closed, then tell it. The one step of a save that writes outside
+ * the repo -- into the game's own config -- so it is never implied by Save.
  */
-async function saveActionKeys(game: EditorGame, andGame: boolean): Promise<void> {
+function confirmUpdateGame(): void {
+  const game = currentGame();
+  if (
+    !window.confirm(
+      `Is ${game.name} closed? It rewrites its key bindings when it exits, which would ` +
+        "undo this. Its current file is kept beside the new one.",
+    )
+  ) {
+    return;
+  }
+  saveReport?.querySelector(".game-step")?.remove();
+  void updateGame(game);
+}
+
+/** The in-game keys that differ from what the page loaded, as the patch the server takes. */
+function inGameKeyChanges(game: EditorGame): Record<string, BindingChange> {
   const loaded = game.actions.actions ?? {};
-  const edited = state.workingActions ?? {};
   const changes: Record<string, BindingChange> = {};
-  for (const [id, spec] of Object.entries(edited)) {
+  for (const [id, spec] of Object.entries(state.workingActions ?? {})) {
     const before = loaded[id] ?? {};
     const change: BindingChange = {};
     for (const field of ["key", "meta", "mouse"] as const) {
@@ -1219,125 +1216,195 @@ async function saveActionKeys(game: EditorGame, andGame: boolean): Promise<void>
     }
     if (Object.keys(change).length > 0) changes[id] = change;
   }
-  saveReport = null;
-  if (Object.keys(changes).length === 0) {
-    // Nothing new in the repo, but the game can still be behind it.
-    saveNote = andGame ? null : "Nothing to save: no in-game key has changed.";
-    if (andGame) await updateGame(game);
-    else render();
-    return;
-  }
-  const path = `${game.rel}/actions.yaml`;
-  saveNote = `saving ${path}...`;
-  render();
-  try {
-    const result = await post<SaveResponse>("/api/actions", { game: game.slug, changes });
-    if (!result.ok) {
-      saveNote = `not saved: ${result.error ?? "the server refused it"}`;
-      render();
-      return;
-    }
-    saveNote = null;
-    saveReport = reportSave(path, result);
-    game.actions.actions = structuredClone(edited);
-    if (andGame) {
-      await updateGame(game);
-      return;
-    }
-    saveReport.append(
-      el("div", {}, ["The game does not know yet: Save and update the game, with it closed."]),
-    );
-  } catch (error) {
-    saveNote = `not saved -- could not reach the server: ${messageOf(error)}`;
-  }
-  render();
+  return changes;
 }
 
-function exportYaml(slug: string): void {
-  // No header: the server keeps whatever the file already had.
-  const yaml = dumpProfile(workingData(slug), "");
-  const source = currentGame().profiles.find((profile) => profile.slug === slug);
-  if (canSave() && source) {
-    const saved = structuredClone(workingData(slug));
-    void saveToRepo(source.path, yaml, () => {
-      source.data = saved;
-    });
-    return;
-  }
-  download(`${slug}.yaml`, yaml, "text/yaml");
-}
-
-/** Whether one unit has edits the page has not saved. */
-function unitIsDirty(slug: string): boolean {
-  const working = state.working.get(slug);
-  if (!working) return false;
-  const source = currentGame().profiles.find((profile) => profile.slug === slug);
-  return !source || JSON.stringify(source.data) !== JSON.stringify(working);
+/** What one part's save wrote, and what the server made of it. */
+interface PartSaved {
+  path: string;
+  result: SaveResponse;
+  /** True when the in-game keys were written, which is what leaves the game behind. */
+  inGameKeys?: boolean;
 }
 
 /**
- * Save every unit that has changed, as one save.
+ * One piece of the control scheme.
  *
- * The header had a Save and a Download per unit -- four buttons for a pair -- and the
- * Download was the one drawn as the main action. One Save now covers the pair. Each file
- * is written and checked in turn; the report names them together, and the import paths
- * are every file that changed. The check is per game, so the last one speaks for both.
+ * A layout is one control scheme -- both keypads, the in-game keys, and whatever else is
+ * played with -- saved together, so Save is one button over a list of these rather than a
+ * button per thing. Anything with edits the page holds and a way to write them joins the
+ * scheme by being one more entry in `schemeParts`; the header, the unsaved marker, the
+ * report and the unload guard all follow from the list.
  */
-async function saveChanged(): Promise<void> {
-  const changed = slugsInSet().filter(unitIsDirty);
-  if (changed.length === 0) return;
+interface SchemePart {
+  /** What the unsaved marker and an error call it: "Left unit", "In-game keys". */
+  readonly name: string;
+  isDirty(): boolean;
+  /** Write it into the repo. Rejects with the reason, in words, when it cannot. */
+  save(): Promise<PartSaved>;
+}
+
+async function saveResponse(path: string, body: unknown): Promise<SaveResponse> {
+  const result = await post<SaveResponse>(path, body);
+  if (!result.ok) throw new Error(result.error ?? "the server refused it");
+  return result;
+}
+
+/** A keypad profile: its YAML, written over the file it came from. */
+function keypadPart(slug: string): SchemePart {
+  const sourceOf = () => currentGame().profiles.find((profile) => profile.slug === slug);
+  return {
+    get name() {
+      const unit = state.working.get(slug)?.profile.unit ?? sourceOf()?.data.profile.unit;
+      return `${unit === undefined ? slug : unitLabel(unit)} unit`;
+    },
+    isDirty() {
+      const working = state.working.get(slug);
+      if (!working) return false;
+      const source = sourceOf();
+      return !source || JSON.stringify(source.data) !== JSON.stringify(working);
+    },
+    async save() {
+      const source = sourceOf();
+      if (!source) throw new Error(`no profile ${slug}`);
+      const data = structuredClone(workingData(slug));
+      // No header: the server keeps whatever the file already had.
+      const result = await saveResponse("/api/save", {
+        path: source.path,
+        content: dumpProfile(data, ""),
+      });
+      source.data = data;
+      return { path: source.path, result };
+    },
+  };
+}
+
+/**
+ * The keys inside the game. The server patches each action's line in place, so actions.yaml
+ * keeps its `extends:`, its allowlist and its comments; regenerating it lost all three.
+ */
+function inGameKeysPart(): SchemePart {
+  return {
+    name: "In-game keys",
+    isDirty: () => Object.keys(inGameKeyChanges(currentGame())).length > 0,
+    async save() {
+      const game = currentGame();
+      const path = `${game.rel}/actions.yaml`;
+      const result = await saveResponse("/api/actions", {
+        game: game.slug,
+        changes: inGameKeyChanges(game),
+      });
+      game.actions.actions = structuredClone(state.workingActions ?? {});
+      return { path, result, inGameKeys: true };
+    },
+  };
+}
+
+/**
+ * Everything that belongs to the control scheme.
+ *
+ * Pedals will be one more entry here -- `{ name: "Pedals", isDirty, save }` -- and appear
+ * in the one Save, the unsaved marker and the report without anything else changing.
+ */
+function schemeParts(): SchemePart[] {
+  return [...currentGame().profiles.map((profile) => keypadPart(profile.slug)), inGameKeysPart()];
+}
+
+/** The parts of the scheme with edits that are not saved yet. */
+function unsavedParts(): SchemePart[] {
+  return schemeParts().filter((part) => part.isDirty());
+}
+
+/**
+ * Save the whole control scheme as one: every part that changed, one report.
+ *
+ * Each part is written and checked in turn, and the report names them together; the check
+ * is per game, so the last one speaks for all, and the import files are every one that
+ * changed along the way. Changing the game's own file is not part of this -- it writes
+ * outside the repo and needs the game closed -- but the report offers it when in-game keys
+ * were saved.
+ */
+async function saveScheme(): Promise<void> {
+  const parts = unsavedParts();
+  if (parts.length === 0) return;
   saveNote = "saving...";
   saveReport = null;
   render();
+
   const saved: string[] = [];
   const built = new Map<
     string,
     { output: string; importPath: string; mirroredTo?: string; changed: boolean }
   >();
   let last: SaveResponse | null = null;
-  try {
-    for (const slug of changed) {
-      const source = currentGame().profiles.find((profile) => profile.slug === slug);
-      if (!source) continue;
-      const data = structuredClone(workingData(slug));
-      const result = await post<SaveResponse>("/api/save", {
-        path: source.path,
-        content: dumpProfile(data, ""),
-      });
-      if (!result.ok) {
-        saveNote = `not saved: ${source.path} -- ${result.error ?? "the server refused it"}`;
-        render();
-        return;
-      }
-      source.data = data;
-      saved.push(source.path);
-      last = result;
-      const check = result.check;
+  let inGameKeys = false;
+  for (const part of parts) {
+    try {
+      const done = await part.save();
+      saved.push(done.path);
+      last = done.result;
+      inGameKeys ||= done.inGameKeys === true;
+      const check = done.result.check;
       if (check && !("error" in check)) {
         for (const entry of check.built) if (entry.changed) built.set(entry.output, entry);
       }
+    } catch (error) {
+      saveNote =
+        `not saved: ${part.name} -- ${messageOf(error)}` +
+        (saved.length > 0 ? `. Already saved: ${saved.join(" and ")}.` : "");
+      render();
+      return;
     }
-  } catch (error) {
-    saveNote = `not saved -- could not reach the server: ${messageOf(error)}`;
-    render();
-    return;
   }
   const path = saved.pop();
   if (last === null || path === undefined) return;
   const check = last.check;
-  // Every file that changed across the saves, not only the last one's.
   const merged: SaveResponse =
     check && !("error" in check)
       ? { ...last, check: { ...check, built: [...built.values()] } }
       : last;
   saveNote = null;
-  saveReport = reportSave(path, merged, saved);
+  const report = reportSave(path, merged, saved);
+  if (inGameKeys) {
+    const step = el("div", { class: "game-step" }, [
+      el("div", {}, ["The game does not know about the new keys yet."]),
+    ]);
+    const update = el("button", { class: "btn small", type: "button" }, [
+      "Update the game's keys…",
+    ]);
+    update.addEventListener("click", confirmUpdateGame);
+    step.append(update);
+    report.append(step);
+  }
+  saveReport = report;
   render();
 }
 
 /** Every unit's import file, for the Azeron app -- the main output when nothing can save. */
 function downloadAll(): void {
   for (const slug of slugsInSet()) exportJson(slug);
+}
+
+/**
+ * The layout as YAML, for pasting back into the repo when the page cannot save: each
+ * unit's profile, and the in-game keys.
+ */
+function downloadLayoutYaml(): void {
+  const game = currentGame();
+  for (const slug of slugsInSet()) {
+    // No header: the server keeps whatever the file already had.
+    download(`${slug}.yaml`, dumpProfile(workingData(slug), ""), "text/yaml");
+  }
+  // Offline there is no file to patch, so this is the whole vocabulary, flattened. It says
+  // so, because pasting it over the real file would lose `extends:` and the allowlist.
+  const header =
+    `# ${game.name} -- every action and the in-game key it is bound to, flattened.\n` +
+    "# Copy the keys you changed into the game's actions.yaml; do not replace the file.\n";
+  download(
+    "actions.yaml",
+    dumpYaml({ game: game.name, actions: actionSetFor(game).actions }, header),
+    "text/yaml",
+  );
 }
 
 function exportJson(slug: string): void {
@@ -1370,6 +1437,7 @@ function renderHeader(): HTMLElement {
     }
     state.gameIndex = Number(gameSelect.value);
     state.working.clear();
+    state.workingActions = null;
     state.selected = null;
     state.setName = [...setsOf(currentGame()).keys()][0] ?? "";
     render();
@@ -1430,13 +1498,17 @@ function renderHeader(): HTMLElement {
   // reads Saved when there is nothing to save, which is the page's unsaved marker. Opened
   // as a file there is nowhere to save to, so the main action is the import files.
   if (canSave()) {
-    const dirty = slugsInSet().some(unitIsDirty);
+    // One Save for the whole control scheme -- both keypads and the in-game keys -- and the
+    // unsaved marker says which parts it would write.
+    const unsaved = unsavedParts();
+    const dirty = unsaved.length > 0;
     const save = el("button", { class: `btn primary${dirty ? " dirty" : ""}`, type: "button" }, [
-      dirty ? "Save changes" : "Saved",
+      dirty ? "Save" : "Saved",
     ]);
-    if (!dirty) save.setAttribute("disabled", "disabled");
+    if (dirty) save.title = `Unsaved: ${unsaved.map((part) => part.name).join(", ")}`;
+    else save.setAttribute("disabled", "disabled");
     save.addEventListener("click", () => {
-      void saveChanged();
+      void saveScheme();
     });
     header.append(save);
   } else {
@@ -1455,21 +1527,25 @@ function renderHeader(): HTMLElement {
     });
     items.append(button);
   };
-  for (const slug of slugsInSet()) {
-    const unit = unitLabel(workingData(slug).profile.unit);
-    item(`Download ${unit.toLowerCase()} unit's import file`, () => {
-      exportJson(slug);
+  if (canSave()) {
+    item("Download the import files", downloadAll);
+    item("Update the game's keys…", () => {
+      // The game is updated from what is saved, so an unsaved key would be left out.
+      if (inGameKeysPart().isDirty()) {
+        saveNote = "Save first: the game is updated from the saved in-game keys.";
+        render();
+        return;
+      }
+      confirmUpdateGame();
     });
-    if (!canSave()) {
-      item(`Download ${unit.toLowerCase()} unit's YAML`, () => {
-        exportYaml(slug);
-      });
-    }
+  } else {
+    item("Download the layout as YAML", downloadLayoutYaml);
   }
   item("Print layout", printLayout);
   item("Undo all unsaved edits", () => {
     if (!confirmDiscard("Undoing them")) return;
     state.working.clear();
+    state.workingActions = null;
     state.selected = null;
     render();
   });
@@ -1646,8 +1722,10 @@ function renderInGame(): HTMLElement {
       "The key each action is on inside the game. Click a key and press the new one; a " +
         "clash shows up straight away. " +
         (canSave()
-          ? "Save and update the game writes the repo and the game's own file together."
-          : "Export actions.yaml and copy the keys you changed into the game's file."),
+          ? "Save, top right, writes these with both keypads; it then offers to update the " +
+            "game's own file."
+          : "The menu's Download the layout as YAML includes actions.yaml: copy the keys " +
+            "you changed into the game's file."),
     ]),
   );
 
@@ -1674,43 +1752,6 @@ function renderInGame(): HTMLElement {
   }
   panel.append(table);
 
-  if (canSave()) {
-    const both = el("button", { class: "btn primary", type: "button" }, [
-      "Save and update the game",
-    ]);
-    both.addEventListener("click", () => {
-      if (
-        !window.confirm(
-          `Is ${game.name} closed? It rewrites its key bindings when it exits, which would ` +
-            "undo this. Its current file is kept beside the new one.",
-        )
-      ) {
-        return;
-      }
-      void saveActionKeys(game, true);
-    });
-    const only = el("button", { class: "btn", type: "button" }, ["Save only"]);
-    only.addEventListener("click", () => {
-      void saveActionKeys(game, false);
-    });
-    panel.append(el("div", { class: "row-actions" }, [both, only]));
-    return panel;
-  }
-
-  const save = el("button", { class: "btn primary", type: "button" }, ["Export actions.yaml"]);
-  save.addEventListener("click", () => {
-    // Offline there is no file to patch, so this is the whole vocabulary, flattened. It says
-    // so, because pasting it over the real file would lose `extends:` and the allowlist.
-    const header =
-      `# ${game.name} -- every action and the in-game key it is bound to, flattened.\n` +
-      "# Copy the keys you changed into the game's actions.yaml; do not replace the file.\n";
-    download(
-      "actions.yaml",
-      dumpYaml({ game: game.name, actions: actionSetFor(game).actions }, header),
-      "text/yaml",
-    );
-  });
-  panel.append(save);
   return panel;
 }
 
