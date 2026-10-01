@@ -381,3 +381,81 @@ for (const { width, height } of WINDOWS) {
     );
   });
 }
+
+/** Scroll regions that actually scroll: a list with a height cap, a panel with a scrollbar. */
+function nestedScrollRegions(page: Page): Promise<string[]> {
+  return page.evaluate(() =>
+    [...document.querySelectorAll("*")]
+      .filter((node) => {
+        const style = getComputedStyle(node);
+        const scrolls = style.overflowY === "auto" || style.overflowY === "scroll";
+        return scrolls && node.scrollHeight > node.clientHeight + 1;
+      })
+      .map((node) => node.className),
+  );
+}
+
+for (const { width, height } of WINDOWS) {
+  test.describe(`the Edit tab's space at ${String(width)}x${String(height)}`, () => {
+    test.use({ viewport: { width, height } });
+
+    test("has no scroll region inside the page, and no list with a height cap", async ({
+      page,
+    }) => {
+      await page.goto("/");
+      expect(await nestedScrollRegions(page)).toEqual([]);
+      await page.getByRole("button", { name: "In-game", exact: true }).click();
+      expect(await nestedScrollRegions(page)).toEqual([]);
+    });
+  });
+}
+
+test.describe("the Edit workflow at 1920x1080", () => {
+  test.use({ viewport: { width: 1920, height: 1080 } });
+
+  test("is on one screen: board, key inspector, actions and checks, with no page scroll", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const fits = await page.evaluate(() => {
+      const bottom = (selector: string): number =>
+        document.querySelector(selector)?.getBoundingClientRect().bottom ?? Infinity;
+      return {
+        page: document.documentElement.scrollHeight,
+        window: window.innerHeight,
+        board: bottom(".stage-wrap"),
+        inspector: bottom(".inspector"),
+        actions: bottom(".palette"),
+        checks: bottom(".dock-col"),
+      };
+    });
+    expect(fits.page).toBeLessThanOrEqual(fits.window);
+    for (const part of [fits.board, fits.inspector, fits.actions, fits.checks]) {
+      expect(part).toBeLessThanOrEqual(fits.window);
+    }
+  });
+
+  test("stays on one screen with a key selected, and with a stick selected", async ({ page }) => {
+    await page.goto("/");
+    const scrollHeight = (): Promise<number> =>
+      page.evaluate(() => document.documentElement.scrollHeight);
+    await page.locator('.hand .key[data-position="pinky_1"]').first().click();
+    await expect(page.locator(".inspector .field.slot")).toHaveCount(3);
+    expect(await scrollHeight()).toBeLessThanOrEqual(1080);
+    await page.locator(".stick-dial .dir.up").first().click();
+    await expect(page.locator(".inspector .field-grid")).toBeVisible();
+    expect(await scrollHeight()).toBeLessThanOrEqual(1080);
+  });
+});
+
+test.describe("the Edit workflow at 1440x900", () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test("loses no more than a screenful to scrolling", async ({ page }) => {
+    // Everything does not fit at this size -- the actions alone want about 300px more than
+    // is left under the board -- but the page was 1,250px high and is held near 1,050.
+    await page.goto("/");
+    const height = await page.evaluate(() => document.documentElement.scrollHeight);
+    expect(height).toBeLessThanOrEqual(1100);
+  });
+});

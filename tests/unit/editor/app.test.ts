@@ -831,6 +831,11 @@ describe("unit settings", () => {
       .filter((field) => field.querySelector("label")?.textContent.endsWith("sensor aims"))
       .map((field) => field.querySelector<HTMLInputElement>("input"));
     expect(boxes).toHaveLength(2);
+    // Named the way the rest of the page names a unit, not by its id.
+    const names = [...document.querySelectorAll(".unit-settings .field.check label")].map(
+      (label) => label.textContent,
+    );
+    expect(names).toEqual(["Left unit's sensor aims", "Right unit's sensor aims"]);
     for (const box of boxes) {
       if (box && !box.checked) {
         box.checked = true;
@@ -847,7 +852,7 @@ describe("the header", () => {
   it("labels the two selectors", () => {
     mount();
     const names = [...document.querySelectorAll("header .picker span")].map((n) => n.textContent);
-    expect(names).toEqual(["Game", "Layout (both hands)"]);
+    expect(names).toEqual(["Game", "Layout"]);
   });
 });
 
@@ -971,5 +976,40 @@ describe("putting an action on a key", () => {
     tap?.querySelector<HTMLButtonElement>('button[title="Clear"]')?.click();
     const card = document.querySelector('.hand .key[data-position="pinky_1"]');
     expect(card?.classList.contains("empty")).toBe(true);
+  });
+});
+
+describe("the action list, kept to one line each", () => {
+  beforeEach(() => {
+    mount();
+  });
+
+  it("carries where an action is bound in its tooltip, and the filter still finds it there", () => {
+    // The second line per action was dropped so the list is half as tall; the information
+    // is on the tooltip and in the text the filter searches.
+    const bound = document.querySelector<HTMLElement>(".action.bound");
+    if (!bound) throw new Error("no bound action");
+    const where = bound.title.split(", ")[0] ?? "";
+    expect(where).not.toBe("not bound");
+    const filter = document.querySelector<HTMLInputElement>(".palette .filter");
+    if (!filter) throw new Error("no filter");
+    filter.value = where;
+    filter.dispatchEvent(new Event("input"));
+    expect(bound.hidden).toBe(false);
+    const shown = [...document.querySelectorAll<HTMLElement>(".action")].filter((a) => !a.hidden);
+    expect(shown.length).toBeLessThan(document.querySelectorAll(".action").length);
+  });
+
+  it("puts the title, the count and the filter on one row", () => {
+    const bar = document.querySelector(".palette .palette-bar");
+    expect(bar?.querySelector("h2")?.textContent).toBe("Actions");
+    expect(bar?.querySelector(".pill")?.textContent).toContain("required bound");
+    expect(bar?.querySelector(".filter")).not.toBeNull();
+  });
+
+  it("marks the board's panels so a wide window can lay them beside it", () => {
+    expect(document.querySelector(".workspace.board.edit .dock > .inspector")).not.toBeNull();
+    expect(document.querySelector(".workspace.board.edit .dock > .palette")).not.toBeNull();
+    expect(document.querySelector(".workspace.board.edit .dock > .dock-col")).not.toBeNull();
   });
 });

@@ -165,10 +165,22 @@ two selectors. The payload is embedded because a page opened from `file://` cann
 a sibling JSON, and `editor-data.json` is written beside it so an open page can be
 pointed at newer data with the Data button instead of being regenerated.
 
+Saving is one thing, because a layout is one control scheme: both keypads and the in-game
+keys. `schemeParts()` in `app.ts` is the list of what belongs to it -- each part says
+whether it is dirty and how to write itself -- and the header's Save, the unsaved marker,
+the single report and the unload guard all follow from that list. Adding a part (pedals)
+is adding an entry there. Telling the game stays outside Save on purpose: it writes
+outside the repo and needs the game closed, so the report and the menu offer it and it asks.
+
 The Edit board is laid out by CSS and one function. `fitStage` narrows the keys (`--key-w`,
 84 to 100px, up to 124 on a portrait window) before it scales anything, so type stays at
 the size it was written at; only a window too narrow for 84px keys scales the stage, and
-then only by the shortfall. A portrait window stacks the hands. Nothing renders below 9px.
+then only by the shortfall. A portrait window stacks the hands. From 1700px wide in
+landscape the key inspector rises beside the board and the checks sit beside the actions,
+so the whole Edit workflow fits a 1080p screen; narrower, the dock is a row under the
+board. The action list is CSS columns of one-line chips: no scroll region of its own.
+Nothing renders below 9px. Light and dark are `theme.ts`: it flips from what is on screen,
+keeps the choice, and the tokens are defined once in `styles.ts` for both ways in.
 `.workspace.board` scopes the board's layout and `.probe` the press test's; keep it so.
 
 - `lint.ts` and `model-core.ts` are free of node imports on purpose: **the browser editor

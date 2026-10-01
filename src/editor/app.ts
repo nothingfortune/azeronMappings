@@ -511,18 +511,21 @@ function renderPalette(): HTMLElement {
   const game = currentGame();
   const actions = actionSetFor(game);
   const bound = boundActions();
-  const panel = el("div", { class: "panel" });
+  const panel = el("div", { class: "panel palette" });
 
   const required = Object.entries(actions.actions).filter(
     ([, spec]) => (spec.tags ?? []).includes("required") && !spec.provided_by,
   );
   const missing = required.filter(([id]) => !bound.has(id));
+  // The title, the count and the filter share a row: they were three lines above the list.
+  const filter = el("input", { type: "search", placeholder: "Filter actions", class: "filter" });
   panel.append(
-    el("h2", {}, ["Actions"]),
-    el("div", { class: "field" }, [
+    el("div", { class: "palette-bar" }, [
+      el("h2", {}, ["Actions"]),
       el("span", { class: `pill ${missing.length === 0 ? "ok" : "bad"}` }, [
         `${String(required.length - missing.length)}/${String(required.length)} required bound`,
       ]),
+      filter,
     ]),
   );
 
@@ -560,7 +563,6 @@ function renderPalette(): HTMLElement {
 
   // About seventy actions; finding one by eye is slow. Filtering hides rather than
   // re-renders, so the box keeps focus while typing.
-  const filter = el("input", { type: "search", placeholder: "Filter actions", class: "filter" });
   filter.value = paletteFilter;
   const applyFilter = (): void => {
     const query = filter.value.trim().toLowerCase();
@@ -581,7 +583,6 @@ function renderPalette(): HTMLElement {
     paletteFilter = filter.value;
     applyFilter();
   });
-  panel.append(filter);
   const byRole = new Map<string, [string, ActionSpec][]>();
   for (const entry of Object.entries(actions.actions)) {
     const tags = new Set(entry[1].tags ?? []);
@@ -683,7 +684,7 @@ function renderUnitSettings(): HTMLElement {
 
   for (const slug of slugs) {
     const data = workingData(slug);
-    const unit = data.profile.unit ?? slug;
+    const unit = unitLabel(data.profile.unit ?? slug);
     const sensor = el("input", { type: "checkbox" });
     if (data.profile.sensor === true) sensor.setAttribute("checked", "checked");
     sensor.addEventListener("change", () => {
@@ -692,7 +693,10 @@ function renderUnitSettings(): HTMLElement {
     });
 
     const row = el("div", { class: "row2" }, [
-      el("div", { class: "field" }, [el("label", {}, [`${unit} unit's sensor aims`]), sensor]),
+      el("div", { class: "field check" }, [
+        el("label", {}, [`${unit} unit's sensor aims`]),
+        sensor,
+      ]),
     ]);
 
     const steps = sensitivitySteps(game, slug);
@@ -724,7 +728,7 @@ function renderUnitSettings(): HTMLElement {
 }
 
 function renderInspector(): HTMLElement {
-  const panel = el("div", { class: "panel" });
+  const panel = el("div", { class: "panel inspector" });
   panel.append(el("h2", {}, ["Key"]));
   const selection = state.selected;
   if (!selection) {
@@ -741,11 +745,8 @@ function renderInspector(): HTMLElement {
   const isStick = device.isStick(selection.position);
 
   panel.append(
-    el("div", { class: "field" }, [
-      el("label", {}, ["Position"]),
-      el("div", {}, [
-        `${unitLabel(data.profile.unit)} unit · ${positionLabel(selection.position)}`,
-      ]),
+    el("div", { class: "key-where" }, [
+      `${unitLabel(data.profile.unit)} unit · ${positionLabel(selection.position)}`,
     ]),
   );
 
@@ -780,6 +781,7 @@ function renderInspector(): HTMLElement {
         "Keyboard only: gamepad mode made Everspace 2 flip between input devices and stutter.",
       ]),
     );
+    const directionFields = el("div", { class: "field-grid" });
     for (const direction of STICK_DIRECTIONS) {
       const select = el("select", {});
       select.append(el("option", { value: "" }, ["— none —"]));
@@ -795,10 +797,11 @@ function renderInspector(): HTMLElement {
         else removeKey(spec.directions, direction);
         render();
       });
-      panel.append(
+      directionFields.append(
         el("div", { class: "field" }, [el("label", {}, [`Stick ${direction}`]), select]),
       );
     }
+    panel.append(directionFields);
   } else {
     for (const slot of SLOTS) {
       const value = spec[slot];
@@ -866,7 +869,7 @@ function renderInspector(): HTMLElement {
       render();
     });
     panel.append(
-      el("div", { class: "field" }, [el("label", {}, ["Latch until pressed again"]), hold]),
+      el("div", { class: "field check" }, [el("label", {}, ["Latch until pressed again"]), hold]),
     );
 
     // Repeat while held. A repeated key is down part of the time, so for an action the game
@@ -882,7 +885,7 @@ function renderInspector(): HTMLElement {
       render();
     });
     const repeat = el("div", { class: "row2" }, [
-      el("div", { class: "field" }, [el("label", {}, ["Repeat the tap while held"]), turbo]),
+      el("div", { class: "field check" }, [el("label", {}, ["Repeat the tap while held"]), turbo]),
     ]);
     if (spec.turbo) {
       const interval = el("input", {
@@ -1483,7 +1486,10 @@ function renderHeader(): HTMLElement {
     render();
   });
   header.append(
-    el("label", { class: "picker" }, [el("span", {}, ["Layout (both hands)"]), setSelect]),
+    el("label", { class: "picker", title: "A layout is both keypads and the in-game keys" }, [
+      el("span", {}, ["Layout"]),
+      setSelect,
+    ]),
   );
   header.append(el("span", { class: "spacer" }));
 
@@ -2544,7 +2550,7 @@ function render(): void {
 
   // The board takes the full width and the panels dock under it, in what was empty
   // space. With a rail either side, the pair was scaled to under half size.
-  const workspace = el("div", { class: "workspace board" });
+  const workspace = el("div", { class: "workspace board edit" });
   root.append(
     el("div", { class: "print-title" }, [`${currentGame().name} \u2014 ${state.setName}`]),
   );

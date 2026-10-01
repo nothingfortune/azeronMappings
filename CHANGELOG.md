@@ -98,6 +98,13 @@ Every profile change, and why. `playtests.md` records what each layout felt like
   at six pixels. The keys narrow first (84 to 100px) and the type keeps its size; a
   portrait window stacks the hands, each at full size; nothing renders under 9px at any
   of the five sizes checked.
+- **The Edit tab wastes no space.** At 1920x1080 the page was 1,246px tall with a scroll
+  region inside it: it is 1,080 now, and the board, key inspector, actions and checks are
+  on one screen. The key inspector sits beside the board and the checks beside the actions
+  on a wide window; the action list is columns of one-line chips with no height cap (where
+  an action is bound is on its tooltip and the board); the inspector's slots, toggles and
+  stick directions are compact rows; the header is one row. At 1440x900 the page is about
+  1,040px instead of 1,250.
 - **Saving is one thing.** A layout is one control scheme, so the header's Save writes
   everything that changed in it -- both keypad profiles and the in-game keys -- and
   reports once; the unsaved marker names what it would write. The In-game tab lost its own

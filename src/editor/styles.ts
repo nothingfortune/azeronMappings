@@ -28,7 +28,7 @@ body {
 button, select, input { font: inherit; color: inherit; }
 header {
   display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
-  padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--panel);
+  padding: 7px 16px; border-bottom: 1px solid var(--line); background: var(--panel);
   position: sticky; top: 0; z-index: 5;
 }
 header h1 { font-size: 15px; margin: 0 8px 0 0; letter-spacing: .01em; }
@@ -53,9 +53,20 @@ header .tabs .btn + .btn { border-left: 1px solid var(--line); }
 .palette-target { font-weight: 600; font-size: 12.5px; margin-bottom: 8px; color: var(--accent); }
 .panel .filter { width: 100%; margin-bottom: 8px; padding: 5px 9px; border: 1px solid var(--line);
                  border-radius: 7px; background: var(--bg); color: var(--fg); font: inherit; }
-.field.slot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.field.slot > label { flex-basis: 100%; }
-.slot-pick { flex: 1; text-align: left; padding: 6px 9px; border: 1px solid var(--line);
+.field.slot { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
+.field.slot > label { flex: 0 0 76px; margin: 0; }
+.key-where { font-weight: 600; font-size: 12.5px; margin-bottom: 8px; }
+.field.check { display: flex; flex-direction: row-reverse; justify-content: flex-end;
+               align-items: center; gap: 8px; }
+.field.check label { margin: 0; text-transform: none; letter-spacing: 0; font-size: 12px;
+                     color: var(--fg); }
+.field.check input { width: auto; }
+.field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 8px; }
+.palette-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.palette-bar h2 { margin: 0; }
+.palette-bar .filter { flex: 1; width: auto; margin: 0; min-width: 0; }
+.slot-pick { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+             text-align: left; padding: 6px 9px; border: 1px solid var(--line);
              border-radius: 7px; background: var(--bg); color: var(--fg); cursor: pointer;
              font: inherit; font-weight: 600; }
 .slot-pick.unset { color: var(--muted); font-weight: 400; font-style: italic; }
@@ -105,8 +116,8 @@ select, .btn {
 .workspace.single { display: block; }
 .panel.inset { background: var(--bg); margin-bottom: 12px; }
 /* Boards on the left, the in-game half on the right, so the two can be read together. */
-.ingame-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-               gap: 2px 14px; max-height: 60vh; overflow: auto; margin-bottom: 10px; }
+.ingame-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+               gap: 2px 14px; margin-bottom: 10px; }
 .ingame-row { display: grid; grid-template-columns: minmax(0, 1fr) 190px; gap: 8px;
               align-items: center; padding: 3px 4px; border-radius: 6px; }
 .ingame-row:nth-child(odd) { background: var(--bg); }
@@ -119,9 +130,10 @@ select, .btn {
 .ingame-row .field label { font-size: 10px; }
 .ingame-row .field input { padding: 2px 5px; font-size: 11px; }
 .ingame-row .row2 { gap: 5px; }
-header .picker { display: inline-flex; flex-direction: column; gap: 1px; }
+header .picker { display: inline-flex; align-items: center; gap: 6px; }
 header .picker span { font-size: 9.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
-.unit-settings { margin-top: 12px; display: grid; gap: 6px; }
+.unit-settings { margin-top: 10px; display: grid; gap: 4px; }
+.unit-settings .row2 { flex-wrap: wrap; align-items: center; }
 .keybind { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .key-chip { min-width: 96px; padding: 5px 12px; border-radius: 7px; border: 1px solid var(--line);
             border-bottom-width: 3px; background: var(--panel); color: var(--fg);
@@ -133,20 +145,33 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 .btn.small { padding: 3px 8px; font-size: 12px; }
 .keybind-note { flex-basis: 100%; font-size: 11px; color: var(--warn); }
 .keybind-note.bad { color: var(--error); }
-.action-list.inert { opacity: .45; pointer-events: none; }
+.action-list.inert { opacity: .6; pointer-events: none; }
 .note { font-size: 11.5px; color: var(--muted); margin-bottom: 10px; }
 .workspace { padding: 12px 14px; }
 /* The board on top at full width; the panels dock beneath it. */
-.dock { display: grid; grid-template-columns: 320px minmax(0, 1fr) 360px; gap: 12px;
+.dock { display: grid; grid-template-columns: 280px minmax(0, 1fr) 250px; gap: 12px;
         margin-top: 12px; align-items: start; }
-.dock.ingame { grid-template-columns: minmax(0, 1fr) 360px; }
+.dock.ingame { grid-template-columns: minmax(0, 1fr) 300px; }
 .dock-col { display: grid; gap: 12px; }
 /* Narrow, or tall and narrow: the checks drop to a row of their own under the other two. */
 @media (max-width: 1150px), (orientation: portrait) {
   .dock { grid-template-columns: 300px minmax(0, 1fr); }
   .dock > .dock-col { grid-column: 1 / -1; }
 }
+@media (max-width: 1150px), (orientation: portrait) { .dock.ingame { grid-template-columns: 1fr; } }
 @media (max-width: 760px) { .dock, .dock.ingame { grid-template-columns: 1fr; } }
+/* A wide landscape window has room for a column beside the board: the key inspector rises
+   beside it and the checks sit beside the actions, so the whole workflow is on one screen.
+   The dock dissolves into the workspace grid for this; narrower, it is a row under the board. */
+@media (min-width: 1700px) and (orientation: landscape) {
+  .workspace.board.edit { display: grid; grid-template-columns: minmax(0, 1fr) 340px;
+                          gap: 12px; align-items: start; }
+  .workspace.board.edit > .stage-wrap { grid-column: 1; grid-row: 1; }
+  .workspace.board.edit > .dock { display: contents; }
+  .workspace.board.edit .dock > .inspector { grid-column: 2; grid-row: 1; }
+  .workspace.board.edit .dock > .palette { grid-column: 1; grid-row: 2; }
+  .workspace.board.edit .dock > .dock-col { grid-column: 2; grid-row: 2; }
+}
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
 .panel h2 {
   font-size: 10.5px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted);
@@ -156,15 +181,15 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
    keys narrow to fit (see fitStage) rather than the type shrinking. On a portrait window the
    pair stacks, each hand at a readable size, instead of two hands squeezed into the width. */
 .workspace.board .stage-wrap { overflow: hidden; }
-.workspace.board .stage { display: flex; gap: 14px; align-items: flex-start; flex-wrap: nowrap;
+.workspace.board .stage { display: flex; gap: 14px; align-items: stretch; flex-wrap: nowrap;
          transform-origin: top left; width: max-content; }
 @media (orientation: portrait) {
   .workspace.board .stage { flex-direction: column; width: 100%; }
   .workspace.board .stage > .hand { align-self: stretch; }
 }
 .hand { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
-        padding: 10px; }
-.hand > .title { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+        padding: 8px 10px 10px; }
+.hand > .title { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
 .hand > .title b { font-size: 13px; }
 .hand > .title span { color: var(--muted); font-size: 11.5px; }
 /* Scoped to the board: the press test draws a hand too, with its own .hand-body, and an
@@ -181,8 +206,8 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
   text-align: center; height: 13px; white-space: nowrap;
 }
 .key {
-  width: var(--key-w); min-height: 46px; border: 1px solid var(--line); border-radius: 7px;
-  background: var(--bg); padding: 4px 6px; cursor: pointer; text-align: left; display: flex;
+  width: var(--key-w); min-height: 40px; border: 1px solid var(--line); border-radius: 7px;
+  background: var(--bg); padding: 3px 6px; cursor: pointer; text-align: left; display: flex;
   flex-direction: column; gap: 1px; border-left-width: 3px; border-left-color: var(--line);
   overflow: hidden;
 }
@@ -254,13 +279,15 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 .stick-dial .hub:hover .wheel { border-color: var(--accent); }
 .stick-dial .hub.empty .wheel { opacity: .5; }
 
-.action-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-               gap: 2px 8px; max-height: 420px; overflow: auto; align-content: start; }
-.action-list > .head { grid-column: 1 / -1; margin-top: 6px; text-align: left; }
+/* Columns, so the groups pack with no empty cells and the list is as tall as it needs to be
+   rather than a scroll region of its own. */
+.action-list { columns: 132px; column-gap: 8px; }
+.action-list > .head { break-after: avoid; margin: 8px 0 3px; text-align: left; }
+.action-list > .head:first-child { margin-top: 0; }
 .action {
-  display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 6px;
+  display: flex; align-items: center; gap: 6px; padding: 2px 6px; border-radius: 6px;
   border: 1px solid var(--line); cursor: pointer; text-align: left; background: var(--bg);
-  width: 100%;
+  width: 100%; break-inside: avoid; margin-bottom: 3px;
 }
 .action:hover { border-color: var(--accent); }
 .action .dot { width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--muted); }
@@ -270,8 +297,13 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 .action .dot.travel { background: var(--travel); }
 .action .dot.utility { background: var(--utility); }
 .action .txt { flex: 1; min-width: 0; }
-.action .txt b { font-weight: 600; display: block; font-size: 12px; }
-.action .txt small { color: var(--muted); font-size: 10px; }
+.action .txt b { font-weight: 600; display: block; font-size: 11.5px; white-space: nowrap;
+                 overflow: hidden; text-overflow: ellipsis; }
+/* Where an action is bound is in the tooltip and on the board; a second line per action made
+   the list twice as tall. It stays in the markup, so the filter still finds it. */
+.action .txt small { display: none; }
+/* Hollow when nothing sends it. */
+.action:not(.bound) .dot { background: transparent; box-shadow: inset 0 0 0 1.5px var(--muted); }
 /* A bound action is still a good choice, so it is drawn at full strength; "unbound" in
    its second line and the dot say the rest. Faded, it looked disabled. */
 .action-list [hidden] { display: none; }
@@ -296,7 +328,7 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 .pill.ok { color: var(--ok); border-color: var(--ok); }
 .pill.bad { color: var(--error); border-color: var(--error); }
 .muted { color: var(--muted); }
-.empty-state { color: var(--muted); font-size: 12px; padding: 24px; text-align: center; border: 1px dashed var(--line); border-radius: 10px; }
+.empty-state { color: var(--muted); font-size: 12px; padding: 14px; text-align: center; border: 1px dashed var(--line); border-radius: 10px; }
 code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
 .new-game-where, .new-game-file { font-size: 11.5px; margin: 4px 0 8px; }
 .new-game .row2 { margin-top: 6px; }
