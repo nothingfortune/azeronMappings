@@ -6,7 +6,7 @@
  * the round trip leaves the file as it was.
  */
 
-import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";
 import { LIVE_SET, live } from "../helpers/fixtures.js";
@@ -171,6 +171,47 @@ test.describe("the served editor", () => {
     });
     expect(response.status()).toBe(400);
     expect(await response.text()).toContain("cannot be a layout name");
+  });
+
+  test("refuses a new game whose names would leave games/ or templates/", async ({ page }) => {
+    const exported = { profiles: [{}] };
+    for (const data of [
+      { name: "Escape", genre: "FPS", device: "cyborg2-left", set: "../../x", exported },
+      { name: "Escape", genre: "../genres/FPS", device: "cyborg2-left", set: "v1", exported },
+      { name: "Escape", genre: "FPS", device: "../../etc/x", set: "v1", exported },
+    ]) {
+      const response = await page.request.post("/api/game", { data });
+      expect(response.status()).toBe(400);
+    }
+  });
+
+  test("adds a new game from the Setup tab and selects it", async ({ page }) => {
+    const slug = "zzE2EGame";
+    const paths = [`games/FPS/${slug}`, `dist/FPS/${slug}`, `templates/${slug}-v1-left.json`];
+    try {
+      await page.goto("/");
+      await page.getByRole("button", { name: "Setup", exact: true }).click();
+
+      await page.locator('[data-new-game="name"]').fill("ZZ E2E Game");
+      await page.locator('[data-new-game="genre"]').selectOption("FPS");
+      await page
+        .locator(".new-game input[type=file]")
+        .setInputFiles("templates/everspace2-v5.json");
+      await expect(page.locator(".repo-note")).toContainText("chosen");
+      // The form survives the re-render that choosing a file causes.
+      await expect(page.locator('[data-new-game="name"]')).toHaveValue("ZZ E2E Game");
+      await page.getByRole("button", { name: "Create game" }).click();
+
+      await expect(page.locator("header select").first()).toContainText("ZZ E2E Game", {
+        timeout: 20_000,
+      });
+      await expect(page.locator(".hand")).toHaveCount(1);
+      await expect(page.locator("header select").first().locator("option:checked")).toHaveText(
+        "ZZ E2E Game",
+      );
+    } finally {
+      for (const path of paths) rmSync(path, { recursive: true, force: true });
+    }
   });
 
   test("rebuilds from the Setup tab", async ({ page }) => {

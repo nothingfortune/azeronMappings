@@ -18,6 +18,7 @@ import type { BindingChange } from "../lib/actionfile.js";
 import { ueKeyFor } from "../lib/ingame.js";
 import { bindingLabel, isModifier, keyLabel } from "../lib/keys.js";
 import { ActionSet, Device, Profile } from "../lib/model-core.js";
+import { isFileName, slugFromName } from "../lib/scaffold.js";
 import {
   DEFAULT_DOUBLE_DELAY,
   DEFAULT_FEATURE_DELAY,
@@ -1028,9 +1029,6 @@ function canSave(): boolean {
 
 let saveNote: string | null = null;
 
-/** What a layout may be called: it becomes part of a file name. */
-const LAYOUT_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
-
 /** Whether the stick-mode panel is unfolded; kept across renders. */
 let stickModesOpen = false;
 
@@ -1818,14 +1816,16 @@ let ingameCollisions: { key: string; actions: string[] }[] = [];
  * to asking for a reload. Only used when nothing is unsaved -- a fresh payload replaces
  * the working copies.
  */
-async function refreshPayload(): Promise<boolean> {
+async function refreshPayload(select?: string): Promise<boolean> {
   if (!canSave() || isDirty()) return false;
   try {
     const response = await fetch("/api/payload");
     if (!response.ok) return false;
     const payload = (await response.json()) as EditorPayload;
     const mode = state.mode;
-    const gameSlug = currentGame().slug;
+    // A game that did not exist before is the one just made, so it is named; otherwise
+    // the page stays on the game it was on.
+    const gameSlug = select ?? currentGame().slug;
     start(payload);
     state.mode = mode;
     const index = payload.games.findIndex((game) => game.slug === gameSlug);
@@ -1862,6 +1862,261 @@ function section(title: string, purpose: string): HTMLElement {
   ]);
 }
 
+/** One option per unit the repo has a pin map for, worded as the unit is. */
+function unitSelect(selected: string): HTMLSelectElement {
+  const select = el("select", {});
+  for (const device of Object.values(state.payload.devices)) {
+    const hand = device.hand ?? "";
+    const option = el("option", { value: device.device }, [
+      hand === "" ? device.device : `${unitLabel(hand)} unit`,
+    ]);
+    if (device.device === selected) option.setAttribute("selected", "selected");
+    select.append(option);
+  }
+  return select;
+}
+
+/**
+ * A button and a drop zone that both hand over a parsed Azeron export.
+ *
+ * Dropping the file does the same thing as the button, since that is how a file usually
+ * arrives from the app's export dialog. A file that is not JSON, or has no profiles in it,
+ * is reported here and never reaches the caller.
+ */
+function exportPicker(onChosen: (fileName: string, exported: unknown) => void): {
+  upload: HTMLButtonElement;
+  drop: HTMLElement;
+  file: HTMLInputElement;
+} {
+  const file = el("input", { type: "file", accept: "application/json,.json" });
+  file.style.display = "none";
+
+  const accept = (chosen: File | undefined): void => {
+    if (!chosen) return;
+    const reader = new FileReader();
+    reader.addEventListener("load", () => {
+      const text = typeof reader.result === "string" ? reader.result : "";
+      let exported: unknown;
+      try {
+        exported = JSON.parse(text);
+      } catch (error) {
+        repoNote = `${chosen.name} is not JSON: ${messageOf(error)}`;
+        render();
+        return;
+      }
+      const profiles = (exported as { profiles?: unknown[] } | null)?.profiles;
+      if (!Array.isArray(profiles) || profiles.length === 0) {
+        repoNote = `${chosen.name} has no profiles in it -- is it an Azeron export?`;
+        render();
+        return;
+      }
+      onChosen(chosen.name, exported);
+    });
+    reader.readAsText(chosen);
+  };
+
+  file.addEventListener("change", () => {
+    accept(file.files?.[0]);
+  });
+
+  const upload = el("button", { class: "btn primary", type: "button" }, ["Upload export"]);
+  upload.addEventListener("click", () => {
+    file.click();
+  });
+
+  const drop = el("div", { class: "dropzone" }, [
+    "Drop an exported .json here, or use the button.",
+  ]);
+  for (const name of ["dragenter", "dragover"]) {
+    drop.addEventListener(name, (event) => {
+      event.preventDefault();
+      drop.classList.add("over");
+    });
+  }
+  for (const name of ["dragleave", "drop"]) {
+    drop.addEventListener(name, (event) => {
+      event.preventDefault();
+      drop.classList.remove("over");
+    });
+  }
+  drop.addEventListener("drop", (event) => {
+    accept(event.dataTransfer?.files[0]);
+  });
+  return { upload, drop, file };
+}
+
+/** What the new-game form holds. Module state, because every render rebuilds the page. */
+const newGame: {
+  name: string;
+  genre: string;
+  device: string;
+  set: string;
+  file: { name: string; exported: unknown } | null;
+} = { name: "", genre: "", device: "", set: "v1", file: null };
+
+/**
+ * Starting a game that is not in the repo: a name, its genre, the export, which unit it
+ * came from and what to call the layout. The server makes the folder, seeds the actions
+ * from the keys the export sends, and the page selects the result.
+ */
+function renderNewGame(): HTMLElement {
+  const box = el("div", { class: "field new-game" });
+  box.append(
+    section(
+      "Add a new game",
+      "For a game that is not in the Game selector. Export a profile for it from the Azeron " +
+        "app, choose it below, and the editor starts the game from it. Every key the export " +
+        "sends becomes an action named after the key -- rename them as you learn what they do.",
+    ),
+  );
+
+  const genres = state.payload.genres.map((genre) => genre.name);
+  if (newGame.genre === "" || !genres.includes(newGame.genre)) newGame.genre = genres[0] ?? "";
+  const firstDevice = Object.values(state.payload.devices)[0]?.device ?? "";
+  if (newGame.device === "") newGame.device = firstDevice;
+
+  const name = el("input", {
+    type: "text",
+    value: newGame.name,
+    placeholder: "e.g. Deep Rock Galactic",
+    "data-new-game": "name",
+  });
+  const where = el("div", { class: "muted new-game-where" });
+  const showWhere = (): void => {
+    const slug = slugFromName(newGame.name.trim());
+    where.textContent = isFileName(slug) ? `It will live in games/${newGame.genre}/${slug}/` : "";
+  };
+  name.addEventListener("input", () => {
+    newGame.name = name.value;
+    showWhere();
+  });
+
+  const genre = el("select", { "data-new-game": "genre" });
+  for (const entry of genres) {
+    const option = el("option", { value: entry }, [entry]);
+    if (entry === newGame.genre) option.setAttribute("selected", "selected");
+    genre.append(option);
+  }
+  genre.addEventListener("change", () => {
+    newGame.genre = genre.value;
+    showWhere();
+  });
+
+  const unit = unitSelect(newGame.device);
+  unit.setAttribute("data-new-game", "unit");
+  unit.addEventListener("change", () => {
+    newGame.device = unit.value;
+  });
+
+  const layout = el("input", {
+    type: "text",
+    value: newGame.set,
+    placeholder: "e.g. v1",
+    "data-new-game": "layout",
+  });
+  layout.addEventListener("input", () => {
+    newGame.set = layout.value;
+  });
+  showWhere();
+
+  const picker = exportPicker((chosen, exported) => {
+    newGame.file = { name: chosen, exported };
+    repoNote = `${chosen} chosen. Press "Create game" when the rest is filled in.`;
+    render();
+  });
+  const chosen = el("div", { class: "muted new-game-file" }, [
+    newGame.file === null ? "No export chosen yet." : `Export: ${newGame.file.name}`,
+  ]);
+
+  const create = el("button", { class: "btn primary", type: "button" }, ["Create game"]);
+  create.addEventListener("click", () => {
+    const gameName = newGame.name.trim();
+    const layoutName = newGame.set.trim();
+    const problem =
+      gameName === ""
+        ? "Give the game a name first."
+        : !isFileName(slugFromName(gameName))
+          ? `"${gameName}" has no letters or digits to name a folder after.`
+          : !isFileName(layoutName)
+            ? `"${layoutName}" cannot be a layout name: letters, digits, dots and dashes only.`
+            : newGame.file === null
+              ? "Choose the export file for the game first."
+              : null;
+    if (problem !== null || newGame.file === null) {
+      repoNote = problem ?? "Choose the export file for the game first.";
+      render();
+      return;
+    }
+    const exported = newGame.file.exported;
+    repoNote = `creating ${gameName}...`;
+    render();
+    const send = (overwrite: boolean): void => {
+      void post("/api/game", {
+        name: gameName,
+        genre: newGame.genre,
+        device: newGame.device,
+        set: layoutName,
+        exported,
+        ...(overwrite ? { overwrite: true } : {}),
+      }).then((result) => {
+        // The game is already there. Starting it again discards its actions.yaml, so it
+        // is asked about rather than assumed.
+        if (result.ok !== true && result.status === 409) {
+          if (window.confirm(`${String(result.error)}\n\nReplace it?`)) {
+            send(true);
+            return;
+          }
+          repoNote = "cancelled -- nothing was written.";
+          render();
+          return;
+        }
+        if (result.ok !== true) {
+          repoNote = `not created: ${String(result.error)}`;
+          render();
+          return;
+        }
+        const unnamed = result.unnamed as string[];
+        const done =
+          `Created ${String(result.name)} from ${newGame.file?.name ?? "the export"}: ` +
+          `${String(result.actions)} action(s) named after the keys they send` +
+          (unnamed.length > 0
+            ? `, ${String(unnamed.length)} position(s) left raw (${unnamed.join(", ")})`
+            : "") +
+          ". Rename the actions as you learn what they do.";
+        newGame.name = "";
+        newGame.file = null;
+        void refreshPayload(String(result.slug)).then((refreshed) => {
+          if (refreshed) {
+            state.mode = "edit";
+            repoNote = `${done} It is selected in the Game selector now.`;
+          } else {
+            repoNote = `${done} Save or discard your unsaved edits and reload the page to open it.`;
+          }
+          render();
+        });
+      });
+    };
+    send(false);
+  });
+
+  box.append(
+    el("div", { class: "row2" }, [
+      el("div", { class: "field" }, [el("label", {}, ["Name of the game"]), name]),
+      el("div", { class: "field" }, [el("label", {}, ["Kind of game"]), genre]),
+    ]),
+    where,
+    el("div", { class: "row2" }, [
+      el("div", { class: "field" }, [el("label", {}, ["Exported from"]), unit]),
+      el("div", { class: "field" }, [el("label", {}, ["Name for the first layout"]), layout]),
+    ]),
+    el("div", { class: "row2" }, [picker.upload, create]),
+    chosen,
+    picker.drop,
+    picker.file,
+  );
+  return box;
+}
+
 /**
  * The jobs done once in a while: units, bringing a profile in, the game's bindings, a
  * full rebuild. It was called Repo -- a git word -- and listed them without saying what
@@ -1889,130 +2144,74 @@ function renderRepo(): HTMLElement {
 
   if (repoNote !== null) panel.append(el("div", { class: "note repo-note" }, [repoNote]));
 
+  // A game that is not here yet comes first: it is what a new owner needs before anything
+  // else on the tab means anything.
+  panel.append(renderNewGame());
+
   // Importing an export: the round trip back from the Azeron app.
   const importRow = el("div", { class: "field" });
   importRow.append(
     section(
-      "Bring in a profile from the Azeron app",
-      "Export it in the Azeron app, then drop it here. It becomes a layout you can edit, " +
-        "and the export is kept as what the compiler builds on.",
+      `Add a layout to ${currentGame().name}`,
+      `Export it in the Azeron app, then drop it here. It becomes another layout of ` +
+        `${currentGame().name} that you can edit, and the export is kept as what the ` +
+        "compiler builds on. For a game that is not in the Game selector, add the game above.",
     ),
   );
 
   // A name and a hand -- in words. It asked for a "set name", defaulting to "v1", and a
   // device id. The name becomes a file name, so it is checked here and on the server.
   const setName = el("input", { type: "text", value: "", placeholder: "e.g. akimbo-v11" });
-  const deviceSelect = el("select", {});
-  for (const device of Object.values(state.payload.devices)) {
-    const hand = device.hand ?? "";
-    deviceSelect.append(
-      el("option", { value: device.device }, [
-        hand === "" ? device.device : `${unitLabel(hand)} unit`,
-      ]),
-    );
-  }
+  const deviceSelect = unitSelect("");
 
-  const file = el("input", { type: "file", accept: "application/json,.json" });
-  file.style.display = "none";
-
-  const accept = (chosen: File | undefined): void => {
-    if (!chosen) return;
-    const reader = new FileReader();
-    reader.addEventListener("load", () => {
-      const text = typeof reader.result === "string" ? reader.result : "";
-      let exported: unknown;
-      try {
-        exported = JSON.parse(text);
-      } catch (error) {
-        repoNote = `${chosen.name} is not JSON: ${messageOf(error)}`;
-        render();
-        return;
-      }
-      const profiles = (exported as { profiles?: unknown[] }).profiles;
-      if (!Array.isArray(profiles) || profiles.length === 0) {
-        repoNote = `${chosen.name} has no profiles in it -- is it an Azeron export?`;
-        render();
-        return;
-      }
-      const name = setName.value.trim();
-      if (!LAYOUT_NAME.test(name)) {
-        repoNote =
-          name === ""
-            ? "Give the layout a name first."
-            : `"${name}" cannot be a layout name: letters, digits, dots and dashes only.`;
-        render();
-        return;
-      }
-      repoNote = `importing ${chosen.name}...`;
+  const picker = exportPicker((chosen, exported) => {
+    const name = setName.value.trim();
+    if (!isFileName(name)) {
+      repoNote =
+        name === ""
+          ? "Give the layout a name first."
+          : `"${name}" cannot be a layout name: letters, digits, dots and dashes only.`;
       render();
-      const send = (overwrite: boolean): void => {
-        void post("/api/import", {
-          game: currentGame().slug,
-          device: deviceSelect.value,
-          set: name,
-          exported,
-          ...(overwrite ? { overwrite: true } : {}),
-        }).then((result) => {
-          // A set already in use destroys a profile and its committed template, which is
-          // the only record of what the unit held. Asked, not assumed.
-          if (result.ok !== true && result.status === 409) {
-            if (window.confirm(`${String(result.error)}\n\nOverwrite it?`)) {
-              send(true);
-              return;
-            }
-            repoNote = "import cancelled -- nothing was written.";
-            render();
+      return;
+    }
+    repoNote = `importing ${chosen}...`;
+    render();
+    const send = (overwrite: boolean): void => {
+      void post("/api/import", {
+        game: currentGame().slug,
+        device: deviceSelect.value,
+        set: name,
+        exported,
+        ...(overwrite ? { overwrite: true } : {}),
+      }).then((result) => {
+        // A set already in use destroys a profile and its committed template, which is
+        // the only record of what the unit held. Asked, not assumed.
+        if (result.ok !== true && result.status === 409) {
+          if (window.confirm(`${String(result.error)}\n\nOverwrite it?`)) {
+            send(true);
             return;
           }
-          if (result.ok !== true) {
-            repoNote = `import refused: ${String(result.error)}`;
-            render();
-            return;
-          }
-          const done =
-            `wrote ${String(result.profilePath)} (${String(result.positions)} positions) ` +
-            `and kept the export at ${String(result.templatePath)}.`;
-          void refreshPayload().then((refreshed) => {
-            repoNote = refreshed
-              ? `${done} It is in the Layout selector now.`
-              : `${done} Reload the page to open it.`;
-            render();
-          });
+          repoNote = "import cancelled -- nothing was written.";
+          render();
+          return;
+        }
+        if (result.ok !== true) {
+          repoNote = `import refused: ${String(result.error)}`;
+          render();
+          return;
+        }
+        const done =
+          `wrote ${String(result.profilePath)} (${String(result.positions)} positions) ` +
+          `and kept the export at ${String(result.templatePath)}.`;
+        void refreshPayload().then((refreshed) => {
+          repoNote = refreshed
+            ? `${done} It is in the Layout selector now.`
+            : `${done} Reload the page to open it.`;
+          render();
         });
-      };
-      send(false);
-    });
-    reader.readAsText(chosen);
-  };
-
-  file.addEventListener("change", () => {
-    accept(file.files?.[0]);
-  });
-
-  const upload = el("button", { class: "btn primary", type: "button" }, ["Upload export"]);
-  upload.addEventListener("click", () => {
-    file.click();
-  });
-
-  // Dropping the file on the zone does the same thing, since that is how a file usually
-  // arrives from the Azeron app's export dialog.
-  const drop = el("div", { class: "dropzone" }, [
-    "Drop an exported .json here, or use the button.",
-  ]);
-  for (const name of ["dragenter", "dragover"]) {
-    drop.addEventListener(name, (event) => {
-      event.preventDefault();
-      drop.classList.add("over");
-    });
-  }
-  for (const name of ["dragleave", "drop"]) {
-    drop.addEventListener(name, (event) => {
-      event.preventDefault();
-      drop.classList.remove("over");
-    });
-  }
-  drop.addEventListener("drop", (event) => {
-    accept(event.dataTransfer?.files[0]);
+      });
+    };
+    send(false);
   });
 
   importRow.append(
@@ -2020,9 +2219,9 @@ function renderRepo(): HTMLElement {
       el("div", { class: "field" }, [el("label", {}, ["Name for this layout"]), setName]),
       el("div", { class: "field" }, [el("label", {}, ["Exported from"]), deviceSelect]),
     ]),
-    el("div", { class: "row2" }, [upload]),
-    drop,
-    file,
+    el("div", { class: "row2" }, [picker.upload]),
+    picker.drop,
+    picker.file,
   );
   panel.append(importRow);
 

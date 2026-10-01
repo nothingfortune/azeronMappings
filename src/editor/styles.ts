@@ -293,4 +293,6 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 .muted { color: var(--muted); }
 .empty-state { color: var(--muted); font-size: 12px; padding: 24px; text-align: center; border: 1px dashed var(--line); border-radius: 10px; }
 code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
+.new-game-where, .new-game-file { font-size: 11.5px; margin: 4px 0 8px; }
+.new-game .row2 { margin-top: 6px; }
 `;

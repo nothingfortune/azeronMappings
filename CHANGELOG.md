@@ -6,6 +6,12 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Added
 
+- **A new game from the Setup tab.** A name, a kind of game, the export, which unit it
+  came from and a layout name; the game is created, selected and editable. `createGame` in
+  `tasks.ts` is the one operation, shared with `azeron import`, and it now validates every
+  name that becomes a path (the CLI accepted `--game "Deep Rock"` and wrote a folder with a
+  space in it, and any genre or device string), refuses to replace a game or layout without
+  confirmation, and removes what it wrote if it fails part way.
 - **The editor is the interface.** `npm start` builds and serves it: both units side by
   side, click a key and an action, Save writes the profile into the repo, rebuilds
   `dist/` and returns the linter's verdict. It imports the same compiler and linter as the

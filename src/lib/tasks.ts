@@ -6,10 +6,10 @@
  * printing, because one caller has a terminal and the other has a page.
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { hostPath, repoPath } from "../config/paths.js";
+import { dataDirs, hostPath, repoPath } from "../config/paths.js";
 import type { ExportDocument } from "../types/azeron.js";
 import type { ProfileMeta } from "../types/profile.js";
 import { compileProfile, dumps } from "./compile.js";
@@ -28,6 +28,16 @@ import { ERROR, WARNING, formatFinding, lintGame, lintGenre } from "./lint.js";
 import type { Finding } from "./lint.js";
 import { Game, Genre } from "./model.js";
 import type { Profile } from "./model-core.js";
+import {
+  ScaffoldError,
+  checkFileName,
+  checkGameName,
+  gameConfig,
+  seedActions,
+  slugFromName,
+  unnamedPositions,
+} from "./scaffold.js";
+import { dumpYaml } from "./yaml.js";
 import { messageOf } from "./object.js";
 
 export interface BuiltProfile {
@@ -132,10 +142,14 @@ export interface ImportRequest {
 }
 
 export class ImportCollision extends Error {
-  constructor(readonly paths: string[]) {
+  constructor(
+    readonly paths: string[],
+    message?: string,
+  ) {
     super(
-      `that set already exists: ${paths.join(", ")}. Importing would overwrite it -- pass ` +
-        "overwrite to replace it, or choose another set name.",
+      message ??
+        `that set already exists: ${paths.join(", ")}. Importing would overwrite it -- pass ` +
+          "overwrite to replace it, or choose another set name.",
     );
   }
 }
@@ -182,6 +196,183 @@ export function importExport(request: ImportRequest): ImportResult {
     yaml,
     positions: Object.keys(data.positions).length,
   };
+}
+
+export interface NewGameRequest {
+  /** The raw export, as the Azeron app wrote it. */
+  exported: ExportDocument;
+  /** What the game is called, as a person says it. */
+  name: string;
+  /** The folder and file spelling. Derived from the name when left out. */
+  slug?: string | undefined;
+  /** One of the folders under genres/. */
+  genre: string;
+  /** A device map name from devices/ -- which unit the export came from. */
+  device: string;
+  /** What the first layout is called. */
+  set: string;
+  /** A directory outside the repo that builds are also copied to. The CLI's to give. */
+  exportTo?: string | undefined;
+  /** Replace a game or layout already on disk. Refused by default. */
+  overwrite?: boolean;
+}
+
+export interface NewGameResult {
+  slug: string;
+  name: string;
+  gameDir: string;
+  templatePath: string;
+  profilePath: string;
+  /** How many actions were seeded from the keys the export sends. */
+  actions: number;
+  /** Positions the seeded vocabulary could not name. */
+  unnamed: string[];
+  positions: number;
+}
+
+/** Names of the device maps in devices/, without the extension. */
+export function deviceNames(): string[] {
+  const dir = repoPath(dataDirs.devices);
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir)
+    .filter((file) => file.endsWith(".yaml"))
+    .map((file) => file.slice(0, -".yaml".length))
+    .sort();
+}
+
+/**
+ * Start a game from an Azeron export: its folder, its vocabulary, its game config, the
+ * export kept as the compiler's template, and the first layout decompiled from it.
+ *
+ * Every name that lands in a path is checked here, so the page and the CLI get the same
+ * answer and neither can write outside games/ or templates/. Nothing is written until all
+ * of them pass, and a failure part way removes what this call created.
+ */
+export function createGame(request: NewGameRequest): NewGameResult {
+  const name = checkGameName(request.name);
+  const slug = checkFileName("game folder name", request.slug ?? slugFromName(name));
+  const set = checkFileName("layout name", request.set);
+  const genreNames = Genre.discover().map((genre) => genre.name);
+  if (!genreNames.includes(request.genre)) {
+    throw new ScaffoldError(
+      `'${request.genre}' is not a genre here (have: ${genreNames.join(", ")})`,
+    );
+  }
+  const deviceName = typeof request.device === "string" ? request.device : "";
+  if (!deviceNames().includes(deviceName)) {
+    throw new ScaffoldError(
+      `'${deviceName}' is not a device map (have: ${deviceNames().join(", ")})`,
+    );
+  }
+  const profiles = (request.exported as { profiles?: unknown } | null)?.profiles;
+  if (!Array.isArray(profiles) || profiles.length === 0) {
+    throw new ScaffoldError("the export has no profiles in it -- is it an Azeron export?");
+  }
+
+  const device = loadDevice(deviceName);
+  const unit = device.hand ?? "left";
+  const gameDir = join(dataDirs.games, request.genre, slug);
+  const templatePath = join(dataDirs.templates, `${slug}-${set}-${unit}.json`);
+  const profilePath = join(gameDir, "profiles", `${set}-${unit}.yaml`);
+
+  // Two games with one slug (or one name) cannot be told apart by `azeron build <game>`,
+  // and share a dist/ folder and template names. That is never what was meant, so it is
+  // not something confirming can override.
+  for (const existing of Game.discover()) {
+    if (existing.rel === gameDir) continue;
+    if (existing.slug.toLowerCase() === slug.toLowerCase()) {
+      throw new ScaffoldError(
+        `a game with the folder name '${slug}' already exists: ${existing.rel}`,
+      );
+    }
+    if (existing.name.toLowerCase() === name.toLowerCase()) {
+      throw new ScaffoldError(`a game called '${existing.name}' already exists: ${existing.rel}`);
+    }
+  }
+
+  if (request.overwrite !== true) {
+    const taken = [
+      join(gameDir, "game.yaml"),
+      join(gameDir, "actions.yaml"),
+      profilePath,
+      templatePath,
+    ].filter((path) => existsSync(repoPath(path)));
+    if (taken.length > 0) {
+      throw new ImportCollision(
+        taken,
+        `${name} already exists: ${taken.join(", ")}. Starting it again would replace its ` +
+          "actions.yaml, which holds every action you have named. To add a layout or a unit " +
+          "to a game that exists, import into it instead.",
+      );
+    }
+  }
+
+  const actions = seedActions(request.exported);
+  const madeDir = !existsSync(repoPath(gameDir));
+  // What overwriting replaces, so a failure part way can put it back.
+  const touched = [
+    templatePath,
+    join(gameDir, "game.yaml"),
+    join(gameDir, "actions.yaml"),
+    profilePath,
+  ].map((path) => ({
+    path,
+    text: existsSync(repoPath(path)) ? readFileSync(repoPath(path), "utf8") : null,
+  }));
+  try {
+    writeText(templatePath, `${JSON.stringify(request.exported, null, 2)}\n`);
+    writeText(
+      join(gameDir, "actions.yaml"),
+      dumpYaml(
+        { extends: join(dataDirs.genres, request.genre, "actions.yaml"), game: name, actions },
+        `# ${name} -- every action and the in-game key it is bound to.\n` +
+          "#\n# Seeded by `azeron import` from the keys the export sends. Each action is named\n" +
+          "# after its key because an export cannot say what a key does in game. Rename and\n" +
+          "# tag them as you learn them; the genre vocabulary is inherited above.\n",
+      ),
+    );
+    writeText(
+      join(gameDir, "game.yaml"),
+      dumpYaml(
+        gameConfig({
+          name,
+          slug,
+          genre: request.genre,
+          template: templatePath,
+          exportTo: request.exportTo,
+        }),
+        `# ${name}\n`,
+      ),
+    );
+
+    const game = new Game(gameDir);
+    const data = decompile(request.exported, device, {
+      actions: game.actions,
+      meta: { set, template: templatePath, output: `${slug}_${set}_${unit}.json` },
+    });
+    writeText(profilePath, dumpProfile(data));
+    if (!existsSync(repoPath(join(gameDir, "playtests.md")))) {
+      writeText(join(gameDir, "playtests.md"), `# ${name} playtests\n`);
+    }
+    return {
+      slug,
+      name,
+      gameDir,
+      templatePath,
+      profilePath,
+      actions: Object.keys(actions).length,
+      unnamed: unnamedPositions(data, device.data),
+      positions: Object.keys(data.positions).length,
+    };
+  } catch (error) {
+    // Half a game is worse than none: it would be discovered, and fail every build.
+    if (madeDir) rmSync(repoPath(gameDir), { recursive: true, force: true });
+    for (const { path, text } of touched) {
+      if (text === null) rmSync(repoPath(path), { force: true });
+      else writeFileSync(repoPath(path), text, "utf8");
+    }
+    throw error;
+  }
 }
 
 export interface IngameReport {

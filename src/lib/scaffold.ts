@@ -15,6 +15,59 @@ import * as keys from "./keys.js";
 
 export class ScaffoldError extends Error {}
 
+/**
+ * A name that becomes one component of a path: a game's folder, a layout's file name.
+ *
+ * Letters, digits, dots, dashes and underscores, starting and ending on something that is
+ * not a dot. Nothing with a separator can match, so no spelling of `..` or an absolute
+ * path gets through -- and the repo lives on Windows, which silently drops a trailing dot
+ * and refuses names like `con`.
+ */
+const FILE_NAME = /^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9_-])?$/;
+const RESERVED_NAME = /^(con|prn|aux|nul|com\d|lpt\d)(\..*)?$/i;
+
+export function isFileName(value: string): boolean {
+  return FILE_NAME.test(value) && !RESERVED_NAME.test(value);
+}
+
+/** Return `value` if it is safe to use in a path, otherwise say what is wrong with it. */
+export function checkFileName(kind: string, value: unknown): string {
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new ScaffoldError(`${kind} is required`);
+  }
+  if (!isFileName(value)) {
+    throw new ScaffoldError(
+      `'${value}' cannot be a ${kind}: letters, digits, dots, dashes and underscores only, ` +
+        "starting with a letter or digit and not ending in a dot",
+    );
+  }
+  return value;
+}
+
+/** The name a person types for a game, tidied. Free text, but not a way to break a file. */
+export function checkGameName(value: unknown): string {
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new ScaffoldError("the game needs a name");
+  }
+  const name = value.trim();
+  // eslint-disable-next-line no-control-regex
+  if (name.length > 80 || /[\u0000-\u001f\u007f]/.test(name)) {
+    throw new ScaffoldError("a game name is one line of at most 80 characters");
+  }
+  return name;
+}
+
+/** `Deep Rock Galactic` -> `deepRockGalactic`, the folder-and-file spelling games use. */
+export function slugFromName(name: string): string {
+  const words = name.split(/[^A-Za-z0-9]+/).filter((word) => word !== "");
+  const slug = words
+    .map((word, index) =>
+      index === 0 ? word.toLowerCase() : `${word.charAt(0).toUpperCase()}${word.slice(1)}`,
+    )
+    .join("");
+  return slug;
+}
+
 /** `KeyF` -> `key_f`, `Digit5` -> `digit_5`, `ShiftLeft` -> `shift_left`. */
 export function actionIdForKey(name: string): string {
   return name

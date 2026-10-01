@@ -295,6 +295,42 @@ describe("the setup tab", () => {
     }
   });
 
+  it("offers to add a game that is not there, in words, with the genres that exist", () => {
+    (window as unknown as { AZERON_SERVED?: boolean }).AZERON_SERVED = true;
+    try {
+      mount();
+      [...document.querySelectorAll<HTMLButtonElement>("header button")]
+        .find((node) => node.textContent === "Setup")
+        ?.click();
+      const form = document.querySelector(".new-game");
+      expect(form?.querySelector("h3")?.textContent).toBe("Add a new game");
+      const labels = [...(form?.querySelectorAll("label") ?? [])].map((n) => n.textContent);
+      expect(labels).toEqual([
+        "Name of the game",
+        "Kind of game",
+        "Exported from",
+        "Name for the first layout",
+      ]);
+      const genres = [...(form?.querySelectorAll('[data-new-game="genre"] option') ?? [])].map(
+        (o) => o.textContent,
+      );
+      expect(genres).toEqual(PAYLOAD.genres.map((genre) => genre.name));
+
+      // The layout section says which game it adds to, rather than leaving it to the selector.
+      const headings = [...document.querySelectorAll(".panel h3")].map((n) => n.textContent);
+      expect(headings).toContain(`Add a layout to ${PAYLOAD.games[0]?.name ?? ""}`);
+
+      // Asking before anything is chosen says what is missing, and creates nothing.
+      const create = [...(form?.querySelectorAll("button") ?? [])].find(
+        (node) => node.textContent === "Create game",
+      );
+      create?.click();
+      expect(document.querySelector(".repo-note")?.textContent).toBe("Give the game a name first.");
+    } finally {
+      (window as unknown as { AZERON_SERVED?: boolean }).AZERON_SERVED = false;
+    }
+  });
+
   it("says which mode the page is in", () => {
     expect(document.querySelector("header .pill.mode")?.textContent).toBe("downloads only");
   });

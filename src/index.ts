@@ -23,7 +23,7 @@ import {
 } from "./lib/install.js";
 import { loadDevice, loadTemplate, writeText } from "./lib/io.js";
 import { buildProbeProfile, buildStickCalibrationProfile } from "./lib/probe.js";
-import { gameConfig, seedActions, unnamedPositions } from "./lib/scaffold.js";
+import { checkFileName } from "./lib/scaffold.js";
 import { patchActionBindings } from "./lib/actionfile.js";
 import type { BindingChange } from "./lib/actionfile.js";
 import {
@@ -35,6 +35,8 @@ import {
 } from "./lib/serve.js";
 import {
   buildAll,
+  createGame,
+  deviceNames,
   ImportCollision,
   importExport,
   applyIngame,
@@ -45,7 +47,6 @@ import {
 } from "./lib/tasks.js";
 import type { SaveCheck } from "./lib/tasks.js";
 import type { ExportDocument } from "./types/azeron.js";
-import { dumpYaml } from "./lib/yaml.js";
 import { ERROR, WARNING, formatFinding, lintGame, lintGenre } from "./lib/lint.js";
 import type { LintResult } from "./lib/lint.js";
 import { Game, Genre } from "./lib/model.js";
@@ -256,72 +257,22 @@ interface ImportFlags {
 
 /** Start a game folder from an Azeron export. */
 function cmdImport(exportPath: string, flags: ImportFlags): number {
-  const slug = flags.game;
-  const gameDir = join(dataDirs.games, flags.genre, slug);
-  if (existsSync(repoPath(join(gameDir, "actions.yaml")))) {
-    process.stderr.write(`error: ${gameDir} already has an actions.yaml.\n`);
-    return 1;
-  }
-
-  const device = loadDevice(flags.device);
-  const setName = flags.set ?? "v1";
-  const exported = loadTemplate(exportPath);
-
-  // The export is kept verbatim as the compiler's template and the round-trip reference.
-  const templateRel = join(dataDirs.templates, `${slug}-${setName}-${device.hand ?? "left"}.json`);
-  writeText(templateRel, `${JSON.stringify(exported, null, 2)}\n`);
-
-  const actions = seedActions(exported);
-  writeText(
-    join(gameDir, "actions.yaml"),
-    dumpYaml(
-      {
-        extends: join(dataDirs.genres, flags.genre, "actions.yaml"),
-        game: flags.name ?? slug,
-        actions,
-      },
-      `# ${flags.name ?? slug} -- every action and the in-game key it is bound to.\n` +
-        "#\n# Seeded by `azeron import` from the keys the export sends. Each action is named\n" +
-        "# after its key because an export cannot say what a key does in game. Rename and\n" +
-        "# tag them as you learn them; the genre vocabulary is inherited above.\n",
-    ),
-  );
-
-  writeText(
-    join(gameDir, "game.yaml"),
-    dumpYaml(
-      gameConfig({
-        name: flags.name ?? slug,
-        slug,
-        genre: flags.genre,
-        template: templateRel,
-        exportTo: flags.exportTo,
-      }),
-      `# ${flags.name ?? slug}\n`,
-    ),
-  );
-
-  const game = new Game(gameDir);
-  const data = decompile(exported, device, {
-    actions: game.actions,
-    meta: {
-      set: setName,
-      template: templateRel,
-      output: `${slug}_${device.hand ?? "left"}.json`,
-    },
+  const result = createGame({
+    exported: loadTemplate(exportPath),
+    name: flags.name ?? flags.game,
+    slug: flags.game,
+    genre: flags.genre,
+    device: flags.device,
+    set: flags.set ?? "v1",
+    exportTo: flags.exportTo,
   });
-  const profileRel = join(gameDir, "profiles", `${setName}-${device.hand ?? "left"}.yaml`);
-  writeText(profileRel, dumpProfile(data));
 
-  writeText(join(gameDir, "playtests.md"), `# ${flags.name ?? slug} playtests\n`);
-
-  const unnamed = unnamedPositions(data, device.data);
-  out(`created ${gameDir}`);
-  out(`  ${templateRel}`);
-  out(`  ${profileRel}`);
-  out(`  ${String(Object.keys(actions).length)} action(s) seeded from the keys it sends`);
-  if (unnamed.length > 0) {
-    out(`  ${String(unnamed.length)} position(s) still raw: ${unnamed.join(", ")}`);
+  out(`created ${result.gameDir}`);
+  out(`  ${result.templatePath}`);
+  out(`  ${result.profilePath}`);
+  out(`  ${String(result.actions)} action(s) seeded from the keys it sends`);
+  if (result.unnamed.length > 0) {
+    out(`  ${String(result.unnamed.length)} position(s) still raw: ${result.unnamed.join(", ")}`);
   }
   if (flags.exportTo) out(`  builds will also be written to ${flags.exportTo}`);
   out("");
@@ -467,12 +418,39 @@ function cmdServe(port: number): number {
       }
       return;
     }
-    if (request.method === "POST" && (url === "/api/build" || url === "/api/import")) {
+    if (
+      request.method === "POST" &&
+      (url === "/api/build" || url === "/api/import" || url === "/api/game")
+    ) {
       readBody(request, response, 20_000_000, (body) => {
         try {
           if (url === "/api/build") {
             const result = buildAll(Game.discover());
             send(200, JSON.stringify({ ok: result.errors.length === 0, ...result }));
+            return;
+          }
+          if (url === "/api/game") {
+            // A new game. Every name in it becomes part of a path, and createGame checks
+            // each one -- the page's own check is a courtesy, this is the gate.
+            const fresh = JSON.parse(body) as {
+              name?: string;
+              genre?: string;
+              device?: string;
+              set?: string;
+              exported?: ExportDocument;
+              overwrite?: boolean;
+            };
+            if (!fresh.exported) throw new Error("a new game needs the export");
+            const result = createGame({
+              exported: fresh.exported,
+              name: fresh.name ?? "",
+              genre: fresh.genre ?? "",
+              device: fresh.device ?? "",
+              set: fresh.set ?? "",
+              ...(fresh.overwrite === true ? { overwrite: true } : {}),
+            });
+            invalidate();
+            send(200, JSON.stringify({ ok: true, ...result }));
             return;
           }
           const parsed = JSON.parse(body) as {
@@ -489,10 +467,9 @@ function cmdServe(port: number): number {
           }
           // The name becomes part of a file path. Unchecked, "../" in it wrote outside the
           // game's folder.
-          if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(parsed.set)) {
-            throw new Error(
-              `'${parsed.set}' cannot be a layout name: letters, digits, dots and dashes`,
-            );
+          checkFileName("layout name", parsed.set);
+          if (!deviceNames().includes(parsed.device)) {
+            throw new Error(`'${parsed.device}' is not a device map`);
           }
           const unit = loadDevice(parsed.device).hand ?? "left";
           const result = importExport({
