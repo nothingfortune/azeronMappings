@@ -5,7 +5,6 @@
  * `azeron build` produce identical output from identical input.
  */
 
-import { renderCheatsheet } from "../lib/cheatsheet.js";
 import { compileProfile, dumps } from "../lib/compile.js";
 import { dumpProfile } from "../lib/decompile.js";
 import { formatFinding, lintProfiles, ROLE_TAGS } from "../lib/lint.js";
@@ -44,7 +43,7 @@ declare global {
   }
 }
 
-type Mode = "edit" | "in-game" | "press-test" | "sheet" | "repo";
+type Mode = "edit" | "in-game" | "press-test" | "repo";
 
 interface State {
   payload: EditorPayload;
@@ -658,7 +657,7 @@ function assignToSelection(actionId: string): void {
   if (device.isStick(selection.position)) return;
   const actions = actionSetFor(currentGame());
   spec[state.slot] = actionId;
-  // The label is what the cheatsheet teaches and what is compiled onto the unit, so it
+  // The label is what the board shows and what is compiled onto the unit, so it
   // must not go on naming the action that used to be here -- and whatever it said, it said
   // it about that action. Rebinding the tap renames the key; a long press or a double tap
   // leaves it, because the label is the tap's. `??=` never fired at all, since every
@@ -1131,6 +1130,20 @@ async function saveToRepo(
   render();
 }
 
+/**
+ * Print the board: both hands, laid out as on screen, and nothing else.
+ *
+ * There is no separate sheet to keep in step with the editor -- the board is the reference,
+ * and print CSS (see styles.ts) drops everything around it.
+ */
+function printLayout(): void {
+  if (state.mode !== "edit") {
+    state.mode = "edit";
+    render();
+  }
+  window.print();
+}
+
 function download(name: string, text: string, type: string): void {
   const blob = new Blob([text], { type });
   const url = URL.createObjectURL(blob);
@@ -1361,12 +1374,11 @@ function renderHeader(): HTMLElement {
     render();
   });
   const tabs = el("div", { class: "tabs" });
-  for (const mode of ["edit", "in-game", "press-test", "sheet", "repo"] as Mode[]) {
+  for (const mode of ["edit", "in-game", "press-test", "repo"] as Mode[]) {
     const names: Record<Mode, string> = {
       edit: "Edit",
       "in-game": "In-game",
       "press-test": "Press test",
-      sheet: "Sheet",
       repo: "Setup",
     };
     const tab = el(
@@ -1453,6 +1465,7 @@ function renderHeader(): HTMLElement {
       });
     }
   }
+  item("Print layout", printLayout);
   item("Undo all unsaved edits", () => {
     if (!confirmDiscard("Undoing them")) return;
     state.working.clear();
@@ -2400,26 +2413,6 @@ function renderPressTest(): HTMLElement {
   return panel;
 }
 
-function renderSheet(): HTMLElement {
-  const game = currentGame();
-  const profiles = slugsInSet().map((slug) => profileFor(slug));
-  const html = renderCheatsheet(profiles, actionSetFor(game));
-  const frame = el("iframe", { class: "sheet-frame", title: "cheatsheet" });
-  frame.srcdoc = html;
-
-  // The sheet is for learning a layout away from the screen, so it has to leave the page.
-  // The browser's own Print would print the editor around it.
-  const print = el("button", { class: "btn primary", type: "button" }, ["Print"]);
-  print.addEventListener("click", () => {
-    frame.contentWindow?.print();
-  });
-  const save = el("button", { class: "btn", type: "button" }, ["Download"]);
-  save.addEventListener("click", () => {
-    download(`${game.slug}-${state.setName}.html`, html, "text/html");
-  });
-  return el("div", {}, [el("div", { class: "sheet-tools" }, [print, save]), frame]);
-}
-
 /**
  * Fit both units into the stage width.
  *
@@ -2484,14 +2477,13 @@ function render(): void {
     root.append(el("div", { class: "workspace single" }, [renderPressTest()]));
     return;
   }
-  if (state.mode === "sheet") {
-    root.append(el("div", { class: "workspace single" }, [renderSheet()]));
-    return;
-  }
 
   // The board takes the full width and the panels dock under it, in what was empty
   // space. With a rail either side, the pair was scaled to under half size.
   const workspace = el("div", { class: "workspace board" });
+  root.append(
+    el("div", { class: "print-title" }, [`${currentGame().name} \u2014 ${state.setName}`]),
+  );
   const stage = el("div", { class: "stage" });
   const slugs = slugsInSet();
   for (const slug of slugs) stage.append(renderHand(slug));

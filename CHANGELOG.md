@@ -86,6 +86,10 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Changed
 
+- **The Sheet tab is gone.** It was a cheatsheet in an iframe, a tall page inside a wide
+  one, for learning a layout away from the screen. The Edit board is readable now and is
+  that reference; the header's menu has **Print layout**, which prints the board itself
+  with print CSS, in the light palette whatever the screen is on.
 - **The vocabulary says what each key does in the game.** `weapon_cycle_*` sent the
   arrows, which Everspace 2 binds to pitch and yaw — it has no weapon cycling on four
   keys — so they are `pitch_*` and `yaw_*`. `primary_1`/`_2` are `next_primary` and

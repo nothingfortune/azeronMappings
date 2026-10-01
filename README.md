@@ -55,8 +55,9 @@ applied to both sticks in one click from the editor's side panel.
 
 ## Learning a layout
 
-- **The Sheet tab** draws each unit with its bindings, the same page as
-  `dist/.../cheatsheets/<set>.html`.
+- **The Edit tab is the reference**: both hands with every binding on them. For paper,
+  the header's menu has **Print layout**, which prints the board itself and nothing
+  around it.
 - `npm run azeron -- bindings` writes `dist/.../<game>-ingame-bindings.md` and `.csv`:
   every action the units send, its key, and where it is sent from.
 - `npm run azeron -- ingame` compares the game's `Input.ini` with `actions.yaml` and

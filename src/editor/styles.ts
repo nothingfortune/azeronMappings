@@ -122,7 +122,6 @@ select, .btn {
 .ingame-row .row2 { gap: 5px; }
 header .picker { display: inline-flex; flex-direction: column; gap: 1px; }
 header .picker span { font-size: 9.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
-.sheet-tools { display: flex; gap: 8px; margin-bottom: 8px; }
 .unit-settings { margin-top: 12px; display: grid; gap: 6px; }
 .keybind { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .key-chip { min-width: 96px; padding: 5px 12px; border-radius: 7px; border: 1px solid var(--line);
@@ -137,8 +136,6 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 .keybind-note.bad { color: var(--bad, #b3261e); }
 .action-list.inert { opacity: .45; pointer-events: none; }
 .note { font-size: 11.5px; color: var(--muted); margin-bottom: 10px; }
-.sheet-frame { width: 100%; min-height: 78vh; border: 1px solid var(--line); border-radius: 10px;
-               background: var(--panel); }
 .workspace { padding: 12px 14px; }
 /* The board on top at full width; the panels dock beneath it. */
 .dock { display: grid; grid-template-columns: 320px minmax(0, 1fr) 360px; gap: 12px;
@@ -295,4 +292,20 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
 .new-game-where, .new-game-file { font-size: 11.5px; margin: 4px 0 8px; }
 .new-game .row2 { margin-top: 6px; }
+/* Print: the board and nothing else, in the light palette whatever the screen is on. */
+.print-title { display: none; }
+@media print {
+  :root:root:root {
+    --bg: #f4f6f8; --panel: #ffffff; --fg: #15181d; --muted: #5d6673; --line: #b9c1cb;
+    color-scheme: light;
+  }
+  @page { size: landscape; margin: 10mm; }
+  header, .save-note, .dock, .menu { display: none !important; }
+  body { background: #fff; }
+  .workspace { padding: 0; }
+  .print-title { display: block; font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+  .workspace.board .stage-wrap { overflow: visible; height: auto !important; }
+  .workspace.board .stage { transform: none !important; zoom: .62; }
+  .key.selected { outline: none; }
+}
 `;

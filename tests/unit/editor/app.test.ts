@@ -93,8 +93,9 @@ describe("the editor's modes", () => {
     return found as HTMLButtonElement;
   }
 
-  it("offers edit, press test and sheet from one page", () => {
-    for (const name of ["Edit", "Press test", "Sheet"]) expect(tab(name)).toBeDefined();
+  it("offers edit, in-game, press test and setup from one page, and no sheet", () => {
+    const names = [...document.querySelectorAll("header .tabs button")].map((b) => b.textContent);
+    expect(names).toEqual(["Edit", "In-game", "Press test", "Setup"]);
   });
 
   it("shows the press test without leaving the page", () => {
@@ -108,12 +109,6 @@ describe("the editor's modes", () => {
     tab("Edit").click();
     expect(document.querySelector(".prompt")).toBeNull();
     expect(document.querySelectorAll(".key").length).toBeGreaterThan(0);
-  });
-
-  it("renders the sheet for the whole set", () => {
-    tab("Sheet").click();
-    const frame = document.querySelector("iframe.sheet-frame");
-    expect(frame?.getAttribute("srcdoc") ?? "").toContain("In-game bindings to set");
   });
 });
 
@@ -402,7 +397,7 @@ describe("assigning an action", () => {
 
   it("renames the key it rebinds, rather than leaving the old action's name on it", () => {
     // pinky_1 reads "Consume 1" and sends consume_1. Rebinding it must not still say that:
-    // the label is what the cheatsheet teaches and what is compiled onto the unit.
+    // the label is what the board shows and what is compiled onto the unit.
     expect(card("pinky_1").querySelector(".name")?.textContent).toBe("Consume 1");
     card("pinky_1").click();
     palette("Consumable 3").click();
@@ -751,14 +746,31 @@ describe("the header", () => {
   });
 });
 
-describe("the sheet tab", () => {
-  it("can be printed without the editor around it", () => {
+describe("printing the layout", () => {
+  it("prints the board itself, from the menu, with no iframe anywhere", () => {
     mount();
-    [...document.querySelectorAll<HTMLButtonElement>("header button")]
-      .find((button) => button.textContent === "Sheet")
+    const print = vi.fn();
+    window.print = print;
+    expect(document.querySelector("iframe")).toBeNull();
+    const item = [...document.querySelectorAll<HTMLButtonElement>(".menu-item")].find(
+      (button) => button.textContent === "Print layout",
+    );
+    expect(item).toBeDefined();
+    item?.click();
+    expect(print).toHaveBeenCalledOnce();
+    expect(document.querySelector(".print-title")?.textContent).toContain("Everspace");
+  });
+
+  it("goes back to the board first when printed from another tab", () => {
+    mount();
+    window.print = vi.fn();
+    [...document.querySelectorAll<HTMLButtonElement>("header .tabs button")]
+      .find((button) => button.textContent === "Setup")
       ?.click();
-    const tools = [...document.querySelectorAll(".sheet-tools button")].map((b) => b.textContent);
-    expect(tools).toEqual(["Print", "Download"]);
+    [...document.querySelectorAll<HTMLButtonElement>(".menu-item")]
+      .find((button) => button.textContent === "Print layout")
+      ?.click();
+    expect(document.querySelectorAll(".hand").length).toBe(2);
   });
 });
 

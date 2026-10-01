@@ -48,9 +48,9 @@ test.describe("the served editor", () => {
     await expect(page.locator(".ingame-row").first()).toBeVisible();
     await expect(page.locator(".hand")).toHaveCount(2);
 
-    await page.getByRole("button", { name: "Sheet", exact: true }).click();
-    const sheet = page.frameLocator("iframe.sheet-frame");
-    await expect(sheet.locator("h1")).toBeVisible();
+    // The cheatsheet's job is the board's now: no tab, and no page inside the page.
+    await expect(page.getByRole("button", { name: "Sheet", exact: true })).toHaveCount(0);
+    await expect(page.locator("iframe")).toHaveCount(0);
 
     await page.getByRole("button", { name: "Edit", exact: true }).click();
     await expect(page.locator(".hand")).toHaveCount(2);
@@ -106,6 +106,16 @@ test.describe("the served editor", () => {
     await expect(dials.nth(0).locator(".right .name")).toHaveText("Yaw right");
     await expect(dials.nth(1).locator(".up .name")).toHaveText("Thrust forward");
     await expect(page.locator(".save-note")).toContainText("Save changes");
+  });
+
+  test("prints the board and nothing around it", async ({ page }) => {
+    await page.goto("/");
+    await page.emulateMedia({ media: "print" });
+    await expect(page.locator("header")).toBeHidden();
+    await expect(page.locator(".dock")).toBeHidden();
+    await expect(page.locator(".print-title")).toBeVisible();
+    await expect(page.locator(".hand")).toHaveCount(2);
+    for (const hand of await page.locator(".hand").all()) await expect(hand).toBeVisible();
   });
 
   test("draws the press test's columns side by side", async ({ page }) => {
