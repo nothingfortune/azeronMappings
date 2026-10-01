@@ -2,24 +2,54 @@
 
 What each layout actually felt like. Dated, newest first.
 
-## 2026-09-30 — rudder pedals, not yet connected
+## 2026-09-30 — rudder pedals
 
 Logitech Pro Flight rudder pedals: a rudder that springs back to centre, and two toe
-brakes that rest at one end. Everspace 2 reads DirectInput joysticks itself (it already
-has a T.16000M bound) and is set to `InputMethod=MouseAndJoystick`, so no translation
-layer is needed. See `docs/guides/analog-input.md`, option D.
+brakes that rest at one end. They report as Saitek (USB 06a3:0763). Everspace 2 reads
+joysticks itself, through SDL (it already has a T.16000M bound), and is set to
+`InputMethod=MouseAndJoystick`, so no translation layer is needed. See
+`docs/guides/analog-input.md`, option D.
 
-First session, in this order:
+**What is in the layout** (`games/SpaceSims/everspace/sets.yaml`, `akimbo-v10`):
+
+- **The rudder on yaw, and nothing else.** It centres itself, which is what a turn wants and
+  what neither the pointer nor a keyboard-mode stick can give. With it, the left stick's
+  horizontal is roll (Mode 2 _with pedals_): the pedals carry the turn, so no stick has to.
+- **The toes are bound to nothing, on purpose.** This replaces the first plan, a right toe
+  on thrust as a test of what the game makes of it. The game's own log and a measurement
+  have answered that without flying: with no Windows calibration stored a toe reads -1.0 at
+  rest and +1.0 fully pressed, so on thrust, or any axis read about a centre, it is a full
+  deflection with the foot off. `invert`, `scale`, `dead_zone`, `sensitivity` and
+  `exponent` — everything the game's row offers — cannot re-centre it. The toes wait for
+  someone to find what the game does with a one-sided axis; `pedal-rest-on-centred` warns
+  the moment one is bound.
+
+**Which name is which.** The game registers three inputs for the pedals,
+`JS0_SaitekProFlightRudderPedals_Axis0` to `_Axis2` (confirmed, from its own log). The
+rudder is `Axis2`, because it is the last axis in every ordering of the device — inferred,
+not flown. `Axis0` is the left toe and `Axis1` the right under SDL's ordering; which toe is
+which is the least certain part. The device file records each with that status, and the
+generator says which status it used.
+
+**The owner's file had Yaw on `Axis1`, which is a toe.** The game's bind screen takes
+whatever moves first, and a toe at the end of its travel reads full deflection from the
+start, so it won the capture meant for the rudder. `azeron ingame --apply` moves it: Yaw
+takes `Axis2`. If the ship then does not yaw with the rudder, the inference is wrong, not the
+tooling — `azeron ingame --capture-pedals` says where the file and the device data
+disagree, and the device file is where to correct it.
+
+**First session, in this order:**
 
 1. **Windows first.** "Set up USB game controllers" (`joy.cpl`): the rudder and both toe
-   brakes should each move one axis. If a toe brake barely moves its bar, calibrate there.
-2. **Rudder to yaw**, in the game's Settings → Controls, Joystick column, `Yaw` axis. Fly.
-   Does the ship yaw in proportion to the pedal, and stop when it centres?
-3. **Stutter.** Fly for a few minutes using keys, the sensor and the pedals together.
+   brakes should each move one axis. Note which of the two toe bars moves for the left foot.
+2. **Apply** (game closed) and check Yaw in the game's controls screen reads the rudder.
+3. **Fly the rudder.** Does the ship yaw in proportion to the pedal, and stop when it
+   centres? In the wrong direction? On its own with your feet off? Any of those means the
+   name or the direction is wrong: say which, and fix it in the device file or with
+   `invert: true` on the assignment in `sets.yaml`. When it is right, change the rudder's
+   status to `confirmed`. Is roll on the left stick useful, now that it is not yaw?
+4. **Stutter.** Fly for a few minutes using keys, the sensor and the pedals together.
    Constraint 1 was gamepad against keyboard; this should not repeat it, but watch.
-4. **A toe brake to thrust**, `MoveForward` axis. **With your foot off, watch the ship.**
-   If it moves on its own, the game reads the resting toe as full thrust one way — note
-   which, and the ship's speed at half and full press.
 5. **Quit the game** so it writes `Input.ini`, then the bindings can come into the repo.
 
 ## 2026-09-30 — a stick in mouse mode

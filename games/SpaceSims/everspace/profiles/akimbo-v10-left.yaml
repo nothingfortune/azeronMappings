@@ -2,11 +2,13 @@
 # consumables and menus on the fingers; the d-pad cycles weapons -- left and right the
 # primary, up and down the secondary, as a gamepad d-pad does.
 #
-# Mode 2 on the sticks, from genres/SpaceSims/stick-modes.yaml: the left stick climbs and
-# turns (hover, yaw); the right stick flies forward and strafes (thrust, strafe). The right
-# thumb pad pitches and rolls, so all six axes are on the pair and the pointer is left to
-# aim. `mode2_roll` puts roll on the left stick instead of yaw -- one click in the editor --
-# for flying the two against each other.
+# Mode 2 WITH PEDALS on the sticks, from genres/SpaceSims/stick-modes.yaml: the left stick
+# climbs and banks (hover, roll); the right stick flies forward and strafes (thrust,
+# strafe). Yaw is on the rudder pedals (games/SpaceSims/everspace/sets.yaml), which is why
+# the left stick's horizontal is roll and not yaw: the pedals carry the turn, so no stick
+# has to. Without pedals this would be plain Mode 2, yaw on the left stick; the sets file
+# is what decides which, and lint says if the two disagree. The right thumb pad pitches and
+# rolls, so all six axes are on the pair plus the feet and the pointer is left to aim.
 #
 # Every label is the action's own, so the cheatsheet and the app say what the key does.
 # Up to v9 the keys labelled weapon cycling sent the arrows, which the game has on pitch
@@ -114,4 +116,4 @@ positions:
     tap: inertia_dampeners
   stick:
     mode: keyboard
-    directions: { up: hover_up, right: yaw_right, down: hover_down, left: yaw_left }
+    directions: { up: hover_up, right: roll_right, down: hover_down, left: roll_left }

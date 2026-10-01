@@ -1,11 +1,11 @@
 # Everspace 2 -- akimbo v10, RIGHT unit. The flying hand: thrust and strafe on the stick,
 # pitch and roll on the pad, devices on the fingers.
 #
-# Mode 2 on the sticks, from genres/SpaceSims/stick-modes.yaml: the left stick climbs and
-# turns (hover, yaw); the right stick flies forward and strafes (thrust, strafe). The right
-# thumb pad pitches and rolls, so all six axes are on the pair and the pointer is left to
-# aim. `mode2_roll` puts roll on the left stick instead of yaw -- one click in the editor --
-# for flying the two against each other.
+# Mode 2 with pedals on the sticks, from genres/SpaceSims/stick-modes.yaml: the left stick
+# climbs and banks (hover, roll); the right stick flies forward and strafes (thrust,
+# strafe). Yaw is on the rudder pedals (games/SpaceSims/everspace/sets.yaml). The right
+# thumb pad pitches and rolls, so all six axes are on the pair plus the feet and the
+# pointer is left to aim.
 #
 # Every label is the action's own, so the cheatsheet and the app say what the key does.
 # Up to v9 the keys labelled weapon cycling sent the arrows, which the game has on pitch
