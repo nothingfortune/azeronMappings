@@ -56,6 +56,17 @@ header .tabs .btn + .btn { border-left: 1px solid var(--line); }
 .panel.fold > summary h2::before { content: "▸ "; }
 .panel.fold[open] > summary h2::before { content: "▾ "; }
 .panel.fold[open] > summary { margin-bottom: 9px; }
+.palette-target { font-weight: 600; font-size: 12.5px; margin-bottom: 8px; color: var(--accent); }
+.panel .filter { width: 100%; margin-bottom: 8px; padding: 5px 9px; border: 1px solid var(--line);
+                 border-radius: 7px; background: var(--bg); color: var(--fg); font: inherit; }
+.field.slot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.field.slot > label { flex-basis: 100%; }
+.slot-pick { flex: 1; text-align: left; padding: 6px 9px; border: 1px solid var(--line);
+             border-radius: 7px; background: var(--bg); color: var(--fg); cursor: pointer;
+             font: inherit; font-weight: 600; }
+.slot-pick.unset { color: var(--muted); font-weight: 400; font-style: italic; }
+.field.slot[data-active] .slot-pick { border-color: var(--accent);
+                                      box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent); }
 .menu { position: relative; }
 .menu > summary { list-style: none; }
 .menu > summary::-webkit-details-marker { display: none; }
@@ -240,7 +251,8 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 .action-list > .head { grid-column: 1 / -1; margin-top: 6px; text-align: left; }
 .action {
   display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 6px;
-  border: 1px solid transparent; cursor: pointer; text-align: left; background: none; width: 100%;
+  border: 1px solid var(--line); cursor: pointer; text-align: left; background: var(--bg);
+  width: 100%;
 }
 .action:hover { border-color: var(--accent); }
 .action .dot { width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--muted); }
@@ -252,7 +264,9 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 .action .txt { flex: 1; min-width: 0; }
 .action .txt b { font-weight: 600; display: block; font-size: 12px; }
 .action .txt small { color: var(--muted); font-size: 10px; }
-.action.bound { opacity: .5; }
+/* A bound action is still a good choice, so it is drawn at full strength; "unbound" in
+   its second line and the dot say the rest. Faded, it looked disabled. */
+.action-list [hidden] { display: none; }
 .action .req { font-size: 9px; color: var(--error); }
 .field { margin-bottom: 9px; }
 .field label { display: block; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 3px; }

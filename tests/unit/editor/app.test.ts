@@ -357,20 +357,25 @@ describe("assigning an action", () => {
     const long = [...document.querySelectorAll<HTMLElement>(".field")].find(
       (field) => field.querySelector("label")?.textContent === "Long press",
     );
-    long?.querySelector("select")?.dispatchEvent(new Event("focus"));
+    long?.querySelector<HTMLButtonElement>(".slot-pick")?.click();
     palette("Consumable 3").click();
     expect(card("pinky_1").querySelector(".name")?.textContent).toBe(before);
   });
 
   it("re-arms the tap when a different key is selected", () => {
-    // Focusing a slot's select was the only thing that moved the target, and nothing reset
-    // it -- so a long press armed on one key stayed armed on the next.
+    // Nothing used to reset the armed slot, so a long press armed on one key stayed armed
+    // on the next.
     card("pinky_1").click();
     const long = [...document.querySelectorAll<HTMLElement>(".field")].find(
       (field) => field.querySelector("label")?.textContent === "Long press",
     );
-    long?.querySelector("select")?.dispatchEvent(new Event("focus"));
-    expect(long?.getAttribute("data-active")).toBe("true");
+    long?.querySelector<HTMLButtonElement>(".slot-pick")?.click();
+    // Clicking redraws the panel, so the armed slot is looked up again.
+    expect(document.querySelector(".field.slot[data-active] label")?.textContent).toBe(
+      "Long press",
+    );
+    // And the action list says where a click will land.
+    expect(document.querySelector(".palette-target")?.textContent).toContain("long press");
 
     card("pinky_2").click();
     palette("Consumable 3").click();
@@ -702,5 +707,44 @@ describe("the checks, from anywhere", () => {
     const panel = document.querySelector<HTMLDetailsElement>("details.panel.fold");
     expect(panel?.hasAttribute("open")).toBe(false);
     expect(panel?.querySelector("summary")?.textContent).toContain("Mode 2");
+  });
+});
+
+describe("putting an action on a key", () => {
+  beforeEach(() => {
+    mount();
+  });
+
+  it("says what to do before a key is picked, and what a click will do after", () => {
+    expect(document.querySelector(".palette-note")?.textContent).toContain("Pick a key");
+    expect(document.querySelector(".action-list")?.classList.contains("inert")).toBe(true);
+    document.querySelector<HTMLButtonElement>('.hand .key[data-position="pinky_1"]')?.click();
+    expect(document.querySelector(".palette-target")?.textContent).toBe("Put on Left Pinky 1:");
+  });
+
+  it("filters the list as you type, and keeps the filter across a redraw", () => {
+    const filter = document.querySelector<HTMLInputElement>(".panel .filter");
+    if (!filter) throw new Error("no filter box");
+    filter.value = "consum";
+    filter.dispatchEvent(new Event("input"));
+    const shown = (): string[] =>
+      [...document.querySelectorAll<HTMLElement>(".action")]
+        .filter((button) => !button.hidden)
+        .map((button) => button.querySelector("b")?.textContent ?? "");
+    expect(shown().length).toBeGreaterThan(0);
+    expect(shown().every((label) => label.toLowerCase().includes("consum"))).toBe(true);
+
+    document.querySelector<HTMLButtonElement>('.hand .key[data-position="pinky_1"]')?.click();
+    expect(shown().every((label) => label.toLowerCase().includes("consum"))).toBe(true);
+  });
+
+  it("clears a slot with its own button", () => {
+    document.querySelector<HTMLButtonElement>('.hand .key[data-position="pinky_1"]')?.click();
+    const tap = [...document.querySelectorAll<HTMLElement>(".field.slot")].find(
+      (field) => field.querySelector("label")?.textContent === "Tap",
+    );
+    tap?.querySelector<HTMLButtonElement>('button[title="Clear"]')?.click();
+    const card = document.querySelector('.hand .key[data-position="pinky_1"]');
+    expect(card?.classList.contains("empty")).toBe(true);
   });
 });

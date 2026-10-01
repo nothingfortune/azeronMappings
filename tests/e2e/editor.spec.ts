@@ -129,6 +129,16 @@ test.describe("the served editor", () => {
     expect(height).toBeGreaterThan(9);
   });
 
+  test("filters the action list on screen, not just in the DOM", async ({ page }) => {
+    // The filter set `hidden`, and `.action { display: flex }` overrode it: every action
+    // stayed on screen while the unit test, which reads the property, passed.
+    await page.goto("/");
+    await page.locator('.hand .key[data-position="pinky_1"]').first().click();
+    await page.locator(".panel .filter").fill("consumable");
+    await expect(page.locator(".action", { hasText: "Fire primary" })).toBeHidden();
+    await expect(page.locator(".action", { hasText: "Consumable 1" }).first()).toBeVisible();
+  });
+
   test("offers detection, and says what it cannot know", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: "Repo", exact: true }).click();

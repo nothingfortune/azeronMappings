@@ -525,11 +525,26 @@ function renderPalette(): HTMLElement {
     ]),
   );
 
-  // A stick holds four directions, not one action, so the palette has nowhere to write.
-  // It used to accept the click and silently discard it.
+  // Say what a click here will do. It used to look like a list to read, and a click with
+  // nothing selected did nothing at all.
   const selection = state.selected;
   const onStick =
     selection !== null && profileFor(selection.slug).device.isStick(selection.position);
+  if (selection === null) {
+    panel.append(
+      el("div", { class: "note palette-note" }, [
+        "Pick a key on the board, then click an action here to put it on that key.",
+      ]),
+    );
+  } else if (!onStick) {
+    const unit = workingData(selection.slug).profile.unit;
+    const slot = state.slot === "tap" ? "" : ` — ${SLOT_NAMES[state.slot].toLowerCase()}`;
+    panel.append(
+      el("div", { class: "palette-target" }, [
+        `Put on ${whereLabel(unit, selection.position)}${slot}:`,
+      ]),
+    );
+  }
   if (onStick) {
     panel.append(
       el("div", { class: "note palette-note" }, [
@@ -539,7 +554,33 @@ function renderPalette(): HTMLElement {
     );
   }
 
-  const list = el("div", { class: `action-list${onStick ? " inert" : ""}` });
+  const inert = onStick || selection === null;
+  const list = el("div", { class: `action-list${inert ? " inert" : ""}` });
+
+  // About seventy actions; finding one by eye is slow. Filtering hides rather than
+  // re-renders, so the box keeps focus while typing.
+  const filter = el("input", { type: "search", placeholder: "Filter actions", class: "filter" });
+  filter.value = paletteFilter;
+  const applyFilter = (): void => {
+    const query = filter.value.trim().toLowerCase();
+    for (const item of list.querySelectorAll<HTMLElement>(".action")) {
+      item.hidden = query !== "" && !item.textContent.toLowerCase().includes(query);
+    }
+    for (const head of list.querySelectorAll<HTMLElement>(".head")) {
+      let next = head.nextElementSibling;
+      let any = false;
+      while (next && !next.classList.contains("head")) {
+        if (!(next as HTMLElement).hidden) any = true;
+        next = next.nextElementSibling;
+      }
+      head.hidden = !any;
+    }
+  };
+  filter.addEventListener("input", () => {
+    paletteFilter = filter.value;
+    applyFilter();
+  });
+  panel.append(filter);
   const byRole = new Map<string, [string, ActionSpec][]>();
   for (const entry of Object.entries(actions.actions)) {
     const tags = new Set(entry[1].tags ?? []);
@@ -578,6 +619,7 @@ function renderPalette(): HTMLElement {
     }
   }
   panel.append(list);
+  applyFilter();
   return panel;
 }
 
@@ -766,28 +808,39 @@ function renderInspector(): HTMLElement {
     }
   } else {
     for (const slot of SLOTS) {
-      const select = el("select", {});
-      select.append(el("option", { value: "" }, ["— none —"]));
-      for (const [id, action] of Object.entries(actions.actions)) {
-        if (action.provided_by) continue;
-        const option = el("option", { value: id }, [action.label ?? id]);
-        if (spec[slot] === id) option.setAttribute("selected", "selected");
-        select.append(option);
-      }
-      select.addEventListener("change", () => {
-        if (select.value) spec[slot] = select.value;
-        else removeKey(spec, slot);
+      const value = spec[slot];
+      const armed = slot === state.slot;
+      const current =
+        typeof value === "string"
+          ? actions.label(value)
+          : (describeSlotValue(actions, value) ?? null);
+      const pick = el(
+        "button",
+        { class: `slot-pick${current === null ? " unset" : ""}`, type: "button" },
+        [current ?? (armed ? "Pick an action →" : "Click, then pick an action")],
+      );
+      pick.addEventListener("click", () => {
+        state.slot = slot;
         render();
       });
-      const wrap = el("div", { class: "field" }, [el("label", {}, [SLOT_NAMES[slot]]), select]);
-      if (slot === state.slot) wrap.setAttribute("data-active", "true");
-      select.addEventListener("focus", () => {
-        state.slot = slot;
-        for (const field of panel.querySelectorAll(".field[data-active]")) {
-          field.removeAttribute("data-active");
-        }
-        wrap.setAttribute("data-active", "true");
-      });
+      const wrap = el("div", { class: "field slot" }, [el("label", {}, [SLOT_NAMES[slot]]), pick]);
+      if (armed) wrap.setAttribute("data-active", "true");
+      if (current !== null) {
+        const clear = el("button", { class: "btn small", type: "button", title: "Clear" }, ["×"]);
+        clear.addEventListener("click", () => {
+          removeKey(spec, slot);
+          if (slot === "tap") removeKey(spec, "label");
+          // Nothing left on any slot means nothing on the key: drop it, so it reads as
+          // unbound and the compiler blanks it, rather than keeping an empty entry.
+          const anything = SLOTS.some((each) => spec[each] !== undefined && spec[each] !== null);
+          if (!anything) {
+            removeKey(data.positions, selection.position);
+            state.slot = "tap";
+          }
+          render();
+        });
+        wrap.append(clear);
+      }
       panel.append(wrap);
     }
 
@@ -977,6 +1030,9 @@ let saveNote: string | null = null;
 
 /** Whether the stick-mode panel is unfolded; kept across renders. */
 let stickModesOpen = false;
+
+/** What the action list is filtered by; kept across renders. */
+let paletteFilter = "";
 
 /** The press test's own element, kept across renders so its progress survives them. */
 let probeHost: HTMLElement | null = null;
