@@ -611,8 +611,8 @@ function cmdServe(port: number, host: string): number {
       return;
     }
     if (request.method === "POST" && url === "/api/actions") {
-      // Keys only, patched line by line. The path is the game's own, derived here -- the
-      // page names a game, never a file.
+      // Keys, labels and role tags, patched line by line. The path is the game's own,
+      // derived here -- the page names a game, never a file.
       readBody(request, response, 200_000, (body) => {
         try {
           const parsed = JSON.parse(body) as {
@@ -625,15 +625,15 @@ function cmdServe(port: number, host: string): number {
           const path = join(game.rel, "actions.yaml");
           const text = readFileSync(repoPath(path), "utf8");
           writeFileSync(repoPath(path), patchActionBindings(text, parsed.changes), "utf8");
-          send(
-            200,
-            JSON.stringify({
-              ok: true,
-              saved: true,
-              path,
-              check: checkAfterSave(path, Game.discover()),
-            }),
-          );
+          // The file is written. What follows is the verdict on it, not a condition of it:
+          // a failure here used to answer "not saved" about a file that was.
+          let check: SaveCheck | { error: string };
+          try {
+            check = checkAfterSave(path, Game.discover());
+          } catch (error) {
+            check = { error: messageOf(error) };
+          }
+          send(200, JSON.stringify({ ok: true, saved: true, path, check }));
         } catch (error) {
           send(400, JSON.stringify({ ok: false, error: messageOf(error) }));
         }

@@ -36,6 +36,7 @@ import { Game, Genre } from "./model.js";
 import type { Profile } from "./model-core.js";
 import {
   ScaffoldError,
+  actionsYaml,
   checkFileName,
   checkGameName,
   gameConfig,
@@ -367,12 +368,15 @@ export function createGame(request: NewGameRequest): NewGameResult {
     writeText(templatePath, `${JSON.stringify(request.exported, null, 2)}\n`);
     writeText(
       join(gameDir, "actions.yaml"),
-      dumpYaml(
-        { extends: join(dataDirs.genres, request.genre, "actions.yaml"), game: name, actions },
+      actionsYaml(
+        name,
+        join(dataDirs.genres, request.genre, "actions.yaml"),
+        actions,
         `# ${name} -- every action and the in-game key it is bound to.\n` +
           "#\n# Seeded by `azeron import` from the keys the export sends. Each action is named\n" +
           "# after its key because an export cannot say what a key does in game. Rename and\n" +
-          "# tag them as you learn them; the genre vocabulary is inherited above.\n",
+          "# tag them as you learn them (the editor's In-game tab does it); the genre\n" +
+          "# vocabulary is inherited above.\n",
       ),
     );
     writeText(

@@ -126,6 +126,21 @@ select, .btn {
 .ingame-row .who b { display: block; font-size: 12px; font-weight: 600; }
 .ingame-row .who small { display: block; color: var(--muted); font-size: 10px;
                          overflow-wrap: anywhere; }
+.ingame-row .who b.rename { cursor: text; border-radius: 4px; }
+.ingame-row .who b.rename:hover, .ingame-row .who b.rename:focus-visible {
+  outline: 1px dashed var(--accent); outline-offset: 1px; }
+.rename-input { width: 100%; padding: 2px 5px; font-size: 12px; font-weight: 600;
+                border: 1px solid var(--accent); border-radius: 4px; background: var(--panel); }
+.tag-row { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 3px; }
+.tag-chip { padding: 0 6px; font-size: 10px; line-height: 16px; border-radius: 9px; cursor: pointer;
+            border: 1px solid var(--line); background: transparent; color: var(--muted); }
+.tag-chip:hover { border-color: var(--accent); }
+.tag-chip.on { color: var(--panel); border-color: transparent; background: var(--utility); }
+.tag-chip.on.combat { background: var(--combat); }
+.tag-chip.on.movement { background: var(--movement); }
+.tag-chip.on.menu { background: var(--menu); }
+.tag-chip.on.travel { background: var(--travel); }
+.tag-chip.on.required { background: var(--accent); }
 .ingame-row .field { margin-bottom: 0; }
 .ingame-row .field label { font-size: 10px; }
 .ingame-row .field input { padding: 2px 5px; font-size: 11px; }

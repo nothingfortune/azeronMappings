@@ -11,7 +11,9 @@
 import { activeAnalogKeys, SLOTS, STICK_DIRECTIONS } from "../types/azeron.js";
 import type { ExportDocument } from "../types/azeron.js";
 import type { ActionSpec, DeviceData, GameConfig, ProfileData } from "../types/profile.js";
+import { yamlScalar } from "./actionfile.js";
 import * as keys from "./keys.js";
+import { dumpYaml } from "./yaml.js";
 
 export class ScaffoldError extends Error {}
 
@@ -114,12 +116,42 @@ export function seedActions(
   const actions: Record<string, ActionSpec> = {};
   for (const name of keyNamesIn(exported, profileIndex)) {
     actions[actionIdForKey(name)] = {
-      label: `${name} (unnamed)`,
+      label: `${keys.keyLabel(name)} (unnamed)`,
       key: name,
       note: "Seeded by `azeron import`. Rename it and tag it once its in-game job is known.",
     };
   }
   return actions;
+}
+
+/**
+ * The text of a new game's actions.yaml: the genre it extends, then one line per action.
+ *
+ * One line each, in the flow style the hand-written files use, because that is the shape
+ * the editor's save can patch in place. Generic YAML output puts every action on four
+ * lines, and a save then refused with "spans more than one line" -- a new game could not
+ * have a key changed from the page at all. The seeded `note` is left out of the file: it
+ * would still say "rename it" after the action had been renamed, and the label already
+ * says "(unnamed)" for as long as that is true.
+ */
+export function actionsYaml(
+  game: string,
+  extendsPath: string,
+  actions: Readonly<Record<string, ActionSpec>>,
+  header: string,
+): string {
+  const ids = Object.keys(actions);
+  const width = Math.max(0, ...ids.map((id) => id.length));
+  const lines = ids.map((id) => {
+    const spec = actions[id] ?? {};
+    const fields: string[] = [];
+    if (spec.label !== undefined) fields.push(`label: ${yamlScalar(spec.label)}`);
+    if (spec.key) fields.push(`key: ${spec.key}`);
+    if (spec.meta) fields.push(`meta: ${spec.meta}`);
+    if (spec.mouse) fields.push(`mouse: ${spec.mouse}`);
+    return `  ${`${id}:`.padEnd(width + 1)} {${fields.join(", ")}}`;
+  });
+  return `${dumpYaml({ extends: extendsPath, game }, header)}actions:\n${lines.join("\n")}\n`;
 }
 
 export interface ScaffoldOptions {

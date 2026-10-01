@@ -1639,7 +1639,17 @@ function confirmUpdateGame(): void {
   void updateGame(game);
 }
 
-/** The in-game keys that differ from what the page loaded, as the patch the server takes. */
+/** The role tags an action can carry, in the order they are shown, and what each one does. */
+const ACTION_TAGS: readonly { tag: string; means: string }[] = [
+  { tag: "combat", means: "Used in a fight: never delayed by a long press or double tap." },
+  { tag: "movement", means: "Moves you: must not latch on." },
+  { tag: "travel", means: "Used for getting around: warping, docking, autopilot." },
+  { tag: "menu", means: "Opens a menu or the pause screen: kept off combat keys." },
+  { tag: "utility", means: "Anything else useful: interact, light, talk." },
+  { tag: "required", means: "The layout must have this on a key; the checks complain if not." },
+];
+
+/** What changed in the in-game vocabulary since the page loaded, as the patch the server takes. */
 function inGameKeyChanges(game: EditorGame): Record<string, BindingChange> {
   const loaded = game.actions.actions ?? {};
   const changes: Record<string, BindingChange> = {};
@@ -1649,9 +1659,21 @@ function inGameKeyChanges(game: EditorGame): Record<string, BindingChange> {
     for (const field of ["key", "meta", "mouse"] as const) {
       if ((spec[field] ?? null) !== (before[field] ?? null)) change[field] = spec[field] ?? null;
     }
+    if (spec.label !== undefined && spec.label !== before.label) change.label = spec.label;
+    // A list with nothing in it is a change when the loaded one had something: it is how a
+    // tag the genre supplies is taken away.
+    const tags = spec.tags ?? [];
+    if (JSON.stringify(tags) !== JSON.stringify(before.tags ?? [])) change.tags = [...tags];
     if (Object.keys(change).length > 0) changes[id] = change;
   }
   return changes;
+}
+
+/** Whether a patch moves an action to another key, which is what the game has to be told. */
+function changesAKey(changes: Record<string, BindingChange>): boolean {
+  return Object.values(changes).some(
+    (change) => "key" in change || "meta" in change || "mouse" in change,
+  );
 }
 
 /** What one part's save wrote, and what the server made of it. */
@@ -1722,17 +1744,22 @@ function keypadPart(slug: string): SchemePart {
  */
 function inGameKeysPart(): SchemePart {
   return {
-    name: "In-game keys",
+    // Named for what is in it, so the unsaved marker does not call a rename a key.
+    get name() {
+      const changes = inGameKeyChanges(currentGame());
+      const keys = changesAKey(changes);
+      const names = Object.values(changes).some((change) => "label" in change || "tags" in change);
+      if (keys && names) return "In-game keys and names";
+      return names ? "Action names" : "In-game keys";
+    },
     isDirty: () => Object.keys(inGameKeyChanges(currentGame())).length > 0,
     async save() {
       const game = currentGame();
       const path = `${game.rel}/actions.yaml`;
-      const result = await saveResponse("/api/actions", {
-        game: game.slug,
-        changes: inGameKeyChanges(game),
-      });
+      const changes = inGameKeyChanges(game);
+      const result = await saveResponse("/api/actions", { game: game.slug, changes });
       game.actions.actions = structuredClone(state.workingActions ?? {});
-      return { path, result, inGameKeys: true };
+      return { path, result, inGameKeys: changesAKey(changes) };
     },
   };
 }
@@ -2199,6 +2226,99 @@ function actionKeyField(id: string): HTMLElement {
   return row;
 }
 
+/** The action whose name is being typed, if any. */
+let renaming: string | null = null;
+
+/** Change an action's label. Empty is not a name: it puts the old one back. */
+function renameAction(id: string, text: string): void {
+  const label = text.trim();
+  renaming = null;
+  if (label !== "" && label !== actionSetFor(currentGame()).actions[id]?.label) {
+    (editableActions()[id] ??= {}).label = label;
+  }
+  render();
+}
+
+/**
+ * An action's name. Click it to type a new one; Enter keeps it and Escape leaves the old
+ * one. Shown as plain bold text the rest of the time, so a list of forty reads as a list.
+ */
+function actionNameField(id: string, spec: ActionSpec): HTMLElement {
+  if (renaming !== id) {
+    const name = el(
+      "b",
+      { class: "rename", tabindex: "0", role: "button", title: "Click to rename" },
+      [spec.label ?? id],
+    );
+    const edit = (): void => {
+      renaming = id;
+      render();
+    };
+    name.addEventListener("click", edit);
+    name.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        edit();
+      }
+    });
+    return name;
+  }
+  const input = el("input", {
+    type: "text",
+    class: "rename-input",
+    value: spec.label ?? id,
+    maxlength: "120",
+    "aria-label": `Name of ${spec.label ?? id}`,
+  });
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") input.blur();
+    else if (event.key === "Escape") {
+      input.value = spec.label ?? id;
+      input.blur();
+    }
+  });
+  input.addEventListener("blur", () => {
+    if (renaming === id) renameAction(id, input.value);
+  });
+  // The input is in the page once this render has finished.
+  queueMicrotask(() => {
+    input.focus();
+    input.select();
+  });
+  return input;
+}
+
+/** The role tags as a row of toggles. What a tag does is in its tooltip. */
+function actionTagField(id: string, spec: ActionSpec): HTMLElement {
+  const row = el("div", {
+    class: "tag-row",
+    role: "group",
+    "aria-label": `Roles of ${spec.label ?? id}`,
+  });
+  const have = new Set(spec.tags ?? []);
+  for (const { tag, means } of ACTION_TAGS) {
+    const on = have.has(tag);
+    const chip = el(
+      "button",
+      { class: `tag-chip ${tag}${on ? " on" : ""}`, type: "button", title: means },
+      [tag],
+    );
+    chip.setAttribute("aria-pressed", on ? "true" : "false");
+    chip.addEventListener("click", () => {
+      const editable = (editableActions()[id] ??= {});
+      const current = editable.tags ?? spec.tags ?? [];
+      // Keep the order the tags were in, with a new one at the end, so a toggle does not
+      // reshuffle the line it is saved to.
+      editable.tags = current.includes(tag)
+        ? current.filter((existing) => existing !== tag)
+        : [...current, tag];
+      render();
+    });
+    row.append(chip);
+  }
+  return row;
+}
+
 function renderInGame(): HTMLElement {
   const game = currentGame();
   const actions = actionSetFor(game);
@@ -2208,14 +2328,27 @@ function renderInGame(): HTMLElement {
   panel.append(
     el("div", { class: "note" }, [
       "The key each action is on inside the game. Click a key and press the new one; a " +
-        "clash shows up straight away. " +
+        "clash shows up straight away. Click a name to rename the action, and switch its " +
+        "roles on or off: the checks use the roles, for instance to keep a menu off a " +
+        "combat key. " +
         (canSave()
           ? "Save, top right, writes these with both keypads; it then offers to update the " +
             "game's own file."
-          : "The menu's Download the layout as YAML includes actions.yaml: copy the keys " +
-            "you changed into the game's file."),
+          : "The menu's Download the layout as YAML includes actions.yaml: copy what you " +
+            "changed into the game's file."),
     ]),
   );
+  const unnamed = Object.values(actions.actions).filter((spec) =>
+    (spec.label ?? "").endsWith("(unnamed)"),
+  ).length;
+  if (unnamed > 0) {
+    panel.append(
+      el("div", { class: "note" }, [
+        `${String(unnamed)} action(s) are still named after their key. Rename each one for ` +
+          "what it does in the game, and give it its roles.",
+      ]),
+    );
+  }
 
   const table = el("div", { class: "ingame-list" });
   for (const [id, spec] of Object.entries(actions.actions)) {
@@ -2223,7 +2356,7 @@ function renderInGame(): HTMLElement {
     const item = el("div", { class: `ingame-row${where ? "" : " unbound"}` });
     item.append(
       el("div", { class: "who" }, [
-        el("b", {}, [spec.label ?? id]),
+        actionNameField(id, spec),
         el("small", {}, [
           spec.provided_by
             ? `${spec.provided_by} — not a keypad key`
@@ -2236,6 +2369,7 @@ function renderInGame(): HTMLElement {
     } else {
       item.append(actionKeyField(id));
     }
+    item.append(actionTagField(id, spec));
     table.append(item);
   }
   panel.append(table);
