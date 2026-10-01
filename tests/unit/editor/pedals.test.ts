@@ -43,6 +43,16 @@ function saveButton(): HTMLButtonElement | undefined {
   );
 }
 
+const reading = (): string => document.querySelector("[data-reading]")?.textContent ?? "";
+
+function stickDirections(unit: 0 | 1): string[] {
+  return [
+    ...(document.querySelectorAll(".hand")[unit]?.querySelectorAll(".stick-dial .dir .name") ?? []),
+  ]
+    .map((node) => node.textContent)
+    .filter((text) => text !== "");
+}
+
 describe("the pedals panel", () => {
   beforeEach(() => {
     mount();
@@ -137,6 +147,64 @@ describe("the pedals panel", () => {
   });
 });
 
+describe("the sticks and the pedals", () => {
+  beforeEach(() => {
+    mount();
+  });
+
+  it("reads the live layout as Mode 2 with pedals, not roll for yaw", () => {
+    expect(reading()).toBe("Mode 2 (RC default), with pedals");
+  });
+
+  it("says the reading changed when the yaw assignment goes, and leaves the sticks alone", () => {
+    const before = stickDirections(0);
+    choose("rudder", "");
+    expect(reading()).toBe("Mode 2, roll for yaw");
+    expect(document.querySelector(".pedals-note")?.textContent).toContain(
+      "Mode 2 (RC default), with pedals",
+    );
+    expect(document.querySelector(".pedals-note")?.textContent).toContain(
+      "Nothing on the sticks was changed",
+    );
+    expect(stickDirections(0)).toEqual(before);
+    // And back: the reading follows the assignment, both ways.
+    choose("rudder", "yaw");
+    expect(reading()).toBe("Mode 2 (RC default), with pedals");
+  });
+
+  it("applies the with-pedals variant of a mode when the pedals carry yaw, and says so", () => {
+    expect(document.querySelector(".mode-pedals")?.textContent).toContain("with-pedals variant");
+    const mode1 = [...document.querySelectorAll<HTMLButtonElement>(".mode-row")].find((row) =>
+      row.textContent.startsWith("Mode 1"),
+    );
+    mode1?.click();
+    // Mode 1 plain has yaw on the left stick's horizontal; with pedals it has roll.
+    expect(stickDirections(0).join(" ")).toContain("Roll left");
+    expect(stickDirections(0).join(" ")).not.toContain("Yaw");
+    expect(reading()).toBe("Mode 1, with pedals");
+    expect(document.querySelector(".save-note")?.textContent).toContain("with pedals");
+  });
+
+  it("applies the plain mode when the layout's pedals do not carry yaw", () => {
+    choose("rudder", "");
+    expect(document.querySelector(".mode-pedals")?.textContent).toContain("applied as written");
+    const mode1 = [...document.querySelectorAll<HTMLButtonElement>(".mode-row")].find((row) =>
+      row.textContent.startsWith("Mode 1"),
+    );
+    mode1?.click();
+    expect(stickDirections(0).join(" ")).toContain("Yaw left");
+    expect(reading()).toBe("Mode 1");
+  });
+
+  it("applies a mode as written to a layout with no pedals", () => {
+    document.querySelector<HTMLButtonElement>(".remove-pedals")?.click();
+    expect(document.querySelector(".mode-pedals")?.textContent).toContain("no pedals");
+    expect(document.querySelector(".mode-pedals")?.getAttribute("data-with-pedals")).toBe("false");
+    // The sticks were not touched by taking the pedals away; only how they read changed.
+    expect(reading()).toBe("Mode 2, roll for yaw");
+  });
+});
+
 describe("the checks", () => {
   beforeEach(() => {
     mount();
@@ -153,6 +221,20 @@ describe("the checks", () => {
     expect(finding?.querySelector("b")?.textContent).toBe("Pedals: Left toe");
     expect(axis("left_toe").querySelector(".pedal-warn")?.textContent).toContain("full deflection");
     expect(document.querySelector("header .pill.lint")?.textContent).toContain("to look at");
+  });
+
+  it("flag a stick that still sends what a pedal carries", () => {
+    const rules = [...document.querySelectorAll(".checks .rule")].map((node) => node.textContent);
+    expect(rules).not.toContain("pedal-duplicates-stick");
+    // Plain Mode 2 puts yaw on the left stick; the rudder is then put back on yaw.
+    choose("rudder", "");
+    [...document.querySelectorAll<HTMLButtonElement>(".mode-row")]
+      .find((row) => row.textContent.startsWith("Mode 2 (RC default)"))
+      ?.click();
+    expect(reading()).toBe("Mode 2 (RC default)");
+    choose("rudder", "yaw");
+    const after = [...document.querySelectorAll(".checks .rule")].map((node) => node.textContent);
+    expect(after).toContain("pedal-duplicates-stick");
   });
 });
 

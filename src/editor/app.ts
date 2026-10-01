@@ -10,7 +10,7 @@ import { dumpProfile } from "../lib/decompile.js";
 import { formatFinding, lintProfiles, ROLE_TAGS } from "../lib/lint.js";
 import type { Finding } from "../lib/lint.js";
 import { handLayout, positionLabel, unitLabel, whereLabel } from "../lib/layout.js";
-import { applyMode, detectMode } from "../lib/stickmodes.js";
+import { applyMode } from "../lib/stickmodes.js";
 import type { StickModeSet } from "../lib/stickmodes.js";
 import { patchSetPedals } from "../lib/setsfile.js";
 import {
@@ -25,6 +25,7 @@ import {
   restSentence,
   restsOnCentred,
   statusWords,
+  takenAxesCarried,
 } from "./pedals-model.js";
 import { describeDirection } from "../lib/binding.js";
 import type { BindingChange } from "../lib/actionfile.js";
@@ -512,27 +513,48 @@ function renderStickModes(): HTMLElement | null {
     );
   }
 
-  const current = detectMode(
+  const pedals = pedalsOfLayout();
+  const carry = pedalsCarry(set, pedals);
+  const reading = readSticks(
     set,
     workingData(left).positions.stick,
     workingData(right).positions.stick,
+    carry,
   );
+  const current = reading.mode;
+  const { takes, missing } = takenAxesCarried(set, pedals);
+  const words = (axes: readonly string[]): string =>
+    axes.map((axis) => gameAxisLabel(axis).toLowerCase()).join(", ");
 
   // Folded by default: it is chosen once in a while, and open it pushed the checks off
   // the bottom of the window. The summary says what is in use, so folded still informs.
-  const inUse = current === null ? "custom" : (set.modes[current]?.label ?? current);
   const panel = el("details", { class: "panel fold" });
   if (stickModesOpen) panel.setAttribute("open", "");
   panel.addEventListener("toggle", () => {
     stickModesOpen = panel.hasAttribute("open");
   });
   panel.append(
-    el("summary", {}, [el("h2", {}, ["Stick mode"]), el("span", { class: "muted" }, [inUse])]),
+    el("summary", {}, [
+      el("h2", {}, ["Stick mode"]),
+      el("span", { class: "muted", "data-reading": "" }, [reading.text]),
+    ]),
   );
   panel.append(
     el("div", { class: "note" }, [
       "Sets both sticks at once, the way an RC transmitter names its modes. Nothing but " +
         "the eight directions changes.",
+    ]),
+  );
+  // Pedals are a modifier on the mode, so the panel says which variant a click applies.
+  panel.append(
+    el("div", { class: "note mode-pedals", "data-with-pedals": String(carry) }, [
+      carry
+        ? `This layout's pedals carry ${words(takes)}, so a mode is applied in its with-pedals ` +
+          "variant, which hands that stick axis to something else."
+        : pedals === undefined
+          ? "This layout has no pedals, so a mode is applied as written."
+          : `This layout has pedals, but none drives ${words(missing)}, so a mode is applied as ` +
+            "written and the sticks keep it.",
     ]),
   );
 
@@ -551,9 +573,11 @@ function renderStickModes(): HTMLElement | null {
         [right, "right"],
       ] as const) {
         const data = workingData(slug);
-        data.positions.stick = applyMode(data.positions.stick, set, mode, hand);
+        data.positions.stick = applyMode(data.positions.stick, set, mode, hand, carry);
       }
-      saveNote = `${mode.label} applied to both sticks. Save to keep it.`;
+      saveNote =
+        `${mode.label}${carry && mode.with_pedals !== undefined ? ", with pedals," : ""} ` +
+        "applied to both sticks. Save to keep it.";
       render();
     });
     panel.append(row);
