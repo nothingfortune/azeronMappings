@@ -322,8 +322,8 @@ export function applyVocabulary(
     }
     // An action that names a key the game's file has no spelling for would otherwise be
     // written as unbound, and the layout would quietly lose that binding in game.
-    const sends = spec.mouse ?? spec.key ?? spec.meta;
-    if (sends !== undefined && ueKeyFor(spec) === null) {
+    const sends = spec.mouse ?? spec.key ?? spec.meta ?? null;
+    if (sends !== null && ueKeyFor(spec) === null) {
       problems.push(
         `${id}: '${sends}' has no Unreal key name, so '${spec.ingame}' cannot be bound to it -- ` +
           "use a key the game's file can spell, or remove the key to leave the row unbound",

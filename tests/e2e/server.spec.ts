@@ -23,7 +23,13 @@ function send(
 ): Promise<{ status: number; json: Record<string, unknown> }> {
   return new Promise((resolve, reject) => {
     const req = httpRequest(
-      { host: "127.0.0.1", port: PORT, method, path, headers: { host: `127.0.0.1:${PORT}`, ...headers } },
+      {
+        host: "127.0.0.1",
+        port: PORT,
+        method,
+        path,
+        headers: { host: `127.0.0.1:${String(PORT)}`, ...headers },
+      },
       (res) => {
         const parts: Buffer[] = [];
         res.on("data", (part: Buffer) => parts.push(part));
@@ -50,11 +56,13 @@ const SAVE = JSON.stringify({ path: PROFILE, content: "profile: {}\n" });
 test.describe("the server's request checks", () => {
   test("answers its own names, including localhost", async () => {
     expect((await send("GET", "/api/payload", {})).status).toBe(200);
-    expect((await send("GET", "/api/payload", { host: `localhost:${PORT}` })).status).toBe(200);
+    expect((await send("GET", "/api/payload", { host: `localhost:${String(PORT)}` })).status).toBe(
+      200,
+    );
   });
 
   test("refuses a Host that is not loopback", async () => {
-    const refused = await send("GET", "/api/payload", { host: `rebind.example:${PORT}` });
+    const refused = await send("GET", "/api/payload", { host: `rebind.example:${String(PORT)}` });
     expect(refused.status).toBe(403);
   });
 

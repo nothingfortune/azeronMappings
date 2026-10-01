@@ -34,7 +34,11 @@ const post: RequestFacts = {
 
 describe("checkRequest", () => {
   it("answers the loopback names on the listening port", () => {
-    for (const host of [`localhost:${PORT}`, `127.0.0.1:${PORT}`, `[::1]:${PORT}`]) {
+    for (const host of [
+      `localhost:${String(PORT)}`,
+      `127.0.0.1:${String(PORT)}`,
+      `[::1]:${String(PORT)}`,
+    ]) {
       expect(checkRequest({ ...post, method: "GET", host, contentType: undefined }).ok).toBe(true);
       expect(checkRequest({ ...post, host }).ok).toBe(true);
     }
@@ -42,9 +46,9 @@ describe("checkRequest", () => {
 
   it("refuses a Host that is not loopback, which is DNS rebinding", () => {
     for (const host of [
-      `evil.example:${PORT}`,
-      `localhost.evil.example:${PORT}`,
-      `192.168.1.20:${PORT}`,
+      `evil.example:${String(PORT)}`,
+      `localhost.evil.example:${String(PORT)}`,
+      `192.168.1.20:${String(PORT)}`,
       undefined,
       "",
     ]) {
@@ -71,22 +75,32 @@ describe("checkRequest", () => {
   it("refuses a foreign Origin on a state-changing request, and accepts its own", () => {
     expect(checkRequest({ ...post, origin: "https://evil.example" }).ok).toBe(false);
     expect(checkRequest({ ...post, origin: "null" }).ok).toBe(false);
-    expect(checkRequest({ ...post, origin: `http://localhost:${PORT}` }).ok).toBe(true);
+    expect(checkRequest({ ...post, origin: `http://localhost:${String(PORT)}` }).ok).toBe(true);
     // The Origin must be the one the Host names: the page opened on 127.0.0.1 is its own origin.
     expect(
-      checkRequest({ ...post, host: `127.0.0.1:${PORT}`, origin: `http://127.0.0.1:${PORT}` }).ok,
+      checkRequest({
+        ...post,
+        host: `127.0.0.1:${String(PORT)}`,
+        origin: `http://127.0.0.1:${String(PORT)}`,
+      }).ok,
     ).toBe(true);
     expect(
-      checkRequest({ ...post, host: `127.0.0.1:${PORT}`, origin: `http://localhost:${PORT}` }).ok,
+      checkRequest({
+        ...post,
+        host: `127.0.0.1:${String(PORT)}`,
+        origin: `http://localhost:${String(PORT)}`,
+      }).ok,
     ).toBe(false);
   });
 
   it("lets a deliberate --host through, and only that name", () => {
-    const lan = { ...post, host: `desk.lan:${PORT}`, extraHosts: ["desk.lan"] };
+    const lan = { ...post, host: `desk.lan:${String(PORT)}`, extraHosts: ["desk.lan"] };
     expect(checkRequest(lan).ok).toBe(true);
-    expect(checkRequest({ ...lan, host: `other.lan:${PORT}` }).ok).toBe(false);
+    expect(checkRequest({ ...lan, host: `other.lan:${String(PORT)}` }).ok).toBe(false);
     expect(checkRequest({ ...lan, host: "desk.lan:1" }).ok).toBe(false);
-    expect(checkRequest({ ...lan, host: `10.0.0.5:${PORT}`, extraHosts: ["*"] }).ok).toBe(true);
+    expect(checkRequest({ ...lan, host: `10.0.0.5:${String(PORT)}`, extraHosts: ["*"] }).ok).toBe(
+      true,
+    );
   });
 });
 
@@ -101,36 +115,50 @@ describe("validateSaveContent", () => {
       "devices/cyborg2-left.yaml",
       "devices/logitech-pro-flight-pedals.yaml",
     ]) {
-      expect(() => validateSaveContent(path, read(path)), path).not.toThrow();
+      expect(() => {
+        validateSaveContent(path, read(path));
+      }, path).not.toThrow();
     }
   });
 
   it("refuses YAML that does not parse", () => {
-    expect(() => validateSaveContent("devices/x.yaml", "a: [unclosed")).toThrow(SaveRejected);
+    expect(() => {
+      validateSaveContent("devices/x.yaml", "a: [unclosed");
+    }).toThrow(SaveRejected);
   });
 
   it("refuses a profile that is not a profile", () => {
     const path = "games/SpaceSims/everspace/profiles/x.yaml";
-    expect(() => validateSaveContent(path, "just a string\n")).toThrow(SaveRejected);
-    expect(() => validateSaveContent(path, "positions: {}\n")).toThrow(/profile/);
-    expect(() => validateSaveContent(path, "profile: {device: d}\npositions: [1]\n")).toThrow(
-      SaveRejected,
-    );
+    expect(() => {
+      validateSaveContent(path, "just a string\n");
+    }).toThrow(SaveRejected);
+    expect(() => {
+      validateSaveContent(path, "positions: {}\n");
+    }).toThrow(/profile/);
+    expect(() => {
+      validateSaveContent(path, "profile: {device: d}\npositions: [1]\n");
+    }).toThrow(SaveRejected);
   });
 
   it("refuses an actions.yaml, a sets.yaml and a device map of the wrong shape", () => {
-    expect(() => validateSaveContent("games/G/g/actions.yaml", "- a\n- b\n")).toThrow(SaveRejected);
-    expect(() => validateSaveContent("games/G/g/actions.yaml", "actions: [a]\n")).toThrow(
-      SaveRejected,
-    );
-    expect(() => validateSaveContent("games/G/g/sets.yaml", "- a\n")).toThrow(SaveRejected);
-    expect(() => validateSaveContent("devices/x.yaml", "positions: {}\n")).toThrow(SaveRejected);
-    expect(() => validateSaveContent("devices/x.yaml", "kind: pedals\ndevice: p\n")).toThrow(
-      SaveRejected,
-    );
-    expect(() =>
-      validateSaveContent("devices/x.yaml", "device: d\npositions:\n  a: {pin: x}\n"),
-    ).toThrow(SaveRejected);
+    expect(() => {
+      validateSaveContent("games/G/g/actions.yaml", "- a\n- b\n");
+    }).toThrow(SaveRejected);
+    expect(() => {
+      validateSaveContent("games/G/g/actions.yaml", "actions: [a]\n");
+    }).toThrow(SaveRejected);
+    expect(() => {
+      validateSaveContent("games/G/g/sets.yaml", "- a\n");
+    }).toThrow(SaveRejected);
+    expect(() => {
+      validateSaveContent("devices/x.yaml", "positions: {}\n");
+    }).toThrow(SaveRejected);
+    expect(() => {
+      validateSaveContent("devices/x.yaml", "kind: pedals\ndevice: p\n");
+    }).toThrow(SaveRejected);
+    expect(() => {
+      validateSaveContent("devices/x.yaml", "device: d\npositions:\n  a: {pin: x}\n");
+    }).toThrow(SaveRejected);
   });
 });
 
@@ -157,7 +185,7 @@ describe("over a socket", () => {
 
     function send(
       options: { method?: string; headers?: Record<string, string> },
-      chunks: Array<string | Buffer> = [],
+      chunks: (string | Buffer)[] = [],
     ): Promise<{ status: number; body: string }> {
       return new Promise((resolve, reject) => {
         const req = httpRequest(
@@ -165,9 +193,9 @@ describe("over a socket", () => {
           (res) => {
             const parts: Buffer[] = [];
             res.on("data", (part: Buffer) => parts.push(part));
-            res.on("end", () =>
-              resolve({ status: res.statusCode ?? 0, body: Buffer.concat(parts).toString("utf8") }),
-            );
+            res.on("end", () => {
+              resolve({ status: res.statusCode ?? 0, body: Buffer.concat(parts).toString("utf8") });
+            });
           },
         );
         req.on("error", reject);
