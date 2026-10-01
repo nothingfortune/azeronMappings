@@ -280,7 +280,7 @@ export function deviceNames(): string[] {
   if (!existsSync(dir)) return [];
   return readdirSync(dir)
     .filter((file) => file.endsWith(".yaml"))
-    .filter((file) => loadInherited(join(dataDirs.devices, file)).kind !== "pedals")
+    .filter((file) => loadInherited(posixJoin(dataDirs.devices, file)).kind !== "pedals")
     .map((file) => file.slice(0, -".yaml".length))
     .sort();
 }
@@ -316,9 +316,9 @@ export function createGame(request: NewGameRequest): NewGameResult {
 
   const device = loadDevice(deviceName);
   const unit = device.hand ?? "left";
-  const gameDir = join(dataDirs.games, request.genre, slug);
-  const templatePath = join(dataDirs.templates, `${slug}-${set}-${unit}.json`);
-  const profilePath = join(gameDir, "profiles", `${set}-${unit}.yaml`);
+  const gameDir = posixJoin(dataDirs.games, request.genre, slug);
+  const templatePath = posixJoin(dataDirs.templates, `${slug}-${set}-${unit}.json`);
+  const profilePath = posixJoin(gameDir, "profiles", `${set}-${unit}.yaml`);
 
   // Two games with one slug (or one name) cannot be told apart by `azeron build <game>`,
   // and share a dist/ folder and template names. That is never what was meant, so it is
@@ -337,8 +337,8 @@ export function createGame(request: NewGameRequest): NewGameResult {
 
   if (request.overwrite !== true) {
     const taken = [
-      join(gameDir, "game.yaml"),
-      join(gameDir, "actions.yaml"),
+      posixJoin(gameDir, "game.yaml"),
+      posixJoin(gameDir, "actions.yaml"),
       profilePath,
       templatePath,
     ].filter((path) => existsSync(repoPath(path)));
@@ -357,8 +357,8 @@ export function createGame(request: NewGameRequest): NewGameResult {
   // What overwriting replaces, so a failure part way can put it back.
   const touched = [
     templatePath,
-    join(gameDir, "game.yaml"),
-    join(gameDir, "actions.yaml"),
+    posixJoin(gameDir, "game.yaml"),
+    posixJoin(gameDir, "actions.yaml"),
     profilePath,
   ].map((path) => ({
     path,
@@ -367,10 +367,10 @@ export function createGame(request: NewGameRequest): NewGameResult {
   try {
     writeText(templatePath, `${JSON.stringify(request.exported, null, 2)}\n`);
     writeText(
-      join(gameDir, "actions.yaml"),
+      posixJoin(gameDir, "actions.yaml"),
       actionsYaml(
         name,
-        join(dataDirs.genres, request.genre, "actions.yaml"),
+        posixJoin(dataDirs.genres, request.genre, "actions.yaml"),
         actions,
         `# ${name} -- every action and the in-game key it is bound to.\n` +
           "#\n# Seeded by `azeron import` from the keys the export sends. Each action is named\n" +
@@ -380,7 +380,7 @@ export function createGame(request: NewGameRequest): NewGameResult {
       ),
     );
     writeText(
-      join(gameDir, "game.yaml"),
+      posixJoin(gameDir, "game.yaml"),
       dumpYaml(
         gameConfig({
           name,
@@ -403,8 +403,8 @@ export function createGame(request: NewGameRequest): NewGameResult {
     // is what the app lists it as once imported.
     data.profile.name = `${name} ${set} ${unit}`;
     writeText(profilePath, dumpProfile(data));
-    if (!existsSync(repoPath(join(gameDir, "playtests.md")))) {
-      writeText(join(gameDir, "playtests.md"), `# ${name} playtests\n`);
+    if (!existsSync(repoPath(posixJoin(gameDir, "playtests.md")))) {
+      writeText(posixJoin(gameDir, "playtests.md"), `# ${name} playtests\n`);
     }
     return {
       slug,
