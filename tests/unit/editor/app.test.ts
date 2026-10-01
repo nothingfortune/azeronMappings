@@ -267,14 +267,14 @@ describe("the repo tab", () => {
       const labels = [...document.querySelectorAll(".panel button")].map((n) => n.textContent);
       expect(labels).toContain("Build profiles");
       expect(labels).toContain("Read the game's bindings");
-      expect(document.querySelector("header .pill")?.textContent).toBe("saves to repo");
+      expect(document.querySelector("header .pill.mode")?.textContent).toBe("saves to repo");
     } finally {
       (window as unknown as { AZERON_SERVED?: boolean }).AZERON_SERVED = false;
     }
   });
 
   it("says which mode the page is in", () => {
-    expect(document.querySelector("header .pill")?.textContent).toBe("downloads only");
+    expect(document.querySelector("header .pill.mode")?.textContent).toBe("downloads only");
   });
 });
 
@@ -675,5 +675,32 @@ describe("the press test tab", () => {
     const sets = document.querySelectorAll("header select")[1] as HTMLSelectElement;
     sets.dispatchEvent(new Event("change"));
     expect(prompt()).toBe(second);
+  });
+});
+
+describe("the checks, from anywhere", () => {
+  it("shows the verdict in the header, and changes it as soon as an edit does", () => {
+    // The Checks panel sat below the fold, so the feedback an edit is for was out of sight.
+    mount();
+    const chip = (): string => document.querySelector("header .pill.lint")?.textContent ?? "";
+    expect(chip()).toBe("✓ Clean");
+
+    // Rebinding the only Consumable 4 leaves a required action unbound.
+    document.querySelector<HTMLButtonElement>('.hand .key[data-position="pinky_2"]')?.click();
+    const fire = [...document.querySelectorAll<HTMLButtonElement>(".action")].find((button) =>
+      button.querySelector("b")?.textContent.startsWith("Fire primary"),
+    );
+    fire?.click();
+    expect(chip()).toMatch(/^\d+ to look at$/);
+  });
+
+  it("folds the stick modes away, still saying which one is in use", () => {
+    mount();
+    const sets = document.querySelectorAll("header select")[1] as HTMLSelectElement;
+    sets.value = LIVE_SET;
+    sets.dispatchEvent(new Event("change"));
+    const panel = document.querySelector<HTMLDetailsElement>("details.panel.fold");
+    expect(panel?.hasAttribute("open")).toBe(false);
+    expect(panel?.querySelector("summary")?.textContent).toContain("Mode 2");
   });
 });

@@ -463,8 +463,17 @@ function renderStickModes(): HTMLElement | null {
     workingData(right).positions.stick,
   );
 
-  const panel = el("div", { class: "panel" });
-  panel.append(el("h2", {}, ["Stick mode"]));
+  // Folded by default: it is chosen once in a while, and open it pushed the checks off
+  // the bottom of the window. The summary says what is in use, so folded still informs.
+  const inUse = current === null ? "custom" : (set.modes[current]?.label ?? current);
+  const panel = el("details", { class: "panel fold" });
+  if (stickModesOpen) panel.setAttribute("open", "");
+  panel.addEventListener("toggle", () => {
+    stickModesOpen = panel.hasAttribute("open");
+  });
+  panel.append(
+    el("summary", {}, [el("h2", {}, ["Stick mode"]), el("span", { class: "muted" }, [inUse])]),
+  );
   panel.append(
     el("div", { class: "note" }, [
       "Sets both sticks at once, the way an RC transmitter names its modes. Nothing but " +
@@ -862,17 +871,60 @@ function renderInspector(): HTMLElement {
   return panel;
 }
 
-function renderChecks(): HTMLElement {
+/** The linter's verdict on the layout on screen, or why it could not run. */
+function currentLint(): ReturnType<typeof lintProfiles> | { error: string } {
   const game = currentGame();
+  try {
+    const profiles = slugsInSet().map((slug) => profileFor(slug));
+    return lintProfiles(actionSetFor(game), profiles, game.lintConfig);
+  } catch (error) {
+    return { error: messageOf(error) };
+  }
+}
+
+/**
+ * The verdict where it is always visible: in the header, on every tab.
+ *
+ * The Checks panel sat below the stick modes, off the bottom of the window, so the
+ * feedback an edit exists to get was out of sight while making it.
+ */
+function renderLintChip(): HTMLElement {
+  const result = currentLint();
+  let text: string;
+  let tone: string;
+  if ("error" in result) {
+    text = "Checks failed to run";
+    tone = "bad";
+  } else {
+    const problems = result.live.filter(
+      (finding) => finding.level === "error" || finding.level === "warning",
+    );
+    const errors = problems.filter((finding) => finding.level === "error").length;
+    text = problems.length === 0 ? "✓ Clean" : `${String(problems.length)} to look at`;
+    tone = errors > 0 ? "bad" : problems.length > 0 ? "warn" : "ok";
+  }
+  const chip = el(
+    "button",
+    { class: `pill lint ${tone}`, type: "button", title: "Show the checks" },
+    [text],
+  );
+  chip.addEventListener("click", () => {
+    if (state.mode !== "edit" && state.mode !== "in-game") {
+      state.mode = "edit";
+      render();
+    }
+    document.querySelector(".checks")?.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+  return chip;
+}
+
+function renderChecks(): HTMLElement {
   const panel = el("div", { class: "panel" });
   panel.append(el("h2", {}, ["Checks"]));
 
-  const profiles = slugsInSet().map((slug) => profileFor(slug));
-  let result;
-  try {
-    result = lintProfiles(actionSetFor(game), profiles, game.lintConfig);
-  } catch (error) {
-    panel.append(el("div", { class: "finding error" }, [messageOf(error)]));
+  const result = currentLint();
+  if ("error" in result) {
+    panel.append(el("div", { class: "finding error" }, [result.error]));
     return panel;
   }
 
@@ -922,6 +974,9 @@ function canSave(): boolean {
 }
 
 let saveNote: string | null = null;
+
+/** Whether the stick-mode panel is unfolded; kept across renders. */
+let stickModesOpen = false;
 
 /** The press test's own element, kept across renders so its progress survives them. */
 let probeHost: HTMLElement | null = null;
@@ -1244,8 +1299,9 @@ function renderHeader(): HTMLElement {
   );
   header.append(el("span", { class: "spacer" }));
 
+  header.append(renderLintChip());
   header.append(
-    el("span", { class: `pill ${canSave() ? "ok" : ""}` }, [
+    el("span", { class: `pill mode ${canSave() ? "ok" : ""}` }, [
       canSave() ? "saves to repo" : "downloads only",
     ]),
   );

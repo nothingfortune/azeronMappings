@@ -36,7 +36,8 @@ test.describe("the served editor", () => {
     await page.goto("/");
 
     await expect(page.locator(".hand")).toHaveCount(2);
-    await expect(page.locator("header .pill")).toHaveText("saves to repo");
+    await expect(page.locator("header .pill.mode")).toHaveText("saves to repo");
+    await expect(page.locator("header .pill.lint")).toHaveText("✓ Clean");
     await expect(page.locator(".finding").first()).toContainText("Clean");
   });
 
@@ -92,6 +93,8 @@ test.describe("the served editor", () => {
     await page.goto("/");
     await page.locator("header select").nth(1).selectOption(LIVE_SET);
 
+    // The panel is folded until it is wanted.
+    await page.locator("details.panel.fold > summary").click();
     // By its exact label: "Mode 2, roll for yaw" also contains "Mode 2".
     await page
       .locator(".mode-row")

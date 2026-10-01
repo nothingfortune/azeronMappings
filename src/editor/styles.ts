@@ -46,6 +46,16 @@ header .tabs .btn { border: 0; border-radius: 0; }
 header .tabs .btn + .btn { border-left: 1px solid var(--line); }
 .btn.dirty::before { content: "● "; font-size: 9px; vertical-align: middle; }
 .btn[disabled] { opacity: .55; cursor: default; }
+.pill.lint { cursor: pointer; font: inherit; font-size: 11px; }
+.pill.lint.warn { border-color: var(--warn); color: var(--warn); }
+.pill.lint.bad { border-color: var(--error); color: var(--error); }
+.panel.fold > summary { display: flex; align-items: baseline; justify-content: space-between;
+                        gap: 8px; cursor: pointer; list-style: none; }
+.panel.fold > summary::-webkit-details-marker { display: none; }
+.panel.fold > summary h2 { margin: 0; }
+.panel.fold > summary h2::before { content: "▸ "; }
+.panel.fold[open] > summary h2::before { content: "▾ "; }
+.panel.fold[open] > summary { margin-bottom: 9px; }
 .menu { position: relative; }
 .menu > summary { list-style: none; }
 .menu > summary::-webkit-details-marker { display: none; }
