@@ -118,6 +118,40 @@ describe("buildProbeProfile", () => {
   });
 });
 
+describe("deviceFromProbe with a partial capture", () => {
+  // Press a few keys, skip the rest, export. It kept only what was pressed, marked the map
+  // verified, and -- once the press test could save straight into devices/ -- would have
+  // replaced a measured map with a fragment of one.
+  const assumed = loadDevice("cyborg2-left").data;
+  const all = Object.keys(assumed.positions);
+
+  it("keeps the positions that were not pressed, with the pins they already had", () => {
+    const next = deviceFromProbe(assumed, { pins: { pinky_1: 99 }, stick: {} });
+    expect(Object.keys(next.positions).sort()).toEqual([...all].sort());
+    expect(next.positions.pinky_1?.pin).toBe(99);
+    expect(next.positions.ring_3?.pin).toBe(assumed.positions.ring_3?.pin);
+  });
+
+  it("does not call an unverified map verified for a handful of presses", () => {
+    const unverified = { ...assumed, verified: false };
+    expect(deviceFromProbe(unverified, { pins: { pinky_1: 5 }, stick: {} }).verified).toBe(false);
+  });
+
+  it("does not take verified away from a map that had it", () => {
+    expect(deviceFromProbe(assumed, { pins: { pinky_1: 5 }, stick: {} }).verified).toBe(true);
+  });
+
+  it("calls a map verified once every pressable position has been pressed", () => {
+    const pins = Object.fromEntries(
+      Object.entries(assumed.positions)
+        .filter(([, position]) => position.kind !== "stick")
+        .map(([name, position]) => [name, position.pin]),
+    );
+    const unverified = { ...assumed, verified: false };
+    expect(deviceFromProbe(unverified, { pins, stick: {} }).verified).toBe(true);
+  });
+});
+
 describe("deviceFromProbe", () => {
   /**
    * A synthetic map, not a checked-in device file: these assertions cover the
@@ -155,9 +189,12 @@ describe("deviceFromProbe", () => {
   });
 
   it("keeps the stick, which a pin sweep can never press", () => {
-    const next = deviceFromProbe(assumedMap(), { pins: { pinky_1: 1 }, stick: {} });
+    const assumed = assumedMap();
+    const next = deviceFromProbe(assumed, { pins: { pinky_1: 1 }, stick: {} });
     expect(next.positions.stick?.pin).toBe(31);
-    expect(next.positions.pinky_5).toBeUndefined();
+    // This used to assert the opposite -- that a position nobody pressed was dropped. That
+    // was the bug: the map lost every key the test did not reach.
+    expect(next.positions.pinky_5).toEqual(assumed.positions.pinky_5);
   });
 
   it("omits a stick remap when the unit matches the left-handed assumption", () => {

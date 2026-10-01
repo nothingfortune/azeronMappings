@@ -17,3 +17,8 @@ dist/editor-data.json
 # Playwright
 test-results/
 playwright-report/
+
+# Claude Code's own working files, including the worktrees its agents work in. They sit
+# inside the repo, so anything that walks the tree -- ESLint, Prettier -- has to skip them
+# too, or it lints another checkout's half-finished files as if they were this one's.
+.claude/

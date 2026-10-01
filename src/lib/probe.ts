@@ -139,16 +139,21 @@ export interface ProbeResult {
 
 /** Rebuild a device map from what the press test observed. */
 export function deviceFromProbe(assumed: DeviceData, result: ProbeResult): DeviceData {
+  // Every position comes through. One that was pressed takes the pin that fired; one that
+  // was skipped, or never reached, keeps the pin the map already had. Dropping the unseen
+  // ones turned a five-key capture into a five-key device -- and every profile that used
+  // any other position stopped compiling. A stick is measured by deflection, not by a
+  // press, so it is never in the pin sweep either.
   const positions: Record<string, DevicePosition> = {};
+  let unseen = 0;
   for (const [name, position] of Object.entries(assumed.positions)) {
     const pin = result.pins[name];
     if (pin !== undefined) {
       positions[name] = { ...position, pin };
       continue;
     }
-    // A stick is measured by deflection, not by a press, so it never appears in the pin
-    // sweep. It is carried over so the map can still compile profiles that bind it.
-    if (position.kind === "stick") positions[name] = { ...position };
+    positions[name] = { ...position };
+    if (position.kind !== "stick") unseen += 1;
   }
 
   const seen = new Set(Object.values(result.pins));
@@ -158,11 +163,13 @@ export function deviceFromProbe(assumed: DeviceData, result: ProbeResult): Devic
     (direction) => (result.stick[direction] ?? direction) === direction,
   );
 
+  // Verified means every position was pressed. A partial capture does not earn it, and
+  // does not take it away from a map that already had it.
   const next: DeviceData = {
     ...assumed,
     positions,
     unknown_pins: stillUnknown,
-    verified: true,
+    verified: unseen === 0 || assumed.verified === true,
   };
   if (!identity) next.stick_directions = { ...result.stick };
 

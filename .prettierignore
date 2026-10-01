@@ -1,5 +1,6 @@
 build/
 node_modules/
+.claude/
 
 # Hand-authored data, formatted for humans reading a layout. Prettier would reflow the
 # aligned flow mappings in the device pin maps and action tables and make them worse.
