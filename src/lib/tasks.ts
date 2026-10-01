@@ -398,6 +398,10 @@ export function createGame(request: NewGameRequest): NewGameResult {
       actions: game.actions,
       meta: { set, template: templatePath, output: `${slug}_${set}_${unit}.json` },
     });
+    // The export's own name is the app's: it would say "Everspace 2 v5" on a game called
+    // something else. Name it for what it is -- the game, the layout and the unit -- which
+    // is what the app lists it as once imported.
+    data.profile.name = `${name} ${set} ${unit}`;
     writeText(profilePath, dumpProfile(data));
     if (!existsSync(repoPath(join(gameDir, "playtests.md")))) {
       writeText(join(gameDir, "playtests.md"), `# ${name} playtests\n`);

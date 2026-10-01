@@ -78,11 +78,16 @@ export function actionIdForKey(name: string): string {
     .toLowerCase();
 }
 
-function keyNamesIn(exported: ExportDocument, profileIndex: number): string[] {
+/** What an export sends: the keyboard keys, and the mouse buttons. */
+function sentBy(
+  exported: ExportDocument,
+  profileIndex: number,
+): { keys: string[]; mouse: string[] } {
   const profile = exported.profiles[profileIndex];
   if (!profile) throw new ScaffoldError(`export has no profile at index ${String(profileIndex)}`);
 
   const found = new Set<string>();
+  const buttons = new Set<string>();
   const slotFields = [
     ["keyValues", "metaValues"],
     ["keyValuesLong", "metaValuesLong"],
@@ -91,6 +96,11 @@ function keyNamesIn(exported: ExportDocument, profileIndex: number): string[] {
 
   for (const record of profile.inputs) {
     slotFields.forEach(([keyField, metaField], index) => {
+      if (record.types[index] === "15") {
+        const button = keys.mouseToName(record[keyField][0]);
+        if (button !== null) buttons.add(button);
+        return;
+      }
       if (record.types[index] !== "1") return;
       const key = keys.keyToName(record[keyField][0]);
       const meta = keys.metaToName(record[metaField][0]);
@@ -105,19 +115,34 @@ function keyNamesIn(exported: ExportDocument, profileIndex: number): string[] {
       if (name !== null) found.add(name);
     }
   }
-  return [...found].sort();
+  return { keys: [...found].sort(), mouse: [...buttons].sort() };
 }
 
-/** An action per distinct key the export sends, each marked as needing a real name. */
+/**
+ * An action per distinct key or mouse button the export sends, each marked as needing a
+ * real name.
+ *
+ * Mouse buttons are seeded too: a profile that sends one with no action to name it fails
+ * `unbound-key` on a game that has only just been started, and the page's only way out was
+ * a text editor.
+ */
 export function seedActions(
   exported: ExportDocument,
   profileIndex = 0,
 ): Record<string, ActionSpec> {
   const actions: Record<string, ActionSpec> = {};
-  for (const name of keyNamesIn(exported, profileIndex)) {
+  const sent = sentBy(exported, profileIndex);
+  for (const name of sent.keys) {
     actions[actionIdForKey(name)] = {
       label: `${keys.keyLabel(name)} (unnamed)`,
       key: name,
+      note: "Seeded by `azeron import`. Rename it and tag it once its in-game job is known.",
+    };
+  }
+  for (const button of sent.mouse) {
+    actions[`mouse_${button}`] = {
+      label: `${keys.bindingLabel({ mouse: button })} (unnamed)`,
+      mouse: button,
       note: "Seeded by `azeron import`. Rename it and tag it once its in-game job is known.",
     };
   }
