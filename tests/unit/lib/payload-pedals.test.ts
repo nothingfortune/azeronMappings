@@ -6,7 +6,7 @@
 import { describe, expect, it } from "vitest";
 
 import { buildPayload } from "../../../src/lib/editor/payload.js";
-import { directionsFor } from "../../../src/lib/stickmodes.js";
+import { detectMode, directionsFor } from "../../../src/lib/stickmodes.js";
 
 const payload = buildPayload();
 const everspace = payload.games.find((game) => game.slug === "everspace");
@@ -44,5 +44,17 @@ describe("the editor payload", () => {
     const mode2 = modes?.modes.mode2;
     if (!modes || !mode2) throw new Error("no mode 2 in the payload");
     expect(directionsFor(modes, mode2, "left", true).right).toBe("roll_right");
+  });
+
+  it("detects the live layout's sticks as Mode 2 with pedals, from the payload alone", () => {
+    const modes = payload.genres.find((genre) => genre.name === "SpaceSims")?.stickModes;
+    const live = everspace?.profiles.filter((profile) => profile.data.profile.set === "akimbo-v10");
+    const left = live?.find((profile) => profile.data.profile.unit === "left")?.data.positions
+      .stick;
+    const right = live?.find((profile) => profile.data.profile.unit === "right")?.data.positions
+      .stick;
+    if (!modes) throw new Error("no modes");
+    expect(detectMode(modes, left, right, true)).toBe("mode2");
+    expect(detectMode(modes, left, right, false)).toBe("mode2_roll");
   });
 });
