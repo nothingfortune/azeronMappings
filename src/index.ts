@@ -46,6 +46,7 @@ import {
   checkAfterSave,
   setPedalCandidates,
   ingameReport,
+  lintFails,
   profilePathFor,
   templatePathFor,
 } from "./lib/tasks.js";
@@ -147,7 +148,7 @@ function report(label: string, result: LintResult, strict: boolean, showAcked: b
       );
     }
   }
-  return errors.length > 0 || (strict && warnings.length > 0) ? 1 : 0;
+  return lintFails(result, strict) ? 1 : 0;
 }
 
 function cmdLint(selector: string | undefined, strict: boolean, showAcked: boolean): number {

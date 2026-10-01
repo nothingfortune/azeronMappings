@@ -199,6 +199,22 @@ export function checkProfile(profile: Profile, actions: ActionSet, config: LintC
       continue;
     }
 
+    // An action the unit's sensor supplies is not a key. Put on one, it compiles to a
+    // position that sends nothing, and the layout loses a binding without a word.
+    const provider = action ? actions.actions[action]?.provided_by : undefined;
+    if (action && provider) {
+      findings.push({
+        level: ERROR,
+        rule: "provided-action-bound",
+        profile: name,
+        position,
+        message:
+          `${slot} -> '${action}', which is provided by the ${provider} and is not a key. ` +
+          "Leave the position for a key action.",
+      });
+      continue;
+    }
+
     // Any inline binding, a mouse button included. Gating on `key` let an undeclared mouse
     // button through while the binding sheet listed it as undeclared -- two surfaces, two
     // verdicts on the same slot.
@@ -266,6 +282,25 @@ export function checkProfile(profile: Profile, actions: ActionSet, config: LintC
             `stick mode is '${String(mode)}'; only keyboard mode is allowed. Gamepad mode made ` +
             "the game flip between input devices and stutter; mouse mode spins the ship, " +
             "because the game steers by where the pointer is and a stick cannot bring it back.",
+        });
+      }
+      // The compiler writes `raw.types` over whatever the mode produced, so a stick can be
+      // declared keyboard and still be sent in another mode by its first raw type code.
+      const head = spec.raw?.types?.[0];
+      if (
+        spec.raw?.types?.length === 3 &&
+        head !== undefined &&
+        head !== STICK_MODE_CODES.keyboard
+      ) {
+        findings.push({
+          level: ERROR,
+          rule: "stick-not-keyboard",
+          profile: name,
+          position,
+          message:
+            `raw.types sets the stick's type to '${head}', which overrides its mode, and only ` +
+            `keyboard mode ('${String(STICK_MODE_CODES.keyboard)}') is allowed. Remove raw.types ` +
+            "from the stick, or set its first entry to the keyboard code.",
         });
       }
     }

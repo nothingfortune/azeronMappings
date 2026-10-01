@@ -31,7 +31,7 @@ import type { CaptureOptions, CaptureResult, PlannedAxis } from "./pedals.js";
 import type { StickModeSet } from "./stickmodes.js";
 import type { NameStatus } from "../types/pedals.js";
 import { ERROR, WARNING, formatFinding, lintGame, lintGenre } from "./lint.js";
-import type { Finding } from "./lint.js";
+import type { Finding, LintResult } from "./lint.js";
 import { Game, Genre } from "./model.js";
 import type { Profile } from "./model-core.js";
 import {
@@ -118,6 +118,21 @@ export interface LintSummary {
   errors: string[];
   warnings: string[];
   acknowledged: number;
+}
+
+/**
+ * Whether a lint run should fail the command.
+ *
+ * Errors always do. Under `strict`, so do warnings and stale acknowledgements: an
+ * acknowledgement that matches nothing is a suppression that outlived its finding, and a
+ * strict run is the one that is meant to notice.
+ */
+export function lintFails(result: LintResult, strict: boolean): boolean {
+  if (result.live.some((finding) => finding.level === ERROR)) return true;
+  if (!strict) return false;
+  return result.live.some(
+    (finding) => finding.level === WARNING || finding.rule === "stale-acknowledgement",
+  );
 }
 
 /** Everything the linter has to say, genres included. */
