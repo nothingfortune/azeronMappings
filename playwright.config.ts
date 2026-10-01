@@ -1,5 +1,8 @@
 import { defineConfig } from "@playwright/test";
 
+// Overridable so two checkouts -- two worktrees, say -- can run the suite at once.
+const PORT = Number(process.env.E2E_PORT ?? "4179");
+
 /**
  * End-to-end against the real thing: the editor as `azeron serve` actually serves it,
  * driven the way it is used. Not part of `npm run check` -- it needs a build, a server
@@ -14,13 +17,13 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? "list" : [["list"]],
   use: {
-    baseURL: "http://127.0.0.1:4179",
+    baseURL: `http://127.0.0.1:${String(PORT)}`,
     trace: "retain-on-failure",
   },
   webServer: {
     // The built CLI, so the spec exercises what ships rather than a dev shim.
-    command: "node build/index.js serve --port 4179",
-    url: "http://127.0.0.1:4179",
+    command: `node build/index.js serve --port ${String(PORT)}`,
+    url: `http://127.0.0.1:${String(PORT)}`,
     reuseExistingServer: false,
     timeout: 60_000,
   },
