@@ -19,6 +19,10 @@ import type {
 } from "../types/profile.js";
 import type { ActionSet, Profile } from "./model-core.js";
 import type { Game, Genre } from "./model.js";
+import { gameRowFor } from "./pedals.js";
+import { axesOnSticks, detectStickModes, pedalAxes } from "./stickmodes.js";
+import type { StickModeSet } from "./stickmodes.js";
+import type { PedalAssignment, PedalsDeviceData, SetsData } from "../types/pedals.js";
 
 export const ERROR = "error";
 export const WARNING = "warning";
@@ -511,10 +515,223 @@ export function applyAcknowledgements(
   return { live, acknowledged };
 }
 
+/** What the pedal rules need beyond the profiles: the layouts, the devices, the axes. */
+export interface LayoutContext {
+  game: string;
+  sets: SetsData;
+  /** Pedals devices by name; a name with no file is undefined. */
+  devices: Readonly<Record<string, PedalsDeviceData | undefined>>;
+  /** The genre's stick modes, which also name the axes a pedal can drive. */
+  modes: StickModeSet | undefined;
+  /** True when every profile of the game is being linted, so a set can be called orphaned. */
+  complete?: boolean;
+}
+
+/** Rules that only run with a layout context. */
+export const LAYOUT_RULES: ReadonlySet<string> = new Set([
+  "pedals-set-unknown",
+  "pedals-no-device",
+  "pedal-unknown-axis",
+  "pedal-unknown-game-axis",
+  "pedal-rest-on-centred",
+  "pedal-axis-assigned-twice",
+  "pedal-shared-mismatch",
+  "pedal-duplicates-stick",
+  "pedals-mode-without-pedals",
+]);
+
+const TUNING = ["invert", "dead_zone", "scale", "sensitivity", "exponent"] as const;
+
+function sameTuning(a: PedalAssignment, b: PedalAssignment): boolean {
+  return TUNING.every((field) => a[field] === b[field]);
+}
+
+/**
+ * Rules for a layout's pedals, and for the sticks that give way to them.
+ *
+ * Findings are filed under the set's name, with the pedal axis as the position, so an
+ * acknowledgement says which layout and which pedal it accepts.
+ */
+export function checkLayouts(
+  context: LayoutContext,
+  actions: ActionSet,
+  bySet: ReadonlyMap<string, readonly Profile[]>,
+): Finding[] {
+  const findings: Finding[] = [];
+  const { modes } = context;
+  const takes = modes === undefined ? [] : pedalAxes(modes);
+
+  if (context.complete === true) {
+    for (const name of Object.keys(context.sets.sets)) {
+      if (bySet.has(name)) continue;
+      findings.push({
+        level: ERROR,
+        rule: "pedals-set-unknown",
+        profile: name,
+        message: `sets.yaml describes set '${name}', and no profile says 'set: ${name}'`,
+      });
+    }
+  }
+
+  for (const [setName, profiles] of bySet) {
+    const pedals = context.sets.sets[setName]?.pedals;
+    const device = pedals === undefined ? undefined : context.devices[pedals.device];
+    const driven = new Set<string>();
+
+    if (pedals !== undefined) {
+      if (device === undefined) {
+        findings.push({
+          level: ERROR,
+          rule: "pedals-no-device",
+          profile: setName,
+          message:
+            `the layout has pedals on device '${pedals.device}', and ` +
+            `devices/${pedals.device}.yaml does not exist (or is not a pedals device)`,
+        });
+      }
+
+      const byRow = new Map<string, { axis: string; assignment: PedalAssignment }[]>();
+      for (const [pedalAxis, assignment] of Object.entries(pedals.assign)) {
+        const spec = device?.axes[pedalAxis];
+        if (device !== undefined && spec === undefined) {
+          findings.push({
+            level: ERROR,
+            rule: "pedal-unknown-axis",
+            profile: setName,
+            position: pedalAxis,
+            message:
+              `${pedals.device} has no axis '${pedalAxis}' ` +
+              `(it has ${Object.keys(device.axes).join(", ")})`,
+          });
+        }
+
+        const ends = modes?.axes[assignment.drives];
+        const row =
+          modes === undefined ? null : gameRowFor(assignment.drives, modes, actions.actions);
+        if (row === null) {
+          findings.push({
+            level: ERROR,
+            rule: "pedal-unknown-game-axis",
+            profile: setName,
+            position: pedalAxis,
+            message:
+              `${pedalAxis} drives '${assignment.drives}', which is not a game axis here` +
+              (modes === undefined
+                ? " (the genre defines no axes)"
+                : ` (${Object.keys(modes.axes).join(", ")}), or its action has no 'ingame' row`),
+          });
+        } else {
+          const list = byRow.get(row) ?? [];
+          list.push({ axis: pedalAxis, assignment });
+          byRow.set(row, list);
+          driven.add(assignment.drives);
+        }
+
+        // The toe-brake question. The game reads these axes about a centre; a pedal that
+        // rests at an end sits at a full deflection until someone shows otherwise.
+        if (spec?.rest === "end" && ends !== undefined && ends.centred !== false) {
+          findings.push({
+            level: WARNING,
+            rule: "pedal-rest-on-centred",
+            profile: setName,
+            position: pedalAxis,
+            message:
+              `${pedalAxis} rests at one end of its travel and drives '${assignment.drives}', ` +
+              "which the game reads as -1..+1 about a centre. " +
+              (spec.rest_end === "min"
+                ? "It reads -1.0 at rest and +1.0 fully pressed (measured, with no Windows " +
+                  "calibration), so with the foot off it is a full deflection one way. "
+                : "With the foot off it may read as a full deflection one way. ") +
+              "Do not bind it there as if it rested at zero: invert, scale and dead_zone cannot " +
+              "re-centre it. Acknowledge this once it has been flown.",
+          });
+        }
+      }
+
+      for (const [row, list] of byRow) {
+        if (list.length < 2) continue;
+        const names = list.map((entry) => entry.axis).join(" and ");
+        const second = list[1];
+        if (!list.every((entry) => entry.assignment.shared === true)) {
+          findings.push({
+            level: ERROR,
+            rule: "pedal-axis-assigned-twice",
+            profile: setName,
+            position: second?.axis ?? row,
+            message:
+              `${names} both drive the game's '${row}' axis. Say 'shared: true' on each if ` +
+              "that is meant; otherwise one of them is a mistake.",
+          });
+        } else if (list.length > 2) {
+          findings.push({
+            level: ERROR,
+            rule: "pedal-axis-assigned-twice",
+            profile: setName,
+            position: list[2]?.axis ?? row,
+            message: `${names} all drive '${row}', which has room for two`,
+          });
+        } else if (
+          !sameTuning(list[0]?.assignment ?? { drives: row }, second?.assignment ?? { drives: row })
+        ) {
+          findings.push({
+            level: ERROR,
+            rule: "pedal-shared-mismatch",
+            profile: setName,
+            position: second?.axis ?? row,
+            message:
+              `${names} share '${row}' but disagree on invert, scale, dead zone, sensitivity ` +
+              "or exponent -- the game keeps one of each per row",
+          });
+        }
+      }
+    }
+
+    // The sticks. Pedals take an axis so no stick has to: one that still sends it is doing
+    // it twice, and one that gave it up with nothing to carry it has lost it.
+    if (modes === undefined) continue;
+    const sticks = profiles.flatMap((profile) =>
+      Object.entries(profile.positions)
+        .filter(([position]) => profile.device.isStick(position))
+        .map(([, spec]) => spec),
+    );
+    const onSticks = axesOnSticks(modes, sticks);
+    for (const axis of takes) {
+      if (driven.has(axis) && onSticks.has(axis)) {
+        findings.push({
+          level: WARNING,
+          rule: "pedal-duplicates-stick",
+          profile: setName,
+          message:
+            `a pedal drives '${axis}' and a stick still sends it. Use the with-pedals variant ` +
+            "of the stick mode, which hands that stick axis to something else.",
+        });
+      }
+    }
+    const left = profiles.find((profile) => profile.unit === "left")?.positions.stick;
+    const right = profiles.find((profile) => profile.unit === "right")?.positions.stick;
+    if (left !== undefined && right !== undefined) {
+      const matches = detectStickModes(modes, left, right);
+      const missing = takes.filter((axis) => !driven.has(axis));
+      if (matches.length > 0 && matches.every((match) => match.pedals) && missing.length > 0) {
+        findings.push({
+          level: ERROR,
+          rule: "pedals-mode-without-pedals",
+          profile: setName,
+          message:
+            `the sticks are in a with-pedals mode (${matches.map((m) => m.mode).join(", ")}), ` +
+            `which gave up ${missing.join(", ")}, and no pedal in the layout drives it`,
+        });
+      }
+    }
+  }
+  return findings;
+}
+
 export function lintProfiles(
   actions: ActionSet,
   profiles: readonly Profile[],
   config: LintConfig,
+  layouts?: LayoutContext,
 ): LintResult {
   let findings = checkActions(actions);
   for (const profile of profiles)
@@ -530,6 +747,7 @@ export function lintProfiles(
   for (const key of [...bySet.keys()].sort()) {
     findings = findings.concat(checkSet(bySet.get(key) ?? [], actions));
   }
+  if (layouts !== undefined) findings = findings.concat(checkLayouts(layouts, actions, bySet));
 
   // Only acknowledgements for what is being linted. One for a profile left out of this
   // run matches nothing here, and would be reported stale when it is not -- which is what
@@ -538,14 +756,33 @@ export function lintProfiles(
   const linted = new Set(
     profiles.flatMap((profile) => [profile.slug, profile.set ?? profile.slug]),
   );
+  // A caller that gave no layouts cannot have produced a pedal finding, so an
+  // acknowledgement of one is not stale there -- it is simply not being tested.
   const relevant = (config.acknowledged ?? []).filter(
-    (ack) => ack.profile === undefined || linted.has(ack.profile),
+    (ack) =>
+      (ack.profile === undefined || linted.has(ack.profile)) &&
+      (layouts !== undefined || !LAYOUT_RULES.has(ack.rule ?? "")),
   );
   return applyAcknowledgements(findings, relevant);
 }
 
+/** Everything the pedal rules need, read from disk for a game. */
+export function layoutContextFor(game: Game, complete: boolean): LayoutContext {
+  const devices: Record<string, PedalsDeviceData | undefined> = {};
+  for (const layout of Object.values(game.sets.sets)) {
+    const name = layout.pedals?.device;
+    if (name !== undefined && !(name in devices)) devices[name] = game.pedalsDevice(name)?.data;
+  }
+  return { game: game.slug, sets: game.sets, devices, modes: game.stickModes, complete };
+}
+
 export function lintGame(game: Game, profiles?: readonly Profile[]): LintResult {
-  return lintProfiles(game.actions, profiles ?? game.loadedProfiles(), game.lintConfig);
+  return lintProfiles(
+    game.actions,
+    profiles ?? game.loadedProfiles(),
+    game.lintConfig,
+    layoutContextFor(game, profiles === undefined),
+  );
 }
 
 /**
