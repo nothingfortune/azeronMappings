@@ -187,16 +187,34 @@ export function importExport(request: ImportRequest): ImportResult {
     if (taken.length > 0) throw new ImportCollision(taken);
   }
 
-  if (request.templatePath !== undefined) {
-    writeText(request.templatePath, `${JSON.stringify(request.exported, null, 2)}\n`);
-  }
-
+  // Decompile first: it is the step that can reject the export, and nothing is on disk
+  // until it has not. The template path is only a name inside the profile's metadata here.
   const meta: Partial<ProfileMeta> = { ...request.meta };
   if (request.templatePath !== undefined) meta.template = request.templatePath;
 
   const data = decompile(request.exported, device, { actions: request.game.actions, meta });
   const yaml = dumpProfile(data);
-  writeText(request.profilePath, yaml);
+
+  // Two writes. If the second fails the first is undone, so a failed import leaves the
+  // repo as it found it: a template that did not exist is removed, one that did is put back.
+  const templateFull =
+    request.templatePath === undefined ? undefined : repoPath(request.templatePath);
+  const previousTemplate =
+    templateFull !== undefined && existsSync(templateFull)
+      ? readFileSync(templateFull, "utf8")
+      : null;
+  if (request.templatePath !== undefined) {
+    writeText(request.templatePath, `${JSON.stringify(request.exported, null, 2)}\n`);
+  }
+  try {
+    writeText(request.profilePath, yaml);
+  } catch (error) {
+    if (templateFull !== undefined) {
+      if (previousTemplate === null) rmSync(templateFull, { force: true });
+      else writeFileSync(templateFull, previousTemplate, "utf8");
+    }
+    throw error;
+  }
   return {
     profilePath: request.profilePath,
     templatePath: request.templatePath,
