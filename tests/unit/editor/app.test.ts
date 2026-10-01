@@ -553,13 +553,63 @@ describe("unsaved edits", () => {
     chip.click();
     document.dispatchEvent(new KeyboardEvent("keydown", { code: "KeyL", bubbles: true }));
     [...document.querySelectorAll<HTMLButtonElement>("button")]
-      .find((button) => button.textContent === "Save actions.yaml")
+      .find((button) => button.textContent === "Save only")
       ?.click();
     await vi.waitFor(() => {
       expect(calls).toHaveLength(1);
     });
     expect(calls[0]?.path).toBe("/api/actions");
     expect(calls[0]?.body).toEqual({ game: "everspace", changes: { headlight: { key: "KeyL" } } });
+  });
+
+  it("saves a key and tells the game in one step, after asking that the game is closed", async () => {
+    // It took two tabs: save here, then Repo, then write the game's bindings.
+    const calls = served((path) =>
+      path === "/api/ingame/apply"
+        ? {
+            ok: true,
+            result: { changes: [{ display: "Headlight", from: "B", to: "L" }], backup: null },
+          }
+        : {
+            ok: true,
+            saved: true,
+            path: "p",
+            check: { game: null, built: [], findings: [], buildErrors: [] },
+          },
+    );
+    const confirm = vi.fn(() => true);
+    vi.stubGlobal("confirm", confirm);
+    mount();
+    header("In-game").click();
+    const row = [...document.querySelectorAll(".ingame-row")].find(
+      (node) => node.querySelector(".who b")?.textContent === "Headlight",
+    );
+    row?.querySelector<HTMLButtonElement>(".key-chip")?.click();
+    document.dispatchEvent(new KeyboardEvent("keydown", { code: "KeyL", bubbles: true }));
+    [...document.querySelectorAll<HTMLButtonElement>("button")]
+      .find((button) => button.textContent === "Save and update the game")
+      ?.click();
+    await vi.waitFor(() => {
+      expect(calls.map((call) => call.path)).toEqual(["/api/actions", "/api/ingame/apply"]);
+    });
+    expect(confirm).toHaveBeenCalledOnce();
+    await vi.waitFor(() => {
+      expect(document.querySelector(".save-report")?.textContent).toContain("Updated the game");
+    });
+  });
+
+  it("does nothing to the game when the user says it is still running", () => {
+    const calls = served(() => ({ ok: true }));
+    vi.stubGlobal(
+      "confirm",
+      vi.fn(() => false),
+    );
+    mount();
+    header("In-game").click();
+    [...document.querySelectorAll<HTMLButtonElement>("button")]
+      .find((button) => button.textContent === "Save and update the game")
+      ?.click();
+    expect(calls).toEqual([]);
   });
 });
 

@@ -1146,7 +1146,53 @@ function download(name: string, text: string, type: string): void {
  * The server patches each action's line in place, so actions.yaml keeps its `extends:`,
  * its allowlist and its comments. Regenerating it lost all three.
  */
-async function saveActionKeys(game: EditorGame): Promise<void> {
+/**
+ * Tell the game: write its binding file from actions.yaml, and say what changed.
+ *
+ * Appends to the save report when there is one, so a save and an update read as one
+ * step. The game rewrites the file when it exits, which is why the caller asks first.
+ */
+async function updateGame(game: EditorGame): Promise<void> {
+  const target = saveReport ?? el("div", { class: "save-report" });
+  saveReport = target;
+  try {
+    const reply = await post("/api/ingame/apply", { game: game.slug });
+    if (reply.ok !== true) {
+      target.append(
+        el("div", { class: "finding error" }, [`The game was not updated: ${String(reply.error)}`]),
+      );
+    } else {
+      const result = reply.result as {
+        changes: { display: string; from: string; to: string }[];
+        backup: string | null;
+      };
+      target.append(
+        el("div", {}, [
+          result.changes.length === 0
+            ? "The game already had these keys -- nothing to write."
+            : `Updated the game: ${result.changes
+                .map((change) => `${change.display} ${change.from} → ${change.to}`)
+                .join("; ")}.` +
+              (result.backup === null ? "" : ` Its previous file is kept at ${result.backup}.`),
+        ]),
+      );
+    }
+  } catch (error) {
+    target.append(
+      el("div", { class: "finding error" }, [`Could not reach the server: ${messageOf(error)}`]),
+    );
+  }
+  render();
+}
+
+/**
+ * Save the in-game keys that changed, and only those -- and, if asked, tell the game.
+ *
+ * The server patches each action's line in place, so actions.yaml keeps its `extends:`,
+ * its allowlist and its comments. Changing a key used to take two tabs: Save here, then
+ * Repo, then write the game's bindings.
+ */
+async function saveActionKeys(game: EditorGame, andGame: boolean): Promise<void> {
   const loaded = game.actions.actions ?? {};
   const edited = state.workingActions ?? {};
   const changes: Record<string, BindingChange> = {};
@@ -1158,30 +1204,34 @@ async function saveActionKeys(game: EditorGame): Promise<void> {
     }
     if (Object.keys(change).length > 0) changes[id] = change;
   }
+  saveReport = null;
   if (Object.keys(changes).length === 0) {
-    saveNote = "Nothing to save: no in-game key has changed.";
-    saveReport = null;
-    render();
+    // Nothing new in the repo, but the game can still be behind it.
+    saveNote = andGame ? null : "Nothing to save: no in-game key has changed.";
+    if (andGame) await updateGame(game);
+    else render();
     return;
   }
   const path = `${game.rel}/actions.yaml`;
   saveNote = `saving ${path}...`;
-  saveReport = null;
   render();
   try {
     const result = await post<SaveResponse>("/api/actions", { game: game.slug, changes });
-    if (result.ok) {
-      saveNote = null;
-      saveReport = reportSave(path, result);
-      saveReport.append(
-        el("div", {}, [
-          "The game does not know yet. Apply it from the Repo tab with the game closed.",
-        ]),
-      );
-      game.actions.actions = structuredClone(edited);
-    } else {
+    if (!result.ok) {
       saveNote = `not saved: ${result.error ?? "the server refused it"}`;
+      render();
+      return;
     }
+    saveNote = null;
+    saveReport = reportSave(path, result);
+    game.actions.actions = structuredClone(edited);
+    if (andGame) {
+      await updateGame(game);
+      return;
+    }
+    saveReport.append(
+      el("div", {}, ["The game does not know yet: Save and update the game, with it closed."]),
+    );
   } catch (error) {
     saveNote = `not saved -- could not reach the server: ${messageOf(error)}`;
   }
@@ -1581,7 +1631,7 @@ function renderInGame(): HTMLElement {
       "The key each action is on inside the game. Click a key and press the new one; a " +
         "clash shows up straight away. " +
         (canSave()
-          ? "Save keeps it, then Repo → Write the game's bindings tells the game."
+          ? "Save and update the game writes the repo and the game's own file together."
           : "Export actions.yaml and copy the keys you changed into the game's file."),
     ]),
   );
@@ -1609,14 +1659,31 @@ function renderInGame(): HTMLElement {
   }
   panel.append(table);
 
-  const save = el("button", { class: "btn primary", type: "button" }, [
-    canSave() ? "Save actions.yaml" : "Export actions.yaml",
-  ]);
+  if (canSave()) {
+    const both = el("button", { class: "btn primary", type: "button" }, [
+      "Save and update the game",
+    ]);
+    both.addEventListener("click", () => {
+      if (
+        !window.confirm(
+          `Is ${game.name} closed? It rewrites its key bindings when it exits, which would ` +
+            "undo this. Its current file is kept beside the new one.",
+        )
+      ) {
+        return;
+      }
+      void saveActionKeys(game, true);
+    });
+    const only = el("button", { class: "btn", type: "button" }, ["Save only"]);
+    only.addEventListener("click", () => {
+      void saveActionKeys(game, false);
+    });
+    panel.append(el("div", { class: "row-actions" }, [both, only]));
+    return panel;
+  }
+
+  const save = el("button", { class: "btn primary", type: "button" }, ["Export actions.yaml"]);
   save.addEventListener("click", () => {
-    if (canSave()) {
-      void saveActionKeys(game);
-      return;
-    }
     // Offline there is no file to patch, so this is the whole vocabulary, flattened. It says
     // so, because pasting it over the real file would lose `extends:` and the allowlist.
     const header =

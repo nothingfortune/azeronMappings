@@ -67,6 +67,7 @@ header .tabs .btn + .btn { border-left: 1px solid var(--line); }
 .slot-pick.unset { color: var(--muted); font-weight: 400; font-style: italic; }
 .field.slot[data-active] .slot-pick { border-color: var(--accent);
                                       box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent); }
+.row-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .menu { position: relative; }
 .menu > summary { list-style: none; }
 .menu > summary::-webkit-details-marker { display: none; }
