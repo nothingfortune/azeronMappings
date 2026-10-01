@@ -1221,7 +1221,7 @@ function renderPedalAxis(
     el("div", { class: "muted" }, [
       entry === undefined
         ? "The game has no name recorded for this axis."
-        : `The game calls it ${entry.name}.${entry.note === undefined ? "" : ` ${entry.note}.`}`,
+        : `The game calls it ${entry.name}${entry.note === undefined ? "" : ` (${entry.note})`}.`,
     ]),
   );
   if (assignment !== undefined) {
