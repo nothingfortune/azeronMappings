@@ -568,6 +568,20 @@ export function applyIngame(
       `${game.slug} owns no binding categories -- set ingame_owned_categories in game.yaml`,
     );
   }
+  // Asked to write to the game, and there is no game file to write to: refuse before
+  // anything is written, rather than update the committed copy and report success.
+  if (options.write && options.toGame === true) {
+    const live = game.config.ingame_config;
+    if (live === undefined) {
+      throw new IngameError(`${game.slug} has no ingame_config in game.yaml to write to`);
+    }
+    if (!existsSync(live)) {
+      throw new IngameError(
+        `the game's binding file ${live} does not exist, so nothing can be written to it -- ` +
+          "run the game once so it writes the file, or correct ingame_config in game.yaml",
+      );
+    }
+  }
   const source = ingameSource(game, options.override);
   const before = readFileSync(source, "utf8");
   const keyboard = applyVocabulary(parseInput(before), game.actions, owned);
