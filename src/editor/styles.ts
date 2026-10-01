@@ -154,8 +154,8 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 }
 /* Both units stay on one row; the stage scales down rather than wrapping one under the
    other, because a pair is read as a pair. */
-.stage-wrap { overflow: hidden; }
-.stage { display: flex; gap: 14px; align-items: flex-start; flex-wrap: nowrap;
+.workspace.board .stage-wrap { overflow: hidden; }
+.workspace.board .stage { display: flex; gap: 14px; align-items: flex-start; flex-wrap: nowrap;
          transform-origin: top left; width: max-content; }
 .hand { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
         padding: 10px; }

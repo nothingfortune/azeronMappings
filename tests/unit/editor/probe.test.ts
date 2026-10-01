@@ -104,7 +104,7 @@ describe("the press test", () => {
 
   it("keeps the two units' captures apart", () => {
     press(keyForPin(1));
-    const unitSelect = document.querySelector<HTMLSelectElement>("header select");
+    const unitSelect = document.querySelector<HTMLSelectElement>(".probe-bar select");
     if (!unitSelect) throw new Error("no unit selector");
     unitSelect.value = "1";
     unitSelect.dispatchEvent(new Event("change"));

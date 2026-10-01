@@ -119,6 +119,16 @@ test.describe("the served editor", () => {
     expect(first && second && second.x > first.x + first.width / 2).toBe(true);
   });
 
+  test("keeps the press test inside the window", async ({ page }) => {
+    // It was 2,311 pixels wide in a 1,440 window: the right unit sat off screen and the
+    // Captured panel lay over it, because the board's stage rules reached it.
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+    await page.getByRole("button", { name: "Press test", exact: true }).click();
+    const width = await page.evaluate(() => document.documentElement.scrollWidth);
+    expect(width).toBeLessThanOrEqual(1440);
+  });
+
   test("draws the board's keys big enough to read", async ({ page }) => {
     // At a common laptop width the pair was drawn at under half size, key text at about
     // five pixels. Measured, not assumed: the drawn size of a key's name.

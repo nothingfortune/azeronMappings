@@ -581,8 +581,10 @@ function render(): void {
   if (!root) return;
   root.replaceChildren();
 
-  const header = el("header");
-  header.append(el("h1", {}, ["Press test"]));
+  // A toolbar, not a <header>: inside the editor a header picked up the editor's own --
+  // sticky, full-width -- and sat over the page as a second one.
+  const header = el("div", { class: "probe-bar" });
+  header.append(el("h2", {}, ["Press test"]));
   const unitSelect = el("select", {});
   state.payload.units.forEach((unit, index) => {
     const option = el("option", { value: String(index) }, [`${unitLabel(unit.hand)} unit`]);
@@ -715,6 +717,7 @@ export function start(
     document.head.append(style);
   }
   mountPoint = root ?? document.getElementById("app");
+  mountPoint?.classList.add("probe");
 
   state = {
     payload,
