@@ -111,7 +111,7 @@ describe("a game whose own settings file is not connected", () => {
     expect(document.querySelector(".game-step")).toBeNull();
 
     const item = [...document.querySelectorAll<HTMLButtonElement>(".menu-item")].find((button) =>
-      (button.textContent ?? "").startsWith("Update the game"),
+      button.textContent.startsWith("Update the game"),
     );
     item?.click();
     expect(document.querySelector(".save-note")?.textContent).toContain("cannot be written");

@@ -904,7 +904,13 @@ function renderInspector(): HTMLElement {
   const actions = actionSetFor(game);
   const data = workingData(selection.slug);
   const device = profileFor(selection.slug).device;
-  const spec = (data.positions[selection.position] ??= {});
+  // Drawing a key is not an edit. A position the profile has no entry for gets one only once
+  // something is put on it: until then `spec` is a spare, which the next render adopts if a
+  // handler filled it in.
+  const existing = data.positions[selection.position];
+  const spec: PositionSpec = existing ?? {};
+  pendingSpec =
+    existing === undefined ? { slug: selection.slug, position: selection.position, spec } : null;
   const isStick = device.isStick(selection.position);
 
   panel.append(
@@ -2025,6 +2031,7 @@ function renderHeader(): HTMLElement {
       gameSelect.value = String(state.gameIndex);
       return;
     }
+    resetSession();
     state.gameIndex = Number(gameSelect.value);
     state.working.clear();
     state.workingActions = null;
@@ -2047,10 +2054,9 @@ function renderHeader(): HTMLElement {
       [names[mode]],
     );
     tab.addEventListener("click", () => {
-      if (state.mode === "press-test" && mode !== "press-test") {
-        stopProbe();
-        probeHost = null;
-      }
+      // Clicking the tab already open changes nothing; any other tab ends what the one
+      // being left was in the middle of.
+      if (mode !== state.mode) resetSession();
       state.mode = mode;
       render();
     });
@@ -2127,7 +2133,7 @@ function renderHeader(): HTMLElement {
     item("Update the game's keys…", () => {
       const gaps = gameFileGaps(currentGame());
       if (gaps.length > 0) {
-        saveNote = `${currentGame().name}'s keys cannot be written into the game yet: ${gaps[0]}`;
+        saveNote = `${currentGame().name}'s keys cannot be written into the game yet: ${gaps[0] ?? ""}`;
         render();
         return;
       }
@@ -2163,6 +2169,9 @@ function renderHeader(): HTMLElement {
         const text = typeof reader.result === "string" ? reader.result : "";
         const next = JSON.parse(text) as EditorPayload;
         if (!Array.isArray(next.games)) throw new Error("not an editor payload");
+        // Asked once the file is known to be good, and not before: a wrong file should
+        // not cost a question. The new data replaces every working copy.
+        if (!confirmDiscard("Opening another data file")) return;
         start(next);
       } catch (error) {
         window.alert(`Could not read that file: ${messageOf(error)}`);
@@ -2359,7 +2368,7 @@ function gameFileStatus(game: EditorGame): HTMLElement | null {
       "The keys below record what each action is bound to inside the game, and the checks " +
         "use them. Writing them into the game for you is not set up for this game: " +
         (gaps.length === 1
-          ? gaps[0]
+          ? (gaps[0] ?? "")
           : `${gaps.length === 2 ? "two" : "three"} things are missing:`),
     ]),
   ]);
@@ -3281,7 +3290,39 @@ let resizeBound = false;
 let unloadBound = false;
 let captureBound = false;
 
+/** The spare entry the inspector is showing for a position the profile has none for. */
+let pendingSpec: { slug: string; position: string; spec: PositionSpec } | null = null;
+
+/** Put the inspector's spare entry into the profile if it has been filled in. */
+function adoptPendingSpec(): void {
+  const pending = pendingSpec;
+  pendingSpec = null;
+  if (pending === null || Object.keys(pending.spec).length === 0) return;
+  const data = state.working.get(pending.slug);
+  if (data && data.positions[pending.position] === undefined) {
+    data.positions[pending.position] = pending.spec;
+  }
+}
+
+/**
+ * Forget what belongs to one stretch of work on one game: a key being captured, a name being
+ * typed, the press test. Called whenever the game, the tab or the data changes. It was
+ * assigned in some of those places and not others, so a key captured on one game could land
+ * on the next, and a press test went on with the game it was started for.
+ */
+function resetSession(): void {
+  capturing = null;
+  captureProblem = null;
+  renaming = null;
+  pendingSpec = null;
+  if (probeHost !== null) {
+    stopProbe();
+    probeHost = null;
+  }
+}
+
 function render(): void {
+  adoptPendingSpec();
   const root = document.getElementById("app");
   if (!root) return;
   root.replaceChildren();
@@ -3408,7 +3449,7 @@ export function start(payload = window.AZERON_PAYLOAD): void {
   pedalsNote = null;
   tuningOpen.clear();
   const firstGame = payload.games[0];
-  probeHost = null;
+  resetSession();
   state = {
     payload,
     mode: "edit",

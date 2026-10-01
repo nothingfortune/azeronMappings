@@ -141,7 +141,7 @@ export function seedActions(
   }
   for (const button of sent.mouse) {
     actions[`mouse_${button}`] = {
-      label: `${keys.bindingLabel({ mouse: button })} (unnamed)`,
+      label: `${keys.bindingLabel({ mouse: button }) ?? button} (unnamed)`,
       mouse: button,
       note: "Seeded by `azeron import`. Rename it and tag it once its in-game job is known.",
     };
