@@ -126,10 +126,13 @@ a corrected `devices/<unit>.yaml`.
 turns it back into profile YAML (`npm run azeron -- decompile` from the terminal).
 Anything that will not round-trip is kept raw rather than guessed at.
 
-**Starting a new game.** Upload an export from the Setup tab, or
-`npm run azeron -- import <export.json> --genre G --game SLUG`. Each distinct key becomes
-an action named after the key — an export says which keys are pressed, not what they do,
-so naming them is the first job.
+**Starting a new game.** In the Setup tab, **Add a new game**: its name, the kind of game,
+an export from the Azeron app and which unit it came from. Each distinct key the export
+sends becomes an action named after the key — an export says which keys are pressed, not
+what they do — so the first job is the **In-game** tab: click a name to rename it, and
+switch on the roles it plays. The Checks panel lists the genre's required actions that are
+on no key yet as one entry. Writing keys into the game itself is built for Everspace 2's
+settings file only; for another game, set the keys in its own controls screen to match.
 
 **Writing into the app's library directly.** `npm run azeron -- install everspace --yes`
 drops each profile into the app's store under its own unit (`--dry-run` first). It

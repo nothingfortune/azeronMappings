@@ -79,6 +79,16 @@ Every profile change, and why. `playtests.md` records what each layout felt like
   changed how the sticks read; it never rewrites the sticks on its own. The pedal lint
   rules run on unsaved edits.
 
+- **Name a new game's actions in the editor.** On the In-game tab an action's name is
+  edited in place and its roles are switches, saved by the one Save; `/api/actions`
+  carries `label` and `tags` and patches them line by line like keys. A game started from
+  an export seeds an action per mouse button as well as per key, and names its layout
+  after the game, layout and unit rather than after the export it came from.
+- The Checks panel shows the required actions that are on no key as one entry that opens
+  to the list, and counts it once. The linter and the CLI report them as before.
+- The In-game and Setup tabs say what is missing when a game's own key settings are not
+  connected, and withhold the buttons that could not work.
+
 ### Layouts
 
 - **akimbo v10** now has pedals: the rudder on yaw, and its sticks are Mode 2 _with pedals_
@@ -176,6 +186,15 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 - Exporting a partial press test deleted every key it had not reached and marked the map
   verified.
 
+- A game started from an export could not have a key changed from the page at all: its
+  `actions.yaml` was written four lines to an action, which the line patcher refuses. It
+  is written one action to a line.
+- `/api/actions` answered "not saved" for a file it had written when the check after the
+  write failed, and accepted a key that was not a string.
+- In the editor: looking at an empty key marked the page unsaved; opening a data file
+  discarded unsaved edits without asking; a key capture or the press test could outlive
+  the game or tab it was started on.
+
 ### Known gaps
 
 - Whether moving the pointer turns the ship in flight, or only aims, is untested — and it
@@ -188,3 +207,8 @@ Every profile change, and why. `playtests.md` records what each layout felt like
   cannot be held together. Eight-directional mode exists in the export but is unverified.
 - Type codes `"6"`, `"0"`, `"29"`, `"30"` and `subType` `"29"`/`"31"` are not understood;
   they are preserved, never written.
+- A game started from an export with the genre's vocabulary has about 80 actions, and its
+  Edit tab does not fit one screen at 1920x1080.
+- Lint findings name keys and positions by their ids (`KeyF`, `middle_3.tap`), not the
+  way the rest of the page says them.
+- Writing keys into a game's own settings is built for Everspace 2's `Input.ini` only.

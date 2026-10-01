@@ -159,8 +159,17 @@ sticks.
 config — as functions rather than commands. The CLI and the served editor both call
 them, so what the UI can do is what the CLI can do rather than a subset that drifts. The
 editor reaches them over `/api/build`, `/api/import`, `/api/ingame`, `/api/ingame/apply`
-and `/api/actions` (which patches key tokens in actions.yaml line by line); saving a
+and `/api/actions` (which patches keys, labels and tags in actions.yaml line by line); saving a
 profile rebuilds `dist/` and lints in the same round trip.
+
+`patchActionBindings` needs every action on one line, so `createGame` writes a seeded
+`actions.yaml` in flow style. Never regenerate `actions.yaml` with a generic YAML dump: it
+loses the comments, the `extends:` line and the duplicate-key allowlist.
+
+Per-session editor state — a key capture, a rename in progress, the press test — is reset
+by `resetSession()` on a change of game or tab; new state of that kind goes there. The
+inspector must not write to the working profile while drawing, or looking at an empty key
+marks the page unsaved.
 
 Whether the page can save is decided by `window.AZERON_SERVED`, which only `azeron serve`
 sets. Sniffing the protocol would claim as much of a static file served by any web
