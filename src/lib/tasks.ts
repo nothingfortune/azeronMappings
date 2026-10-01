@@ -44,6 +44,7 @@ import {
   unnamedPositions,
 } from "./scaffold.js";
 import { dumpYaml } from "./yaml.js";
+import { loadInherited } from "./yaml-io.js";
 import { messageOf } from "./object.js";
 
 export interface BuiltProfile {
@@ -236,12 +237,16 @@ export interface NewGameResult {
   positions: number;
 }
 
-/** Names of the device maps in devices/, without the extension. */
+/**
+ * Names of the keypad pin maps in devices/, without the extension. Pedals live in the same
+ * folder and have axes, not pins: an export cannot have come from them.
+ */
 export function deviceNames(): string[] {
   const dir = repoPath(dataDirs.devices);
   if (!existsSync(dir)) return [];
   return readdirSync(dir)
     .filter((file) => file.endsWith(".yaml"))
+    .filter((file) => loadInherited(join(dataDirs.devices, file)).kind !== "pedals")
     .map((file) => file.slice(0, -".yaml".length))
     .sort();
 }

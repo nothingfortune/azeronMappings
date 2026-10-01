@@ -45,7 +45,7 @@ import {
   ScaffoldError,
   slugFromName,
 } from "../../../src/lib/scaffold.js";
-import { createGame, ImportCollision } from "../../../src/lib/tasks.js";
+import { createGame, deviceNames, ImportCollision } from "../../../src/lib/tasks.js";
 import type { NewGameRequest } from "../../../src/lib/tasks.js";
 
 const SLUG = "zzNewGameTest";
@@ -158,6 +158,16 @@ describe("createGame", () => {
     expect(() => createGame(request({ set: "../../escape" }))).toThrow(/cannot be a layout name/);
     expect(() => createGame(request({ genre: "../genres/FPS" }))).toThrow(/not a genre/);
     expect(() => createGame(request({ device: "../../etc/passwd" }))).toThrow(/not a device map/);
+    expect(existsSync(repoPath(FOLDER))).toBe(false);
+  });
+
+  it("offers only keypads as the unit an export came from", () => {
+    // The pedals' file sits in devices/ too, and has axes where a keypad has pins.
+    expect(existsSync(repoPath("devices/logitech-pro-flight-pedals.yaml"))).toBe(true);
+    expect(deviceNames()).toEqual(["cyborg2-left", "cyborg2-right"]);
+    expect(() => createGame(request({ device: "logitech-pro-flight-pedals" }))).toThrow(
+      /not a device map/,
+    );
     expect(existsSync(repoPath(FOLDER))).toBe(false);
   });
 
