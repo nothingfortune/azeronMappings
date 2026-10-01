@@ -1839,7 +1839,8 @@ function inGameKeysPart(): SchemePart {
       const changes = inGameKeyChanges(game);
       const result = await saveResponse("/api/actions", { game: game.slug, changes });
       game.actions.actions = structuredClone(state.workingActions ?? {});
-      return { path, result, inGameKeys: changesAKey(changes) };
+      // The game is only offered the keys when there is a file of its own to write them to.
+      return { path, result, inGameKeys: changesAKey(changes) && gameFileGaps(game).length === 0 };
     },
   };
 }
@@ -2124,6 +2125,12 @@ function renderHeader(): HTMLElement {
   if (canSave()) {
     item("Download the import files", downloadAll);
     item("Update the game's keys…", () => {
+      const gaps = gameFileGaps(currentGame());
+      if (gaps.length > 0) {
+        saveNote = `${currentGame().name}'s keys cannot be written into the game yet: ${gaps[0]}`;
+        render();
+        return;
+      }
       // The game is updated from what is saved, so an unsaved key would be left out.
       if (inGameKeysPart().isDirty() || pedalsPart().isDirty()) {
         saveNote = "Save first: the game is updated from the saved in-game keys and pedals.";
@@ -2306,6 +2313,71 @@ function actionKeyField(id: string): HTMLElement {
   return row;
 }
 
+/**
+ * What stands between this game and having its own key bindings written for it, in the
+ * words of what is missing rather than of the file that would hold it. Empty when the game
+ * is set up for it.
+ *
+ * Writing keys into a game means knowing where the game keeps its settings file, which part
+ * of that file this layout controls, and which row of it each action is. Everspace 2 has
+ * all three. A game started from an export has none, and the page used to say only that
+ * `ingame_config` was missing from game.yaml.
+ */
+function gameFileGaps(game: EditorGame): string[] {
+  const gaps: string[] = [];
+  if (game.ingameFile?.configured !== true) {
+    gaps.push(
+      "the page has not been told where the game keeps its key settings, so it cannot read " +
+        "or change them.",
+    );
+  }
+  if ((game.ingameFile?.ownedCategories ?? 0) === 0) {
+    gaps.push(
+      "it does not know which parts of that file the layout controls, so it cannot tell its " +
+        "own keys from the game's menu keys.",
+    );
+  }
+  if (!Object.values(game.actions.actions ?? {}).some((spec) => spec.ingame !== undefined)) {
+    gaps.push(
+      "none of the actions names the row it is in the game's settings, so the page cannot " +
+        "tell which setting each one changes.",
+    );
+  }
+  return gaps;
+}
+
+/**
+ * Says plainly why a game's own settings cannot be written yet, and what to do instead.
+ * Null for a game that is set up for it.
+ */
+function gameFileStatus(game: EditorGame): HTMLElement | null {
+  const gaps = gameFileGaps(game);
+  if (gaps.length === 0) return null;
+  const box = el("div", { class: "note game-file" }, [
+    el("b", {}, [`${game.name}'s own key settings are not connected`]),
+    el("div", {}, [
+      "The keys below record what each action is bound to inside the game, and the checks " +
+        "use them. Writing them into the game for you is not set up for this game: " +
+        (gaps.length === 1
+          ? gaps[0]
+          : `${gaps.length === 2 ? "two" : "three"} things are missing:`),
+    ]),
+  ]);
+  if (gaps.length > 1) {
+    const list = el("ul", {});
+    for (const gap of gaps) list.append(el("li", {}, [gap]));
+    box.append(list);
+  }
+  box.append(
+    el("div", {}, [
+      "Until it is, set each key in the game's own controls screen to match this list. " +
+        "Only Everspace 2's settings file is understood so far; connecting another game's " +
+        "file is developer work, not something this page can do.",
+    ]),
+  );
+  return box;
+}
+
 /** The action whose name is being typed, if any. */
 let renaming: string | null = null;
 
@@ -2412,12 +2484,16 @@ function renderInGame(): HTMLElement {
         "roles on or off: the checks use the roles, for instance to keep a menu off a " +
         "combat key. " +
         (canSave()
-          ? "Save, top right, writes these with both keypads; it then offers to update the " +
-            "game's own file."
+          ? "Save, top right, writes these with both keypads" +
+            (gameFileGaps(game).length === 0
+              ? "; it then offers to update the game's own file."
+              : ".")
           : "The menu's Download the layout as YAML includes actions.yaml: copy what you " +
             "changed into the game's file."),
     ]),
   );
+  const gameFile = gameFileStatus(game);
+  if (gameFile !== null) panel.append(gameFile);
   const unnamed = Object.values(actions.actions).filter((spec) =>
     (spec.label ?? "").endsWith("(unnamed)"),
   ).length;
@@ -2983,13 +3059,17 @@ function renderRepo(): HTMLElement {
   panel.append(importRow);
 
   // The game's own bindings, read from its config file.
+  const fileStatus = gameFileStatus(currentGame());
   panel.append(
     section(
       "The game's key bindings",
-      "The keys inside the game come from actions.yaml. Read shows where the game " +
-        "disagrees; Write makes it agree. Close the game first.",
+      fileStatus === null
+        ? "The keys inside the game come from actions.yaml. Read shows where the game " +
+            "disagrees; Write makes it agree. Close the game first."
+        : "Reading the game's own key settings, and writing this layout's keys into them.",
     ),
   );
+  if (fileStatus !== null) panel.append(fileStatus);
   const ingameRow = el("div", { class: "field" });
   const check = el("button", { class: "btn", type: "button" }, ["Read the game's bindings"]);
   check.addEventListener("click", () => {
@@ -3050,8 +3130,10 @@ function renderRepo(): HTMLElement {
       render();
     });
   });
-  ingameRow.append(check, apply);
-  panel.append(ingameRow);
+  if (fileStatus === null) {
+    ingameRow.append(check, apply);
+    panel.append(ingameRow);
+  }
 
   panel.append(section("Rebuild", "Every layout's import file, from scratch."));
   const buildRow = el("div", { class: "field" });

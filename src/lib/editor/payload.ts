@@ -72,6 +72,10 @@ export function buildPayload(): EditorPayload {
         ? readFileSync(repoPath(join(game.rel, "sets.yaml")), "utf8")
         : "",
       ...(game.config.ingame_set === undefined ? {} : { ingameSet: game.config.ingame_set }),
+      ingameFile: {
+        configured: game.config.ingame_config !== undefined,
+        ownedCategories: game.config.ingame_owned_categories?.length ?? 0,
+      },
     };
   });
 

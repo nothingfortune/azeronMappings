@@ -30,6 +30,12 @@ export interface EditorGame {
   setsText: string;
   /** The set whose pedals are written into the game's own binding file, if the game says. */
   ingameSet?: string;
+  /**
+   * Whether the game's own binding file is set up here: the file is named in game.yaml, and
+   * the categories of it that this repo owns are. The path itself stays on the server. A
+   * game started from an export has neither, which is why its keys cannot be written yet.
+   */
+  ingameFile?: { configured: boolean; ownedCategories: number };
 }
 
 export interface EditorGenre {
