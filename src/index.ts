@@ -31,6 +31,9 @@ import {
   parseSaveRequest,
   preserveHeader,
   resolveSavePath,
+  guardedListener,
+  readBody,
+  validateSaveContent,
 } from "./lib/serve.js";
 import {
   buildAll,
@@ -56,6 +59,8 @@ import type { ProfileMeta } from "./types/profile.js";
 import { messageOf } from "./lib/object.js";
 
 const DEFAULT_DEVICE = "cyborg2-left";
+const LOOPBACK_BINDINGS = new Set(["127.0.0.1", "::1", "localhost"]);
+const WILDCARD_BINDINGS = new Set(["0.0.0.0", "::"]);
 const DEFAULT_PROBE_DEVICES = ["cyborg2-left", "cyborg2-right"];
 
 function out(message: string): void {
@@ -492,32 +497,8 @@ function cmdCapturePedals(
   }
 }
 
-/** Read a request body, refusing one over `limit` with a reply rather than a dropped socket. */
-function readBody(
-  request: IncomingMessage,
-  response: ServerResponse,
-  limit: number,
-  handle: (body: string) => void,
-): void {
-  let body = "";
-  let refused = false;
-  request.on("data", (chunk: Buffer) => {
-    if (refused) return;
-    body += chunk.toString("utf8");
-    if (body.length > limit) {
-      refused = true;
-      response.writeHead(413, { "content-type": "application/json" });
-      response.end(JSON.stringify({ ok: false, error: `request over ${String(limit)} bytes` }));
-      request.resume();
-    }
-  });
-  request.on("end", () => {
-    if (!refused) handle(body);
-  });
-}
-
 /** Serve the editor and let it write back into the repo. */
-function cmdServe(port: number): number {
+function cmdServe(port: number, host: string): number {
   const bundle = readBundle("editor-app.js");
   if (bundle === null) {
     process.stderr.write("error: build/editor-app.js is missing. Run `npm run build` first.\n");
@@ -529,7 +510,7 @@ function cmdServe(port: number): number {
   // folder removed -- stayed on screen until something was saved through the page.
   const payload = buildPayload;
 
-  const server = createServer((request, response) => {
+  const route = (request: IncomingMessage, response: ServerResponse): void => {
     const send = (status: number, body: string, type = "application/json"): void => {
       response.writeHead(status, { "content-type": type, "cache-control": "no-store" });
       response.end(body);
@@ -678,6 +659,8 @@ function cmdServe(port: number): number {
         try {
           const { path, content } = parseSaveRequest(body);
           const target = resolveSavePath(repoRoot, path);
+          // Nothing is written until the content parses as what the path says it is.
+          validateSaveContent(path, content);
           mkdirSync(dirname(target), { recursive: true });
           const existing = existsSync(target) ? readFileSync(target, "utf8") : null;
           writeFileSync(target, preserveHeader(existing, content), "utf8");
@@ -698,10 +681,22 @@ function cmdServe(port: number): number {
       return;
     }
     send(404, JSON.stringify({ ok: false, error: "not found" }));
-  });
+  };
 
-  server.listen(port, () => {
+  // Loopback only unless the owner bound another interface on purpose; the Host check
+  // follows the same choice.
+  const extraHosts = LOOPBACK_BINDINGS.has(host)
+    ? []
+    : WILDCARD_BINDINGS.has(host)
+      ? ["*"]
+      : [host];
+  const server = createServer(guardedListener(route, () => port, extraHosts));
+
+  server.listen(port, host, () => {
     out(`editor on http://localhost:${String(port)}`);
+    if (!LOOPBACK_BINDINGS.has(host)) {
+      out(`  WARNING: listening on ${host}. Anyone who can reach it can write into the repo.`);
+    }
     out("  Saving writes straight into the repo and reports what the linter says.");
     out("  Ctrl-C to stop.");
   });
@@ -902,7 +897,8 @@ function usage(): void {
                                   write a name to try by hand, marked UNTESTED, for a pedal
                                   axis the game's own controls screen will not bind
   editor [--out PATH]             the editor as one self-contained HTML file
-  serve [--port N]                the same editor, able to save back into the repo
+  serve [--port N] [--host H]     the same editor, able to save back into the repo; it
+                                  listens on 127.0.0.1 only unless --host names another
   probe [--device D]              press-test profiles; capture them in the editor's Press test tab
   import <export.json> --genre G --game SLUG [--name N] [--device D] [--set S]
          [--export-to DIR]      start a game folder from an export
@@ -959,6 +955,7 @@ export function main(argv: string[]): number {
       "export-to": { type: "string" },
       config: { type: "string" },
       port: { type: "string" },
+      host: { type: "string" },
       out: { type: "string", short: "o" },
     },
   });
@@ -982,7 +979,7 @@ export function main(argv: string[]): number {
         candidate: values.candidate,
       });
     case "serve":
-      return cmdServe(wholeNumber("--port", values.port ?? "4173"));
+      return cmdServe(wholeNumber("--port", values.port ?? "4173"), values.host ?? "127.0.0.1");
     case "editor":
       return cmdEditor(values.out ?? join(dataDirs.dist, "editor.html"));
     case "probe": {
