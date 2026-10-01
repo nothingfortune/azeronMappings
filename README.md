@@ -63,6 +63,12 @@ outside the repo.
 Stick modes (DJI Mode 1/2/3, the game's own twin-stick layout, and a roll variant) are
 applied to both sticks in one click from the editor's side panel.
 
+Rudder pedals are part of a layout. They sit beside the checks on the Edit tab — what each
+axis drives, and how far the game's name for it is trusted — and save with the keypads and
+the in-game keys. While the pedals carry yaw, a stick mode is applied in its with-pedals
+form, which gives the stick's freed direction to roll. A layout with no pedals offers
+**Add pedals**.
+
 ## Learning a layout
 
 - **The Edit tab is the reference**: both hands with every binding on them. For paper,

@@ -145,6 +145,16 @@ axis and how far to trust it (`confirmed` flown; `inferred`; `unconfirmed`; `bou
 the device, which no axis may step outside of. The editor payload carries it under `pedals`, apart from `devices`, so everything that expects
 a pin map keeps getting only keypads; each game carries its `sets` and `ingameSet`.
 
+In the editor the pedals are one more entry in `schemeParts()` (`pedalsPart()`), so the
+one Save, the unsaved marker and the report cover them. `src/lib/setsfile.ts`
+(`patchSetPedals`) is the node-free line patcher for `sets.yaml`; the page gets the
+file's text from `payload.games[].setsText` and sends the patched file through
+`/api/save`, and `checkAfterSave` answers a `sets.yaml` save with a `pedals` summary. The
+stick-mode panel uses a mode's with-pedals variant when `pedalsCarry(modes, pedals)` is
+true — every axis in `pedals.takes` is driven by some pedal — not merely when a layout has
+pedals. A pedal edit that changes how the sticks read shows a note and never rewrites the
+sticks.
+
 `src/lib/tasks.ts` holds the operations — build, lint, import an export, read the game's
 config — as functions rather than commands. The CLI and the served editor both call
 them, so what the UI can do is what the CLI can do rather than a subset that drifts. The

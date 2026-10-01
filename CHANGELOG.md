@@ -71,6 +71,14 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 - Turbo (`turbo`, `turbo_interval` per slot) and the sensor (`sensor`, `dpi`) are
   expressible in a profile.
 
+- **Pedals in the editor.** The Edit tab shows a layout's pedals beside the checks: what
+  each axis drives, invert, the tuning behind Details, and how far the game's name for
+  the axis is trusted. They save with the one Save, which patches `sets.yaml` line by line
+  so its comments and the other layouts survive. The stick-mode panel reads and applies a
+  mode's with-pedals variant while the pedals carry yaw, and says when a pedal edit has
+  changed how the sticks read; it never rewrites the sticks on its own. The pedal lint
+  rules run on unsaved edits.
+
 ### Layouts
 
 - **akimbo v10** now has pedals: the rudder on yaw, and its sticks are Mode 2 _with pedals_
