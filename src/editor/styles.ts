@@ -342,6 +342,10 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 .finding { font-size: 11.5px; padding: 5px 7px; border-radius: 6px; border-left: 3px solid var(--line); background: var(--bg); }
 .finding.error { border-left-color: var(--error); }
 .finding.warning { border-left-color: var(--warn); }
+.finding.grouped summary { cursor: pointer; list-style-position: inside; }
+.finding.grouped summary b { display: inline; font-size: 11.5px; letter-spacing: 0; }
+.finding.grouped .muted { margin: 4px 0; }
+.missing-list { margin: 0; padding-left: 18px; font-size: 11px; }
 .finding.note { border-left-color: var(--muted); }
 .finding b { display: block; font-size: 10.5px; letter-spacing: .03em; }
 .pill { font-size: 10.5px; padding: 2px 7px; border-radius: 99px; border: 1px solid var(--line); }

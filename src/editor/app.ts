@@ -451,6 +451,91 @@ function findingWhere(finding: Finding): string {
   return "the whole layout";
 }
 
+/** What the page shows for a finding: itself, or one line standing for many alike. */
+type Shown = { finding: Finding } | { missing: Finding[] };
+
+/**
+ * Findings as the page lays them out. The linter reports one `missing-required` error per
+ * required action with no key, and a game just started from an export has twenty or thirty
+ * of them -- one fact ("nothing is on a key yet") said thirty times, which buried every
+ * other finding. They are shown as one entry that opens to the list. The linter, the CLI
+ * and `lint --strict` still see each one; nothing is dropped or acknowledged here.
+ */
+function shownFindings(findings: readonly Finding[]): Shown[] {
+  const shown: Shown[] = [];
+  let group: Finding[] | null = null;
+  for (const finding of findings) {
+    if (finding.rule !== "missing-required") {
+      shown.push({ finding });
+      continue;
+    }
+    if (group === null) {
+      group = [];
+      shown.push({ missing: group });
+    }
+    group.push(finding);
+  }
+  return shown;
+}
+
+let missingOpen = false;
+
+/** The actions a `missing-required` finding names, as a person reads them. */
+function missingActionNames(missing: readonly Finding[]): string[] {
+  const actions = actionSetFor(currentGame()).actions;
+  return missing.map((finding) => {
+    const id = /required action '([^']+)'/.exec(finding.message)?.[1];
+    return id === undefined ? finding.message : (actions[id]?.label ?? id);
+  });
+}
+
+function findingItem(finding: Finding): HTMLElement {
+  const item = el("div", { class: `finding ${finding.level}` });
+  item.append(el("b", {}, [findingWhere(finding)]), el("small", { class: "rule" }, [finding.rule]));
+  item.append(document.createTextNode(finding.message));
+  return item;
+}
+
+/** One entry for every required action that is on no key, opening to the list. */
+function missingGroup(missing: readonly Finding[]): HTMLElement {
+  const count = missing.length;
+  const set = missing[0]?.profile;
+  const details = el("details", { class: "finding error grouped" });
+  if (missingOpen) details.setAttribute("open", "open");
+  details.addEventListener("toggle", () => {
+    missingOpen = details.open;
+  });
+  details.append(
+    el("summary", {}, [
+      el("b", {}, [
+        count === 1
+          ? "1 required action is not on any key yet"
+          : `${String(count)} required actions are not on any key yet`,
+      ]),
+      el("small", { class: "rule" }, ["missing-required"]),
+    ]),
+  );
+  details.append(
+    el("div", { class: "muted" }, [
+      `Neither unit sends ${count === 1 ? "it" : "them"}${set === undefined ? "" : ` in '${set}'`}, ` +
+        "so they cannot be reached without another input device. Put each on a key in the " +
+        "Edit tab, or, if this game does not need one, switch its required role off in " +
+        "the In-game tab.",
+    ]),
+  );
+  const list = el("ul", { class: "missing-list" });
+  for (const name of missingActionNames(missing)) list.append(el("li", {}, [name]));
+  details.append(list);
+  return details;
+}
+
+/** The findings, laid out; used by the Checks panel and by the report after a save. */
+function appendFindings(box: HTMLElement, findings: readonly Finding[]): void {
+  for (const entry of shownFindings(findings)) {
+    box.append("missing" in entry ? missingGroup(entry.missing) : findingItem(entry.finding));
+  }
+}
+
 function boundActions(): Map<string, string[]> {
   const bound = new Map<string, string[]>();
   const add = (action: string | undefined, where: string): void => {
@@ -1026,6 +1111,7 @@ function renderLintChip(): HTMLElement {
   const result = currentLint();
   let text: string;
   let tone: string;
+  let detail = "";
   if ("error" in result) {
     text = "Checks failed to run";
     tone = "bad";
@@ -1034,12 +1120,22 @@ function renderLintChip(): HTMLElement {
       (finding) => finding.level === "error" || finding.level === "warning",
     );
     const errors = problems.filter((finding) => finding.level === "error").length;
-    text = problems.length === 0 ? "✓ Clean" : `${String(problems.length)} to look at`;
+    // The required actions on no key are one entry, as in the panel below.
+    const entries = shownFindings(problems);
+    text = problems.length === 0 ? "✓ Clean" : `${String(entries.length)} to look at`;
+    const missing = entries.find((entry) => "missing" in entry);
+    if (missing && "missing" in missing) {
+      detail = `${String(missing.missing.length)} required action(s) are not on any key yet`;
+    }
     tone = errors > 0 ? "bad" : problems.length > 0 ? "warn" : "ok";
   }
   const chip = el(
     "button",
-    { class: `pill lint ${tone}`, type: "button", title: "Show the checks" },
+    {
+      class: `pill lint ${tone}`,
+      type: "button",
+      title: detail === "" ? "Show the checks" : `Show the checks: ${detail}`,
+    },
     [text],
   );
   chip.addEventListener("click", () => {
@@ -1372,15 +1468,7 @@ function renderChecks(): HTMLElement {
       ]),
     );
   }
-  for (const finding of [...live, ...stale]) {
-    const item = el("div", { class: `finding ${finding.level}` });
-    item.append(
-      el("b", {}, [findingWhere(finding)]),
-      el("small", { class: "rule" }, [finding.rule]),
-    );
-    item.append(document.createTextNode(finding.message));
-    box.append(item);
-  }
+  appendFindings(box, [...live, ...stale]);
   panel.append(box);
   panel.append(
     el("div", { class: "field muted" }, [
@@ -1518,15 +1606,7 @@ function reportSave(path: string, result: SaveResponse, also: readonly string[] 
   if (check.findings.length === 0) {
     box.append(el("div", { class: "finding" }, ["Lint clean."]));
   }
-  for (const finding of check.findings) {
-    const item = el("div", { class: `finding ${finding.level}` });
-    item.append(
-      el("b", {}, [findingWhere(finding)]),
-      el("small", { class: "rule" }, [finding.rule]),
-    );
-    item.append(document.createTextNode(finding.message));
-    box.append(item);
-  }
+  appendFindings(box, check.findings);
   return box;
 }
 
