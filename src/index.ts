@@ -524,13 +524,10 @@ function cmdServe(port: number): number {
     return 1;
   }
 
-  // Cached because building it re-reads every device, genre, game and template. Cleared
-  // whenever something writes, so a reload always shows what is on disk.
-  let cached: ReturnType<typeof buildPayload> | null = null;
-  const payload = (): ReturnType<typeof buildPayload> => (cached ??= buildPayload());
-  const invalidate = (): void => {
-    cached = null;
-  };
+  // Read from disk for every page, never kept. It was cached and cleared when the server
+  // itself wrote, so a file changed any other way -- actions.yaml edited by hand, a game
+  // folder removed -- stayed on screen until something was saved through the page.
+  const payload = buildPayload;
 
   const server = createServer((request, response) => {
     const send = (status: number, body: string, type = "application/json"): void => {
@@ -591,7 +588,6 @@ function cmdServe(port: number): number {
               set: fresh.set ?? "",
               ...(fresh.overwrite === true ? { overwrite: true } : {}),
             });
-            invalidate();
             send(200, JSON.stringify({ ok: true, ...result }));
             return;
           }
@@ -623,7 +619,6 @@ function cmdServe(port: number): number {
             meta: { set: parsed.set, output: `${game.slug}_${parsed.set}_${unit}.json` },
             ...(parsed.overwrite === true ? { overwrite: true } : {}),
           });
-          invalidate();
           send(200, JSON.stringify({ ok: true, ...result, yaml: undefined }));
         } catch (error) {
           // A name already in use is the user's to resolve, not a malformed request.
@@ -648,7 +643,6 @@ function cmdServe(port: number): number {
           const path = join(game.rel, "actions.yaml");
           const text = readFileSync(repoPath(path), "utf8");
           writeFileSync(repoPath(path), patchActionBindings(text, parsed.changes), "utf8");
-          invalidate();
           send(
             200,
             JSON.stringify({
@@ -672,7 +666,6 @@ function cmdServe(port: number): number {
           const game = games(parsed.game)[0];
           if (!game) throw new Error(`no game '${parsed.game}'`);
           const result = applyIngame(game, { write: true, toGame: true });
-          invalidate();
           send(200, JSON.stringify({ ok: true, result }));
         } catch (error) {
           send(400, JSON.stringify({ ok: false, error: messageOf(error) }));
@@ -688,7 +681,6 @@ function cmdServe(port: number): number {
           mkdirSync(dirname(target), { recursive: true });
           const existing = existsSync(target) ? readFileSync(target, "utf8") : null;
           writeFileSync(target, preserveHeader(existing, content), "utf8");
-          invalidate();
 
           // The file is written. What follows is the verdict on it, not a condition of it.
           let check: SaveCheck | { error: string };

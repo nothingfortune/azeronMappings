@@ -42,6 +42,21 @@ test.describe("the served editor", () => {
     await expect(page.locator(".finding").first()).toContainText("Clean");
   });
 
+  test("shows a file changed on disk when the page is reloaded", async ({ page }) => {
+    // The server kept what it had read until it wrote something itself, so a profile
+    // edited by hand -- or a game folder removed -- stayed on screen as it had been.
+    const before = readFileSync(PROFILE, "utf8");
+    try {
+      await page.goto("/");
+      await expect(page.locator(".hand").first()).not.toContainText("Renamed on disk");
+      writeFileSync(PROFILE, before.replace(/^ {2}name: .*$/m, "  name: Renamed on disk"), "utf8");
+      await page.reload();
+      await expect(page.locator(".hand").first()).toContainText("Renamed on disk");
+    } finally {
+      writeFileSync(PROFILE, before, "utf8");
+    }
+  });
+
   test("moves between its tabs without losing the pair", async ({ page }) => {
     await page.goto("/");
 
