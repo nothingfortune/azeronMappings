@@ -489,7 +489,7 @@ function renderStickModes(): HTMLElement | null {
         const data = workingData(slug);
         data.positions.stick = applyMode(data.positions.stick, set, mode, hand);
       }
-      saveNote = `${mode.label} applied to both sticks. Save each unit to keep it.`;
+      saveNote = `${mode.label} applied to both sticks. Save changes to keep it.`;
       render();
     });
     panel.append(row);
@@ -949,17 +949,18 @@ interface SaveResponse {
  * there -- it used to arrive as one line of every game's errors joined together, which
  * said neither.
  */
-function reportSave(path: string, result: SaveResponse): HTMLElement {
+function reportSave(path: string, result: SaveResponse, also: readonly string[] = []): HTMLElement {
   const box = el("div", { class: "save-report" });
   const check = result.check;
+  const saved = [...also, path].join(" and ");
   if (!check || "error" in check) {
     box.append(
-      el("div", {}, [`Saved ${path}, but checking it failed: ${check?.error ?? "no reply"}`]),
+      el("div", {}, [`Saved ${saved}, but checking it failed: ${check?.error ?? "no reply"}`]),
     );
     return box;
   }
   const changed = check.built.filter((entry) => entry.changed);
-  box.append(el("div", {}, [`Saved ${path}.`]));
+  box.append(el("div", {}, [`Saved ${saved}.`]));
   if (changed.length > 0) {
     box.append(el("div", {}, ["Import in the Azeron app, then write it to the unit:"]));
     for (const entry of changed) {
@@ -1090,6 +1091,79 @@ function exportYaml(slug: string): void {
   download(`${slug}.yaml`, yaml, "text/yaml");
 }
 
+/** Whether one unit has edits the page has not saved. */
+function unitIsDirty(slug: string): boolean {
+  const working = state.working.get(slug);
+  if (!working) return false;
+  const source = currentGame().profiles.find((profile) => profile.slug === slug);
+  return !source || JSON.stringify(source.data) !== JSON.stringify(working);
+}
+
+/**
+ * Save every unit that has changed, as one save.
+ *
+ * The header had a Save and a Download per unit -- four buttons for a pair -- and the
+ * Download was the one drawn as the main action. One Save now covers the pair. Each file
+ * is written and checked in turn; the report names them together, and the import paths
+ * are every file that changed. The check is per game, so the last one speaks for both.
+ */
+async function saveChanged(): Promise<void> {
+  const changed = slugsInSet().filter(unitIsDirty);
+  if (changed.length === 0) return;
+  saveNote = "saving...";
+  saveReport = null;
+  render();
+  const saved: string[] = [];
+  const built = new Map<
+    string,
+    { output: string; importPath: string; mirroredTo?: string; changed: boolean }
+  >();
+  let last: SaveResponse | null = null;
+  try {
+    for (const slug of changed) {
+      const source = currentGame().profiles.find((profile) => profile.slug === slug);
+      if (!source) continue;
+      const data = structuredClone(workingData(slug));
+      const result = await post<SaveResponse>("/api/save", {
+        path: source.path,
+        content: dumpProfile(data, ""),
+      });
+      if (!result.ok) {
+        saveNote = `not saved: ${source.path} -- ${result.error ?? "the server refused it"}`;
+        render();
+        return;
+      }
+      source.data = data;
+      saved.push(source.path);
+      last = result;
+      const check = result.check;
+      if (check && !("error" in check)) {
+        for (const entry of check.built) if (entry.changed) built.set(entry.output, entry);
+      }
+    }
+  } catch (error) {
+    saveNote = `not saved -- could not reach the server: ${messageOf(error)}`;
+    render();
+    return;
+  }
+  const path = saved.pop();
+  if (last === null || path === undefined) return;
+  const check = last.check;
+  // Every file that changed across the saves, not only the last one's.
+  const merged: SaveResponse =
+    check && !("error" in check)
+      ? { ...last, check: { ...check, built: [...built.values()] } }
+      : last;
+  saveNote = null;
+  saveReport = reportSave(path, merged, saved);
+  render();
+}
+
+/** Every unit's import file, for the Azeron app -- the main output when nothing can save. */
+function downloadAll(): void {
+  for (const slug of slugsInSet()) exportJson(slug);
+}
+
 function exportJson(slug: string): void {
   const game = currentGame();
   const profile = profileFor(slug);
@@ -1124,6 +1198,7 @@ function renderHeader(): HTMLElement {
     state.setName = [...setsOf(currentGame()).keys()][0] ?? "";
     render();
   });
+  const tabs = el("div", { class: "tabs" });
   for (const mode of ["edit", "in-game", "press-test", "sheet", "repo"] as Mode[]) {
     const names: Record<Mode, string> = {
       edit: "Edit",
@@ -1145,8 +1220,9 @@ function renderHeader(): HTMLElement {
       state.mode = mode;
       render();
     });
-    header.append(tab);
+    tabs.append(tab);
   }
+  header.append(tabs);
 
   // Labelled: a bare "Everspace 2" beside a bare "akimbo-v10" said nothing about which
   // was which, and "set" is this repo's word, not the user's.
@@ -1168,32 +1244,59 @@ function renderHeader(): HTMLElement {
   );
   header.append(el("span", { class: "spacer" }));
 
-  for (const slug of slugsInSet()) {
-    const unit = workingData(slug).profile.unit ?? slug;
-    const yaml = el("button", { class: "btn", type: "button" }, [
-      canSave() ? `Save ${unit}` : `YAML ${unit}`,
+  header.append(
+    el("span", { class: `pill ${canSave() ? "ok" : ""}` }, [
+      canSave() ? "saves to repo" : "downloads only",
+    ]),
+  );
+
+  // One main action. Served, that is saving -- it rebuilds and says what to import, and it
+  // reads Saved when there is nothing to save, which is the page's unsaved marker. Opened
+  // as a file there is nowhere to save to, so the main action is the import files.
+  if (canSave()) {
+    const dirty = slugsInSet().some(unitIsDirty);
+    const save = el("button", { class: `btn primary${dirty ? " dirty" : ""}`, type: "button" }, [
+      dirty ? "Save changes" : "Saved",
     ]);
-    yaml.addEventListener("click", () => {
-      exportYaml(slug);
+    if (!dirty) save.setAttribute("disabled", "disabled");
+    save.addEventListener("click", () => {
+      void saveChanged();
     });
-    const json = el("button", { class: "btn primary", type: "button" }, [`Download ${unit} JSON`]);
-    json.addEventListener("click", () => {
-      exportJson(slug);
-    });
-    header.append(yaml, json);
+    header.append(save);
+  } else {
+    const get = el("button", { class: "btn primary", type: "button" }, ["Download for the app"]);
+    get.addEventListener("click", downloadAll);
+    header.append(get);
   }
 
-  const reset = el("button", { class: "btn", type: "button" }, ["Reset"]);
-  reset.addEventListener("click", () => {
-    if (!confirmDiscard("Reset")) return;
+  // Everything else is occasional, and lives behind one button.
+  const items = el("div", { class: "menu-items" });
+  const item = (label: string, action: () => void): void => {
+    const button = el("button", { class: "menu-item", type: "button" }, [label]);
+    button.addEventListener("click", () => {
+      menu.removeAttribute("open");
+      action();
+    });
+    items.append(button);
+  };
+  for (const slug of slugsInSet()) {
+    const unit = unitLabel(workingData(slug).profile.unit);
+    item(`Download ${unit.toLowerCase()} unit's import file`, () => {
+      exportJson(slug);
+    });
+    if (!canSave()) {
+      item(`Download ${unit.toLowerCase()} unit's YAML`, () => {
+        exportYaml(slug);
+      });
+    }
+  }
+  item("Undo all unsaved edits", () => {
+    if (!confirmDiscard("Undoing them")) return;
     state.working.clear();
     state.selected = null;
     render();
   });
-  header.append(reset);
 
-  // The payload is embedded so the page works from file://, where fetching a sibling
-  // JSON is blocked. A newer or different one can still be opened by hand.
   const picker = el("input", { type: "file", accept: "application/json,.json" });
   picker.style.display = "none";
   picker.addEventListener("change", () => {
@@ -1212,26 +1315,19 @@ function renderHeader(): HTMLElement {
     });
     reader.readAsText(file);
   });
-  const load = el("button", { class: "btn", type: "button", title: "Open an editor-data.json" }, [
-    "Data",
-  ]);
-  load.addEventListener("click", () => {
+  item("Open a data file…", () => {
     picker.click();
   });
-  header.append(load, picker);
-
-  header.append(
-    el("span", { class: `pill ${canSave() ? "ok" : ""}` }, [
-      canSave() ? "saves to repo" : "downloads only",
-    ]),
-  );
-
-  const theme = el("button", { class: "btn", type: "button" }, ["Theme"]);
-  theme.addEventListener("click", () => {
+  item("Switch light / dark", () => {
     const root = document.documentElement;
     root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark";
   });
-  header.append(theme);
+
+  const menu = el("details", { class: "menu" }, [
+    el("summary", { class: "btn", title: "More" }, ["⋯"]),
+    items,
+  ]);
+  header.append(menu, picker);
   return header;
 }
 

@@ -220,7 +220,7 @@ describe("data sources", () => {
 
   it("offers a way to open a different payload", () => {
     const button = [...document.querySelectorAll("header button")].find(
-      (node) => node.textContent === "Data",
+      (node) => node.textContent === "Open a data file…",
     );
     expect(button).toBeDefined();
     expect(document.querySelector('header input[type="file"]')).not.toBeNull();
@@ -316,7 +316,7 @@ describe("stick modes in the editor", () => {
 
   it("says the change still has to be saved", () => {
     modeButton("Mode 1").click();
-    expect(document.querySelector(".save-note")?.textContent).toContain("Save each unit");
+    expect(document.querySelector(".save-note")?.textContent).toContain("Save changes");
   });
 });
 
@@ -446,7 +446,7 @@ describe("unsaved edits", () => {
     mount();
     const confirm = vi.fn(() => false);
     vi.stubGlobal("confirm", confirm);
-    header("Reset").click();
+    header("Undo all unsaved edits").click();
     expect(confirm).not.toHaveBeenCalled();
   });
 
@@ -455,7 +455,7 @@ describe("unsaved edits", () => {
     edit("pinky_1");
     const confirm = vi.fn(() => false);
     vi.stubGlobal("confirm", confirm);
-    header("Reset").click();
+    header("Undo all unsaved edits").click();
     expect(confirm).toHaveBeenCalledOnce();
   });
 
@@ -488,7 +488,7 @@ describe("unsaved edits", () => {
     }));
     mount();
     edit("pinky_1");
-    header(/^Save left$/).click();
+    header("Save changes").click();
     await vi.waitFor(() => {
       expect(document.querySelector(".save-report")).not.toBeNull();
     });
@@ -501,25 +501,34 @@ describe("unsaved edits", () => {
     expect(report?.querySelectorAll(".finding.warning")).toHaveLength(1);
   });
 
-  it("keeps the other unit's edits after saving one", async () => {
-    served((path) => ({
+  it("saves every unit that changed in one go, and only those", async () => {
+    // A pair had a Save and a Download per unit, four buttons, with Download drawn as the
+    // main one. One Save covers the pair.
+    const calls = served((path) => ({
       ok: true,
       saved: true,
       path,
       check: { game: null, built: [], findings: [], buildErrors: [] },
     }));
     mount();
+    expect(header("Saved").hasAttribute("disabled")).toBe(true);
+
     edit("pinky_1", 0);
-    edit("pinky_1", 1);
-    header(/^Save left$/).click();
+    header("Save changes").click();
     await vi.waitFor(() => {
       expect(document.querySelector(".save-report")).not.toBeNull();
     });
-    // The right unit is still unsaved, so throwing it away still asks.
-    const confirm = vi.fn(() => false);
-    vi.stubGlobal("confirm", confirm);
-    header("Reset").click();
-    expect(confirm).toHaveBeenCalledOnce();
+    expect(calls.map((call) => call.path)).toEqual(["/api/save"]);
+    // Saved is the baseline now, so there is nothing left to save.
+    expect(header("Saved").hasAttribute("disabled")).toBe(true);
+
+    // Pinky 1 already holds what edit() assigns, so a different key changes the left.
+    edit("pinky_2", 0);
+    edit("pinky_1", 1);
+    header("Save changes").click();
+    await vi.waitFor(() => {
+      expect(calls).toHaveLength(3);
+    });
   });
 
   it("sends only the in-game keys that changed, never the whole file", async () => {

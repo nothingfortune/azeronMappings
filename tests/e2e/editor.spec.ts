@@ -67,14 +67,12 @@ test.describe("the served editor", () => {
       // Pick a key, give it a label, and save that unit.
       // pinky_1 exists on both units, so the click has to name a hand.
       const leftHand = page.locator(".hand").first();
-      await leftHand
-        .locator(".key", { has: page.locator(".pos", { hasText: /^pinky_1$/ }) })
-        .click();
+      await leftHand.locator('.key[data-position="pinky_1"]').click();
       const label = page.locator(".panel", { hasText: "Key" }).locator('input[type="text"]');
       await label.fill("Edited end to end");
       await label.blur();
 
-      await page.getByRole("button", { name: /^Save left$/ }).click();
+      await page.getByRole("button", { name: "Save changes" }).click();
 
       // The verdict comes back from the server, not from the page guessing -- and it says
       // the file was saved before it says anything else.
@@ -104,7 +102,7 @@ test.describe("the served editor", () => {
     await expect(dials.nth(0).locator(".up .name")).toHaveText("Hover up");
     await expect(dials.nth(0).locator(".right .name")).toHaveText("Yaw right");
     await expect(dials.nth(1).locator(".up .name")).toHaveText("Thrust forward");
-    await expect(page.locator(".save-note")).toContainText("Save each unit");
+    await expect(page.locator(".save-note")).toContainText("Save changes");
   });
 
   test("draws the press test's columns side by side", async ({ page }) => {

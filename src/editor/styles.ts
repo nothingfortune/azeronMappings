@@ -39,6 +39,22 @@ header {
 }
 header h1 { font-size: 15px; margin: 0 8px 0 0; letter-spacing: .01em; }
 header .spacer { flex: 1; }
+header { gap: 8px; }
+/* The tabs read as one control rather than five loose buttons. */
+header .tabs { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+header .tabs .btn { border: 0; border-radius: 0; }
+header .tabs .btn + .btn { border-left: 1px solid var(--line); }
+.btn.dirty::before { content: "● "; font-size: 9px; vertical-align: middle; }
+.btn[disabled] { opacity: .55; cursor: default; }
+.menu { position: relative; }
+.menu > summary { list-style: none; }
+.menu > summary::-webkit-details-marker { display: none; }
+.menu-items { position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; min-width: 250px;
+              display: grid; padding: 4px; background: var(--panel); border: 1px solid var(--line);
+              border-radius: 8px; box-shadow: 0 8px 24px rgb(0 0 0 / .18); }
+.menu-item { text-align: left; background: none; border: 0; padding: 7px 10px; border-radius: 6px;
+             color: var(--fg); cursor: pointer; font: inherit; }
+.menu-item:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
 select, .btn {
   background: var(--panel); border: 1px solid var(--line); border-radius: 7px;
   padding: 5px 10px; cursor: pointer;
@@ -59,7 +75,7 @@ select, .btn {
 .save-note { padding: 6px 16px; background: var(--panel); border-bottom: 1px solid var(--line);
              font-size: 12px; color: var(--muted); display: flex; gap: 12px; align-items: flex-start; }
 .save-report { flex: 1; display: grid; gap: 4px; min-width: 0; }
-.save-report .finding .rule { display: block; font-size: 10px; color: var(--muted); }
+.finding .rule { display: block; font-size: 10px; color: var(--muted); }
 .finding { overflow-wrap: anywhere; }
 .save-report .import-path code { user-select: all; overflow-wrap: anywhere; color: var(--fg); }
 .save-note .dismiss { flex: none; }
