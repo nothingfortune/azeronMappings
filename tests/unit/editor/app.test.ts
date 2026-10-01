@@ -539,10 +539,10 @@ describe("unsaved edits", () => {
     const row = [...document.querySelectorAll(".ingame-row")].find(
       (node) => node.querySelector(".who b")?.textContent === "Headlight",
     );
-    const input = row?.querySelector<HTMLInputElement>("input");
-    if (!input) throw new Error("no key field for Headlight");
-    input.value = "KeyL";
-    input.dispatchEvent(new Event("change"));
+    const chip = row?.querySelector<HTMLButtonElement>(".key-chip");
+    if (!chip) throw new Error("no key chip for Headlight");
+    chip.click();
+    document.dispatchEvent(new KeyboardEvent("keydown", { code: "KeyL", bubbles: true }));
     [...document.querySelectorAll<HTMLButtonElement>("button")]
       .find((button) => button.textContent === "Save actions.yaml")
       ?.click();

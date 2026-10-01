@@ -96,8 +96,40 @@ const TO_UE: Record<string, string> = {
   Equal: "Equals",
   Minus: "Hyphen",
   NumpadAdd: "Add",
+  NumpadSubtract: "Subtract",
+  NumpadMultiply: "Multiply",
+  NumpadDivide: "Divide",
+  NumpadDecimal: "Decimal",
   Backspace: "BackSpace",
+  CapsLock: "CapsLock",
+  Backquote: "Tilde",
+  BracketLeft: "LeftBracket",
+  BracketRight: "RightBracket",
+  Semicolon: "Semicolon",
+  Quote: "Apostrophe",
+  Comma: "Comma",
+  Period: "Period",
+  Slash: "Slash",
+  Backslash: "Backslash",
+  Insert: "Insert",
+  Delete: "Delete",
+  Home: "Home",
+  End: "End",
+  PageUp: "PageUp",
+  PageDown: "PageDown",
 };
+const NUMPAD_NAMES = [
+  "Zero",
+  "One",
+  "Two",
+  "Three",
+  "Four",
+  "Five",
+  "Six",
+  "Seven",
+  "Eight",
+  "Nine",
+];
 const DIGIT_NAMES = [
   "Zero",
   "One",
@@ -126,6 +158,8 @@ export function ueKeyFor(spec: ActionSpec): string | null {
   if (letter?.[1]) return letter[1];
   const digit = /^Digit([0-9])$/.exec(name);
   if (digit?.[1]) return DIGIT_NAMES[Number(digit[1])] ?? null;
+  const numpad = /^Numpad([0-9])$/.exec(name);
+  if (numpad?.[1]) return `NumPad${NUMPAD_NAMES[Number(numpad[1])] ?? ""}`;
   if (/^F([1-9]|1[0-2])$/.test(name)) return name;
   return null;
 }

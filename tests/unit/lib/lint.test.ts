@@ -2,7 +2,14 @@
 
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { ERROR, WARNING, checkProfile, checkSet, lintGame } from "../../../src/lib/lint.js";
+import {
+  ERROR,
+  WARNING,
+  checkProfile,
+  checkSet,
+  lintGame,
+  lintProfiles,
+} from "../../../src/lib/lint.js";
 import type { Finding } from "../../../src/lib/lint.js";
 import { loadProfile } from "../../../src/lib/io.js";
 import { Game } from "../../../src/lib/model.js";
@@ -195,5 +202,30 @@ describe("encoding", () => {
     const profile = new Profile(data, base.device, { path: base.path, game });
     const findings = checkProfile(profile, game.actions, game.lintConfig);
     expect(findings.map((finding) => finding.rule)).toContain("hold-on-movement");
+  });
+});
+
+describe("linting part of a game", () => {
+  it("does not call another profile's acknowledgements stale", () => {
+    // The editor lints one layout. The golden profile's acknowledgements match nothing in
+    // it, and were reported stale -- with "delete it" -- which would have broken lint for
+    // the profile they belong to.
+    const game = new Game("games/SpaceSims/everspace");
+    const live = game.loadedProfiles().filter((profile) => profile.set !== "single-v5");
+    const result = lintProfiles(game.actions, live, game.lintConfig);
+    expect(result.live.filter((finding) => finding.rule === "stale-acknowledgement")).toEqual([]);
+  });
+
+  it("still reports one that is stale for a profile it did lint", () => {
+    const game = new Game("games/SpaceSims/everspace");
+    const config = {
+      ...game.lintConfig,
+      acknowledged: [
+        ...(game.lintConfig.acknowledged ?? []),
+        { profile: "single-v5", rule: "hold-on-movement", position: "pinky_1", reason: "x" },
+      ],
+    };
+    const result = lintProfiles(game.actions, game.loadedProfiles(), config);
+    expect(result.live.some((finding) => finding.rule === "stale-acknowledgement")).toBe(true);
   });
 });

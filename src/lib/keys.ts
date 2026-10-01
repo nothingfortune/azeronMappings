@@ -199,3 +199,81 @@ export function metaRoundTrips(token: string | number | null | undefined): boole
   const expected = isEmpty(token) ? NONE_TOKEN : String(token);
   return nameToMeta(metaToName(token)) === expected;
 }
+
+/** Names for keys whose code does not say what is printed on them. */
+const KEY_LABELS: Record<string, string> = {
+  ShiftLeft: "Left Shift",
+  ShiftRight: "Right Shift",
+  ControlLeft: "Left Ctrl",
+  ControlRight: "Right Ctrl",
+  AltLeft: "Left Alt",
+  AltRight: "Right Alt",
+  ArrowUp: "↑ Up",
+  ArrowDown: "↓ Down",
+  ArrowLeft: "← Left",
+  ArrowRight: "→ Right",
+  Space: "Space",
+  Enter: "Enter",
+  Escape: "Esc",
+  Tab: "Tab",
+  Backspace: "Backspace",
+  CapsLock: "Caps Lock",
+  Equal: "=",
+  Minus: "-",
+  Backquote: "`",
+  BracketLeft: "[",
+  BracketRight: "]",
+  Semicolon: ";",
+  Quote: "'",
+  Comma: ",",
+  Period: ".",
+  Slash: "/",
+  Backslash: "\\",
+  Insert: "Insert",
+  Delete: "Delete",
+  Home: "Home",
+  End: "End",
+  PageUp: "Page Up",
+  PageDown: "Page Down",
+  NumpadAdd: "Num +",
+  NumpadSubtract: "Num -",
+  NumpadMultiply: "Num *",
+  NumpadDivide: "Num /",
+  NumpadDecimal: "Num .",
+  NumpadEnter: "Num Enter",
+};
+
+/**
+ * A key the way it is printed on the keyboard, for a person to read.
+ *
+ * The names this repo stores are `KeyboardEvent.code` -- `KeyW`, `Digit5`, `ShiftLeft` --
+ * which is right for a file and wrong for a screen. Anything not recognised is shown as
+ * stored rather than guessed at.
+ */
+export function keyLabel(name: string): string {
+  const known = KEY_LABELS[name];
+  if (known !== undefined) return known;
+  const letter = /^Key([A-Z])$/.exec(name);
+  if (letter?.[1]) return letter[1];
+  const digit = /^Digit([0-9])$/.exec(name);
+  if (digit?.[1]) return digit[1];
+  const numpad = /^Numpad([0-9])$/.exec(name);
+  if (numpad?.[1]) return `Num ${numpad[1]}`;
+  return name;
+}
+
+/** Whether a key is a modifier, which the game and the app treat as a key of its own. */
+export function isModifier(name: string): boolean {
+  return /^(Shift|Control|Alt|Meta)(Left|Right)$/.test(name);
+}
+
+/** What a binding sends, for a person: "W", "Left Shift", "Left mouse button". */
+export function bindingLabel(spec: {
+  key?: string | null;
+  meta?: string | null;
+  mouse?: string | null;
+}): string | null {
+  if (spec.mouse) return `${spec.mouse[0]?.toUpperCase() ?? ""}${spec.mouse.slice(1)} mouse button`;
+  const parts = [spec.meta, spec.key].filter((part): part is string => Boolean(part));
+  return parts.length > 0 ? parts.map(keyLabel).join(" + ") : null;
+}

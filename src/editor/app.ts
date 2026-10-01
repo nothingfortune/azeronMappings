@@ -14,6 +14,9 @@ import { handLayout } from "../lib/layout.js";
 import { applyMode, detectMode } from "../lib/stickmodes.js";
 import type { StickModeSet } from "../lib/stickmodes.js";
 import { describeDirection } from "../lib/binding.js";
+import type { BindingChange } from "../lib/actionfile.js";
+import { ueKeyFor } from "../lib/ingame.js";
+import { bindingLabel, isModifier, keyLabel } from "../lib/keys.js";
 import { ActionSet, Device, Profile } from "../lib/model-core.js";
 import {
   DEFAULT_DOUBLE_DELAY,
@@ -1002,12 +1005,13 @@ function download(name: string, text: string, type: string): void {
 async function saveActionKeys(game: EditorGame): Promise<void> {
   const loaded = game.actions.actions ?? {};
   const edited = state.workingActions ?? {};
-  const changes: Record<string, { key?: string | null; meta?: string | null }> = {};
+  const changes: Record<string, BindingChange> = {};
   for (const [id, spec] of Object.entries(edited)) {
     const before = loaded[id] ?? {};
-    const change: { key?: string | null; meta?: string | null } = {};
-    if ((spec.key ?? null) !== (before.key ?? null)) change.key = spec.key ?? null;
-    if ((spec.meta ?? null) !== (before.meta ?? null)) change.meta = spec.meta ?? null;
+    const change: BindingChange = {};
+    for (const field of ["key", "meta", "mouse"] as const) {
+      if ((spec[field] ?? null) !== (before[field] ?? null)) change[field] = spec[field] ?? null;
+    }
     if (Object.keys(change).length > 0) changes[id] = change;
   }
   if (Object.keys(changes).length === 0) {
@@ -1208,29 +1212,130 @@ function renderHeader(): HTMLElement {
   return header;
 }
 
-function actionKeyField(id: string): HTMLElement {
-  const actions = editableActions();
-  const spec = (actions[id] ??= {});
-  const row = el("div", { class: "row2" });
+/** The action whose key is being captured, if any. One at a time, page-wide. */
+let capturing: string | null = null;
 
-  const key = el("input", { type: "text", value: spec.key ?? "", placeholder: "KeyF" });
-  key.addEventListener("change", () => {
-    const value = key.value.trim();
-    if (value) spec.key = value;
-    else removeKey(spec, "key");
-    render();
-  });
-  const meta = el("input", { type: "text", value: spec.meta ?? "", placeholder: "modifier" });
-  meta.addEventListener("change", () => {
-    const value = meta.value.trim();
-    if (value) spec.meta = value;
-    else removeKey(spec, "meta");
-    render();
-  });
-  row.append(
-    el("div", { class: "field" }, [el("label", {}, ["key in game"]), key]),
-    el("div", { class: "field" }, [el("label", {}, ["modifier"]), meta]),
+/** Why the last capture was refused, shown on that action's row until the next one. */
+let captureProblem: { id: string; message: string } | null = null;
+
+const MOUSE_BY_BUTTON: Record<number, string> = { 0: "left", 1: "middle", 2: "right" };
+
+/**
+ * Set an action's in-game binding from what was pressed.
+ *
+ * A modifier on its own is stored as `meta` -- the way boost is on Left Shift -- and
+ * anything else as `key`; a mouse button replaces both. The game cannot be told about
+ * every key, so one it has no name for is refused here rather than written into a file
+ * the game would then ignore.
+ */
+function bindCaptured(id: string, input: { key: string } | { mouse: string }): void {
+  const spec = (editableActions()[id] ??= {});
+  if ("mouse" in input) {
+    removeKey(spec, "key");
+    removeKey(spec, "meta");
+    spec.mouse = input.mouse;
+  } else {
+    if (ueKeyFor({ key: input.key }) === null) {
+      captureProblem = {
+        id,
+        message: `${keyLabel(input.key)} cannot be bound in the game -- pick another key.`,
+      };
+      capturing = null;
+      render();
+      return;
+    }
+    removeKey(spec, "mouse");
+    if (isModifier(input.key)) {
+      removeKey(spec, "key");
+      spec.meta = input.key;
+    } else {
+      removeKey(spec, "meta");
+      spec.key = input.key;
+    }
+  }
+  captureProblem = null;
+  capturing = null;
+  render();
+}
+
+/** Every other action sending the same thing -- shown beside the key, as it happens. */
+function sharedWith(id: string): string[] {
+  const actions = actionSetFor(currentGame());
+  const mine = actions.actions[id];
+  if (!mine) return [];
+  const text = bindingLabel(mine);
+  if (text === null) return [];
+  return Object.entries(actions.actions)
+    .filter(([other, spec]) => other !== id && bindingLabel(spec) === text)
+    .map(([, spec]) => spec.label ?? "");
+}
+
+/**
+ * The key an action is on in the game, as a chip: click it, then press the key.
+ *
+ * It used to be two text boxes that took the browser's own code names -- `KeyW`,
+ * `ShiftLeft` -- with a placeholder of `KeyF` that read like a value, and a modifier box
+ * for a split that only exists in the file format.
+ */
+function actionKeyField(id: string): HTMLElement {
+  const spec = actionSetFor(currentGame()).actions[id] ?? {};
+  const row = el("div", { class: "keybind" });
+  const isCapturing = capturing === id;
+  const current = bindingLabel(spec);
+
+  const chip = el(
+    "button",
+    {
+      class: `key-chip${isCapturing ? " capturing" : ""}${current === null ? " unset" : ""}`,
+      type: "button",
+      title: isCapturing ? "Press a key, or click here with a mouse button" : "Click to change",
+    },
+    [isCapturing ? "Press a key…" : (current ?? "Not bound")],
   );
+  chip.addEventListener("click", () => {
+    if (capturing === id) return;
+    capturing = id;
+    captureProblem = null;
+    render();
+  });
+  // During capture, a mouse button pressed on the chip binds that button.
+  chip.addEventListener("mousedown", (event) => {
+    if (capturing !== id) return;
+    const mouse = MOUSE_BY_BUTTON[event.button];
+    if (mouse === undefined) return;
+    event.preventDefault();
+    bindCaptured(id, { mouse });
+  });
+  chip.addEventListener("contextmenu", (event) => {
+    if (capturing === id) event.preventDefault();
+  });
+  row.append(chip);
+
+  if (isCapturing) {
+    const cancel = el("button", { class: "btn small", type: "button" }, ["Cancel"]);
+    cancel.addEventListener("click", () => {
+      capturing = null;
+      render();
+    });
+    row.append(cancel);
+  } else if (current !== null) {
+    const clear = el("button", { class: "btn small", type: "button", title: "Unbind" }, ["×"]);
+    clear.addEventListener("click", () => {
+      const editable = (editableActions()[id] ??= {});
+      removeKey(editable, "key");
+      removeKey(editable, "meta");
+      removeKey(editable, "mouse");
+      render();
+    });
+    row.append(clear);
+  }
+
+  const shared = sharedWith(id);
+  if (captureProblem?.id === id) {
+    row.append(el("div", { class: "keybind-note bad" }, [captureProblem.message]));
+  } else if (shared.length > 0) {
+    row.append(el("div", { class: "keybind-note" }, [`Also on ${shared.join(", ")}`]));
+  }
   return row;
 }
 
@@ -1242,9 +1347,11 @@ function renderInGame(): HTMLElement {
   panel.append(el("h2", {}, [`${game.name} — in-game bindings`]));
   panel.append(
     el("div", { class: "note" }, [
-      "What each action is bound to inside the game. Changing a key here re-runs the " +
-        "checks, so a collision shows up before it costs a fight. Export actions.yaml " +
-        "and rebuild to keep it.",
+      "The key each action is on inside the game. Click a key and press the new one; a " +
+        "clash shows up straight away. " +
+        (canSave()
+          ? "Save keeps it, then Repo → Write the game's bindings tells the game."
+          : "Export actions.yaml and copy the keys you changed into the game's file."),
     ]),
   );
 
@@ -1262,9 +1369,7 @@ function renderInGame(): HTMLElement {
         ]),
       ]),
     );
-    if (spec.mouse) {
-      item.append(el("div", { class: "muted" }, [`mouse ${spec.mouse}`]));
-    } else if (spec.provided_by) {
+    if (spec.provided_by) {
       item.append(el("div", { class: "muted" }, [spec.provided_by]));
     } else {
       item.append(actionKeyField(id));
@@ -1793,6 +1898,7 @@ function fitStage(wrap: HTMLElement, stage: HTMLElement): void {
 
 let resizeBound = false;
 let unloadBound = false;
+let captureBound = false;
 
 function render(): void {
   const root = document.getElementById("app");
@@ -1870,6 +1976,21 @@ function render(): void {
   requestAnimationFrame(() => {
     fitStage(stageWrap, stage);
   });
+  if (!captureBound) {
+    captureBound = true;
+    document.addEventListener(
+      "keydown",
+      (event) => {
+        if (capturing === null) return;
+        // Every key is a candidate, Escape and Tab included -- Cancel is a button -- and
+        // none of them should also do what the browser would do with it.
+        event.preventDefault();
+        event.stopPropagation();
+        bindCaptured(capturing, { key: event.code });
+      },
+      true,
+    );
+  }
   if (!unloadBound) {
     unloadBound = true;
     // Edits live in the page until they are saved, and a reload used to take them with it

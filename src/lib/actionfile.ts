@@ -18,9 +18,10 @@ export class ActionFileError extends Error {}
 export interface BindingChange {
   key?: string | null;
   meta?: string | null;
+  mouse?: string | null;
 }
 
-const FIELDS = ["key", "meta"] as const;
+const FIELDS = ["key", "meta", "mouse"] as const;
 
 /** A key name as it may appear unquoted in a flow mapping. */
 const TOKEN = /^[A-Za-z][A-Za-z0-9]*$/;

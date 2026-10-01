@@ -531,7 +531,17 @@ export function lintProfiles(
     findings = findings.concat(checkSet(bySet.get(key) ?? [], actions));
   }
 
-  return applyAcknowledgements(findings, config.acknowledged ?? []);
+  // Only acknowledgements for what is being linted. One for a profile left out of this
+  // run matches nothing here, and would be reported stale when it is not -- which is what
+  // the editor did, linting one layout and telling the user to delete the golden
+  // profile's acknowledgements.
+  const linted = new Set(
+    profiles.flatMap((profile) => [profile.slug, profile.set ?? profile.slug]),
+  );
+  const relevant = (config.acknowledged ?? []).filter(
+    (ack) => ack.profile === undefined || linted.has(ack.profile),
+  );
+  return applyAcknowledgements(findings, relevant);
 }
 
 export function lintGame(game: Game, profiles?: readonly Profile[]): LintResult {

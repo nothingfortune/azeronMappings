@@ -86,6 +86,17 @@ header .picker { display: inline-flex; flex-direction: column; gap: 1px; }
 header .picker span { font-size: 9.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
 .sheet-tools { display: flex; gap: 8px; margin-bottom: 8px; }
 .unit-settings { margin-top: 12px; display: grid; gap: 6px; }
+.keybind { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.key-chip { min-width: 96px; padding: 5px 12px; border-radius: 7px; border: 1px solid var(--line);
+            border-bottom-width: 3px; background: var(--panel); color: var(--fg);
+            font: 600 13px/1.2 ui-sans-serif, system-ui, sans-serif; cursor: pointer; text-align: center; }
+.key-chip:hover { border-color: var(--accent); }
+.key-chip.unset { color: var(--muted); font-weight: 400; font-style: italic; }
+.key-chip.capturing { border-color: var(--accent); color: var(--accent);
+                      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+.btn.small { padding: 3px 8px; font-size: 12px; }
+.keybind-note { flex-basis: 100%; font-size: 11px; color: var(--warn, #a86b00); }
+.keybind-note.bad { color: var(--bad, #b3261e); }
 .action-list.inert { opacity: .45; pointer-events: none; }
 .note { font-size: 11.5px; color: var(--muted); margin-bottom: 10px; }
 .sheet-frame { width: 100%; min-height: 78vh; border: 1px solid var(--line); border-radius: 10px;

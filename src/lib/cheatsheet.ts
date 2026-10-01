@@ -9,6 +9,7 @@ import type { KeySlotSpec, PositionSpec, SlotSpec } from "../types/profile.js";
 import { handLayout } from "./layout.js";
 import { ROLE_TAGS } from "./lint.js";
 import type { ActionSet, Profile } from "./model-core.js";
+import { bindingLabel } from "./keys.js";
 
 const CSS = `
 :root {
@@ -96,7 +97,7 @@ function describe(actions: ActionSet, value: SlotSpec | undefined): Described {
   if (value === null || value === undefined) return { label: null, key: null, role: null };
   if (typeof value === "string") {
     const spec = actions.actions[value] ?? {};
-    const key = spec.key ?? spec.meta ?? (spec.mouse ? `mouse: ${spec.mouse}` : null);
+    const key = bindingLabel(spec);
     const tags = new Set(spec.tags ?? []);
     return {
       label: spec.label ?? value,
@@ -105,9 +106,7 @@ function describe(actions: ActionSet, value: SlotSpec | undefined): Described {
     };
   }
   const inline = value as KeySlotSpec & { key_raw?: string; meta_raw?: string };
-  const key = inline.mouse
-    ? `mouse: ${inline.mouse}`
-    : (inline.key ?? inline.key_raw ?? inline.meta ?? inline.meta_raw ?? null);
+  const key = bindingLabel(inline) ?? inline.key_raw ?? inline.meta_raw ?? null;
   return { label: "(raw)", key: key ?? null, role: null };
 }
 
@@ -231,7 +230,7 @@ function bindingRows(profiles: readonly Profile[], actions: ActionSet): string {
     .sort((a, b) => actions.label(a).localeCompare(actions.label(b)))
     .map((id) => {
       const spec = actions.actions[id] ?? {};
-      const key = spec.key ?? spec.meta ?? (spec.mouse ? `mouse: ${spec.mouse}` : "");
+      const key = bindingLabel(spec) ?? "";
       return (
         `<tr><td class="box">&#9744;</td><td>${esc(spec.label ?? id)}</td>` +
         `<td class="k">${esc(key)}</td><td class="k">${esc((used.get(id) ?? []).join(", "))}</td>` +
@@ -259,7 +258,7 @@ export function renderCheatsheet(profiles: readonly Profile[], actions: ActionSe
 <title>${esc(title)}</title><style>${CSS}</style></head>
 <body>
 <h1>${esc(title)}</h1>
-<div class="sub">${esc(profiles.map((p) => p.name ?? p.slug).join(" &middot; "))}</div>
+<div class="sub">${profiles.map((p) => esc(p.name ?? p.slug)).join(" &middot; ")}</div>
 ${units}
 <h2>In-game bindings to set</h2>
 <table><tr><th></th><th>Action</th><th>Key</th><th>Sent from</th><th>Tags</th></tr>${bindingRows(profiles, actions)}</table>
