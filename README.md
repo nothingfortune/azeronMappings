@@ -24,16 +24,15 @@ works in bash only). `npm run azeron -- help` lists everything.
 
 ## Getting a pair onto the units
 
-1. **Give the game its bindings.** Close Everspace 2, then
-   `npm run azeron -- ingame --apply`. This writes the game's `Input.ini` from
-   `games/SpaceSims/everspace/actions.yaml`, keeping the previous file beside it. You do
-   this once, and again only when a key in `actions.yaml` changes — never from the game's
-   own controls screen.
-2. **Build.** The editor's Repo tab has a button, or `npm run azeron -- build`.
-3. **Import both files** in the Azeron app (2.0.2), each onto its own unit:
+1. **Give the game its bindings.** Close Everspace 2, then in the editor's **Setup** tab,
+   **Write the game's bindings** (or `npm run azeron -- ingame --apply`). This writes the
+   game's `Input.ini` from `games/SpaceSims/everspace/actions.yaml`, keeping the previous
+   file beside it. You do this once, and again only when an in-game key changes — never
+   from the game's own controls screen.
+2. **Import both files** in the Azeron app (2.0.2), each onto its own unit:
    - `dist/SpaceSims/everspace/everspace_akimbo_v10_left.json` → the unit on your left hand
    - `dist/SpaceSims/everspace/everspace_akimbo_v10_right.json` → the unit on your right
-4. **Write each profile to its unit, then close the app before playing.** Profiles run
+3. **Write each profile to its unit, then close the app before playing.** Profiles run
    onboard, and the app rewrites its own files while it is open.
 
 Both units report the same USB product id, so nothing on the computer can tell them
@@ -42,13 +41,14 @@ which is which if you are unsure.
 
 ## Changing a binding
 
-There are only ever two things to change, and each lives in one place:
+There are only ever two things to change, and each is done in the editor:
 
-- **Which position does what** — in the editor. Click a key, click an action, Save. The
-  label follows the action, the linter's verdict comes back with the save, and `dist/`
-  is rebuilt. Re-import that unit.
-- **Which key the game listens for** — one line in `actions.yaml`, then
-  `npm run azeron -- ingame --apply`. Every profile follows; nothing needs re-importing.
+- **Which key does what** — the **Edit** tab. Click a key on the board, click an action,
+  **Save changes**. The label follows the action, and the save comes back with the linter's
+  verdict and the file to re-import, as a path the Azeron app's dialog takes.
+- **Which key the game listens for** — the **In-game** tab. Click the action's key, press
+  the new one, then **Save and update the game** with the game closed. Every layout
+  follows; nothing needs re-importing.
 
 Stick modes (DJI Mode 1/2/3, the game's own twin-stick layout, and a roll variant) are
 applied to both sticks in one click from the editor's side panel.
@@ -105,11 +105,11 @@ is rotated half a turn — so each map is measured. `npm run azeron -- probe` wr
 **Press test** tab, and press what it highlights; it records which pin fired and exports
 a corrected `devices/<unit>.yaml`.
 
-**Bringing an edit made in the app home.** The editor's Repo tab takes an export and
+**Bringing an edit made in the app home.** The editor's Setup tab takes an export and
 turns it back into profile YAML (`npm run azeron -- decompile` from the terminal).
 Anything that will not round-trip is kept raw rather than guessed at.
 
-**Starting a new game.** Upload an export from the Repo tab, or
+**Starting a new game.** Upload an export from the Setup tab, or
 `npm run azeron -- import <export.json> --genre G --game SLUG`. Each distinct key becomes
 an action named after the key — an export says which keys are pressed, not what they do,
 so naming them is the first job.

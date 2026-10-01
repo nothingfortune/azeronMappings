@@ -487,6 +487,13 @@ function cmdServe(port: number): number {
           if (!parsed.exported || !parsed.device || !parsed.set) {
             throw new Error("import needs exported, device and set");
           }
+          // The name becomes part of a file path. Unchecked, "../" in it wrote outside the
+          // game's folder.
+          if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(parsed.set)) {
+            throw new Error(
+              `'${parsed.set}' cannot be a layout name: letters, digits, dots and dashes`,
+            );
+          }
           const unit = loadDevice(parsed.device).hand ?? "left";
           const result = importExport({
             exported: parsed.exported,

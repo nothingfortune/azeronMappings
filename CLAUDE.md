@@ -115,15 +115,18 @@ Profiles map position to action id, never position to raw key.
 `genres/<Genre>/stick-modes.yaml` defines stick modes, after the convention RC
 transmitters use (DJI Mode 1/2/3): a mode assigns four action pairs to the four axes a
 pair of units has, and the editor applies one to both sticks in a click. A mode owns the
-eight directions and nothing else on the position. Only four axes fit on two sticks, so
-the shipped modes use the four Everspace 2 has keyboard bindings for — thrust, vertical,
-strafe and roll — with roll standing in for the RC yaw axis, since yaw is on the sensor.
+eight directions and nothing else on the position. The DJI modes translate faithfully —
+RC throttle is vertical, pitch is thrust, roll is strafe, and yaw is yaw — and
+`mode2_roll` and `twin_stick` cover roll on a stick and the game's own gamepad layout. A
+ship has six axes and two thumbs (the d-pad is under the same thumb as the stick), so
+which four go on the sticks is a choice; roll is not a stand-in for yaw.
 
 `src/lib/tasks.ts` holds the operations — build, lint, import an export, read the game's
 config — as functions rather than commands. The CLI and the served editor both call
 them, so what the UI can do is what the CLI can do rather than a subset that drifts. The
-editor's Repo tab reaches them over `/api/build`, `/api/import` and `/api/ingame`;
-saving a profile rebuilds `dist/` and lints in the same round trip.
+editor reaches them over `/api/build`, `/api/import`, `/api/ingame`, `/api/ingame/apply`
+and `/api/actions` (which patches key tokens in actions.yaml line by line); saving a
+profile rebuilds `dist/` and lints in the same round trip.
 
 Whether the page can save is decided by `window.AZERON_SERVED`, which only `azeron serve`
 sets. Sniffing the protocol would claim as much of a static file served by any web

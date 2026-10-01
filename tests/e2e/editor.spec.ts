@@ -151,7 +151,7 @@ test.describe("the served editor", () => {
 
   test("offers detection, and says what it cannot know", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: "Repo", exact: true }).click();
+    await page.getByRole("button", { name: "Setup", exact: true }).click();
 
     const units = page.locator(".panel.inset", { hasText: "Units connected" });
     await expect(units).toBeVisible();
@@ -159,11 +159,25 @@ test.describe("the served editor", () => {
     await expect(units.getByRole("button", { name: "Detect units" })).toBeVisible();
   });
 
-  test("builds from the Repo tab", async ({ page }) => {
-    await page.goto("/");
-    await page.getByRole("button", { name: "Repo", exact: true }).click();
+  test("refuses a layout name that would leave the game's folder", async ({ page }) => {
+    // The name becomes part of a file path, and was not checked.
+    const response = await page.request.post("/api/import", {
+      data: {
+        game: "everspace",
+        device: "cyborg2-left",
+        set: "../../escaped",
+        exported: { profiles: [{}] },
+      },
+    });
+    expect(response.status()).toBe(400);
+    expect(await response.text()).toContain("cannot be a layout name");
+  });
 
-    await page.getByRole("button", { name: "Build profiles" }).click();
+  test("rebuilds from the Setup tab", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "Setup", exact: true }).click();
+
+    await page.getByRole("button", { name: "Rebuild every import file" }).click();
     await expect(page.locator(".repo-note")).toContainText("profile(s) changed", {
       timeout: 20_000,
     });

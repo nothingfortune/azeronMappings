@@ -68,6 +68,8 @@ header .tabs .btn + .btn { border-left: 1px solid var(--line); }
 .field.slot[data-active] .slot-pick { border-color: var(--accent);
                                       box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent); }
 .row-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.setup-section { margin: 18px 0 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+.setup-section h3 { margin: 0 0 2px; font-size: 13px; }
 .menu { position: relative; }
 .menu > summary { list-style: none; }
 .menu > summary::-webkit-details-marker { display: none; }

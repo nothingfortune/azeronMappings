@@ -1028,6 +1028,9 @@ function canSave(): boolean {
 
 let saveNote: string | null = null;
 
+/** What a layout may be called: it becomes part of a file name. */
+const LAYOUT_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+
 /** Whether the stick-mode panel is unfolded; kept across renders. */
 let stickModesOpen = false;
 
@@ -1366,7 +1369,7 @@ function renderHeader(): HTMLElement {
       "in-game": "In-game",
       "press-test": "Press test",
       sheet: "Sheet",
-      repo: "Repo",
+      repo: "Setup",
     };
     const tab = el(
       "button",
@@ -1851,15 +1854,25 @@ async function post<T extends object = Record<string, unknown>>(
   return { ...parsed, status: response.status };
 }
 
+/** A heading and a sentence saying what a section of the Setup tab is for. */
+function section(title: string, purpose: string): HTMLElement {
+  return el("div", { class: "setup-section" }, [
+    el("h3", {}, [title]),
+    el("div", { class: "muted" }, [purpose]),
+  ]);
+}
+
 /**
- * The operations that otherwise need a terminal.
+ * The jobs done once in a while: units, bringing a profile in, the game's bindings, a
+ * full rebuild. It was called Repo -- a git word -- and listed them without saying what
+ * each was for.
  *
  * Only reachable when served: opened as a file there is nothing on the other end, and
  * the tab says so rather than offering buttons that cannot work.
  */
 function renderRepo(): HTMLElement {
   const panel = el("div", { class: "panel" });
-  panel.append(el("h2", {}, ["Repo"]));
+  panel.append(el("h2", {}, ["Setup"]));
 
   // Detection is the browser talking to USB, so it works either way.
   panel.append(renderDetection());
@@ -1876,41 +1889,27 @@ function renderRepo(): HTMLElement {
 
   if (repoNote !== null) panel.append(el("div", { class: "note repo-note" }, [repoNote]));
 
-  const buildRow = el("div", { class: "field" });
-  const build = el("button", { class: "btn primary", type: "button" }, ["Build profiles"]);
-  build.addEventListener("click", () => {
-    repoNote = "building...";
-    render();
-    void post("/api/build", {}).then((result) => {
-      const built = (result.built ?? []) as { output: string; changed: boolean }[];
-      const errors = (result.errors ?? []) as string[];
-      const changed = built.filter((entry) => entry.changed);
-      repoNote =
-        errors.length > 0
-          ? `build failed: ${errors.join(" | ")}`
-          : `${String(changed.length)} of ${String(built.length)} profile(s) changed` +
-            (changed.length > 0 ? `: ${changed.map((e) => e.output).join(", ")}` : "");
-      render();
-    });
-  });
-  buildRow.append(build);
-  buildRow.append(
-    el("div", { class: "muted" }, [
-      el("small", {}, [
-        "Compiles every profile into dist/, and copies to a game's export_to if it sets one.",
-      ]),
-    ]),
-  );
-  panel.append(buildRow);
-
   // Importing an export: the round trip back from the Azeron app.
   const importRow = el("div", { class: "field" });
-  importRow.append(el("label", {}, ["Upload an Azeron export"]));
+  importRow.append(
+    section(
+      "Bring in a profile from the Azeron app",
+      "Export it in the Azeron app, then drop it here. It becomes a layout you can edit, " +
+        "and the export is kept as what the compiler builds on.",
+    ),
+  );
 
-  const setName = el("input", { type: "text", value: "v1", placeholder: "set name" });
+  // A name and a hand -- in words. It asked for a "set name", defaulting to "v1", and a
+  // device id. The name becomes a file name, so it is checked here and on the server.
+  const setName = el("input", { type: "text", value: "", placeholder: "e.g. akimbo-v11" });
   const deviceSelect = el("select", {});
   for (const device of Object.values(state.payload.devices)) {
-    deviceSelect.append(el("option", { value: device.device }, [device.device]));
+    const hand = device.hand ?? "";
+    deviceSelect.append(
+      el("option", { value: device.device }, [
+        hand === "" ? device.device : `${unitLabel(hand)} unit`,
+      ]),
+    );
   }
 
   const file = el("input", { type: "file", accept: "application/json,.json" });
@@ -1935,13 +1934,22 @@ function renderRepo(): HTMLElement {
         render();
         return;
       }
+      const name = setName.value.trim();
+      if (!LAYOUT_NAME.test(name)) {
+        repoNote =
+          name === ""
+            ? "Give the layout a name first."
+            : `"${name}" cannot be a layout name: letters, digits, dots and dashes only.`;
+        render();
+        return;
+      }
       repoNote = `importing ${chosen.name}...`;
       render();
       const send = (overwrite: boolean): void => {
         void post("/api/import", {
           game: currentGame().slug,
           device: deviceSelect.value,
-          set: setName.value.trim() || "v1",
+          set: name,
           exported,
           ...(overwrite ? { overwrite: true } : {}),
         }).then((result) => {
@@ -2009,8 +2017,8 @@ function renderRepo(): HTMLElement {
 
   importRow.append(
     el("div", { class: "row2" }, [
-      el("div", { class: "field" }, [el("label", {}, ["set name"]), setName]),
-      el("div", { class: "field" }, [el("label", {}, ["unit"]), deviceSelect]),
+      el("div", { class: "field" }, [el("label", {}, ["Name for this layout"]), setName]),
+      el("div", { class: "field" }, [el("label", {}, ["Exported from"]), deviceSelect]),
     ]),
     el("div", { class: "row2" }, [upload]),
     drop,
@@ -2019,6 +2027,13 @@ function renderRepo(): HTMLElement {
   panel.append(importRow);
 
   // The game's own bindings, read from its config file.
+  panel.append(
+    section(
+      "The game's key bindings",
+      "The keys inside the game come from actions.yaml. Read shows where the game " +
+        "disagrees; Write makes it agree. Close the game first.",
+    ),
+  );
   const ingameRow = el("div", { class: "field" });
   const check = el("button", { class: "btn", type: "button" }, ["Read the game's bindings"]);
   check.addEventListener("click", () => {
@@ -2081,6 +2096,34 @@ function renderRepo(): HTMLElement {
   });
   ingameRow.append(check, apply);
   panel.append(ingameRow);
+
+  panel.append(section("Rebuild", "Every layout's import file, from scratch."));
+  const buildRow = el("div", { class: "field" });
+  const build = el("button", { class: "btn", type: "button" }, ["Rebuild every import file"]);
+  build.addEventListener("click", () => {
+    repoNote = "building...";
+    render();
+    void post("/api/build", {}).then((result) => {
+      const built = (result.built ?? []) as { output: string; changed: boolean }[];
+      const errors = (result.errors ?? []) as string[];
+      const changed = built.filter((entry) => entry.changed);
+      repoNote =
+        errors.length > 0
+          ? `build failed: ${errors.join(" | ")}`
+          : `${String(changed.length)} of ${String(built.length)} profile(s) changed` +
+            (changed.length > 0 ? `: ${changed.map((e) => e.output).join(", ")}` : "");
+      render();
+    });
+  });
+  buildRow.append(build);
+  buildRow.append(
+    el("div", { class: "muted" }, [
+      el("small", {}, [
+        "Saving already rebuilds what changed. This rebuilds every layout, for when a template or the vocabulary changed underneath them.",
+      ]),
+    ]),
+  );
+  panel.append(buildRow);
 
   if (ingameRows !== null) {
     const list = el("div", { class: "ingame-list" });

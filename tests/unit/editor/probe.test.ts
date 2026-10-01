@@ -282,7 +282,7 @@ describe("unit detection", () => {
   function openRepo(): void {
     startEditor(buildEditorPayload());
     const tab = [...document.querySelectorAll("header button")].find(
-      (button) => button.textContent === "Repo",
+      (button) => button.textContent === "Setup",
     );
     (tab as HTMLButtonElement).click();
   }

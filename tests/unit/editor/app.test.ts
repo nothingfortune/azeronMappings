@@ -238,11 +238,11 @@ describe("data sources", () => {
   });
 });
 
-describe("the repo tab", () => {
+describe("the setup tab", () => {
   beforeEach(() => {
     mount();
     const tab = [...document.querySelectorAll("header button")].find(
-      (node) => node.textContent === "Repo",
+      (node) => node.textContent === "Setup",
     );
     (tab as HTMLButtonElement).click();
   });
@@ -261,13 +261,35 @@ describe("the repo tab", () => {
     try {
       mount();
       const tab = [...document.querySelectorAll("header button")].find(
-        (node) => node.textContent === "Repo",
+        (node) => node.textContent === "Setup",
       );
       (tab as HTMLButtonElement).click();
       const labels = [...document.querySelectorAll(".panel button")].map((n) => n.textContent);
-      expect(labels).toContain("Build profiles");
+      expect(labels).toContain("Rebuild every import file");
       expect(labels).toContain("Read the game's bindings");
       expect(document.querySelector("header .pill.mode")?.textContent).toBe("saves to repo");
+    } finally {
+      (window as unknown as { AZERON_SERVED?: boolean }).AZERON_SERVED = false;
+    }
+  });
+
+  it("asks for a layout name and a hand in words, not a set name and a device id", () => {
+    (window as unknown as { AZERON_SERVED?: boolean }).AZERON_SERVED = true;
+    try {
+      mount();
+      [...document.querySelectorAll<HTMLButtonElement>("header button")]
+        .find((node) => node.textContent === "Setup")
+        ?.click();
+      const labels = [...document.querySelectorAll(".panel .field label")].map(
+        (n) => n.textContent,
+      );
+      expect(labels).toContain("Name for this layout");
+      expect(labels).toContain("Exported from");
+      const hands = [...document.querySelectorAll(".panel select option")].map(
+        (o) => o.textContent,
+      );
+      expect(hands).toEqual(expect.arrayContaining(["Left unit", "Right unit"]));
+      expect(document.querySelector<HTMLInputElement>('.panel input[type="text"]')?.value).toBe("");
     } finally {
       (window as unknown as { AZERON_SERVED?: boolean }).AZERON_SERVED = false;
     }
