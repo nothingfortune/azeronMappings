@@ -40,7 +40,9 @@ import {
   ImportCollision,
   importExport,
   applyIngame,
+  capturePedalsFrom,
   checkAfterSave,
+  setPedalCandidates,
   ingameReport,
   profilePathFor,
   templatePathFor,
@@ -285,14 +287,39 @@ function cmdIngame(
   selector: string | undefined,
   configPath: string | undefined,
   apply: boolean,
+  pedals: {
+    capture: boolean;
+    require: boolean;
+    set: string | undefined;
+    assign: string[];
+    ignoreDevices: string[];
+    candidate: string[];
+  },
 ): number {
   let failures = 0;
   for (const game of games(selector)) {
     try {
+      if (pedals.candidate.length > 0) {
+        const done = setPedalCandidates(game, {
+          write: true,
+          ...(pedals.set === undefined ? {} : { set: pedals.set }),
+          names: parseAssign(pedals.candidate, "--candidate", "pedal_axis=NAME"),
+        });
+        out(`${game.slug}: pedals of ${done.set}, untested candidate names written`);
+        out(`  wrote ${String(done.written)}`);
+        out("  these are NOT captured: `azeron ingame --apply` will write them into the game's");
+        out("  file so they can be tried, and says so. A real capture replaces them.");
+        continue;
+      }
+      if (pedals.capture) {
+        cmdCapturePedals(game, configPath, pedals);
+        continue;
+      }
       if (apply) {
         const result = applyIngame(game, {
           write: true,
           toGame: true,
+          requirePedals: pedals.require,
           ...(configPath === undefined ? {} : { override: configPath }),
         });
         out(`${game.slug}: generated from ${result.source}`);
@@ -308,10 +335,54 @@ function cmdIngame(
         for (const entry of result.collisions) {
           out(`  shared on purpose: ${entry.key} -> ${entry.actions.join(" + ")}`);
         }
+        if (result.pedals !== null) {
+          out(`  pedals of set ${result.pedals.set}:`);
+          for (const change of result.pedals.changes) {
+            out(
+              `    ${change.display.padEnd(28)} ${change.field.padEnd(11)} ` +
+                `${change.from} -> ${change.to}` +
+                (change.pedalAxis === null ? "" : ` (${change.pedalAxis})`) +
+                (change.status === undefined || change.status === "confirmed"
+                  ? ""
+                  : `  [name ${change.status}, not flown]`),
+            );
+          }
+          for (const wait of result.pedals.waiting) {
+            out(
+              `    waiting for capture: ${wait.pedalAxis} (${wait.label}) -> ${wait.row}` +
+                " -- nothing written for it",
+            );
+          }
+          if (result.pedals.waiting.length > 0) {
+            out(
+              "    bind those in the game's controls screen, close the game, then " +
+                "`azeron ingame --capture-pedals` -- or, if the game will not take them, " +
+                "write a candidate by hand with --candidate pedal_axis=NAME",
+            );
+          }
+        }
         continue;
       }
 
       const report = ingameReport(game, configPath);
+      if (report.pedals !== null) {
+        const axes = report.pedals.axes;
+        const waiting = axes.filter((axis) => axis.status === "waiting");
+        const named = axes.filter((axis) => axis.status !== "waiting");
+        out(
+          `${game.slug}: pedals of ${report.pedals.set}: ${String(named.length)} named, ` +
+            `${String(waiting.length)} waiting for a name` +
+            (waiting.length > 0
+              ? ` (${waiting.map((axis) => `${axis.pedalAxis} -> ${String(axis.row)}`).join(", ")})`
+              : ""),
+        );
+        for (const axis of named) {
+          out(
+            `  ${axis.pedalAxis.padEnd(10)} ${String(axis.name)}  [${axis.status}]` +
+              (axis.status === "confirmed" ? "" : " -- not flown"),
+          );
+        }
+      }
       const differs = report.rows.filter((row) => row.status === "differs");
       const unmatched = report.rows.filter((row) => row.status === "unmatched");
       out(`${game.slug}: ${report.path}`);
@@ -348,6 +419,100 @@ function cmdIngame(
     }
   }
   return failures > 0 ? 1 : 0;
+}
+
+/** `--assign NAME=axis` pairs, as a map. */
+function parseAssign(
+  pairs: readonly string[],
+  flag = "--assign",
+  shape = "NAME=pedal_axis",
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const pair of pairs) {
+    const at = flag === "--assign" ? pair.lastIndexOf("=") : pair.indexOf("=");
+    if (at <= 0 || at === pair.length - 1) {
+      throw new Error(`${flag} needs ${shape}, not '${pair}'`);
+    }
+    // --assign is NAME=axis, the game's name first; --candidate is axis=NAME.
+    out[pair.slice(0, at)] = pair.slice(at + 1);
+  }
+  return out;
+}
+
+/** Read the pedals' game names out of a file they have been bound in, and record them. */
+function cmdCapturePedals(
+  game: Game,
+  configPath: string | undefined,
+  options: { set: string | undefined; assign: string[]; ignoreDevices: string[] },
+): void {
+  const done = capturePedalsFrom(game, {
+    write: true,
+    ...(options.set === undefined ? {} : { set: options.set }),
+    ...(configPath === undefined ? {} : { override: configPath }),
+    assign: parseAssign(options.assign),
+    ignoreDevices: options.ignoreDevices,
+  });
+  const { result } = done;
+  out(`${game.slug}: pedals of ${done.set}, read from ${done.source}`);
+  for (const other of result.otherDevices)
+    out(`  skipped ${other}: already has buttons in the file`);
+  for (const found of result.known) {
+    out(
+      `  already recorded: ${found.pedalAxis} = ${found.name} [${found.status}]` +
+        `, found on ${found.row} as the layout expects`,
+    );
+  }
+  for (const found of result.recorded) {
+    out(
+      `  ${found.pedalAxis.padEnd(10)} = ${found.name}   (found on ${found.row}, ${found.slot}; ` +
+        "recorded as bound: the game wrote it there, which is not proof the right pedal was moved)",
+    );
+  }
+  if (result.conflicts.length > 0) {
+    out("");
+    out("  the file and the device data DISAGREE -- nothing was changed:");
+    for (const found of result.conflicts) {
+      out(`    ${found.name} on ${found.row}: ${found.reason}`);
+    }
+  }
+  if (done.written !== null) out(`  wrote ${done.written}`);
+  if (result.unresolved.length > 0) {
+    out("");
+    out("  found, but not placed -- nothing was guessed:");
+    for (const found of result.unresolved) {
+      out(`    ${found.name}   on ${found.row} (${found.slot}): ${found.reason}`);
+    }
+    out("  say which pedal axis each is with --assign NAME=pedal_axis and run it again.");
+  }
+  if (
+    result.recorded.length === 0 &&
+    result.unresolved.length === 0 &&
+    result.conflicts.length === 0 &&
+    result.known.length === 0
+  ) {
+    out(
+      "  nothing new: no Joystick axis is bound to a pedal that is not already recorded. In " +
+        "the game's controls screen, Joystick column, bind each pedal on the axis the layout " +
+        "says it drives, quit the game so it writes Input.ini, then run this again.",
+    );
+  }
+  for (const entry of result.unproven) {
+    out(
+      `  not seen in this file: ${entry.pedalAxis} = ${entry.name} [${entry.status}]` +
+        ` (${String(entry.row)})`,
+    );
+  }
+  if (result.missing.length > 0) {
+    out("");
+    out("  still without a name -- nothing is written for these:");
+    for (const entry of result.missing) {
+      out(`    ${entry.pedalAxis} (${entry.label}) -> ${String(entry.row)}`);
+    }
+    out(
+      "  if the game's controls screen will not bind one, write a name to try by hand: " +
+        "--candidate pedal_axis=NAME",
+    );
+  }
 }
 
 /** Read a request body, refusing one over `limit` with a reply rather than a dropped socket. */
@@ -759,8 +924,15 @@ function usage(): void {
   roundtrip [game]                verify golden profiles rebuild their template
   cheatsheet [game]               per-profile layout diagram + binding checklist
   bindings [game]                 the in-game key list to check against the game
-  ingame [game] [--apply] [--config PATH]
+  ingame [game] [--apply] [--config PATH] [--require-pedals]
                                   compare the game's own bindings; --apply makes them agree
+  ingame [game] --capture-pedals [--set S] [--config PATH] [--assign NAME=axis]...
+         [--ignore-device NAME]...
+                                  read the pedals' game names from a file they were bound
+                                  in, and record them in the pedals device file
+  ingame [game] --candidate pedal_axis=NAME [--set S]
+                                  write a name to try by hand, marked UNTESTED, for a pedal
+                                  axis the game's own controls screen will not bind
   editor [--out PATH]             the editor as one self-contained HTML file
   serve [--port N]                the same editor, able to save back into the repo
   probe [--device D]              press-test profiles; capture them in the editor's Press test tab
@@ -798,6 +970,11 @@ export function main(argv: string[]): number {
       strict: { type: "boolean", default: false },
       "show-acknowledged": { type: "boolean", default: false },
       apply: { type: "boolean", default: false },
+      "capture-pedals": { type: "boolean", default: false },
+      "require-pedals": { type: "boolean", default: false },
+      assign: { type: "string", multiple: true, default: [] },
+      "ignore-device": { type: "string", multiple: true, default: [] },
+      candidate: { type: "string", multiple: true, default: [] },
       golden: { type: "boolean", default: false },
       yes: { type: "boolean", default: false },
       "dry-run": { type: "boolean", default: false },
@@ -830,7 +1007,14 @@ export function main(argv: string[]): number {
     case "bindings":
       return cmdBindings(positionals[0]);
     case "ingame":
-      return cmdIngame(positionals[0], values.config, values.apply);
+      return cmdIngame(positionals[0], values.config, values.apply, {
+        capture: values["capture-pedals"],
+        require: values["require-pedals"],
+        set: values.set,
+        assign: values.assign,
+        ignoreDevices: values["ignore-device"],
+        candidate: values.candidate,
+      });
     case "serve":
       return cmdServe(wholeNumber("--port", values.port ?? "4173"));
     case "editor":

@@ -15,6 +15,7 @@ import type { ProfileMeta } from "../types/profile.js";
 import { compileProfile, dumps } from "./compile.js";
 import { decompile, dumpProfile } from "./decompile.js";
 import {
+  applyPedalRows,
   applyVocabulary,
   compareToGame,
   gameCollisions,
@@ -22,8 +23,13 @@ import {
   ownedCollisions,
   parseInput,
 } from "./ingame.js";
-import type { Comparison, IngameChange } from "./ingame.js";
-import { loadDevice, loadTemplate, writeText } from "./io.js";
+import type { Comparison, IngameChange, PedalChange, PedalPlan, PedalWaiting } from "./ingame.js";
+import { loadDevice, loadProfileData, loadTemplate, writeText } from "./io.js";
+import type { LoadedPedals } from "./io.js";
+import { capturePedals, ingamePlan, planAxes, recordCandidateNames } from "./pedals.js";
+import type { CaptureOptions, CaptureResult, PlannedAxis } from "./pedals.js";
+import type { StickModeSet } from "./stickmodes.js";
+import type { NameStatus } from "../types/pedals.js";
 import { ERROR, WARNING, formatFinding, lintGame, lintGenre } from "./lint.js";
 import type { Finding } from "./lint.js";
 import { Game, Genre } from "./model.js";
@@ -375,10 +381,69 @@ export function createGame(request: NewGameRequest): NewGameResult {
   }
 }
 
+/** A layout's pedals, resolved against the device, the genre's axes and the game's rows. */
+export interface PedalsInPlay {
+  set: string;
+  device: LoadedPedals;
+  modes: StickModeSet;
+  axes: PlannedAxis[];
+  plan: PedalPlan;
+}
+
+/**
+ * The pedals of a set -- the game's `ingame_set` unless one is named -- or null when the
+ * set has none. A set that is named but missing, or whose device or genre axes are not
+ * there, throws: asking for pedals that cannot be resolved is not the same as not having any.
+ */
+export function pedalsFor(game: Game, setName?: string): PedalsInPlay | null {
+  const set = setName ?? game.config.ingame_set;
+  if (set === undefined) return null;
+  const layout = game.sets.sets[set];
+  if (layout === undefined) {
+    // A set with no entry has no pedals. A name no profile carries is a typo, not a set.
+    const exists = game.profilePaths().some((path) => loadProfileData(path).profile.set === set);
+    if (!exists) throw new IngameError(`${game.slug} has no set '${set}' -- no profile carries it`);
+    return null;
+  }
+  if (layout.pedals === undefined) return null;
+  const device = game.pedalsDevice(layout.pedals.device);
+  if (device === null) {
+    throw new IngameError(
+      `set '${set}' has pedals on '${layout.pedals.device}', which has no file`,
+    );
+  }
+  const modes = game.stickModes;
+  if (modes === undefined) {
+    throw new IngameError(
+      `${game.slug}'s genre has no stick-modes.yaml, so its game axes are unknown`,
+    );
+  }
+  const axes = planAxes(layout.pedals, device.data, modes, game.actions.actions, game.slug);
+  return {
+    set,
+    device,
+    modes,
+    axes,
+    plan: ingamePlan(axes, device.data, modes, game.actions.actions, game.slug),
+  };
+}
+
 export interface IngameReport {
   path: string;
   rows: Comparison[];
   collisions: { key: string; actions: string[] }[];
+  /** The pedals the game's `ingame_set` has, and which are still waiting for a name. */
+  pedals: {
+    set: string;
+    axes: {
+      pedalAxis: string;
+      row: string | null;
+      /** The name generation would write: captured, else a hand-written candidate. */
+      name: string | null;
+      /** How far the name is trusted, or `waiting` when there is none. */
+      status: NameStatus | "waiting";
+    }[];
+  } | null;
 }
 
 /** What the game's own binding file says about the keys we send. */
@@ -389,7 +454,24 @@ export function ingameReport(game: Game, override?: string): IngameReport {
   // are live while flying, only a collision inside those is worth reporting.
   const owned = new Set(game.config.ingame_owned_categories ?? []);
   const collisions = owned.size > 0 ? ownedCollisions(file, owned) : gameCollisions(file);
-  return { path, rows: compareToGame(game.actions, file), collisions };
+  const pedals = pedalsFor(game);
+  return {
+    path,
+    rows: compareToGame(game.actions, file),
+    collisions,
+    pedals:
+      pedals === null
+        ? null
+        : {
+            set: pedals.set,
+            axes: pedals.axes.map((axis) => ({
+              pedalAxis: axis.pedalAxis,
+              row: axis.row,
+              name: axis.name,
+              status: axis.status ?? ("waiting" as const),
+            })),
+          },
+  };
 }
 
 /** The committed copy of the game's binding file, as last generated. */
@@ -429,6 +511,11 @@ export interface IngameApplyResult {
   written: string[];
   /** Where the game's previous file was copied before being replaced, if it was. */
   backup: string | null;
+  /**
+   * What the layout's pedals did to the Joystick rows. `waiting` are pedal axes with no
+   * captured game name, which write nothing; null when the game's set has no pedals.
+   */
+  pedals: { set: string; changes: PedalChange[]; waiting: PedalWaiting[] } | null;
 }
 
 /**
@@ -448,6 +535,8 @@ export function applyIngame(
     toGame?: boolean;
     /** Read from this file instead of the game's. Never written to. */
     override?: string;
+    /** Refuse, rather than report, a pedal axis whose game name is not captured yet. */
+    requirePedals?: boolean;
   },
 ): IngameApplyResult {
   const owned = new Set(game.config.ingame_owned_categories ?? []);
@@ -458,7 +547,18 @@ export function applyIngame(
   }
   const source = ingameSource(game, options.override);
   const before = readFileSync(source, "utf8");
-  const { text, changes } = applyVocabulary(parseInput(before), game.actions, owned);
+  const keyboard = applyVocabulary(parseInput(before), game.actions, owned);
+  const { changes } = keyboard;
+  let text = keyboard.text;
+  let pedalReport: IngameApplyResult["pedals"] = null;
+  const pedals = pedalsFor(game);
+  if (pedals !== null) {
+    const written = applyPedalRows(parseInput(text), pedals.plan, {
+      strict: options.requirePedals === true,
+    });
+    text = written.text;
+    pedalReport = { set: pedals.set, changes: written.changes, waiting: written.waiting };
+  }
   const collisions = ownedCollisions(parseInput(text), owned);
 
   const written: string[] = [];
@@ -481,7 +581,60 @@ export function applyIngame(
       written.push(live);
     }
   }
-  return { source, changes, collisions, written, backup };
+  return { source, changes, collisions, written, backup, pedals: pedalReport };
+}
+
+export interface CapturePedalsRequest extends CaptureOptions {
+  /** The set whose pedals these are; the game's `ingame_set` when omitted. */
+  set?: string;
+  /** Read this file instead of the game's own. */
+  override?: string;
+  /** Write the names into the device file. False reports what would be recorded. */
+  write: boolean;
+}
+
+export interface CapturePedalsResult {
+  source: string;
+  set: string;
+  device: string;
+  result: CaptureResult;
+  /** The device file written, when anything was. */
+  written: string | null;
+}
+
+/**
+ * Record the pedals' game names from a file the user has bound them in.
+ *
+ * The game's file is only read. The names go into the pedals device file, a line at a
+ * time, and only the ones the layout and the file together place without a doubt.
+ */
+export function capturePedalsFrom(game: Game, request: CapturePedalsRequest): CapturePedalsResult {
+  const pedals = pedalsFor(game, request.set);
+  if (pedals === null) {
+    throw new IngameError(
+      `${game.slug} has no pedals to capture: name a set that has them with --set, or set ingame_set`,
+    );
+  }
+  const source = ingameSource(game, request.override);
+  const file = parseInput(readFileSync(source, "utf8"));
+  const options: CaptureOptions = {
+    ...(request.assign === undefined ? {} : { assign: request.assign }),
+    ...(request.ignoreDevices === undefined ? {} : { ignoreDevices: request.ignoreDevices }),
+  };
+  const result = capturePedals(
+    file,
+    pedals.device.text,
+    pedals.device.data,
+    pedals.axes,
+    game.slug,
+    options,
+  );
+  let written: string | null = null;
+  if (request.write && result.text !== null) {
+    writeText(pedals.device.path, result.text);
+    written = pedals.device.path;
+  }
+  return { source, set: pedals.set, device: pedals.device.data.device, result, written };
 }
 
 /** Where a decompiled profile should live for a game and set. */
@@ -542,4 +695,39 @@ export function checkAfterSave(
     findings,
     buildErrors: build.errors,
   };
+}
+
+export interface SetCandidatesRequest {
+  /** The set whose pedals these are; the game's `ingame_set` when omitted. */
+  set?: string;
+  /** Pedal axis -> the name to try. The caller chooses it; nothing here does. */
+  names: Readonly<Record<string, string>>;
+  write: boolean;
+}
+
+/**
+ * Write names by hand, marked untested, for a pedal axis the game's controls screen will
+ * not bind. Generation then writes them into the game's file so they can be tried; a later
+ * capture of the real name replaces them.
+ */
+export function setPedalCandidates(
+  game: Game,
+  request: SetCandidatesRequest,
+): { set: string; device: string; text: string; written: string | null } {
+  const pedals = pedalsFor(game, request.set);
+  if (pedals === null) {
+    throw new IngameError(`${game.slug} has no pedals: name a set that has them with --set`);
+  }
+  for (const axis of Object.keys(request.names)) {
+    if (!(axis in pedals.device.data.axes)) {
+      throw new IngameError(`${pedals.device.data.device} has no axis '${axis}'`);
+    }
+  }
+  const text = recordCandidateNames(pedals.device.text, game.slug, request.names);
+  let written: string | null = null;
+  if (request.write) {
+    writeText(pedals.device.path, text);
+    written = pedals.device.path;
+  }
+  return { set: pedals.set, device: pedals.device.data.device, text, written };
 }

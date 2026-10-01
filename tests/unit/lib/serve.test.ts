@@ -28,6 +28,13 @@ describe("resolveSavePath", () => {
     expect(resolveSavePath(ROOT, "devices/cyborg2-left.yaml")).toBe(
       "/repo/devices/cyborg2-left.yaml",
     );
+    // A layout's pedals are saved with the layout, in the game's sets.yaml.
+    expect(resolveSavePath(ROOT, "games/SpaceSims/everspace/sets.yaml")).toBe(
+      "/repo/games/SpaceSims/everspace/sets.yaml",
+    );
+    expect(resolveSavePath(ROOT, "devices/logitech-pro-flight-pedals.yaml")).toBe(
+      "/repo/devices/logitech-pro-flight-pedals.yaml",
+    );
   });
 
   it("refuses anything else in the repo", () => {

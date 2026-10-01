@@ -46,6 +46,10 @@ check "azeron build --check" ./bin/azeron build --check
 says "azeron roundtrip checks the golden profile" "round trip ok: .*single-v5" ./bin/azeron roundtrip
 says "the committed game bindings agree with actions.yaml" " 0 differ" \
   ./bin/azeron ingame everspace --config dist/SpaceSims/everspace/Input.ini
+says "the pedals are reported with how far each name is trusted" "rudder .*\[inferred\] -- not flown" \
+  ./bin/azeron ingame everspace --config dist/SpaceSims/everspace/Input.ini
+says "capturing finds the recorded rudder where the layout expects it" "already recorded: rudder .*inferred" \
+  ./bin/azeron ingame everspace --capture-pedals --config dist/SpaceSims/everspace/Input.ini
 check_fails "unknown command exits non-zero" ./bin/azeron nonsense
 check_fails "unknown game exits non-zero" ./bin/azeron lint no-such-game
 says "install refuses without --yes" "Re-run with --yes" ./bin/azeron install everspace

@@ -4,10 +4,20 @@ import { existsSync, readdirSync, statSync } from "node:fs";
 import { basename, join, relative } from "node:path";
 
 import { dataDirs, repoPath, repoRoot } from "../config/paths.js";
+import type { SetsData } from "../types/pedals.js";
 import type { GameConfig, LintConfig, ProfileData } from "../types/profile.js";
-import { loadActionSet, loadProfile, loadProfileData } from "./io.js";
+import {
+  loadActionSet,
+  loadPedalsDevice,
+  loadProfile,
+  loadProfileData,
+  loadSets,
+  loadStickModes,
+} from "./io.js";
+import type { LoadedPedals } from "./io.js";
 import type { ActionSet, GameLike } from "./model-core.js";
 import { Profile } from "./model-core.js";
+import type { StickModeSet } from "./stickmodes.js";
 import { loadYaml } from "./yaml-io.js";
 
 export { ActionSet, Device, Profile } from "./model-core.js";
@@ -22,6 +32,8 @@ export class Game implements GameLike {
   readonly name: string;
   readonly actions: ActionSet;
   readonly lintConfig: LintConfig;
+  /** The parts of a layout that belong to no single profile: today, its pedals. */
+  readonly sets: SetsData;
 
   constructor(dir: string) {
     this.rel = relative(repoRoot, repoPath(dir));
@@ -31,6 +43,18 @@ export class Game implements GameLike {
     this.name = this.config.name ?? this.slug;
     this.actions = loadActionSet(join(this.rel, "actions.yaml"));
     this.lintConfig = this.config.lint ?? {};
+    this.sets = loadSets(this.rel);
+  }
+
+  /** The stick modes of this game's genre, which also name the axes pedals can drive. */
+  get stickModes(): StickModeSet | undefined {
+    const genre = this.rel.split("/")[1];
+    return genre === undefined ? undefined : loadStickModes(join(dataDirs.genres, genre));
+  }
+
+  /** A pedals device by name, or null when no such file exists. */
+  pedalsDevice(name: string): LoadedPedals | null {
+    return loadPedalsDevice(name);
   }
 
   profilePaths(): string[] {

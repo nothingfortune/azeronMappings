@@ -6,10 +6,10 @@ import { describe, expect, it } from "vitest";
 
 import { repoPath } from "../../../src/config/paths.js";
 import { compileProfile, dumps } from "../../../src/lib/compile.js";
-import { applyVocabulary, parseInput } from "../../../src/lib/ingame.js";
+import { applyPedalRows, applyVocabulary, parseInput } from "../../../src/lib/ingame.js";
 import { loadTemplate } from "../../../src/lib/io.js";
 import { Game } from "../../../src/lib/model.js";
-import { ingameDistPath } from "../../../src/lib/tasks.js";
+import { ingameDistPath, pedalsFor } from "../../../src/lib/tasks.js";
 
 describe("dist", () => {
   it("matches the profile YAML", () => {
@@ -46,6 +46,16 @@ describe("dist", () => {
       const current = readFileSync(repoPath(path), "utf8");
       const { changes } = applyVocabulary(parseInput(current), game.actions, owned);
       if (changes.length > 0) stale.push(`${path}: ${String(changes.length)} row(s)`);
+      // The Joystick half, from the layout's pedals. Pedals with no captured name write
+      // nothing, so until then this is trivially true; once names exist it is what says the
+      // committed copy carries them.
+      const pedals = pedalsFor(game);
+      if (pedals !== null) {
+        const written = applyPedalRows(parseInput(current), pedals.plan);
+        if (written.changes.length > 0) {
+          stale.push(`${path}: ${String(written.changes.length)} pedal field(s)`);
+        }
+      }
     }
     expect(stale, "run `npm run azeron -- ingame --apply` and stage the result").toEqual([]);
   });

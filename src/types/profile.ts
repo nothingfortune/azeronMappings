@@ -197,6 +197,11 @@ export interface GameConfig {
    * generating writes their keys from it. The others (menus, photo mode) are left alone.
    */
   ingame_owned_categories?: number[];
+  /**
+   * The layout whose pedals are written into the game's Joystick axis rows. The game has
+   * one binding file, so one layout's control scheme is what it holds at a time.
+   */
+  ingame_set?: string;
   lint?: LintConfig;
 }
 

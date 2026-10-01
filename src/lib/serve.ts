@@ -18,6 +18,7 @@ export class SaveRejected extends Error {}
 const WRITABLE = [
   /^games\/[^/]+\/[^/]+\/profiles\/[^/]+\.ya?ml$/,
   /^games\/[^/]+\/[^/]+\/actions\.ya?ml$/,
+  /^games\/[^/]+\/[^/]+\/sets\.ya?ml$/,
   /^devices\/[^/]+\.ya?ml$/,
 ];
 
@@ -36,7 +37,7 @@ export function resolveSavePath(repoRoot: string, requested: string): string {
   if (!WRITABLE.some((pattern) => pattern.test(tidy))) {
     throw new SaveRejected(
       `${tidy} is not something the editor may write. Profiles, a game's actions.yaml ` +
-        "and device maps only.",
+        "and sets.yaml, and device maps only.",
     );
   }
 

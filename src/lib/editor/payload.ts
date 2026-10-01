@@ -1,27 +1,38 @@
 /** Gather everything the editor page needs into one embeddable object. */
 
 import { loadInherited } from "../yaml-io.js";
-import { loadProfileData } from "../io.js";
+import { loadProfileData, loadStickModes } from "../io.js";
+import { parsePedalsDevice } from "../pedals.js";
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 import { dataDirs, repoPath } from "../../config/paths.js";
 import type { ExportDocument } from "../../types/azeron.js";
 import type { EditorGame, EditorGenre, EditorPayload } from "../../types/editor.js";
+import type { PedalsDeviceData } from "../../types/pedals.js";
 import type { ActionSetData, DeviceData } from "../../types/profile.js";
 import { loadTemplate } from "../io.js";
 import { Game, Genre } from "../model.js";
-import type { StickModeSet } from "../stickmodes.js";
 
 const DEFAULT_TEMPLATE = join(dataDirs.templates, "everspace2-v5.json");
 
 export function buildPayload(): EditorPayload {
   const devices: Record<string, DeviceData> = {};
+  // Pedals have axes, not pins. They are listed apart so everything that walks `devices`
+  // expecting a position map keeps getting only keypads.
+  const pedals: Record<string, PedalsDeviceData> = {};
   if (existsSync(repoPath(dataDirs.devices))) {
     for (const file of readdirSync(repoPath(dataDirs.devices)).sort()) {
       if (!file.endsWith(".yaml")) continue;
-      const data = loadInherited(join(dataDirs.devices, file)) as unknown as DeviceData;
-      devices[data.device] = data;
+      const path = join(dataDirs.devices, file);
+      const data = loadInherited(path);
+      if (data.kind === "pedals") {
+        const device = parsePedalsDevice(data, path);
+        pedals[device.device] = device;
+      } else {
+        const keypad = data as unknown as DeviceData;
+        devices[keypad.device] = keypad;
+      }
     }
   }
 
@@ -56,14 +67,13 @@ export function buildPayload(): EditorPayload {
       },
       lintConfig: game.lintConfig,
       profiles,
+      sets: game.sets,
+      ...(game.config.ingame_set === undefined ? {} : { ingameSet: game.config.ingame_set }),
     };
   });
 
   const genres: EditorGenre[] = Genre.discover().map((genre) => {
-    const modesPath = join(genre.rel, "stick-modes.yaml");
-    const stickModes = existsSync(repoPath(modesPath))
-      ? (loadInherited(modesPath) as unknown as StickModeSet)
-      : undefined;
+    const stickModes = loadStickModes(genre.rel);
     return {
       name: genre.name,
       actions: {
@@ -75,5 +85,5 @@ export function buildPayload(): EditorPayload {
     };
   });
 
-  return { generatedAt: new Date().toISOString(), devices, templates, games, genres };
+  return { generatedAt: new Date().toISOString(), devices, pedals, templates, games, genres };
 }

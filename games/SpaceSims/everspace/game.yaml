@@ -14,6 +14,11 @@ ingame_config: "/mnt/c/Users/there/AppData/Local/ES2/Saved/Config/Windows/Input.
 # the same time as flight, so they reuse flight keys on purpose.
 ingame_owned_categories: [0, 1, 2, 3]
 
+# The layout whose pedals are written into the Joystick axis rows of that file. The game has
+# one binding file, so one layout's control scheme is what it holds. Its pedals are in
+# sets.yaml; the game names for them in devices/<pedals>.yaml, once captured.
+ingame_set: akimbo-v10
+
 lint:
   # Constraint 1: a stick in gamepad/analog mode made the game flip between gamepad and
   # keyboard/mouse input and stuttered the frame rate. Keyboard mode only.

@@ -1,5 +1,6 @@
 import type { ExportDocument } from "./azeron.js";
 import type { StickModeSet } from "../lib/stickmodes.js";
+import type { PedalsDeviceData, SetsData } from "./pedals.js";
 import type { ActionSetData, DeviceData, LintConfig, ProfileData } from "./profile.js";
 
 export interface EditorProfile {
@@ -16,6 +17,13 @@ export interface EditorGame {
   actions: ActionSetData;
   lintConfig: LintConfig;
   profiles: EditorProfile[];
+  /**
+   * What each layout does beyond its profiles -- its pedals -- keyed by set name, the same
+   * name the profiles carry in `profile.set`. One name selects keypads and pedals together.
+   */
+  sets: SetsData;
+  /** The set whose pedals are written into the game's own binding file, if the game says. */
+  ingameSet?: string;
 }
 
 export interface EditorGenre {
@@ -30,6 +38,8 @@ export interface EditorGenre {
 export interface EditorPayload {
   generatedAt: string;
   devices: Record<string, DeviceData>;
+  /** Pedals devices by name: axes, not pins, so they are not in `devices`. */
+  pedals: Record<string, PedalsDeviceData>;
   templates: Record<string, ExportDocument>;
   games: EditorGame[];
   genres: EditorGenre[];
