@@ -148,6 +148,26 @@ Every profile change, and why. `playtests.md` records what each layout felt like
   on screen, in both directions, remembers the choice, and the press test and the text
   boxes take the theme too (the press test's banner and badge were unreadable in it).
 
+- **The editor's server answered anyone.** It listened on every interface and its routes
+  write into the repo and the game's config, so another device on the network, or any web
+  page open in the browser, could call them. It now listens on 127.0.0.1 only (`--host`
+  opts out), answers only a loopback `Host` on its own port, and takes a state-changing
+  request only as `application/json` from its own origin.
+- A malformed save could be written and then break every command; saves are parsed as the
+  file their path names first. A handler that throws returns an error instead of ending
+  the server. A request body split in the middle of a character is no longer corrupted.
+- The server showed a file as it was when it last wrote something, not as it is on disk.
+- An import that failed to decompile left its template behind. Writing the game's bindings
+  reported success when the game's file was missing, and silently unbound a row whose key
+  the game has no name for; both are refusals now.
+- Lint: a stick sent in another mode through `raw.types` passed `stick-not-keyboard`; a
+  sensor-provided action could be put on a key (`provided-action-bound`); `--strict` did
+  not fail on a stale acknowledgement.
+- A half-made game folder broke every command; it is skipped and named once. Paths built
+  on Windows used backslashes and failed comparisons.
+- Exporting a partial press test deleted every key it had not reached and marked the map
+  verified.
+
 ### Known gaps
 
 - Whether moving the pointer turns the ship in flight, or only aims, is untested — and it

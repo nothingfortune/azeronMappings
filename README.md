@@ -19,6 +19,10 @@ npm start          # builds, then serves the editor at http://localhost:4173
 > PowerShell, delete `node_modules` and run `npm install` again in the one you mean to
 > use. Every command checks for this and says so.
 
+The editor answers only this computer: it listens on `localhost` and refuses requests
+from other devices and from other web pages. `npm run azeron -- serve --host <address>`
+opens it to a network you trust.
+
 The CLI is `npm run azeron -- <command>`, which works in either shell (`./bin/azeron`
 works in bash only). `npm run azeron -- help` lists everything.
 

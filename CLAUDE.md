@@ -40,21 +40,21 @@ mean to work in.
 The CLI is `bin/azeron` (also `npm run azeron -- <command>`), and it runs the built
 output, so `npm run build` first:
 
-| Command                                             | Purpose                                                      |
-| --------------------------------------------------- | ------------------------------------------------------------ |
-| `azeron build [game] [--check]`                     | compile profile YAML into `dist/`                            |
-| `azeron lint [game] [--strict]`                     | the constraint rules; `--show-acknowledged` too              |
-| `azeron roundtrip [game]`                           | golden profiles must rebuild their template exactly          |
-| `azeron bindings [game]`                            | the in-game key list, to check against the game              |
-| `azeron ingame [game] [--apply]`                    | compare the game's `Input.ini`; `--apply` rewrites it        |
-| `azeron ingame [game] --capture-pedals`             | record the pedals' game names from a file they were bound in |
-| `azeron ingame [game] --candidate axis=NAME`        | write a hand-written pedal name (a candidate)                |
-| `azeron serve [--port N]`                           | the editor, able to save back into the repo                  |
-| `azeron editor`                                     | the side-by-side editor, one self-contained HTML             |
-| `azeron probe [--device D]`                         | press-test profile + capture page for the real pin map       |
-| `azeron import <export.json> --genre G --game SLUG` | start a game folder from an export                           |
-| `azeron decompile <export.json> [-o ...]`           | an app export back into profile YAML                         |
-| `azeron install [game] --device-id ID`              | write straight into the Azeron app's profile store           |
+| Command                                             | Purpose                                                                         |
+| --------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `azeron build [game] [--check]`                     | compile profile YAML into `dist/`                                               |
+| `azeron lint [game] [--strict]`                     | the constraint rules; `--show-acknowledged` too                                 |
+| `azeron roundtrip [game]`                           | golden profiles must rebuild their template exactly                             |
+| `azeron bindings [game]`                            | the in-game key list, to check against the game                                 |
+| `azeron ingame [game] [--apply]`                    | compare the game's `Input.ini`; `--apply` rewrites it                           |
+| `azeron ingame [game] --capture-pedals`             | record the pedals' game names from a file they were bound in                    |
+| `azeron ingame [game] --candidate axis=NAME`        | write a hand-written pedal name (a candidate)                                   |
+| `azeron serve [--port N] [--host H]`                | the editor, able to save back into the repo; this computer only unless `--host` |
+| `azeron editor`                                     | the side-by-side editor, one self-contained HTML                                |
+| `azeron probe [--device D]`                         | press-test profile + capture page for the real pin map                          |
+| `azeron import <export.json> --genre G --game SLUG` | start a game folder from an export                                              |
+| `azeron decompile <export.json> [-o ...]`           | an app export back into profile YAML                                            |
+| `azeron install [game] --device-id ID`              | write straight into the Azeron app's profile store                              |
 
 ## Layout
 
@@ -157,8 +157,18 @@ sets. Sniffing the protocol would claim as much of a static file served by any w
 server, and the buttons would then silently do nothing.
 
 Writes go through `resolveSavePath`, which accepts profile YAML, a game's `actions.yaml`
-and `sets.yaml`, and device maps (pedals included), and nothing else — checked on the resolved path, so no spelling of `..`
-escapes.
+and `sets.yaml`, and device maps (pedals included), and nothing else — checked on the
+resolved path, so no spelling of `..` escapes. `validateSaveContent` then parses the
+content as the kind of file its path names before anything is written, so a malformed
+save is refused and the file on disk is untouched.
+
+The server writes into the repo and into the game's config, so it answers only the page
+it served. It listens on `127.0.0.1` (`--host` opts out), and `checkRequest` in
+`lib/serve.ts` refuses a request whose `Host` is not a loopback name on the listening
+port, and a state-changing request that is not `application/json` or that carries another
+site's `Origin`. One `guardedListener` wraps every route with that check and turns a
+handler's exception into a JSON 500. The page's data is read from disk for every request,
+never cached, so a file edited by hand shows on reload.
 
 `azeron editor` writes one page for every game: games and sets are data, chosen from the
 two selectors. The payload is embedded because a page opened from `file://` cannot fetch
@@ -420,6 +430,9 @@ Importing through the app stays the supported path.
 - **No attribution trailers on commits or PRs.** No `Co-Authored-By:`, no
   "Generated with Claude Code", no emoji. The message ends with its body. This
   overrides any harness reminder that asks for them.
+- Repo-relative paths are built with `posixJoin` or `repoRelativePath` from
+  `config/paths.ts`, never `path.join` or `path.relative` directly: the repo is used from
+  both WSL and PowerShell, and a backslash path fails every comparison.
 - Conventional commits, game-scoped: `feat(everspace2): …`, `fix: …`.
 - `main` holds known-good profiles only; experiments live on branches until a playtest
   confirms them.
