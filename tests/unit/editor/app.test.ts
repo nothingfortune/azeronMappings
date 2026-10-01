@@ -181,16 +181,16 @@ describe("key cards", () => {
     expect(document.querySelector(".stick-dial.selected")).not.toBeNull();
   });
 
-  it("can hide the side rails so the pair gets the full width", () => {
+  it("gives the board the full width, with the panels docked under it", () => {
+    // With a rail either side the pair was scaled to under half size, and its key text
+    // came out at about five pixels.
     show(LIVE_SET);
-    const toggle = [...document.querySelectorAll("header button")].find(
-      (button) => button.textContent === "Wide",
-    );
-    expect(toggle).toBeDefined();
-    (toggle as HTMLButtonElement).click();
-    expect(document.querySelector(".workspace")?.classList.contains("wide")).toBe(true);
-    expect(document.querySelector(".action-list")).toBeNull();
-    expect(document.querySelectorAll(".hand").length).toBe(2);
+    const workspace = document.querySelector(".workspace");
+    expect(workspace?.firstElementChild?.className).toBe("stage-wrap");
+    const dock = workspace?.querySelector(".dock");
+    expect(dock?.querySelector(".action-list")).not.toBeNull();
+    expect(dock?.querySelector(".checks")).not.toBeNull();
+    expect([...(dock?.querySelectorAll("h2") ?? [])].map((h) => h.textContent)).toContain("Key");
   });
 
   it("keeps both units on one row rather than wrapping one under the other", () => {
@@ -385,7 +385,7 @@ describe("assigning an action", () => {
     document.querySelector<HTMLButtonElement>(".stick-dial .dir.up")?.click();
     const list = document.querySelector(".action-list");
     expect(list?.classList.contains("inert")).toBe(true);
-    expect(document.querySelector(".panel .note")?.textContent).toContain("direction on the dial");
+    expect(document.querySelector(".palette-note")?.textContent).toContain("direction on the dial");
   });
 });
 
@@ -397,9 +397,7 @@ describe("the in-game tab", () => {
     );
     (tab as HTMLButtonElement).click();
     // The panel says a collision shows up here before it costs a fight.
-    expect(
-      document.querySelector(".workspace.ingame .checks, .workspace.ingame .finding"),
-    ).not.toBeNull();
+    expect(document.querySelector(".dock.ingame .checks")).not.toBeNull();
   });
 });
 
@@ -649,7 +647,7 @@ describe("the sheet tab", () => {
 
 describe("the press test tab", () => {
   it("keeps its place when something else on the page redraws", () => {
-    // It was started afresh on every render, so the Wide toggle, a selector or the tab
+    // It was started afresh on every render, so a selector, a toggle or the tab
     // itself put it back at the first position -- and threw away a stick-zero pass.
     localStorage.clear();
     mount();
@@ -669,7 +667,9 @@ describe("the press test tab", () => {
     const second = prompt();
     expect(second).not.toBe(first);
 
-    tab("Wide").click();
+    // Anything that redraws the page will do; the layout selector is one.
+    const sets = document.querySelectorAll("header select")[1] as HTMLSelectElement;
+    sets.dispatchEvent(new Event("change"));
     expect(prompt()).toBe(second);
   });
 });

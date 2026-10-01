@@ -5,7 +5,7 @@ export const CSS = `
   --accent: #2f6f8f; --accent-fg: #ffffff;
   --combat: #b8433a; --movement: #2f7d4f; --menu: #6a4fb3; --travel: #b1701c; --utility: #4a5568;
   --error: #b8433a; --warn: #b1701c; --ok: #2f7d4f;
-  --key-w: 104px;
+  --key-w: 94px;
 }
 :root[data-theme="dark"], :root:not([data-theme="light"]) {
   color-scheme: light;
@@ -64,12 +64,9 @@ select, .btn {
 .save-note .dismiss { flex: none; }
 .workspace.single { display: block; }
 .panel.inset { background: var(--bg); margin-bottom: 12px; }
-.workspace.wide { grid-template-columns: minmax(0, 1fr); }
 /* Boards on the left, the in-game half on the right, so the two can be read together. */
-.workspace.ingame { grid-template-columns: minmax(0, 1fr) 420px; }
-@media (max-width: 1200px) { .workspace.ingame { grid-template-columns: 1fr; } }
-.ingame-list { display: flex; flex-direction: column; gap: 2px; max-height: 70vh;
-               overflow: auto; margin-bottom: 10px; }
+.ingame-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+               gap: 2px 14px; max-height: 60vh; overflow: auto; margin-bottom: 10px; }
 .ingame-row { display: grid; grid-template-columns: minmax(0, 1fr) 190px; gap: 8px;
               align-items: center; padding: 3px 4px; border-radius: 6px; }
 .ingame-row:nth-child(odd) { background: var(--bg); }
@@ -101,9 +98,17 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 .note { font-size: 11.5px; color: var(--muted); margin-bottom: 10px; }
 .sheet-frame { width: 100%; min-height: 78vh; border: 1px solid var(--line); border-radius: 10px;
                background: var(--panel); }
-.workspace { display: grid; grid-template-columns: 200px minmax(0, 1fr) 250px; gap: 12px;
-             padding: 12px 14px; align-items: start; }
-@media (max-width: 1200px) { .workspace { grid-template-columns: 1fr; } }
+.workspace { padding: 12px 14px; }
+/* The board on top at full width; the panels dock beneath it. */
+.dock { display: grid; grid-template-columns: 320px minmax(0, 1fr) 360px; gap: 12px;
+        margin-top: 12px; align-items: start; }
+.dock.ingame { grid-template-columns: minmax(0, 1fr) 360px; }
+.dock-col { display: grid; gap: 12px; }
+@media (max-width: 1150px) {
+  .dock { grid-template-columns: 300px minmax(0, 1fr); }
+  .dock > .dock-col { grid-column: 1 / -1; }
+}
+@media (max-width: 760px) { .dock, .dock.ingame { grid-template-columns: 1fr; } }
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
 .panel h2 {
   font-size: 10.5px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted);
@@ -119,7 +124,11 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 .hand > .title { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
 .hand > .title b { font-size: 13px; }
 .hand > .title span { color: var(--muted); font-size: 11.5px; }
-.hand-body { display: flex; gap: 7px; align-items: flex-start; }
+.hand-body { display: flex; flex-direction: column; gap: 8px; }
+.fingers { display: flex; gap: 6px; align-items: flex-start; }
+.thumb-row { display: flex; flex-direction: column; }
+.hand-body.thumb-right .thumb-row { align-items: flex-end; }
+.hand-body.thumb-left .thumb-row { align-items: flex-start; }
 .col { display: flex; flex-direction: column; gap: 4px; }
 .col.side { margin-top: 22px; }
 .col .head, .hand .head {
@@ -138,11 +147,11 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
              justify-content: center; }
 .key.empty .name { display: none; }
 /* Each line is its own block; as inline spans they ran together into one string. */
-.key .pos { display: block; font-size: 8.5px; color: var(--muted); letter-spacing: .04em;
+.key .pos { display: block; font-size: 9px; color: var(--muted); letter-spacing: .04em;
             text-transform: uppercase; line-height: 1.2; }
-.key .name { display: block; font-weight: 600; font-size: 11px; line-height: 1.2;
+.key .name { display: block; font-weight: 600; font-size: 12px; line-height: 1.2;
              overflow-wrap: anywhere; }
-.key .sub { display: block; font-size: 9.5px; color: var(--muted); line-height: 1.25;
+.key .sub { display: block; font-size: 10px; color: var(--muted); line-height: 1.25;
             overflow-wrap: anywhere; }
 .key .flag { display: block; font-size: 9px; color: var(--warn); line-height: 1.2; }
 .key.combat { border-left-color: var(--combat); }
@@ -152,7 +161,7 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 .key.utility { border-left-color: var(--utility); }
 /* The thumb cluster is two devices and some spare keys. Each gets its own labelled
    group, and the stick is drawn as a dial so it never reads as another d-pad. */
-.thumb-cluster { display: flex; flex-direction: column; gap: 8px; }
+.thumb-cluster { display: flex; gap: 8px; align-items: flex-start; }
 .thumb-group { border: 1px solid var(--line); border-radius: 9px; padding: 6px;
                background: color-mix(in srgb, var(--bg) 60%, transparent); }
 .thumb-group > .head { margin-bottom: 4px; }
@@ -162,7 +171,7 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 .dpad .center { grid-area: 2 / 2; }
 .dpad .right { grid-area: 2 / 3; }
 .dpad .down { grid-area: 3 / 2; }
-.aux { display: flex; gap: 4px; }
+.aux { display: flex; flex-direction: column; gap: 4px; }
 
 .stick-dial {
   display: grid; gap: 3px;
@@ -177,7 +186,7 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 .stick-dial .dir:hover { border-color: var(--accent); }
 .stick-dial .dir.empty { opacity: .35; border-style: dashed; }
 .stick-dial .glyph { font-size: 13px; line-height: 1; color: var(--movement); }
-.stick-dial .dir .name { font-size: 9.5px; font-weight: 600; line-height: 1.15;
+.stick-dial .dir .name { font-size: 11px; font-weight: 600; line-height: 1.15;
                          overflow-wrap: anywhere; }
 .stick-dial .up { grid-area: 1 / 2; }
 .stick-dial .left { grid-area: 2 / 1; }
@@ -198,7 +207,9 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 .stick-dial .hub:hover .wheel { border-color: var(--accent); }
 .stick-dial .hub.empty .wheel { opacity: .5; }
 
-.action-list { display: flex; flex-direction: column; gap: 3px; max-height: 62vh; overflow: auto; }
+.action-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+               gap: 2px 8px; max-height: 420px; overflow: auto; align-content: start; }
+.action-list > .head { grid-column: 1 / -1; margin-top: 6px; text-align: left; }
 .action {
   display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 6px;
   border: 1px solid transparent; cursor: pointer; text-align: left; background: none; width: 100%;

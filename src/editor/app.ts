@@ -48,8 +48,6 @@ type Mode = "edit" | "in-game" | "press-test" | "sheet" | "repo";
 interface State {
   payload: EditorPayload;
   mode: Mode;
-  /** Hide the side rails so the pair gets the full width. */
-  wide: boolean;
   /**
    * Working copy of the game's action vocabulary -- the in-game half of the mapping.
    * Editing a key here re-runs the linter, so a collision shows up immediately.
@@ -334,9 +332,12 @@ function renderHand(slug: string): HTMLElement {
     ]),
   );
 
-  const thumb = el("div", { class: "thumb-cluster" });
+  // The thumb cluster sits under the finger columns, on the thumb's side, rather than
+  // beside them. Beside them it made each hand ten keys wide, so a pair had to be shrunk
+  // to under half size to fit a window and the key text came out at about five pixels.
+  const groups: HTMLElement[] = [];
   if (layout.stick) {
-    thumb.append(
+    groups.push(
       el("div", { class: "thumb-group" }, [
         el("div", { class: "head" }, [
           `thumbstick \u00b7 ${workingData(slug).positions[layout.stick]?.mode ?? "unbound"}`,
@@ -348,12 +349,12 @@ function renderHand(slug: string): HTMLElement {
   if (layout.dpad.length > 0) {
     const pad = el("div", { class: "dpad" });
     for (const [position, cell] of layout.dpad) pad.append(keyCard(slug, position, cell));
-    thumb.append(
+    groups.push(
       el("div", { class: "thumb-group" }, [el("div", { class: "head" }, ["d-pad"]), pad]),
     );
   }
   if (layout.aux.length > 0) {
-    thumb.append(
+    groups.push(
       el("div", { class: "thumb-group" }, [
         el("div", { class: "head" }, ["aux"]),
         el(
@@ -365,10 +366,14 @@ function renderHand(slug: string): HTMLElement {
     );
   }
 
-  const body = el("div", { class: "hand-body" });
-  const thumbBlock = el("div", {}, [el("div", { class: "head" }, ["thumb"]), thumb]);
-  if (layout.thumbSide === "left") body.append(thumbBlock, ...columns);
-  else body.append(...columns, thumbBlock);
+  const thumb = el("div", { class: "thumb-row" }, [
+    el("div", { class: "head" }, ["thumb"]),
+    el("div", { class: "thumb-cluster" }, layout.thumbSide === "left" ? groups.reverse() : groups),
+  ]);
+  const body = el("div", { class: `hand-body thumb-${layout.thumbSide}` }, [
+    el("div", { class: "fingers" }, columns),
+    thumb,
+  ]);
   wrap.append(body);
   return wrap;
 }
@@ -498,7 +503,7 @@ function renderPalette(): HTMLElement {
     selection !== null && profileFor(selection.slug).device.isStick(selection.position);
   if (onStick) {
     panel.append(
-      el("div", { class: "note" }, [
+      el("div", { class: "note palette-note" }, [
         "A stick is selected. Pick a direction on the dial to bind one of its four ways, " +
           "or a key to bind an action.",
       ]),
@@ -1150,15 +1155,6 @@ function renderHeader(): HTMLElement {
     });
     header.append(yaml, json);
   }
-
-  const wide = el("button", { class: `btn ${state.wide ? "primary" : ""}`, type: "button" }, [
-    state.wide ? "Show panels" : "Wide",
-  ]);
-  wide.addEventListener("click", () => {
-    state.wide = !state.wide;
-    render();
-  });
-  header.append(wide);
 
   const reset = el("button", { class: "btn", type: "button" }, ["Reset"]);
   reset.addEventListener("click", () => {
@@ -1918,13 +1914,16 @@ function render(): void {
   }
 
   if (state.mode === "in-game") {
-    const workspace = el("div", { class: "workspace ingame" });
+    const workspace = el("div", { class: "workspace board" });
     const stage = el("div", { class: "stage" });
     for (const slug of slugsInSet()) stage.append(renderHand(slug));
     const stageWrap = el("div", { class: "stage-wrap" }, [stage]);
     // The tab's whole claim is that changing a key here shows a collision before it costs
     // a fight. It said so in the panel and did not render the findings.
-    workspace.append(stageWrap, renderInGame(), renderChecks());
+    workspace.append(
+      stageWrap,
+      el("div", { class: "dock ingame" }, [renderInGame(), renderChecks()]),
+    );
     root.append(workspace);
     requestAnimationFrame(() => {
       fitStage(stageWrap, stage);
@@ -1946,9 +1945,9 @@ function render(): void {
     return;
   }
 
-  const workspace = el("div", { class: `workspace ${state.wide ? "wide" : ""}` });
-  if (!state.wide) workspace.append(renderPalette());
-
+  // The board takes the full width and the panels dock under it, in what was empty
+  // space. With a rail either side, the pair was scaled to under half size.
+  const workspace = el("div", { class: "workspace board" });
   const stage = el("div", { class: "stage" });
   const slugs = slugsInSet();
   for (const slug of slugs) stage.append(renderHand(slug));
@@ -1962,15 +1961,10 @@ function render(): void {
   const stageWrap = el("div", { class: "stage-wrap" }, [stage]);
   workspace.append(stageWrap);
 
-  if (!state.wide) {
-    const right = el("div", {});
-    right.append(renderInspector(), el("div", { style: "height:14px" }));
-    const modes = renderStickModes();
-    if (modes) right.append(modes, el("div", { style: "height:14px" }));
-    right.append(renderChecks());
-    workspace.append(right);
-  }
-
+  const side = el("div", { class: "dock-col" }, [renderChecks()]);
+  const modes = renderStickModes();
+  if (modes) side.append(modes);
+  workspace.append(el("div", { class: "dock" }, [renderInspector(), renderPalette(), side]));
   root.append(workspace);
 
   requestAnimationFrame(() => {
@@ -2029,7 +2023,6 @@ export function start(payload = window.AZERON_PAYLOAD): void {
   state = {
     payload,
     mode: "edit",
-    wide: false,
     workingActions: null,
     gameIndex: 0,
     setName: firstGame ? ([...setsOf(firstGame).keys()][0] ?? "") : "",
