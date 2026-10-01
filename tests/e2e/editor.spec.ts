@@ -291,3 +291,93 @@ test.describe("the served editor", () => {
     });
   });
 });
+
+/**
+ * The page at the window sizes it is used at: two landscape monitors, a laptop, and a
+ * vertical monitor. Unit tests cannot see any of this -- it is CSS -- and CSS has broken
+ * the editor's layout while every unit test passed.
+ */
+const WINDOWS = [
+  { width: 1920, height: 1080 },
+  { width: 1440, height: 900 },
+  { width: 1280, height: 720 },
+  { width: 1080, height: 1920 },
+  { width: 1200, height: 1920 },
+] as const;
+
+const TABS = ["Edit", "In-game", "Press test", "Setup"] as const;
+
+/** The smallest text on the page as it is drawn, with the stage's scale applied. */
+function smallestRenderedText(page: Page): Promise<{ size: number; text: string }> {
+  return page.evaluate(() => {
+    const stage = document.querySelector(".stage");
+    const scale = stage ? new DOMMatrix(getComputedStyle(stage).transform).a || 1 : 1;
+    let smallest = { size: Infinity, text: "" };
+    for (const node of document.querySelectorAll("body *")) {
+      const own = [...node.childNodes].find(
+        (child) => child.nodeType === Node.TEXT_NODE && (child.textContent ?? "").trim() !== "",
+      );
+      if (!own || node.getBoundingClientRect().width === 0) continue;
+      const factor = stage?.contains(node) ? scale : 1;
+      const size = parseFloat(getComputedStyle(node).fontSize) * factor;
+      if (size < smallest.size) smallest = { size, text: (own.textContent ?? "").trim() };
+    }
+    return smallest;
+  });
+}
+
+for (const { width, height } of WINDOWS) {
+  const portrait = height > width;
+  test.describe(`at ${String(width)}x${String(height)}`, () => {
+    test.use({ viewport: { width, height } });
+
+    for (const tab of TABS) {
+      test(`${tab} is no wider than the window`, async ({ page }) => {
+        await page.goto("/");
+        await page.getByRole("button", { name: tab, exact: true }).click();
+        const wide = await page.evaluate(() => ({
+          page: document.documentElement.scrollWidth,
+          offenders: [...document.querySelectorAll("body *")]
+            .filter((node) => node.getBoundingClientRect().right > window.innerWidth + 1)
+            .slice(0, 3)
+            .map((node) => node.className || node.tagName),
+        }));
+        expect(wide.offenders).toEqual([]);
+        expect(wide.page).toBeLessThanOrEqual(width);
+      });
+    }
+
+    test("Edit draws no text under 9px, and the keys are at full size", async ({ page }) => {
+      await page.goto("/");
+      const smallest = await smallestRenderedText(page);
+      expect(smallest.size, `"${smallest.text}"`).toBeGreaterThanOrEqual(9);
+      // Narrowing the keys comes before shrinking the stage.
+      const scale = await page.locator(".stage").evaluate((node) => {
+        return new DOMMatrix(getComputedStyle(node).transform).a;
+      });
+      expect(scale).toBeGreaterThanOrEqual(0.9);
+    });
+
+    test(
+      portrait ? "Edit stacks the hands, one above the other" : "Edit keeps the hands side by side",
+      async ({ page }) => {
+        await page.goto("/");
+        const [first, second] = await page.locator(".hand").evaluateAll((nodes) =>
+          nodes.map((node) => {
+            const { x, y, width: w, height: h } = node.getBoundingClientRect();
+            return { x, y, w, h };
+          }),
+        );
+        if (!first || !second) throw new Error("expected two hands");
+        if (portrait) {
+          expect(second.y).toBeGreaterThanOrEqual(first.y + first.h - 1);
+          // Each at a readable size, not two squeezed into the width.
+          expect(first.w).toBeGreaterThan(700);
+        } else {
+          expect(second.x).toBeGreaterThanOrEqual(first.x + first.w - 1);
+          expect(Math.abs(second.y - first.y)).toBeLessThan(2);
+        }
+      },
+    );
+  });
+}

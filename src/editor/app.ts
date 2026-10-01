@@ -2455,17 +2455,39 @@ function renderPressTest(): HTMLElement {
   return panel;
 }
 
+/** Key width, in pixels, the board may be drawn at. Below the floor the stage is scaled. */
+const KEY_WIDTH = { min: 84, landscapeMax: 100, portraitMax: 124 } as const;
+
 /**
- * Fit both units into the stage width.
+ * Fit both units into the stage width, by narrowing the keys before shrinking anything.
  *
- * Two Cyborg IIs side by side are wider than most windows, and wrapping puts one hand
- * under the other, which defeats the point of drawing the pair. The stage is scaled down
- * instead, and the wrapper takes the scaled height so nothing overlaps below it.
+ * Scaling the whole stage shrinks the type with it: at a laptop width the pair was drawn at
+ * 0.8 and the labels came out at seven pixels. The hands are built from the key width, so
+ * the width they need is a straight line in it -- measured at two widths, solved for the
+ * one that fits -- and the type stays the size it was written at. Only when even the
+ * narrowest key does not fit is the stage scaled, and then only by the shortfall.
+ *
+ * On a portrait window the hands stack (see the stylesheet), so what has to fit is one
+ * hand, and the keys may be wider than on a landscape one.
  */
 function fitStage(wrap: HTMLElement, stage: HTMLElement): void {
   const available = wrap.clientWidth;
-  const needed = stage.scrollWidth;
-  if (available <= 0 || needed <= 0) return;
+  if (available <= 0) return;
+  const portrait = window.matchMedia("(orientation: portrait)").matches;
+  const max = portrait ? KEY_WIDTH.portraitMax : KEY_WIDTH.landscapeMax;
+  stage.style.transform = "";
+  const widthAt = (keyWidth: number): number => {
+    stage.style.setProperty("--key-w", `${String(keyWidth)}px`);
+    return stage.scrollWidth;
+  };
+  const narrow = widthAt(60);
+  const wide = widthAt(100);
+  if (narrow <= 0) return;
+  const perPixel = (wide - narrow) / 40;
+  const fixed = narrow - 60 * perPixel;
+  const fits = perPixel > 0 ? Math.floor((available - fixed) / perPixel) : KEY_WIDTH.landscapeMax;
+  const keyWidth = Math.max(KEY_WIDTH.min, Math.min(max, fits));
+  const needed = widthAt(keyWidth);
   const scale = Math.min(1, available / needed);
   stage.style.transform = scale < 1 ? `scale(${String(scale)})` : "";
   wrap.style.height = `${String(Math.ceil(stage.scrollHeight * scale))}px`;

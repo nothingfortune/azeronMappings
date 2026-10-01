@@ -93,6 +93,11 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Changed
 
+- **The board fits the window instead of shrinking into it.** Two hands side by side were
+  scaled to whatever width was left: at 1080x1920 that was 0.69 and the labels came out
+  at six pixels. The keys narrow first (84 to 100px) and the type keeps its size; a
+  portrait window stacks the hands, each at full size; nothing renders under 9px at any
+  of the five sizes checked.
 - **Saving is one thing.** A layout is one control scheme, so the header's Save writes
   everything that changed in it -- both keypad profiles and the in-game keys -- and
   reports once; the unsaved marker names what it would write. The In-game tab lost its own

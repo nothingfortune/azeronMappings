@@ -116,7 +116,7 @@ select, .btn {
 .ingame-row .who small { display: block; color: var(--muted); font-size: 10px;
                          overflow-wrap: anywhere; }
 .ingame-row .field { margin-bottom: 0; }
-.ingame-row .field label { font-size: 8.5px; }
+.ingame-row .field label { font-size: 10px; }
 .ingame-row .field input { padding: 2px 5px; font-size: 11px; }
 .ingame-row .row2 { gap: 5px; }
 header .picker { display: inline-flex; flex-direction: column; gap: 1px; }
@@ -141,7 +141,8 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
         margin-top: 12px; align-items: start; }
 .dock.ingame { grid-template-columns: minmax(0, 1fr) 360px; }
 .dock-col { display: grid; gap: 12px; }
-@media (max-width: 1150px) {
+/* Narrow, or tall and narrow: the checks drop to a row of their own under the other two. */
+@media (max-width: 1150px), (orientation: portrait) {
   .dock { grid-template-columns: 300px minmax(0, 1fr); }
   .dock > .dock-col { grid-column: 1 / -1; }
 }
@@ -151,11 +152,16 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
   font-size: 10.5px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted);
   margin: 0 0 9px;
 }
-/* Both units stay on one row; the stage scales down rather than wrapping one under the
-   other, because a pair is read as a pair. */
+/* Both units stay on one row on a landscape window, because a pair is read as a pair; the
+   keys narrow to fit (see fitStage) rather than the type shrinking. On a portrait window the
+   pair stacks, each hand at a readable size, instead of two hands squeezed into the width. */
 .workspace.board .stage-wrap { overflow: hidden; }
 .workspace.board .stage { display: flex; gap: 14px; align-items: flex-start; flex-wrap: nowrap;
          transform-origin: top left; width: max-content; }
+@media (orientation: portrait) {
+  .workspace.board .stage { flex-direction: column; width: 100%; }
+  .workspace.board .stage > .hand { align-self: stretch; }
+}
 .hand { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
         padding: 10px; }
 .hand > .title { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
@@ -171,8 +177,8 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 .col { display: flex; flex-direction: column; gap: 4px; }
 .col.side { margin-top: 22px; }
 .col .head, .hand .head {
-  font-size: 8.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted);
-  text-align: center; height: 12px; white-space: nowrap;
+  font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted);
+  text-align: center; height: 13px; white-space: nowrap;
 }
 .key {
   width: var(--key-w); min-height: 46px; border: 1px solid var(--line); border-radius: 7px;
@@ -186,12 +192,15 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
              justify-content: center; }
 .key.empty .name { display: none; }
 /* Each line is its own block; as inline spans they ran together into one string. */
-.key .pos { display: block; font-size: 9.5px; color: var(--muted); line-height: 1.2; }
-.key .name { display: block; font-weight: 600; font-size: 12px; line-height: 1.2;
+.key .pos { display: block; font-size: 10px; color: var(--muted); line-height: 1.2; }
+/* The name narrows with the key, so a word like "Consumable" still fits on a line at the
+   narrowest key rather than breaking in the middle. */
+.key .name { display: block; font-weight: 600; line-height: 1.2;
+             font-size: clamp(11px, calc(var(--key-w) * .13), 12px);
              overflow-wrap: anywhere; }
 .key .sub { display: block; font-size: 10px; color: var(--muted); line-height: 1.25;
             overflow-wrap: anywhere; }
-.key .flag { display: block; font-size: 9px; color: var(--warn); line-height: 1.2; }
+.key .flag { display: block; font-size: 10px; color: var(--warn); line-height: 1.2; }
 .key.combat { border-left-color: var(--combat); }
 .key.movement { border-left-color: var(--movement); }
 .key.menu { border-left-color: var(--menu); }
@@ -266,7 +275,7 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 /* A bound action is still a good choice, so it is drawn at full strength; "unbound" in
    its second line and the dot say the rest. Faded, it looked disabled. */
 .action-list [hidden] { display: none; }
-.action .req { font-size: 9px; color: var(--error); }
+.action .req { font-size: 10px; color: var(--error); }
 .field { margin-bottom: 9px; }
 .field label { display: block; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 3px; }
 /* Which slot the action palette will write to. The attribute was set and never styled,

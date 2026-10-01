@@ -165,6 +165,12 @@ two selectors. The payload is embedded because a page opened from `file://` cann
 a sibling JSON, and `editor-data.json` is written beside it so an open page can be
 pointed at newer data with the Data button instead of being regenerated.
 
+The Edit board is laid out by CSS and one function. `fitStage` narrows the keys (`--key-w`,
+84 to 100px, up to 124 on a portrait window) before it scales anything, so type stays at
+the size it was written at; only a window too narrow for 84px keys scales the stage, and
+then only by the shortfall. A portrait window stacks the hands. Nothing renders below 9px.
+`.workspace.board` scopes the board's layout and `.probe` the press test's; keep it so.
+
 - `lint.ts` and `model-core.ts` are free of node imports on purpose: **the browser editor
   imports the same compiler, linter and YAML writer the CLI uses.** There is one
   implementation of each rule, not one per surface. Keep it that way — if you need
@@ -389,6 +395,10 @@ Importing through the app stays the supported path.
   must come through identical. A failure indicates the compiler is rewriting a field it
   does not model; the fixture is the reference, not the thing to change.
 - Never make a suite green by deleting a test, adding `.skip`, or loosening an assertion.
+- Unit tests (happy-dom) cannot see CSS. Layout, overflow, stacking and theme colours are
+  checked in `tests/e2e/editor.spec.ts` (`E2E_PORT=4181 npx playwright test`) at 1920x1080,
+  1440x900, 1280x720 and two vertical windows; it is not part of `npm run check`. Look at
+  the page in a browser before and after a layout change, not only at the tests.
 - The pre-commit hook runs `test:quick` — every unit test, editor included; the pre-push
   hook runs the whole gate. Both are wired by `git config core.hooksPath .githooks`, which
   `npm install` sets.
