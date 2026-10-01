@@ -184,6 +184,28 @@ at one end and are pressed towards the other.
   `DeadZone`, `Sensitivity`, `Exponent`) cannot re-centre it: none of them is an offset.
   The toes are not bound to anything.
 
+**A Windows calibration that makes a toe rest at zero — written 2026-10-01, not yet seen to
+work.** The game reads the pedals through SDL's DirectInput backend, and DirectInput applies
+the calibration `joy.cpl` stores: a minimum, a centre and a maximum per axis, with everything
+from the centre up mapped onto the top half of the range. A toe reports 0 at rest and 127
+fully pressed, so a calibration of minimum 0, centre 0, maximum 127 should read 0.0 at rest
+and +1.0 pressed: half an axis, which is what a throttle is. The Logitech driver replaces
+the page that has the Calibrate button, so the two values were written directly:
+
+```
+HKCU\System\CurrentControlSet\Control\MediaProperties\PrivateProperties\DirectInput\
+  VID_06A3&PID_0763\Calibration\0\Type\Axes\0   Calibration = 00000000 00000000 7f000000
+  VID_06A3&PID_0763\Calibration\0\Type\Axes\1   Calibration = 00000000 00000000 7f000000
+```
+
+Axis 0 is X, the left toe, and axis 1 is Y, the right; the rudder (axis 5) is left alone.
+Deleting the two `Axes` keys puts the toes back as they were. What is not known: whether
+DirectInput accepts a centre equal to the minimum, and so whether the game sees a toe at
+rest as zero. A device is read with the calibration it had when the program opened it, so
+the game has to be started after the values are written. The check is to press each toe
+with something reading the pedals through DirectInput; until that has been seen, the toes
+stay off every layout.
+
 **This has a home in the repo.** The pedals are a device (`devices/logitech-pro-flight-
 pedals.yaml`), what a layout does with them is in the game's `sets.yaml` beside its profiles
 (`akimbo-v10`: the rudder on yaw), and the stick mode has a with-pedals variant that hands
@@ -220,11 +242,21 @@ a one-sided axis — a half-range option in its controls screen, say (none is kn
 exist). `pedal-rest-on-centred` warns on any
 rest-at-end axis assigned to a centred game axis, so binding one is a visible decision.
 
-One thing we cannot do either way: the Azeron itself cannot be made to present as a
-joystick. It exposes a fixed set of USB HID interfaces, with configuration over hidraw on
+The Azeron exposes a fixed set of USB HID interfaces, with configuration over hidraw on
 interface 4 in a proprietary protocol; the profile JSON this repo compiles chooses what
 the existing keyboard, mouse and gamepad endpoints send, not which endpoints exist. Adding
-a joystick device class would be firmware work, not profile work.
+a device class would be firmware work, not profile work.
+
+**An untested lead: the units already enumerate as DirectInput joysticks.** Measured
+2026-10-01 with SDL 2.30.6 on the owner's machine, both units plugged in: SDL's DirectInput
+backend lists four devices named `Azeron Keypad - DirectInput` (two with 6 axes and 32
+buttons, two with 5 axes and 10 buttons), and its XInput backend lists two named
+`Controller (Azeron Keypad - XInput)`. The game's own joystick log, the same day, listed
+only the pedals. Why it leaves the Azerons out is not known — it may skip anything XInput
+also claims, which is what a stick in gamepad mode is, and that mode is constraint 1's
+stutter. Whether a unit can be made to send its stick on the DirectInput interface alone,
+and whether the game would then read it in the Joystick group without the flip, has not
+been tried.
 
 ## The dead end — a virtual gamepad
 
