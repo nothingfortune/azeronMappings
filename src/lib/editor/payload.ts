@@ -3,7 +3,7 @@
 import { loadInherited } from "../yaml-io.js";
 import { loadProfileData, loadStickModes } from "../io.js";
 import { parsePedalsDevice } from "../pedals.js";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { dataDirs, repoPath } from "../../config/paths.js";
@@ -68,6 +68,9 @@ export function buildPayload(): EditorPayload {
       lintConfig: game.lintConfig,
       profiles,
       sets: game.sets,
+      setsText: existsSync(repoPath(join(game.rel, "sets.yaml")))
+        ? readFileSync(repoPath(join(game.rel, "sets.yaml")), "utf8")
+        : "",
       ...(game.config.ingame_set === undefined ? {} : { ingameSet: game.config.ingame_set }),
     };
   });

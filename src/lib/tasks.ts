@@ -714,6 +714,51 @@ export interface SaveCheck {
   /** Live errors and warnings for that game -- not every game's, joined into one line. */
   findings: Finding[];
   buildErrors: string[];
+  /**
+   * Present when the saved file was a game's `sets.yaml`: what the game's own layout
+   * (`ingame_set`) now has for its pedals, as generation would write it, or why it cannot
+   * be written. The lint findings above carry the pedal rules; this says what they came to.
+   */
+  pedals?: SavedPedals;
+}
+
+export interface SavedPedals {
+  set: string;
+  /** Why the pedals cannot be written into the game's file, when they cannot. */
+  problem?: string;
+  axes: {
+    pedalAxis: string;
+    label: string;
+    drives: string;
+    /** The game's own row, or null when `drives` reaches none. */
+    row: string | null;
+    name: string | null;
+    status: NameStatus | null;
+  }[];
+}
+
+/** What the game's pedals come to once `sets.yaml` is saved, for the save's verdict. */
+function savedPedals(game: Game): SavedPedals | undefined {
+  const set = game.config.ingame_set;
+  if (set === undefined) return undefined;
+  const layout = game.sets.sets[set]?.pedals;
+  if (layout === undefined) return { set, axes: [] };
+  const device = game.pedalsDevice(layout.device)?.data;
+  const planned = planAxes(layout, device, game.stickModes, game.actions.actions, game.slug);
+  const axes = planned.map((axis) => ({
+    pedalAxis: axis.pedalAxis,
+    label: axis.label,
+    drives: axis.assignment.drives,
+    row: axis.row,
+    name: axis.name,
+    status: axis.status,
+  }));
+  try {
+    pedalsFor(game, set);
+  } catch (error) {
+    return { set, axes, problem: messageOf(error) };
+  }
+  return { set, axes };
 }
 
 /**
@@ -736,8 +781,11 @@ export function checkAfterSave(
   const findings = scope.flatMap((game) =>
     lintGame(game).live.filter((finding) => finding.level === ERROR || finding.level === WARNING),
   );
+  const pedals =
+    owner !== undefined && /(^|\/)sets\.ya?ml$/.test(path) ? savedPedals(owner) : undefined;
   return {
     game: owner?.slug ?? null,
+    ...(pedals === undefined ? {} : { pedals }),
     built: build.built.map((entry) => ({
       output: entry.output,
       importPath: hostPath(repoPath(entry.output)),

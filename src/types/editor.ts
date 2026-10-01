@@ -22,6 +22,12 @@ export interface EditorGame {
    * name the profiles carry in `profile.set`. One name selects keypads and pedals together.
    */
   sets: SetsData;
+  /**
+   * The text of the game's `sets.yaml` ("" when it has none). The page patches this, line by
+   * line, when a layout's pedals are saved, so the file's comments and other sets survive;
+   * the parsed `sets` above cannot say what the file looked like.
+   */
+  setsText: string;
   /** The set whose pedals are written into the game's own binding file, if the game says. */
   ingameSet?: string;
 }
