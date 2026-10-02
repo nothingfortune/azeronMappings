@@ -4,7 +4,12 @@
 # they are bound to. A game's actions.yaml starts with `extends: genres/SpaceSims/actions.yaml`
 # and supplies only `key:` / `meta:` / `mouse:` per action.
 #
-# `required` means "must be bound on some unit, or you will reach for the gamepad".
+# `required` means you cannot play without it: the checks complain while no control carries
+# it. Kept to that on purpose -- moving, firing, boost, the two drives and interact -- and
+# not what one layout happened to have, which is what it used to be: every device and
+# consumable slot was required, and firing was not. A pedal that drives an axis carries its
+# actions, so they are not missing for want of a key. It is one switch per action on the
+# editor's In-game tab.
 # `provided_by: sensor` means the unit's own sensor supplies it by moving the pointer, so
 # it is excluded from the coverage check.
 genre: SpaceSims
@@ -19,17 +24,17 @@ actions:
   throttle_down:      {label: Thrust backward,    tags: [movement, required]}
   strafe_left:        {label: Strafe left,        tags: [movement, required]}
   strafe_right:       {label: Strafe right,       tags: [movement, required]}
-  hover_up:           {label: Vertical thrust up,   tags: [movement, required]}
-  hover_down:         {label: Vertical thrust down, tags: [movement, required]}
+  hover_up:           {label: Vertical thrust up,   tags: [movement]}
+  hover_down:         {label: Vertical thrust down, tags: [movement]}
   pitch_up:           {label: Pitch up,           tags: [movement]}
   pitch_down:         {label: Pitch down,         tags: [movement]}
   yaw_left:           {label: Yaw left,           tags: [movement]}
   yaw_right:          {label: Yaw right,          tags: [movement]}
-  roll_left:          {label: Roll left,          tags: [movement, required]}
-  roll_right:         {label: Roll right,         tags: [movement, required]}
+  roll_left:          {label: Roll left,          tags: [movement]}
+  roll_right:         {label: Roll right,         tags: [movement]}
   boost:              {label: Boost,              tags: [movement, required],
                        note: "Must never latch -- constraint 6."}
-  inertia_dampeners:  {label: Inertia dampeners,  tags: [movement, required],
+  inertia_dampeners:  {label: Inertia dampeners,  tags: [movement],
                        note: "A toggle, and it decides whether thrust holds a speed or coasts."}
 
   # The unit's sensor moves the pointer. Not keys -- listed so the coverage check knows
@@ -44,8 +49,8 @@ actions:
   # --- weapons ------------------------------------------------------------------
   fire_primary:       {label: Fire primary,      tags: [combat]}
   fire_secondary:     {label: Fire secondary,    tags: [combat]}
-  next_primary:       {label: Next primary,      tags: [combat, required]}
-  previous_primary:   {label: Previous primary,  tags: [combat, required]}
+  next_primary:       {label: Next primary,      tags: [combat]}
+  previous_primary:   {label: Previous primary,  tags: [combat]}
   equip_primary_1:    {label: Equip primary 1,   tags: [combat]}
   equip_primary_2:    {label: Equip primary 2,   tags: [combat]}
   equip_primary_3:    {label: Equip primary 3,   tags: [combat]}
@@ -54,10 +59,10 @@ actions:
   secondary_1:        {label: Equip secondary 1, tags: [combat]}
   secondary_2:        {label: Equip secondary 2, tags: [combat]}
   secondary_3:        {label: Equip secondary 3, tags: [combat]}
-  ultimate:           {label: Ultimate,          tags: [combat, required]}
+  ultimate:           {label: Ultimate,          tags: [combat]}
 
   # --- targeting ----------------------------------------------------------------
-  lock_target:        {label: Lock target,       tags: [combat, required]}
+  lock_target:        {label: Lock target,       tags: [combat]}
   # Not `required`: lock_target already targets, and no layout has ever bound this -- the
   # id used to mean equip secondary 1, while the game's NextTarget sat unbound throughout.
   next_target:        {label: Next target,       tags: [combat]}
@@ -65,15 +70,15 @@ actions:
   lock_nearest_target: {label: Lock nearest target, tags: [combat]}
 
   # --- devices and consumables --------------------------------------------------
-  device_1:           {label: Device 1,          tags: [combat, required]}
-  device_2:           {label: Device 2,          tags: [combat, required]}
-  device_3:           {label: Device 3,          tags: [combat, required]}
-  device_4:           {label: Device 4,          tags: [combat, required]}
+  device_1:           {label: Device 1,          tags: [combat]}
+  device_2:           {label: Device 2,          tags: [combat]}
+  device_3:           {label: Device 3,          tags: [combat]}
+  device_4:           {label: Device 4,          tags: [combat]}
   use_device_hold:    {label: Device wheel (hold), tags: [combat]}
-  consume_1:          {label: Consumable 1,      tags: [combat, required]}
-  consume_2:          {label: Consumable 2,      tags: [combat, required]}
-  consume_3:          {label: Consumable 3,      tags: [combat, required]}
-  consume_4:          {label: Consumable 4,      tags: [combat, required]}
+  consume_1:          {label: Consumable 1,      tags: [combat]}
+  consume_2:          {label: Consumable 2,      tags: [combat]}
+  consume_3:          {label: Consumable 3,      tags: [combat]}
+  consume_4:          {label: Consumable 4,      tags: [combat]}
   use_consumable_hold: {label: Consumable wheel (hold), tags: [combat]}
 
   # --- utility ------------------------------------------------------------------

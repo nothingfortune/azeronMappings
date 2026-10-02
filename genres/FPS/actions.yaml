@@ -13,44 +13,44 @@ actions:
   move_back:      {label: Move back,     tags: [movement, required]}
   strafe_left:    {label: Strafe left,   tags: [movement, required]}
   strafe_right:   {label: Strafe right,  tags: [movement, required]}
-  sprint:         {label: Sprint,        tags: [movement, required],
+  sprint:         {label: Sprint,        tags: [movement],
                    note: "Tempting to latch with isHold; constraint 6 says it stays on
                           until pressed again. Decide deliberately."}
   jump:           {label: Jump,          tags: [movement, required]}
-  crouch:         {label: Crouch,        tags: [movement, required]}
+  crouch:         {label: Crouch,        tags: [movement]}
   prone:          {label: Prone,         tags: [movement]}
   dive:           {label: Dive / dodge,  tags: [movement]}
-  aim:            {label: Aim,   provided_by: mouse, tags: [combat, required]}
-  look:           {label: Look,  provided_by: sensor, axis: mouse_xy, tags: [movement, required]}
+  aim:            {label: Aim,   provided_by: mouse, tags: [combat]}
+  look:           {label: Look,  provided_by: sensor, axis: mouse_xy, tags: [movement]}
 
   # --- weapons ------------------------------------------------------------------
   fire_primary:   {label: Fire,          provided_by: mouse, tags: [combat, required]}
   reload:         {label: Reload,        tags: [combat, required]}
-  melee:          {label: Melee,         tags: [combat, required]}
-  grenade:        {label: Grenade,       tags: [combat, required]}
-  weapon_1:       {label: Weapon 1,      tags: [combat, required]}
-  weapon_2:       {label: Weapon 2,      tags: [combat, required]}
-  weapon_3:       {label: Sidearm,       tags: [combat, required]}
+  melee:          {label: Melee,         tags: [combat]}
+  grenade:        {label: Grenade,       tags: [combat]}
+  weapon_1:       {label: Weapon 1,      tags: [combat]}
+  weapon_2:       {label: Weapon 2,      tags: [combat]}
+  weapon_3:       {label: Sidearm,       tags: [combat]}
   weapon_next:    {label: Next weapon,   tags: [combat]}
   weapon_prev:    {label: Previous weapon, tags: [combat]}
-  ability_1:      {label: Ability 1,     tags: [combat, required]}
-  ability_2:      {label: Ability 2,     tags: [combat, required]}
+  ability_1:      {label: Ability 1,     tags: [combat]}
+  ability_2:      {label: Ability 2,     tags: [combat]}
   ability_3:      {label: Ability 3,     tags: [combat]}
   ability_4:      {label: Ability 4,     tags: [combat]}
   equipment_1:    {label: Equipment 1,   tags: [combat]}
   equipment_2:    {label: Equipment 2,   tags: [combat]}
-  stim:           {label: Stim / heal,   tags: [combat, required]}
+  stim:           {label: Stim / heal,   tags: [combat]}
 
   # --- utility ------------------------------------------------------------------
   interact:       {label: Interact / use, tags: [utility, required]}
-  ping:           {label: Ping / mark,    tags: [utility, required]}
+  ping:           {label: Ping / mark,    tags: [utility]}
   flashlight:     {label: Flashlight,     tags: [utility]}
-  push_to_talk:   {label: Push to talk,   tags: [utility, required]}
+  push_to_talk:   {label: Push to talk,   tags: [utility]}
 
   # --- menus --------------------------------------------------------------------
-  map:            {label: Map,            tags: [menu, required]}
-  inventory:      {label: Inventory,      tags: [menu, required]}
+  map:            {label: Map,            tags: [menu]}
+  inventory:      {label: Inventory,      tags: [menu]}
   scoreboard:     {label: Scoreboard,     tags: [menu]}
   emote:          {label: Emote wheel,    tags: [menu]}
-  menu_main:      {label: Main menu,      tags: [menu, required],
+  menu_main:      {label: Main menu,      tags: [menu],
                    note: "Constraint 5 -- this is Escape. Keep it off anything mashable."}
