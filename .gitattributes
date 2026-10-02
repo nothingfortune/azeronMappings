@@ -2,3 +2,4 @@
 # must not normalise it, or the committed copy and the fixture stop being what the game
 # holds -- and the test that line endings survive would pass locally and fail on a clone.
 *.ini -text
+*.binds -text
