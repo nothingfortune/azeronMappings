@@ -40,7 +40,7 @@ import {
   STICK_DIRECTIONS,
   STICK_MODE_CODES,
 } from "../types/azeron.js";
-import type { Slot } from "../types/azeron.js";
+import type { Slot, StickDirection } from "../types/azeron.js";
 import type { EditorGame, EditorPayload } from "../types/editor.js";
 import type {
   NameStatus,
@@ -250,6 +250,134 @@ function describeSlotValue(actions: ActionSet, value: PositionSpec[Slot]): strin
   return "raw";
 }
 
+/**
+ * What is being dragged across the Edit tab: an action from the list, or a key off the
+ * board. Kept here rather than read back from the drop event, because the browser only
+ * hands a drop the text it was given and the page already knows what was picked up.
+ */
+type Drag = { kind: "action"; id: string } | { kind: "key"; slug: string; position: string };
+let dragging: Drag | null = null;
+
+function endDrag(): void {
+  dragging = null;
+  document.body.classList.remove("dragging-action", "dragging-key");
+  for (const node of document.querySelectorAll(".drop-over")) node.classList.remove("drop-over");
+}
+
+/** Let `node` be picked up. `text` is what another program is given if it is dropped there. */
+function draggable(node: HTMLElement, what: Drag, text: string): void {
+  node.setAttribute("draggable", "true");
+  node.addEventListener("dragstart", (event) => {
+    dragging = what;
+    document.body.classList.add(`dragging-${what.kind}`);
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", text);
+    }
+  });
+  node.addEventListener("dragend", endDrag);
+}
+
+/** Let `node` take a drop of whatever `accepts` allows. */
+function dropTarget(
+  node: HTMLElement,
+  accepts: (drag: Drag) => boolean,
+  drop: (drag: Drag) => void,
+): void {
+  node.addEventListener("dragover", (event) => {
+    if (dragging === null || !accepts(dragging)) return;
+    // Without this the browser refuses the drop.
+    event.preventDefault();
+    node.classList.add("drop-over");
+  });
+  node.addEventListener("dragleave", () => {
+    node.classList.remove("drop-over");
+  });
+  node.addEventListener("drop", (event) => {
+    const drag = dragging;
+    endDrag();
+    if (drag === null || !accepts(drag)) return;
+    event.preventDefault();
+    drop(drag);
+  });
+}
+
+/** Put an action on one slot of a key, and name the key after it when the slot is the tap. */
+function assignAction(slug: string, position: string, slot: Slot, actionId: string): void {
+  if (profileFor(slug).device.isStick(position)) return;
+  const spec = (workingData(slug).positions[position] ??= {});
+  spec[slot] = actionId;
+  // The label is what the board shows and what is compiled onto the unit, so it
+  // must not go on naming the action that used to be here -- and whatever it said, it said
+  // it about that action. Rebinding the tap renames the key; a long press or a double tap
+  // leaves it, because the label is the tap's. `??=` never fired at all, since every
+  // shipped profile already has a label on every position.
+  if (slot === "tap") spec.label = actionSetFor(currentGame()).label(actionId);
+}
+
+/** An action dropped on a key goes on its tap, and the key becomes the selected one. */
+function dropActionOnKey(slug: string, position: string, actionId: string): void {
+  assignAction(slug, position, "tap", actionId);
+  state.selected = { slug, position };
+  state.slot = "tap";
+  render();
+}
+
+/**
+ * A key dropped on another key: everything on it moves, and what was there comes back the
+ * other way, so nothing is lost by dropping on a key that was in use.
+ */
+function dropKeyOnKey(
+  from: { slug: string; position: string },
+  to: { slug: string; position: string },
+): void {
+  if (from.slug === to.slug && from.position === to.position) return;
+  const source = workingData(from.slug).positions;
+  const target = workingData(to.slug).positions;
+  const moved = source[from.position];
+  const displaced = target[to.position];
+  if (moved === undefined) return;
+  target[to.position] = moved;
+  if (displaced === undefined) removeKey(source, from.position);
+  else source[from.position] = displaced;
+  state.selected = to;
+  state.slot = "tap";
+  render();
+}
+
+/** An action dropped on one of a stick's four directions. */
+function dropActionOnDirection(
+  slug: string,
+  position: string,
+  direction: StickDirection,
+  actionId: string,
+): void {
+  const spec = (workingData(slug).positions[position] ??= { mode: "keyboard" });
+  spec.directions ??= {};
+  spec.directions[direction] = actionId;
+  state.selected = { slug, position };
+  render();
+}
+
+/** A key dragged off the board and dropped on the action list is cleared. */
+function clearKey(slug: string, position: string): void {
+  removeKey(workingData(slug).positions, position);
+  render();
+}
+
+/** Make a board key take an action or another key, and be picked up when it holds something. */
+function wireKey(node: HTMLElement, slug: string, position: string, holds: boolean): void {
+  if (holds) draggable(node, { kind: "key", slug, position }, positionLabel(position));
+  dropTarget(
+    node,
+    (drag) => drag.kind === "action" || drag.slug !== slug || drag.position !== position,
+    (drag) => {
+      if (drag.kind === "action") dropActionOnKey(slug, position, drag.id);
+      else dropKeyOnKey(drag, { slug, position });
+    },
+  );
+}
+
 function keyCard(slug: string, position: string, extraClass = ""): HTMLElement {
   const game = currentGame();
   const actions = actionSetFor(game);
@@ -279,20 +407,36 @@ function keyCard(slug: string, position: string, extraClass = ""): HTMLElement {
     }
   } else {
     const tap = describeSlotValue(actions, spec.tap);
-    card.append(el("span", { class: "name" }, [spec.label ?? tap ?? "—"]));
+    const name = spec.label ?? tap ?? "—";
+    card.append(el("span", { class: "name" }, [name]));
+    // Every key is the same size, so what is on it besides its name shares one line and the
+    // whole of it is in the tooltip. The inspector spells each part out.
+    const extras: { text: string; flag: boolean }[] = [];
     for (const slot of SLOTS) {
       const text = describeSlotValue(actions, spec[slot]);
       if (!text) continue;
       // The label usually repeats the tap action; only the extra slots need spelling out.
       if (slot === "tap" && spec.label === undefined) continue;
       if (slot === "tap" && text === spec.label) continue;
-      card.append(el("span", { class: "sub" }, [`${slot === "tap" ? "" : `${slot} `}${text}`]));
+      extras.push({ text: `${slot === "tap" ? "" : `${slot} `}${text}`, flag: false });
     }
     if (spec.feature_delay && (spec.long ?? spec.double)) {
-      card.append(el("span", { class: "flag" }, [`waits ${String(spec.feature_delay)} ms`]));
+      extras.push({ text: `waits ${String(spec.feature_delay)} ms`, flag: true });
     }
-    if (spec.hold) card.append(el("span", { class: "flag" }, ["latches"]));
+    if (spec.hold) extras.push({ text: "latches", flag: true });
+    if (extras.length > 0) {
+      card.classList.add("has-extra");
+      // One leaf of text, like the lines above it: nested spans read as one run-on word.
+      const flagged = extras.some((extra) => extra.flag);
+      card.append(
+        el("span", { class: `sub${flagged ? " flag" : ""}` }, [
+          extras.map((extra) => extra.text).join(" · "),
+        ]),
+      );
+    }
+    card.title = [name, ...extras.map((extra) => extra.text)].join("\n");
   }
+  if (!isStick) wireKey(card, slug, position, spec !== undefined);
 
   card.addEventListener("click", () => {
     // Back to the tap. `state.slot` only ever changed by focusing a slot's select, and
@@ -337,6 +481,13 @@ function stickDial(slug: string, position: string, press: string | null): HTMLEl
     cell.append(el("span", { class: "glyph" }, [DIR_GLYPH[direction] ?? ""]));
     if (label !== null) cell.append(el("span", { class: "name" }, [label]));
     cell.addEventListener("click", select);
+    dropTarget(
+      cell,
+      (drag) => drag.kind === "action",
+      (drag) => {
+        if (drag.kind === "action") dropActionOnDirection(slug, position, direction, drag.id);
+      },
+    );
     dial.append(cell);
   }
 
@@ -355,6 +506,7 @@ function stickDial(slug: string, position: string, press: string | null): HTMLEl
     state.selected = { slug, position: press ?? position };
     render();
   });
+  if (press !== null) wireKey(hub, slug, press, pressSpec !== undefined);
   dial.append(hub);
   return dial;
 }
@@ -700,7 +852,7 @@ function renderPalette(): HTMLElement {
   if (selection === null) {
     panel.append(
       el("div", { class: "note palette-note" }, [
-        "Pick a key on the board, then click an action here to put it on that key.",
+        "Drag an action onto a key. Or pick a key on the board, then click an action here.",
       ]),
     );
   } else if (!onStick) {
@@ -715,8 +867,8 @@ function renderPalette(): HTMLElement {
   if (onStick) {
     panel.append(
       el("div", { class: "note palette-note" }, [
-        "A stick is selected. Pick a direction on the dial to bind one of its four ways, " +
-          "or a key to bind an action.",
+        "A stick is selected. Drag an action onto one of its four directions, or choose " +
+          "them in the Key panel.",
       ]),
     );
   }
@@ -780,10 +932,21 @@ function renderPalette(): HTMLElement {
       button.addEventListener("click", () => {
         assignToSelection(id);
       });
+      // The sensor supplies these; they are not something a key can send.
+      if (!spec.provided_by) draggable(button, { kind: "action", id }, spec.label ?? id);
       list.append(button);
     }
   }
   panel.append(list);
+  // The way back: a key dragged off the board and let go here is cleared.
+  panel.append(el("div", { class: "clear-hint" }, ["Drop a key here to clear it."]));
+  dropTarget(
+    panel,
+    (drag) => drag.kind === "key",
+    (drag) => {
+      if (drag.kind === "key") clearKey(drag.slug, drag.position);
+    },
+  );
   applyFilter();
   return panel;
 }
@@ -808,18 +971,8 @@ function confirmDiscard(what: string): boolean {
 function assignToSelection(actionId: string): void {
   const selection = state.selected;
   if (!selection) return;
-  const data = workingData(selection.slug);
-  const spec = (data.positions[selection.position] ??= {});
-  const device = profileFor(selection.slug).device;
-  if (device.isStick(selection.position)) return;
-  const actions = actionSetFor(currentGame());
-  spec[state.slot] = actionId;
-  // The label is what the board shows and what is compiled onto the unit, so it
-  // must not go on naming the action that used to be here -- and whatever it said, it said
-  // it about that action. Rebinding the tap renames the key; a long press or a double tap
-  // leaves it, because the label is the tap's. `??=` never fired at all, since every
-  // shipped profile already has a label on every position.
-  if (state.slot === "tap") spec.label = actions.label(actionId);
+  if (profileFor(selection.slug).device.isStick(selection.position)) return;
+  assignAction(selection.slug, selection.position, state.slot, actionId);
   render();
 }
 
@@ -1674,44 +1827,76 @@ function download(name: string, text: string, type: string): void {
  * Appends to the save report when there is one, so a save and an update read as one
  * step. The game rewrites the file when it exits, which is why the caller asks first.
  */
-async function updateGame(game: EditorGame): Promise<void> {
-  const target = saveReport ?? el("div", { class: "save-report" });
-  saveReport = target;
+/**
+ * The one name for writing this layout's keys and pedals into the game's own settings. It
+ * is offered from the menu, after a save and on the Setup tab, and was called something
+ * different on the last of those.
+ */
+const UPDATE_GAME = "Update the game's keys…";
+
+interface GameUpdate {
+  changes: { display: string; from: string; to: string }[];
+  backup: string | null;
+  pedals?: {
+    changes: { display: string; field: string; from: string; to: string }[];
+    waiting: { label: string; display: string }[];
+  } | null;
+}
+
+/** What an update changed in the game's file: its keys, and the rows its pedals drive. */
+function describeGameUpdate(result: GameUpdate): string {
+  const keys = result.changes.map((change) => `${change.display} ${change.from} → ${change.to}`);
+  const pedals = (result.pedals?.changes ?? []).map(
+    (change) =>
+      `${change.display} (${change.field === "Key1" || change.field === "Key2" ? "pedal" : change.field}) ` +
+      `${change.from} → ${change.to}`,
+  );
+  const waiting = (result.pedals?.waiting ?? []).map((axis) => axis.label);
+  const changed = [...keys, ...pedals];
+  return (
+    (changed.length === 0
+      ? "The game already had these keys -- nothing to write."
+      : `Updated the game: ${changed.join("; ")}.`) +
+    (waiting.length === 0
+      ? ""
+      : ` Not written, because the game's name for it is not known: ${waiting.join(", ")}.`) +
+    (result.backup === null ? "" : ` Its previous file is kept at ${result.backup}.`)
+  );
+}
+
+/** Tell the game, and say what came of it. */
+async function updateGame(game: EditorGame): Promise<{ ok: boolean; text: string }> {
   try {
     const reply = await post("/api/ingame/apply", { game: game.slug });
     if (reply.ok !== true) {
-      target.append(
-        el("div", { class: "finding error" }, [`The game was not updated: ${String(reply.error)}`]),
-      );
-    } else {
-      const result = reply.result as {
-        changes: { display: string; from: string; to: string }[];
-        backup: string | null;
-      };
-      target.append(
-        el("div", {}, [
-          result.changes.length === 0
-            ? "The game already had these keys -- nothing to write."
-            : `Updated the game: ${result.changes
-                .map((change) => `${change.display} ${change.from} → ${change.to}`)
-                .join("; ")}.` +
-              (result.backup === null ? "" : ` Its previous file is kept at ${result.backup}.`),
-        ]),
-      );
+      return { ok: false, text: `The game was not updated: ${String(reply.error)}` };
     }
+    return { ok: true, text: describeGameUpdate(reply.result as GameUpdate) };
   } catch (error) {
-    target.append(
-      el("div", { class: "finding error" }, [`Could not reach the server: ${messageOf(error)}`]),
-    );
+    return { ok: false, text: `Could not reach the server: ${messageOf(error)}` };
   }
-  render();
+}
+
+/** Why the game cannot be updated just now, or null when it can. */
+function gameUpdateBlocked(): string | null {
+  const game = currentGame();
+  const gaps = gameFileGaps(game);
+  if (gaps.length > 0) {
+    return `${game.name}'s keys cannot be written into the game yet: ${gaps[0] ?? ""}`;
+  }
+  // The game is updated from what is saved, so an unsaved key would be left out.
+  if (inGameKeysPart().isDirty() || pedalsPart().isDirty()) {
+    return "Save first: the game is updated from the saved in-game keys and pedals.";
+  }
+  return null;
 }
 
 /**
  * Ask whether the game is closed, then tell it. The one step of a save that writes outside
- * the repo -- into the game's own config -- so it is never implied by Save.
+ * the repo -- into the game's own config -- so it is never implied by Save. `report` is
+ * handed what came of it, so each place that offers the step shows the answer where it is.
  */
-function confirmUpdateGame(): void {
+function confirmUpdateGame(report: (outcome: { ok: boolean; text: string }) => void): void {
   const game = currentGame();
   if (
     !window.confirm(
@@ -1721,8 +1906,18 @@ function confirmUpdateGame(): void {
   ) {
     return;
   }
-  saveReport?.querySelector(".game-step")?.remove();
-  void updateGame(game);
+  void updateGame(game).then((outcome) => {
+    report(outcome);
+    render();
+  });
+}
+
+/** Put what came of an update in the report under the header, where a save's verdict goes. */
+function reportUpdateInSaveReport(outcome: { ok: boolean; text: string }): void {
+  const target = saveReport ?? el("div", { class: "save-report" });
+  saveReport = target;
+  target.querySelector(".game-step")?.remove();
+  target.append(el("div", outcome.ok ? {} : { class: "finding error" }, [outcome.text]));
 }
 
 /** The role tags an action can carry, in the order they are shown, and what each one does. */
@@ -1960,10 +2155,10 @@ async function saveScheme(): Promise<void> {
     const step = el("div", { class: "game-step" }, [
       el("div", {}, [`The game does not know about the new ${what} yet.`]),
     ]);
-    const update = el("button", { class: "btn small", type: "button" }, [
-      "Update the game's keys…",
-    ]);
-    update.addEventListener("click", confirmUpdateGame);
+    const update = el("button", { class: "btn small", type: "button" }, [UPDATE_GAME]);
+    update.addEventListener("click", () => {
+      confirmUpdateGame(reportUpdateInSaveReport);
+    });
     step.append(update);
     report.append(step);
   }
@@ -2130,20 +2325,14 @@ function renderHeader(): HTMLElement {
   };
   if (canSave()) {
     item("Download the import files", downloadAll);
-    item("Update the game's keys…", () => {
-      const gaps = gameFileGaps(currentGame());
-      if (gaps.length > 0) {
-        saveNote = `${currentGame().name}'s keys cannot be written into the game yet: ${gaps[0] ?? ""}`;
+    item(UPDATE_GAME, () => {
+      const blocked = gameUpdateBlocked();
+      if (blocked !== null) {
+        saveNote = blocked;
         render();
         return;
       }
-      // The game is updated from what is saved, so an unsaved key would be left out.
-      if (inGameKeysPart().isDirty() || pedalsPart().isDirty()) {
-        saveNote = "Save first: the game is updated from the saved in-game keys and pedals.";
-        render();
-        return;
-      }
-      confirmUpdateGame();
+      confirmUpdateGame(reportUpdateInSaveReport);
     });
   } else {
     item("Download the layout as YAML", downloadLayoutYaml);
@@ -2787,6 +2976,82 @@ function exportPicker(onChosen: (fileName: string, exported: unknown) => void): 
   return { upload, drop, file };
 }
 
+/** What the add-a-layout form holds: its name, and the export chosen for each unit. */
+const addLayout: {
+  name: string;
+  files: Record<string, { name: string; exported: unknown }>;
+} = { name: "", files: {} };
+
+/** Turn the chosen exports into a layout of the current game, one profile per unit. */
+async function addLayoutFromExports(): Promise<void> {
+  const name = addLayout.name.trim();
+  const chosen = Object.entries(addLayout.files);
+  const say = (text: string): void => {
+    repoNote = text;
+    render();
+  };
+  if (!isFileName(name)) {
+    say(
+      name === ""
+        ? "Give the layout a name first."
+        : `"${name}" cannot be a layout name: letters, digits, dots and dashes only.`,
+    );
+    return;
+  }
+  if (chosen.length === 0) {
+    say("Choose the export for at least one unit first.");
+    return;
+  }
+  say(`adding ${name}...`);
+
+  const game = currentGame().slug;
+  const written: string[] = [];
+  const sofar = (): string =>
+    written.length === 0 ? "nothing was written." : `${written.join(" and ")} was written.`;
+  let overwrite = false;
+  for (const [device, file] of chosen) {
+    const send = (): Promise<Record<string, unknown>> =>
+      post("/api/import", {
+        game,
+        device,
+        set: name,
+        exported: file.exported,
+        ...(overwrite ? { overwrite: true } : {}),
+      });
+    let result = await send();
+    // A layout already in use would lose a profile and its committed template, which is
+    // the only record of what the unit held. Asked, not assumed.
+    if (result.ok !== true && result.status === 409 && !overwrite) {
+      if (!window.confirm(`${String(result.error)}\n\nOverwrite it?`)) {
+        say(`cancelled -- ${sofar()}`);
+        return;
+      }
+      overwrite = true;
+      result = await send();
+    }
+    if (result.ok !== true) {
+      say(`not added: ${String(result.error)} -- ${sofar()}`);
+      return;
+    }
+    written.push(String(result.profilePath));
+  }
+
+  addLayout.name = "";
+  addLayout.files = {};
+  const done = `Added ${name}: wrote ${written.join(" and ")}.`;
+  if (await refreshPayload()) {
+    // Straight to the board with the new layout on it, which is the proof it worked.
+    state.setName = name;
+    state.selected = null;
+    state.mode = "edit";
+    repoNote = `${done} It is the selected layout now.`;
+    saveNote = repoNote;
+  } else {
+    repoNote = `${done} Save or discard your unsaved edits and reload the page to open it.`;
+  }
+  render();
+}
+
 /** What the new-game form holds. Module state, because every render rebuilds the page. */
 const newGame: {
   name: string;
@@ -3001,69 +3266,56 @@ function renderRepo(): HTMLElement {
     ),
   );
 
-  // A name and a hand -- in words. It asked for a "set name", defaulting to "v1", and a
-  // device id. The name becomes a file name, so it is checked here and on the server.
-  const setName = el("input", { type: "text", value: "", placeholder: "e.g. akimbo-v11" });
-  const deviceSelect = unitSelect("");
+  // A name and an export per unit -- a layout is a pair, and either half alone is one too.
+  // The name and the chosen files are kept across redraws: the form used to import the
+  // moment a file was picked, refused if the name was still empty, and said so at the top
+  // of the tab where nobody looking at the form would see it.
+  const setName = el("input", {
+    type: "text",
+    value: addLayout.name,
+    placeholder: "e.g. akimbo-v11",
+    "data-add-layout": "name",
+  });
+  setName.addEventListener("input", () => {
+    addLayout.name = setName.value;
+  });
 
-  const picker = exportPicker((chosen, exported) => {
-    const name = setName.value.trim();
-    if (!isFileName(name)) {
-      repoNote =
-        name === ""
-          ? "Give the layout a name first."
-          : `"${name}" cannot be a layout name: letters, digits, dots and dashes only.`;
+  const exports = el("div", { class: "unit-exports" });
+  for (const device of Object.values(state.payload.devices)) {
+    const unit = device.hand === undefined ? device.device : `${unitLabel(device.hand)} unit`;
+    const picked = addLayout.files[device.device];
+    const picker = exportPicker((chosen, exported) => {
+      addLayout.files[device.device] = { name: chosen, exported };
+      repoNote = `${chosen} chosen for the ${unit.toLowerCase()}. Press "Add layout" when ready.`;
       render();
-      return;
-    }
-    repoNote = `importing ${chosen}...`;
-    render();
-    const send = (overwrite: boolean): void => {
-      void post("/api/import", {
-        game: currentGame().slug,
-        device: deviceSelect.value,
-        set: name,
-        exported,
-        ...(overwrite ? { overwrite: true } : {}),
-      }).then((result) => {
-        // A set already in use destroys a profile and its committed template, which is
-        // the only record of what the unit held. Asked, not assumed.
-        if (result.ok !== true && result.status === 409) {
-          if (window.confirm(`${String(result.error)}\n\nOverwrite it?`)) {
-            send(true);
-            return;
-          }
-          repoNote = "import cancelled -- nothing was written.";
-          render();
-          return;
-        }
-        if (result.ok !== true) {
-          repoNote = `import refused: ${String(result.error)}`;
-          render();
-          return;
-        }
-        const done =
-          `wrote ${String(result.profilePath)} (${String(result.positions)} positions) ` +
-          `and kept the export at ${String(result.templatePath)}.`;
-        void refreshPayload().then((refreshed) => {
-          repoNote = refreshed
-            ? `${done} It is in the Layout selector now.`
-            : `${done} Reload the page to open it.`;
-          render();
-        });
-      });
-    };
-    send(false);
+    });
+    picker.upload.textContent = picked === undefined ? "Choose file…" : "Choose another…";
+    picker.upload.classList.remove("primary");
+    picker.drop.textContent =
+      picked === undefined ? `Drop the ${unit.toLowerCase()}'s export here.` : picked.name;
+    if (picked !== undefined) picker.drop.classList.add("chosen");
+    picker.drop.setAttribute("data-add-layout", device.device);
+    exports.append(
+      el("div", { class: "field unit-export" }, [
+        el("label", {}, [`${unit}'s export`]),
+        picker.drop,
+        picker.upload,
+        picker.file,
+      ]),
+    );
+  }
+
+  const add = el("button", { class: "btn primary", type: "button" }, ["Add layout"]);
+  add.addEventListener("click", () => {
+    void addLayoutFromExports();
   });
 
   importRow.append(
     el("div", { class: "row2" }, [
       el("div", { class: "field" }, [el("label", {}, ["Name for this layout"]), setName]),
-      el("div", { class: "field" }, [el("label", {}, ["Exported from"]), deviceSelect]),
     ]),
-    el("div", { class: "row2" }, [picker.upload]),
-    picker.drop,
-    picker.file,
+    exports,
+    el("div", { class: "row2" }, [add]),
   );
   panel.append(importRow);
 
@@ -3071,16 +3323,16 @@ function renderRepo(): HTMLElement {
   const fileStatus = gameFileStatus(currentGame());
   panel.append(
     section(
-      "The game's key bindings",
+      "The game's keys",
       fileStatus === null
-        ? "The keys inside the game come from actions.yaml. Read shows where the game " +
-            "disagrees; Write makes it agree. Close the game first."
+        ? "The keys and pedals inside the game come from this layout. Compare shows where the " +
+            "game disagrees; Update makes it agree. Close the game first."
         : "Reading the game's own key settings, and writing this layout's keys into them.",
     ),
   );
   if (fileStatus !== null) panel.append(fileStatus);
   const ingameRow = el("div", { class: "field" });
-  const check = el("button", { class: "btn", type: "button" }, ["Read the game's bindings"]);
+  const check = el("button", { class: "btn", type: "button" }, ["Compare with the game's keys"]);
   check.addEventListener("click", () => {
     repoNote = "reading...";
     render();
@@ -3103,40 +3355,17 @@ function renderRepo(): HTMLElement {
         render();
       });
   });
-  // Writing is the other half: actions.yaml says which key each action is on, and the
-  // game is made to agree. The game has to be closed -- it rewrites the file on exit.
-  const apply = el("button", { class: "btn primary", type: "button" }, [
-    "Write the game's bindings",
-  ]);
+  // Writing is the other half, and the same step the menu and a save offer.
+  const apply = el("button", { class: "btn primary", type: "button" }, [UPDATE_GAME]);
   apply.addEventListener("click", () => {
-    if (
-      !window.confirm(
-        `Rewrite ${currentGame().name}'s key bindings from actions.yaml? Close the game first: ` +
-          "it rewrites the file when it exits. The current file is kept beside it.",
-      )
-    ) {
+    const blocked = gameUpdateBlocked();
+    if (blocked !== null) {
+      repoNote = blocked;
+      render();
       return;
     }
-    repoNote = "writing the game's bindings...";
-    render();
-    void post("/api/ingame/apply", { game: currentGame().slug }).then((reply) => {
-      if (reply.ok !== true) {
-        repoNote = `not written: ${String(reply.error)}`;
-      } else {
-        const result = reply.result as {
-          changes: { display: string; from: string; to: string }[];
-          backup: string | null;
-        };
-        const changed = result.changes
-          .map((change) => `${change.display} ${change.from} -> ${change.to}`)
-          .join("; ");
-        repoNote =
-          result.changes.length === 0
-            ? "The game already agrees with actions.yaml -- nothing written."
-            : `Wrote ${String(result.changes.length)} binding(s): ${changed}.` +
-              (result.backup === null ? "" : ` The previous file is at ${result.backup}.`);
-      }
-      render();
+    confirmUpdateGame((outcome) => {
+      repoNote = outcome.text;
     });
   });
   if (fileStatus === null) {
@@ -3448,6 +3677,10 @@ export function start(payload = window.AZERON_PAYLOAD): void {
   // which axes had their details open.
   pedalsNote = null;
   tuningOpen.clear();
+  // The exports chosen for a layout were chosen against the data being replaced.
+  addLayout.name = "";
+  addLayout.files = {};
+  dragging = null;
   const firstGame = payload.games[0];
   resetSession();
   state = {

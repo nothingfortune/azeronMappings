@@ -15,7 +15,7 @@ const DARK = `
 
 /** Injected by the editor at runtime so the whole page ships in one bundle. */
 export const CSS = `
-:root { ${LIGHT} --key-w: 94px; color-scheme: light; }
+:root { ${LIGHT} --key-w: 94px; --key-h: 50px; color-scheme: light; }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) { ${DARK} color-scheme: dark; }
 }
@@ -95,7 +95,15 @@ select, .btn {
 }
 .btn:hover, select:hover { border-color: var(--accent); }
 .btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
-.repo-note { color: var(--fg); border-left: 3px solid var(--accent); padding-left: 8px; }
+/* What the last thing done on this tab came to. It stays in view while the tab scrolls: the
+   tab is taller than the window, and a message at its top was missed from a form below. */
+.repo-note { color: var(--fg); border-left: 3px solid var(--accent); padding: 6px 8px;
+             position: sticky; top: 52px; z-index: 2; background: var(--panel);
+             border-radius: 0 6px 6px 0; box-shadow: 0 1px 4px rgba(0, 0, 0, .18); }
+.unit-exports { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+                gap: 10px; margin: 6px 0; }
+.unit-export .dropzone { padding: 10px; margin-bottom: 6px; }
+.unit-export .dropzone.chosen { border-style: solid; color: var(--fg); }
 .mode-row { display: block; width: 100%; text-align: left; background: var(--bg);
             border: 1px solid var(--line); border-radius: 7px; padding: 6px 8px;
             margin-bottom: 4px; cursor: pointer; color: inherit; }
@@ -160,7 +168,7 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 .btn.small { padding: 3px 8px; font-size: 12px; }
 .keybind-note { flex-basis: 100%; font-size: 11px; color: var(--warn); }
 .keybind-note.bad { color: var(--error); }
-.action-list.inert { opacity: .6; pointer-events: none; }
+/* Not dimmed and not dead when nothing is selected: an action can still be dragged. */
 .note { font-size: 11.5px; color: var(--muted); margin-bottom: 10px; }
 .workspace { padding: 12px 14px; }
 /* The board on top at full width; the panels dock beneath it. */
@@ -225,27 +233,40 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
   font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted);
   text-align: center; height: 13px; white-space: nowrap;
 }
+/* Every key is one size, whatever is on it: the board is a picture of the unit, and a key
+   that grew with its label pushed the ones under it out of line. */
 .key {
-  width: var(--key-w); min-height: 40px; border: 1px solid var(--line); border-radius: 7px;
+  width: var(--key-w); height: var(--key-h); border: 1px solid var(--line); border-radius: 7px;
   background: var(--bg); padding: 3px 6px; cursor: pointer; text-align: left; display: flex;
   flex-direction: column; gap: 1px; border-left-width: 3px; border-left-color: var(--line);
   overflow: hidden;
 }
 .key:hover { border-color: var(--accent); }
 .key.selected { outline: 2px solid var(--accent); outline-offset: 1px; }
-.key.empty { opacity: .3; border-style: dashed; border-left-style: dashed; min-height: 30px;
+.key.empty { opacity: .3; border-style: dashed; border-left-style: dashed;
              justify-content: center; }
 .key.empty .name { display: none; }
 /* Each line is its own block; as inline spans they ran together into one string. */
 .key .pos { display: block; font-size: 10px; color: var(--muted); line-height: 1.2; }
 /* The name narrows with the key, so a word like "Consumable" still fits on a line at the
    narrowest key rather than breaking in the middle. */
-.key .name { display: block; font-weight: 600; line-height: 1.2;
+.key .name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+             overflow: hidden; font-weight: 600; line-height: 1.2;
              font-size: clamp(11px, calc(var(--key-w) * .13), 12px);
              overflow-wrap: anywhere; }
-.key .sub { display: block; font-size: 10px; color: var(--muted); line-height: 1.25;
-            overflow-wrap: anywhere; }
-.key .flag { display: block; font-size: 10px; color: var(--warn); line-height: 1.2; }
+/* A key with more on it than its name gives the name one line and the rest another. */
+.key.has-extra .name { -webkit-line-clamp: 1; }
+.key .sub { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            font-size: 10px; line-height: 1.25; color: var(--muted); }
+.key .sub.flag { color: var(--warn); }
+/* Drag and drop: what is being carried, and where it may be put down. */
+.key[draggable="true"], .action[draggable="true"] { cursor: grab; }
+.drop-over { outline: 2px dashed var(--accent); outline-offset: 1px; }
+.clear-hint { display: none; margin-top: 6px; padding: 6px; border: 1px dashed var(--line);
+              border-radius: 6px; text-align: center; font-size: 11.5px; color: var(--muted); }
+body.dragging-key .clear-hint { display: block; }
+body.dragging-key .palette.drop-over .clear-hint { border-color: var(--accent); color: var(--fg); }
+body.dragging-key .palette.drop-over { outline: none; }
 .key.combat { border-left-color: var(--combat); }
 .key.movement { border-left-color: var(--movement); }
 .key.menu { border-left-color: var(--menu); }
@@ -267,13 +288,13 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 
 .stick-dial {
   display: grid; gap: 3px;
-  grid-template-columns: repeat(3, var(--key-w)); grid-template-rows: repeat(3, auto);
+  grid-template-columns: repeat(3, var(--key-w)); grid-template-rows: repeat(3, var(--key-h));
 }
 .stick-dial.selected { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px; }
 .stick-dial .dir {
   border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: inherit;
   padding: 4px 5px; cursor: pointer; display: flex; flex-direction: column; align-items: center;
-  justify-content: center; gap: 1px; min-height: 40px; text-align: center; overflow: hidden;
+  justify-content: center; gap: 1px; height: var(--key-h); text-align: center; overflow: hidden;
 }
 .stick-dial .dir:hover { border-color: var(--accent); }
 .stick-dial .dir.empty { opacity: .35; border-style: dashed; }
@@ -285,9 +306,13 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 .stick-dial .right { grid-area: 2 / 3; }
 .stick-dial .down { grid-area: 3 / 2; }
 /* The hub is the stick pressed in, drawn as the wheel the Azeron software shows. */
-.stick-dial .hub { grid-area: 2 / 2; border: none; background: none; gap: 3px; }
+/* The stick pressed in. Its wheel sits beside its name: every cell is one key high, and a
+   wheel above two lines of text does not fit in that. */
+.stick-dial .hub { grid-area: 2 / 2; border: none; background: none; gap: 5px;
+                   flex-direction: row; padding: 2px 3px; }
+.stick-dial .hub .name { text-align: left; }
 .stick-dial .hub .wheel {
-  width: 46px; height: 46px; border-radius: 50%; border: 2px solid var(--line);
+  width: 24px; height: 24px; flex: none; border-radius: 50%; border: 2px solid var(--line);
   background:
     radial-gradient(circle at center, var(--panel) 0 26%, transparent 27%),
     conic-gradient(from -22.5deg,

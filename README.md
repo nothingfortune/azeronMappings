@@ -29,7 +29,7 @@ works in bash only). `npm run azeron -- help` lists everything.
 ## Getting a pair onto the units
 
 1. **Give the game its bindings.** Close Everspace 2, then in the editor's **Setup** tab,
-   **Write the game's bindings** (or `npm run azeron -- ingame --apply`). This writes the
+   **Update the game's keys…** (or `npm run azeron -- ingame --apply`). This writes the
    game's `Input.ini` from `games/SpaceSims/everspace/actions.yaml`, keeping the previous
    file beside it. You do this once, and again only when an in-game key changes — never
    from the game's own controls screen.
@@ -49,16 +49,18 @@ A layout is one control scheme: both keypads and the keys the game listens for. 
 two things to change, both in the editor, and **one Save** (top right) writes whatever
 changed in either:
 
-- **Which key does what** — the **Edit** tab. Click a key on the board, click an action.
-  The label follows the action.
+- **Which key does what** — the **Edit** tab. The actions are listed under the two units:
+  drag one onto a key, or onto one of a stick's four directions. Drag a key onto another
+  to swap them, or back onto the list to clear it. Clicking a key and then an action does
+  the same, and reaches the long press and double tap. The label follows the action.
 - **Which key the game listens for** — the **In-game** tab. Click the action's key, press
   the new one. Every layout follows; nothing needs re-importing.
 
 Save comes back with the linter's verdict and the file to re-import, as a path the Azeron
 app's dialog takes. If in-game keys were saved it also offers **Update the game's keys…**,
-which asks whether the game is closed and then writes its `Input.ini` (the same step is in
-the header's menu). That is the one thing Save does not do on its own, because it writes
-outside the repo.
+which asks whether the game is closed and then writes its `Input.ini` (the same step, under
+the same name, is in the header's menu and on the Setup tab). That is the one thing Save
+does not do on its own, because it writes outside the repo.
 
 Stick modes (DJI Mode 1/2/3, the game's own twin-stick layout, and a roll variant) are
 applied to both sticks in one click from the editor's side panel.
@@ -122,9 +124,11 @@ is rotated half a turn — so each map is measured. `npm run azeron -- probe` wr
 **Press test** tab, and press what it highlights; it records which pin fired and exports
 a corrected `devices/<unit>.yaml`.
 
-**Bringing an edit made in the app home.** The editor's Setup tab takes an export and
-turns it back into profile YAML (`npm run azeron -- decompile` from the terminal).
-Anything that will not round-trip is kept raw rather than guessed at.
+**Bringing a layout from the Azeron app.** In the Setup tab, **Add a layout**: a name, the
+export for the left unit and the export for the right (either alone will do), then **Add
+layout**. The pair opens on the board under that name. Anything that will not round-trip
+is kept raw rather than guessed at. (`npm run azeron -- decompile` does one file from the
+terminal.)
 
 **Starting a new game.** In the Setup tab, **Add a new game**: its name, the kind of game,
 an export from the Azeron app and which unit it came from. Each distinct key the export

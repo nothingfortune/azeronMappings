@@ -98,6 +98,14 @@ Every profile change, and why. `playtests.md` records what each layout felt like
   what it shows. Which pedal is which game axis was recorded rather than reasoned: the
   rudder is `Axis2`, the left toe `Axis0`, the right `Axis1`; none is flown.
 
+- **Drag and drop on the Edit tab.** An action is dragged from the list under the units
+  onto a key, or onto one of a stick's four directions; a key is dragged onto another to
+  swap them, across units too, or back onto the list to clear it. The list is no longer
+  switched off when no key is selected. Clicking a key and then an action still works.
+- **Every key on the board is one size.** A key grew with its label and pushed the ones
+  under it out of line. The name takes up to two lines; a key with more on it than its
+  name shows the rest on one line, and the whole of it in its tooltip.
+
 ### Layouts
 
 - **akimbo v10** now has pedals: the rudder on yaw, and its sticks are Mode 2 _with pedals_
@@ -203,6 +211,15 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 - In the editor: looking at an empty key marked the page unsaved; opening a data file
   discarded unsaved edits without asking; a key capture or the press test could outlive
   the game or tab it was started on.
+
+- **Adding a layout from the Azeron app's exports did nothing.** Choosing a file imported
+  on the spot, was refused when the name was still empty, and said so at the top of the
+  tab, out of sight of the form. The form now keeps its name, takes an export for each
+  unit, imports when **Add layout** is pressed, and opens the result on the board. The
+  Setup tab's message stays in view while the tab scrolls.
+- Writing the game's keys had two names, "Write the game's bindings" on the Setup tab and
+  "Update the game's keys" everywhere else, and two code paths. It is one of each, and its
+  report now lists what the pedals changed as well as the keys.
 
 ### Known gaps
 

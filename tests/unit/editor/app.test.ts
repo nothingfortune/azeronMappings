@@ -261,7 +261,7 @@ describe("the setup tab", () => {
       (tab as HTMLButtonElement).click();
       const labels = [...document.querySelectorAll(".panel button")].map((n) => n.textContent);
       expect(labels).toContain("Rebuild every import file");
-      expect(labels).toContain("Read the game's bindings");
+      expect(labels).toContain("Compare with the game's keys");
       expect(document.querySelector("header .pill.mode")?.textContent).toBe("saves to repo");
     } finally {
       (window as unknown as { AZERON_SERVED?: boolean }).AZERON_SERVED = false;
@@ -440,7 +440,9 @@ describe("assigning an action", () => {
     document.querySelector<HTMLButtonElement>(".stick-dial .dir.up")?.click();
     const list = document.querySelector(".action-list");
     expect(list?.classList.contains("inert")).toBe(true);
-    expect(document.querySelector(".palette-note")?.textContent).toContain("direction on the dial");
+    expect(document.querySelector(".palette-note")?.textContent).toContain(
+      "Drag an action onto one of its four directions",
+    );
   });
 });
 
@@ -946,7 +948,9 @@ describe("putting an action on a key", () => {
   });
 
   it("says what to do before a key is picked, and what a click will do after", () => {
-    expect(document.querySelector(".palette-note")?.textContent).toContain("Pick a key");
+    expect(document.querySelector(".palette-note")?.textContent).toContain(
+      "Drag an action onto a key",
+    );
     expect(document.querySelector(".action-list")?.classList.contains("inert")).toBe(true);
     document.querySelector<HTMLButtonElement>('.hand .key[data-position="pinky_1"]')?.click();
     expect(document.querySelector(".palette-target")?.textContent).toBe("Put on Left Pinky 1:");

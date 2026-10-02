@@ -54,8 +54,11 @@ function tab(name: string): void {
   found.click();
 }
 
+/** The buttons on the tab itself. The header's menu offers the update under the same name. */
 const buttons = (): string[] =>
-  [...document.querySelectorAll("button")].map((button) => button.textContent);
+  [...document.querySelectorAll("button")]
+    .filter((button) => button.closest("header") === null)
+    .map((button) => button.textContent);
 
 afterEach(() => {
   (window as unknown as { AZERON_SERVED?: boolean }).AZERON_SERVED = false;
@@ -87,8 +90,8 @@ describe("a game whose own settings file is not connected", () => {
 
   it("has no Read or Write button on the Setup tab, and says why in their place", () => {
     tab("Setup");
-    expect(buttons()).not.toContain("Write the game's bindings");
-    expect(buttons()).not.toContain("Read the game's bindings");
+    expect(buttons()).not.toContain("Update the game's keys…");
+    expect(buttons()).not.toContain("Compare with the game's keys");
     expect(document.querySelector(".game-file")?.textContent).toContain("not connected");
   });
 
@@ -133,8 +136,8 @@ describe("a game whose own settings file is connected", () => {
     tab("In-game");
     expect(document.querySelector(".game-file")).toBeNull();
     tab("Setup");
-    expect(buttons()).toContain("Write the game's bindings");
-    expect(buttons()).toContain("Read the game's bindings");
+    expect(buttons()).toContain("Update the game's keys…");
+    expect(buttons()).toContain("Compare with the game's keys");
     expect(document.querySelector(".game-file")).toBeNull();
   });
 });

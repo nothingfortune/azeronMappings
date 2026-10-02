@@ -149,7 +149,7 @@ test.describe("a game started from an export", () => {
     await page.locator("header select").first().selectOption({ label: NAME });
     await tab(page, "Setup");
     await expect(page.locator(".game-file")).toContainText("not connected");
-    await expect(page.getByRole("button", { name: "Write the game's bindings" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Update the game's keys…" })).toHaveCount(0);
     await shot(page, "05-setup-not-connected");
   });
 
