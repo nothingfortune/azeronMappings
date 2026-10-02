@@ -106,6 +106,15 @@ Every profile change, and why. `playtests.md` records what each layout felt like
   under it out of line. The name takes up to two lines; a key with more on it than its
   name shows the rest on one line, and the whole of it in its tooltip.
 
+- **The editor does the wiring.** A control reaches the game on a key, and which key is no
+  longer the owner's to pick. An action with no key is given one when it is first put on a
+  control, from a pool that stays out of a game's way; it is saved in `actions.yaml` with
+  the layout and written into the game by Update the game's keys…. A key once given is
+  kept. The In-game tab hides the keys while there is a game file to write them into
+  ("Show the wiring" brings them back) and shows them for a game that has none, where they
+  have to be set by hand. `action-sends-nothing` is a new lint error for a control whose
+  action has no key. The unsaved marker calls the in-game half "Wiring".
+
 ### Layouts
 
 - Actions already on a key somewhere in the layout are greyed in the list on the Edit tab,

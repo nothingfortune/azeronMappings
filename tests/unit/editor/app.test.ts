@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { start } from "../../../src/editor/app.js";
 import { buildPayload } from "../../../src/lib/editor/payload.js";
 import { LIVE_SET } from "../../helpers/fixtures.js";
+import { showWiring } from "../../helpers/editor.js";
 
 // Built once: it re-reads every device, genre, game and template, about 150 ms a time,
 // and was rebuilt before every test. A clone costs a few milliseconds and keeps each test
@@ -593,6 +594,7 @@ describe("unsaved edits", () => {
 
   function changeHeadlight(): void {
     header("In-game").click();
+    showWiring();
     const row = [...document.querySelectorAll(".ingame-row")].find(
       (node) => node.querySelector(".who b")?.textContent === "Headlight",
     );
@@ -628,7 +630,7 @@ describe("unsaved edits", () => {
     changeHeadlight();
     const save = header("Save");
     expect(save.hasAttribute("disabled")).toBe(false);
-    expect(save.title).toBe("Unsaved: In-game keys");
+    expect(save.title).toBe("Unsaved: Wiring");
   });
 
   it("saves both keypads and the in-game keys with one Save and one report", async () => {
@@ -638,7 +640,7 @@ describe("unsaved edits", () => {
     mount();
     edit("pinky_1", 1);
     changeHeadlight();
-    expect(header("Save").title).toBe("Unsaved: Right unit, In-game keys");
+    expect(header("Save").title).toBe("Unsaved: Right unit, Wiring");
     header("Save").click();
     await vi.waitFor(() => {
       expect(calls.map((call) => call.path)).toEqual(["/api/save", "/api/actions"]);
@@ -656,6 +658,7 @@ describe("unsaved edits", () => {
     served(() => OK);
     mount();
     header("In-game").click();
+    showWiring();
     const labels = [...document.querySelectorAll("button")].map((button) => button.textContent);
     for (const gone of ["Save only", "Save and update the game", "Export actions.yaml"]) {
       expect(labels).not.toContain(gone);
@@ -682,7 +685,7 @@ describe("unsaved edits", () => {
       expect(document.querySelector(".save-note")?.textContent).toContain("disk full");
     });
     const note = document.querySelector(".save-note")?.textContent ?? "";
-    expect(note).toContain("In-game keys");
+    expect(note).toContain("Wiring");
     expect(note).toContain("Already saved");
   });
 

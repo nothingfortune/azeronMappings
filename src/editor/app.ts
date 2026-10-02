@@ -30,6 +30,7 @@ import {
 import { describeDirection } from "../lib/binding.js";
 import type { BindingChange } from "../lib/actionfile.js";
 import { ueKeyFor } from "../lib/ingame.js";
+import { needsWire, wireAction } from "../lib/wiring.js";
 import { bindingLabel, isModifier, keyLabel } from "../lib/keys.js";
 import { ActionSet, Device, Profile } from "../lib/model-core.js";
 import { isFileName, slugFromName } from "../lib/scaffold.js";
@@ -302,6 +303,43 @@ function dropTarget(
   });
 }
 
+/**
+ * Give an action something to be sent on, if it has nothing. A control carries an action
+ * to the game on a key; which key is not the owner's concern, so one that nothing else is
+ * on is picked here, the moment the action is first put on a control. It is saved with the
+ * layout, in the game's actions.yaml, and an action keeps the key it was given.
+ */
+function wire(actionId: string): void {
+  const game = currentGame();
+  const spec = actionSetFor(game).actions[actionId];
+  if (!needsWire(spec)) return;
+  // With a game file to write, only keys that file has a name for: one it cannot name
+  // would be sent and never heard.
+  const connected = gameFileGaps(game).length === 0;
+  const key = wireAction(
+    editableActions(),
+    actionId,
+    connected ? (name) => ueKeyFor({ key: name }) !== null : undefined,
+  );
+  if (key === null) {
+    saveNote =
+      `There is no key left to send "${spec?.label ?? actionId}" on, so that control does ` +
+      "nothing. Free one on the In-game tab.";
+  }
+}
+
+/** Wire every action a position carries: its slots, and a stick's directions. */
+function wireSpec(spec: PositionSpec | undefined): void {
+  if (spec === undefined) return;
+  for (const slot of SLOTS) {
+    const value = spec[slot];
+    if (typeof value === "string") wire(value);
+  }
+  for (const value of Object.values(spec.directions ?? {})) {
+    if (typeof value === "string") wire(value);
+  }
+}
+
 /** Put an action on one slot of a key, and name the key after it when the slot is the tap. */
 function assignAction(slug: string, position: string, slot: Slot, actionId: string): void {
   if (profileFor(slug).device.isStick(position)) return;
@@ -313,6 +351,7 @@ function assignAction(slug: string, position: string, slot: Slot, actionId: stri
   // leaves it, because the label is the tap's. `??=` never fired at all, since every
   // shipped profile already has a label on every position.
   if (slot === "tap") spec.label = actionSetFor(currentGame()).label(actionId);
+  wire(actionId);
 }
 
 /** An action dropped on a key goes on its tap, and the key becomes the selected one. */
@@ -355,6 +394,7 @@ function dropActionOnDirection(
   const spec = (workingData(slug).positions[position] ??= { mode: "keyboard" });
   spec.directions ??= {};
   spec.directions[direction] = actionId;
+  wire(actionId);
   state.selected = { slug, position };
   render();
 }
@@ -811,6 +851,7 @@ function renderStickModes(): HTMLElement | null {
       ] as const) {
         const data = workingData(slug);
         data.positions.stick = applyMode(data.positions.stick, set, mode, hand, carry);
+        wireSpec(data.positions.stick);
       }
       saveNote =
         `${mode.label}${carry && mode.with_pedals !== undefined ? ", with pedals," : ""} ` +
@@ -1115,8 +1156,10 @@ function renderInspector(): HTMLElement {
       }
       select.addEventListener("change", () => {
         spec.directions ??= {};
-        if (select.value) spec.directions[direction] = select.value;
-        else removeKey(spec.directions, direction);
+        if (select.value) {
+          spec.directions[direction] = select.value;
+          wire(select.value);
+        } else removeKey(spec.directions, direction);
         render();
       });
       directionFields.append(
@@ -1653,6 +1696,9 @@ function canSave(): boolean {
 }
 
 let saveNote: string | null = null;
+/** Whether the In-game tab shows the keys. Null until asked: shown only when there is no
+ *  game file for the editor to write them into. */
+let wiringShown: boolean | null = null;
 
 /** Whether the stick-mode panel is unfolded; kept across renders. */
 let stickModesOpen = false;
@@ -1977,7 +2023,7 @@ interface PartSaved {
  * report and the unload guard all follow from the list.
  */
 interface SchemePart {
-  /** What the unsaved marker and an error call it: "Left unit", "In-game keys". */
+  /** What the unsaved marker and an error call it: "Left unit", "Wiring". */
   readonly name: string;
   isDirty(): boolean;
   /** Write it into the repo. Rejects with the reason, in words, when it cannot. */
@@ -2030,8 +2076,8 @@ function inGameKeysPart(): SchemePart {
       const changes = inGameKeyChanges(currentGame());
       const keys = changesAKey(changes);
       const names = Object.values(changes).some((change) => "label" in change || "tags" in change);
-      if (keys && names) return "In-game keys and names";
-      return names ? "Action names" : "In-game keys";
+      if (keys && names) return "Wiring and action names";
+      return names ? "Action names" : "Wiring";
     },
     isDirty: () => Object.keys(inGameKeyChanges(currentGame())).length > 0,
     async save() {
@@ -2674,20 +2720,39 @@ function renderInGame(): HTMLElement {
   const actions = actionSetFor(game);
   const bound = boundActions();
   const panel = el("div", { class: "panel" });
-  panel.append(el("h2", {}, [`${game.name} — in-game bindings`]));
+  // The wiring is the editor's business when there is a game file to write it into, and
+  // the owner's when there is not: then these are the keys to set in the game by hand.
+  const connected = gameFileGaps(game).length === 0;
+  const wiring = wiringShown ?? !connected;
+  panel.append(el("h2", {}, [`${game.name} — actions`]));
   panel.append(
     el("div", { class: "note" }, [
-      "The key each action is on inside the game. Click a key and press the new one; a " +
-        "clash shows up straight away. Click a name to rename the action, and switch its " +
-        "roles on or off: the checks use the roles, for instance to keep a menu off a " +
-        "combat key. " +
+      "Click a name to rename the action, and switch its roles on or off: the checks use " +
+        "the roles, for instance to keep a menu off a combat key. " +
         (canSave()
-          ? "Save, top right, writes these with both keypads" +
-            (gameFileGaps(game).length === 0
-              ? "; it then offers to update the game's own file."
-              : ".")
-          : "The menu's Download the layout as YAML includes actions.yaml: copy what you " +
-            "changed into the game's file."),
+          ? "Save, top right, writes these with both keypads."
+          : "The menu's Download the layout as YAML includes actions.yaml."),
+    ]),
+  );
+  const toggle = el("button", { class: "btn small", type: "button", "data-wiring": "toggle" }, [
+    wiring ? "Hide the wiring" : "Show the wiring",
+  ]);
+  toggle.addEventListener("click", () => {
+    wiringShown = !wiring;
+    render();
+  });
+  panel.append(
+    el("div", { class: "note wiring-note" }, [
+      wiring
+        ? "The wiring: the key each action is sent on. Click a key and press another to " +
+          "move it; a clash shows up straight away. " +
+          (connected
+            ? "Saving offers to update the game's own file to match. "
+            : "Set these same keys in the game's own controls screen. ")
+        : "Each action is sent to the game on a key. The editor picks the key when an " +
+          "action is first put on a control, and Update the game's keys… tells the game, so " +
+          "there is nothing to set here. ",
+      toggle,
     ]),
   );
   const gameFile = gameFileStatus(game);
@@ -2718,10 +2783,9 @@ function renderInGame(): HTMLElement {
         ]),
       ]),
     );
-    if (spec.provided_by) {
-      item.append(el("div", { class: "muted" }, [spec.provided_by]));
-    } else {
-      item.append(actionKeyField(id));
+    if (wiring) {
+      if (spec.provided_by) item.append(el("div", { class: "muted" }, [spec.provided_by]));
+      else item.append(actionKeyField(id));
     }
     item.append(actionTagField(id, spec));
     table.append(item);
@@ -3681,6 +3745,7 @@ export function start(payload = window.AZERON_PAYLOAD): void {
   addLayout.name = "";
   addLayout.files = {};
   dragging = null;
+  wiringShown = null;
   const firstGame = payload.games[0];
   resetSession();
   state = {

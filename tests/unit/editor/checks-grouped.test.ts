@@ -9,6 +9,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { start } from "../../../src/editor/app.js";
 import { buildPayload } from "../../../src/lib/editor/payload.js";
+import { showWiring } from "../../helpers/editor.js";
 
 const PAYLOAD = buildPayload();
 
@@ -44,6 +45,7 @@ describe("required actions that are on no key", () => {
     document.body.innerHTML = '<div id="app"></div>';
     start(structuredClone(PAYLOAD));
     header("In-game").click();
+    showWiring();
   });
 
   it("starts clean, so what follows is the group's doing", () => {

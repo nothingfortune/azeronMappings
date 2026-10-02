@@ -9,6 +9,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { start } from "../../../src/editor/app.js";
 import { buildPayload } from "../../../src/lib/editor/payload.js";
 import { positionLabel } from "../../../src/lib/layout.js";
+import { showWiring } from "../../helpers/editor.js";
 
 function tab(name: string): HTMLButtonElement {
   const found = [...document.querySelectorAll("header button")].find(
@@ -46,6 +47,7 @@ describe("the in-game bindings editor", () => {
     document.body.innerHTML = '<div id="app"></div>';
     start(structuredClone(PAYLOAD));
     tab("In-game").click();
+    showWiring();
   });
 
   it("shows the boards and the in-game keys together", () => {
@@ -96,6 +98,7 @@ describe("the in-game bindings editor", () => {
     press("Consumable 1", "KeyV");
     tab("Edit").click();
     tab("In-game").click();
+    showWiring();
     expect(chip("Consumable 1").textContent).toBe("V");
   });
 

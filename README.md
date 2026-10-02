@@ -45,19 +45,22 @@ which is which if you are unsure.
 
 ## Changing a binding
 
-A layout is one control scheme: both keypads and the keys the game listens for. There are
-two things to change, both in the editor, and **one Save** (top right) writes whatever
-changed in either:
+A layout says which control does which action: this key is thrust, that one is boost. It
+is both keypads and the pedals, changed on the **Edit** tab and written by **one Save**
+(top right).
 
-- **Which key does what** — the **Edit** tab. The actions are listed under the two units:
-  drag one onto a key, or onto one of a stick's four directions. Drag a key onto another
-  to swap them, or back onto the list to clear it. Clicking a key and then an action does
-  the same, and reaches the long press and double tap. The label follows the action.
-- **Which key the game listens for** — the **In-game** tab. Click the action's key, press
-  the new one. Every layout follows; nothing needs re-importing.
+- The actions are listed under the two units: drag one onto a key, or onto one of a
+  stick's four directions. Drag a key onto another to swap them, or back onto the list to
+  clear it. Clicking a key and then an action does the same, and reaches the long press and
+  double tap. The label follows the action.
+- **The wiring is not yours to manage.** A control reaches the game on a key: the keypad
+  sends it and the game listens for it. The editor picks that key when an action is first
+  put on a control, keeps it in the game's `actions.yaml`, and writes it into the game with
+  **Update the game's keys…**. The **In-game** tab is where actions are named and given
+  their roles; **Show the wiring** there shows the keys, and lets one be moved by hand.
 
 Save comes back with the linter's verdict and the file to re-import, as a path the Azeron
-app's dialog takes. If in-game keys were saved it also offers **Update the game's keys…**,
+app's dialog takes. If the wiring or the pedals changed it also offers **Update the game's keys…**,
 which asks whether the game is closed and then writes its `Input.ini` (the same step, under
 the same name, is in the header's menu and on the Setup tab). That is the one thing Save
 does not do on its own, because it writes outside the repo.
@@ -101,6 +104,7 @@ The linter's rules came from real play sessions. Each finding names its rule:
 | `missing-required`                    | error   | An action you need that no unit sends — the reach for the gamepad |
 | `key-collision`                       | error   | Two different actions claiming one key                            |
 | `unbound-key`                         | error   | A key no action declares, usually an edit made in the app         |
+| `action-sends-nothing`                | error   | A control whose action has no key to be sent on                   |
 | `unknown-position` / `unknown-action` | error   | A typo in a profile                                               |
 | `stick-not-keyboard`                  | error   | A stick in gamepad mode, which made the game stutter              |
 | `stick-double-correction`             | error   | Two corrections for one stick rotation                            |

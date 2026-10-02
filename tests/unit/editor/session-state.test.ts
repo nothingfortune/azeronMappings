@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { start } from "../../../src/editor/app.js";
 import { buildPayload } from "../../../src/lib/editor/payload.js";
 import type { EditorPayload } from "../../../src/types/editor.js";
+import { showWiring } from "../../helpers/editor.js";
 
 const PAYLOAD = buildPayload();
 
@@ -191,6 +192,7 @@ describe("a key being captured, and the press test, across a change of game or t
     served();
     mount(withSecondGame());
     headerButton("In-game").click();
+    showWiring();
   });
 
   function startCapture(): void {
@@ -215,6 +217,7 @@ describe("a key being captured, and the press test, across a change of game or t
     press("KeyL");
     expect(clean()).toBe(true);
     headerButton("In-game").click();
+    showWiring();
     expect(document.querySelector(".key-chip.capturing")).toBeNull();
     expect(clean()).toBe(true);
   });

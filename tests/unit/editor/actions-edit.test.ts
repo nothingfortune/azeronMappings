@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { start } from "../../../src/editor/app.js";
 import { buildPayload } from "../../../src/lib/editor/payload.js";
+import { showWiring } from "../../helpers/editor.js";
 
 const PAYLOAD = buildPayload();
 
@@ -75,6 +76,7 @@ describe("naming and tagging actions", () => {
     document.body.innerHTML = '<div id="app"></div>';
     start(structuredClone(PAYLOAD));
     header("In-game").click();
+    showWiring();
   });
 
   afterEach(() => {
@@ -150,7 +152,7 @@ describe("naming and tagging actions", () => {
     rename("Headlight", "Helmet lamp");
     row("Helmet lamp").querySelector<HTMLButtonElement>(".key-chip")?.click();
     document.dispatchEvent(new KeyboardEvent("keydown", { code: "KeyL", bubbles: true }));
-    expect(header("Save").title).toBe("Unsaved: In-game keys and names");
+    expect(header("Save").title).toBe("Unsaved: Wiring and action names");
   });
 
   it("feeds the checks: a role changed here changes the findings", () => {

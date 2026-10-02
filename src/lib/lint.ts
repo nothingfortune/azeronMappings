@@ -18,6 +18,7 @@ import type {
   SlotSpec,
 } from "../types/profile.js";
 import type { ActionSet, Profile } from "./model-core.js";
+import { needsWire } from "./wiring.js";
 import type { Game, Genre } from "./model.js";
 import { gameRowFor } from "./pedals.js";
 import { axesOnSticks, detectStickModes, pedalAxes } from "./stickmodes.js";
@@ -211,6 +212,23 @@ export function checkProfile(profile: Profile, actions: ActionSet, config: LintC
         message:
           `${slot} -> '${action}', which is provided by the ${provider} and is not a key. ` +
           "Leave the position for a key action.",
+      });
+      continue;
+    }
+
+    // An action with nothing to be sent on. The control would compile to one that does
+    // nothing, and the layout would lose a binding without a word. Placing an action from
+    // the editor gives it a key, so this is what a hand edit or an older file runs into.
+    if (action && needsWire(actions.actions[action])) {
+      findings.push({
+        level: ERROR,
+        rule: "action-sends-nothing",
+        profile: name,
+        position,
+        message:
+          `${slot} -> '${action}', which has no key to be sent on, so the control would do ` +
+          "nothing. Placing it from the editor gives it one; by hand, give it a `key:` in " +
+          "actions.yaml.",
       });
       continue;
     }
@@ -832,5 +850,8 @@ export function lintGame(game: Game, profiles?: readonly Profile[]): LintResult 
  * violates a constraint propagates that violation to every game that inherits it.
  */
 export function lintGenre(genre: Genre): LintResult {
-  return lintProfiles(genre.actions, [genre.defaultProfile()], genre.lintConfig);
+  const result = lintProfiles(genre.actions, [genre.defaultProfile()], genre.lintConfig);
+  // A genre's vocabulary has no keys; each game supplies its own. Its default layout says
+  // where an action goes, not what carries it, so an action with no key is not a finding.
+  return { ...result, live: result.live.filter((f) => f.rule !== "action-sends-nothing") };
 }

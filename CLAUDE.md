@@ -96,6 +96,20 @@ Three inputs meet in the compiler, and are kept separate:
 
 Profiles map position to action id, never position to raw key.
 
+**A layout and its wiring.** What the owner edits is the _layout_: which control does which
+action. The key an action is sent on is the _wiring_, and it is the tooling's to choose:
+`src/lib/wiring.ts` gives an action with no key the first free one from a pool chosen to
+stay out of a game's way (`WIRE_POOL`: navigation keys, numpad operators, punctuation — no
+letters, digits, function keys, modifiers or anything a menu uses), narrowed to keys the
+game's file can name. The editor does this the moment an action is first put on a control
+(`wire()` in `app.ts`), saves it into the game's `actions.yaml` with the rest of the
+layout, and `Update the game's keys…` writes it into the game. A key, once given, is never
+re-dealt: the compiled layouts, the golden fixture and the game's file all depend on an
+action keeping the key it has. `action-sends-nothing` is the lint error for a control whose
+action has no key, which is what a hand edit runs into. The In-game tab hides the keys
+while there is a game file to write them into, and shows them when there is not, because
+then they have to be set in the game by hand.
+
 - `compile.ts` neutralizes every _mapped_ pin in the template, then applies the YAML.
   Pins in the device's `unknown_pins` and unused `pinOne: 255` slots are never touched,
   and neither is a record whose type is not a key, an empty slot, a mouse button or a
