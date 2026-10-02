@@ -251,10 +251,11 @@ describe("ingamePlan", () => {
     );
   });
 
-  it("owns every flight axis row, and knows the device by every input the game registers", () => {
+  it("owns every flight axis row and its two direction rows, and knows the device by every input the game registers", () => {
     const plan = ingamePlan(AXES, FRESH, modes, game.actions.actions, game.slug);
+    const axes = ["MoveForward", "MoveRight", "MoveUp", "Pitch", "Roll", "Yaw"];
     expect([...plan.ownedRows].sort()).toEqual(
-      ["MoveForward", "MoveRight", "MoveUp", "Pitch", "Roll", "Yaw"].sort(),
+      axes.flatMap((row) => [row, `${row}+`, `${row}-`]).sort(),
     );
     expect([...plan.knownNames].sort()).toEqual([AXIS0, AXIS1, AXIS2].sort());
     expect(plan.bindings.every((binding) => binding.name === null)).toBe(true);

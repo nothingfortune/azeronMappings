@@ -41,6 +41,7 @@ function scalar(value: string): string {
 /** The order fields are written in, matching the examples in the file's own comments. */
 const FIELD_ORDER = [
   "drives",
+  "end",
   "invert",
   "dead_zone",
   "scale",

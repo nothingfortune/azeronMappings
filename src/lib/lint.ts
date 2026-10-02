@@ -460,7 +460,12 @@ export function checkProfile(profile: Profile, actions: ActionSet, config: LintC
 }
 
 /** Cross-unit rules: required coverage, and mirrored roles on akimbo pairs. */
-export function checkSet(profiles: readonly Profile[], actions: ActionSet): Finding[] {
+export function checkSet(
+  profiles: readonly Profile[],
+  actions: ActionSet,
+  /** Actions something other than a key already carries: an axis a pedal drives. */
+  covered: ReadonlySet<string> = new Set(),
+): Finding[] {
   const findings: Finding[] = [];
   const first = profiles[0];
   if (!first) return findings;
@@ -480,7 +485,7 @@ export function checkSet(profiles: readonly Profile[], actions: ActionSet): Find
 
   for (const [id, spec] of Object.entries(actions.actions)) {
     const tags = new Set(spec.tags ?? []);
-    if (!tags.has("required") || spec.provided_by) continue;
+    if (!tags.has("required") || spec.provided_by || covered.has(id)) continue;
     const key = emittedKey(actions, id, null);
     if (!bound.has(id) && (key === null || !sent.has(key))) {
       findings.push({
@@ -660,7 +665,9 @@ export function checkLayouts(
 
         const ends = modes?.axes[assignment.drives];
         const row =
-          modes === undefined ? null : gameRowFor(assignment.drives, modes, actions.actions);
+          modes === undefined
+            ? null
+            : gameRowFor(assignment.drives, modes, actions.actions, assignment.end);
         if (row === null) {
           findings.push({
             level: ERROR,
@@ -787,6 +794,24 @@ export function checkLayouts(
   return findings;
 }
 
+/**
+ * The actions a layout's pedals carry, so that a required action is not called missing for
+ * want of a key. A pedal on a whole axis carries both of its ends; a pedal on one end,
+ * that end.
+ */
+function pedalCovered(layouts: LayoutContext | undefined, setName: string): Set<string> {
+  const covered = new Set<string>();
+  const assign = layouts?.sets.sets[setName]?.pedals?.assign;
+  if (layouts?.modes === undefined || assign === undefined) return covered;
+  for (const assignment of Object.values(assign)) {
+    const ends = layouts.modes.axes[assignment.drives];
+    if (ends === undefined) continue;
+    if (assignment.end !== "down") covered.add(ends.up);
+    if (assignment.end !== "up") covered.add(ends.down);
+  }
+  return covered;
+}
+
 export function lintProfiles(
   actions: ActionSet,
   profiles: readonly Profile[],
@@ -805,7 +830,7 @@ export function lintProfiles(
     bySet.set(key, list);
   }
   for (const key of [...bySet.keys()].sort()) {
-    findings = findings.concat(checkSet(bySet.get(key) ?? [], actions));
+    findings = findings.concat(checkSet(bySet.get(key) ?? [], actions, pedalCovered(layouts, key)));
   }
   if (layouts !== undefined) findings = findings.concat(checkLayouts(layouts, actions, bySet));
 

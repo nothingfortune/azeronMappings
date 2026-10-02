@@ -175,7 +175,7 @@ describe("applyPedalRows", () => {
       const lines = before.split("\r\n");
       const gone = lines.filter((_, index) => index !== joystickRow(before, "Yaw", true));
       expect(() => apply(gone.join("\r\n"), plan([RUDDER_ON_YAW]))).toThrow(
-        /rudder: the game has no Joystick axis row 'Yaw'/,
+        /rudder: the game has no Joystick row 'Yaw'/,
       );
     });
 

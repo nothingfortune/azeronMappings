@@ -445,6 +445,25 @@ export interface PedalWaiting {
 }
 
 /** The Joystick axis rows by `Action=`. */
+/**
+ * How a Joystick row is named here. An axis row goes by its `Action=` (`MoveUp`); the two
+ * rows for the axis's directions, which the game keeps beside it for buttons, go by the
+ * action and the sign of their scale (`MoveUp+`, `MoveUp-`).
+ */
+export function directionRow(action: string, scale: number): string {
+  return `${action}${scale < 0 ? "-" : "+"}`;
+}
+
+/** Every Joystick row a pedal can be written onto: the axis rows and their direction rows. */
+export function joystickRows(file: IniFile): Map<string, IniEntry> {
+  const rows = joystickAxisRows(file);
+  for (const entry of file.entries) {
+    if (entry.group !== JOYSTICK_GROUP || entry.isAxis) continue;
+    rows.set(directionRow(entry.action, entry.scale), entry);
+  }
+  return rows;
+}
+
 export function joystickAxisRows(file: IniFile): Map<string, IniEntry> {
   const rows = new Map<string, IniEntry>();
   for (const entry of file.entries) {
@@ -519,7 +538,7 @@ export function applyPedalRows(
   plan: PedalPlan,
   options: { strict?: boolean } = {},
 ): { text: string; changes: PedalChange[]; waiting: PedalWaiting[] } {
-  const rows = joystickAxisRows(file);
+  const rows = joystickRows(file);
   const problems: string[] = [];
   const waiting: PedalWaiting[] = [];
   const byRow = new Map<string, PedalRowBinding[]>();
@@ -532,7 +551,7 @@ export function applyPedalRows(
     const row = rows.get(binding.row);
     if (!row) {
       problems.push(
-        `${binding.pedalAxis}: the game has no Joystick axis row '${binding.row}' to put it on`,
+        `${binding.pedalAxis}: the game has no Joystick row '${binding.row}' to put it on`,
       );
       continue;
     }

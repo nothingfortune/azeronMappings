@@ -219,32 +219,47 @@ describe("the checks", () => {
     mount();
   });
 
-  it("raise nothing for a calibrated toe on a game axis, and say outright that it is not inverted", () => {
-    choose("left_toe", "vertical");
+  it("raise nothing for a calibrated toe on one direction, which has no invert to set", () => {
+    choose("left_toe", "vertical:down");
     const rules = [...document.querySelectorAll(".checks .rule")].map((node) => node.textContent);
     expect(rules).not.toContain("pedal-rest-on-centred");
+    expect(rules).not.toContain("pedal-axis-assigned-twice");
     expect(document.querySelector(".pedal-warn")).toBeNull();
+    // The direction is the toe's own: there is no box to turn it round with.
+    expect(axis("left_toe").querySelector('input[data-field="invert"]')).toBeNull();
+    expect(axis("left_toe").querySelector("select")?.value).toBe("vertical:down");
+  });
+
+  it("offer a toe each axis's two directions by name, and the rudder the axes", () => {
+    const options = (id: string): string[] =>
+      [...axis(id).querySelectorAll("option")].map((option) => option.textContent);
+    expect(options("left_toe")).toEqual(expect.arrayContaining(["Hover up", "Hover down"]));
+    expect(options("left_toe")).not.toContain("Hover");
+    expect(options("rudder")).toContain("Turn (yaw)");
+    expect(options("rudder")).not.toContain("Hover up");
+  });
+
+  it("write an axis pedal's invert down whichever way it is set", () => {
     // The game's thrust row is inverted as it ships: the box has to mean what it shows.
-    const invert = axis("left_toe").querySelector<HTMLInputElement>('input[data-field="invert"]');
-    expect(invert?.checked).toBe(false);
-    if (!invert) throw new Error("no invert");
-    invert.checked = true;
-    invert.dispatchEvent(new Event("change"));
-    const again = axis("left_toe").querySelector<HTMLInputElement>('input[data-field="invert"]');
-    if (!again) throw new Error("no invert");
-    again.checked = false;
-    again.dispatchEvent(new Event("change"));
+    const box = (): HTMLInputElement => {
+      const found = axis("rudder").querySelector<HTMLInputElement>('input[data-field="invert"]');
+      if (!found) throw new Error("no invert");
+      return found;
+    };
+    box().checked = true;
+    box().dispatchEvent(new Event("change"));
+    expect(box().checked).toBe(true);
+    box().checked = false;
+    box().dispatchEvent(new Event("change"));
     // Unticked is written down rather than removed; what is sent is in the saving test.
-    expect(
-      axis("left_toe").querySelector<HTMLInputElement>('input[data-field="invert"]')?.checked,
-    ).toBe(false);
+    expect(box().checked).toBe(false);
   });
 
   it("run the pedal rules on the pedals as edited, before anything is saved", () => {
     // Without the calibration a toe rests at a full deflection, and the rule says so.
     mount(LIVE_SET, uncalibrated());
     expect(axis("left_toe").querySelector(".pedal-warn")).toBeNull();
-    choose("left_toe", "vertical");
+    choose("left_toe", "vertical:up");
     const rules = [...document.querySelectorAll(".checks .rule")].map((node) => node.textContent);
     expect(rules).toContain("pedal-rest-on-centred");
     const named = [...document.querySelectorAll(".checks .finding")]
@@ -316,7 +331,7 @@ describe("saving the pedals with everything else", () => {
   it("sends sets.yaml through the one Save, comments and all, and reports the verdict", async () => {
     const calls = served(() => verdict);
     mount();
-    choose("left_toe", "thrust");
+    choose("left_toe", "thrust:down");
     const save = saveButton();
     expect(save?.title).toBe("Unsaved: Pedals");
     save?.click();
@@ -328,7 +343,7 @@ describe("saving the pedals with everything else", () => {
     expect(sent?.path).toBe("/api/save");
     expect(sent?.body.path).toBe("games/SpaceSims/everspace/sets.yaml");
     expect(sent?.body.content).toContain("rudder: {drives: yaw}");
-    expect(sent?.body.content).toContain("left_toe: {drives: thrust, invert: false}");
+    expect(sent?.body.content).toContain("left_toe: {drives: thrust, end: down}");
     expect(sent?.body.content).toContain("THE RIGHT TOE IS THE THROTTLE");
     // Pedals only: no keypad or in-game call rode along.
     expect(calls.length).toBe(1);
@@ -345,7 +360,7 @@ describe("saving the pedals with everything else", () => {
   it("saves a keypad edit and a pedals edit as one scheme", async () => {
     const calls = served(() => verdict);
     mount();
-    choose("left_toe", "thrust");
+    choose("left_toe", "thrust:down");
     const inputs = document.querySelectorAll<HTMLInputElement>(".ingame-row input");
     expect(inputs.length).toBe(0);
     document.querySelector<HTMLButtonElement>('.hand .key[data-position="pinky_1"]')?.click();
@@ -382,7 +397,7 @@ describe("saving the pedals with everything else", () => {
   it("downloads sets.yaml with the layout when the page cannot save", () => {
     SERVED.AZERON_SERVED = false;
     mount();
-    choose("left_toe", "thrust");
+    choose("left_toe", "thrust:down");
     const names: string[] = [];
     const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
       this: HTMLAnchorElement,

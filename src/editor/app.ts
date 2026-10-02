@@ -1494,29 +1494,70 @@ function renderPedalAxis(
       el("option", { value: assignment.drives }, [`${assignment.drives} (not a game axis)`]),
     );
   }
-  for (const id of known) {
-    const hint = gameAxisHint(id);
-    drives.append(el("option", { value: id, title: hint }, [gameAxisLabel(id)]));
+  // A pedal that springs to centre drives a whole axis, both ways. One that rests at an end
+  // and is pressed one way -- a toe brake -- is half an axis, so it is offered the axis's two
+  // directions by name: "Hover up" on one toe and "Hover down" on the other.
+  const oneWay = spec?.rest === "end";
+  const actions = actionSetFor(game);
+  if (oneWay) {
+    for (const id of known) {
+      const ends = modes.axes[id];
+      if (!ends) continue;
+      for (const end of ["up", "down"] as const) {
+        drives.append(
+          el("option", { value: `${id}:${end}`, title: gameAxisHint(id) }, [
+            actions.label(ends[end]),
+          ]),
+        );
+      }
+    }
+    // An older layout may have a toe on a whole axis; it is shown as what it is.
+    if (
+      assignment !== undefined &&
+      assignment.end === undefined &&
+      known.includes(assignment.drives)
+    ) {
+      drives.append(
+        el("option", { value: assignment.drives }, [
+          `${gameAxisLabel(assignment.drives)} (both ways)`,
+        ]),
+      );
+    }
+  } else {
+    for (const id of known) {
+      drives.append(el("option", { value: id, title: gameAxisHint(id) }, [gameAxisLabel(id)]));
+    }
   }
-  drives.value = assignment?.drives ?? "";
+  drives.value =
+    assignment === undefined
+      ? ""
+      : assignment.end === undefined
+        ? assignment.drives
+        : `${assignment.drives}:${assignment.end}`;
   drives.addEventListener("change", () => {
-    const value = drives.value;
-    changeAxis(axis, (current) =>
-      value === ""
-        ? undefined
-        : current === undefined
-          ? // Said outright, so the box below shows what the game will be given: its thrust
-            // row is inverted as it ships, and an axis put there in silence would run backwards.
-            { drives: value, invert: false }
-          : { ...current, drives: value },
-    );
+    const [value = "", end] = drives.value.split(":");
+    changeAxis(axis, (current) => {
+      if (value === "") return undefined;
+      if (end === "up" || end === "down") {
+        // The end is the direction, so an invert or a scale from before has no meaning.
+        const kept = { ...(current ?? {}) };
+        Reflect.deleteProperty(kept, "invert");
+        Reflect.deleteProperty(kept, "scale");
+        return { ...kept, drives: value, end };
+      }
+      // Invert is said outright, so its box shows what the game will be given: the game's
+      // thrust row is inverted as it ships, and an axis put there in silence runs backwards.
+      return current === undefined
+        ? { drives: value, invert: false }
+        : { ...current, drives: value };
+    });
   });
 
   const line = el("div", { class: "pedal-line" }, [
     el("b", { title: restSentence(spec) }, [pedalAxisLabel(axis, spec)]),
     drives,
   ]);
-  if (assignment !== undefined) {
+  if (assignment !== undefined && assignment.end === undefined) {
     const invert = el("input", { type: "checkbox", "data-field": "invert" });
     invert.checked = assignment.invert === true;
     invert.addEventListener("change", () => {
@@ -1544,11 +1585,14 @@ function renderPedalAxis(
     (drag) => {
       const found = drag.kind === "action" ? axisOfAction(modes, drag.id) : null;
       if (found === null) return;
-      changeAxis(axis, (current) => ({
-        ...(current ?? {}),
-        drives: found.axis,
-        invert: found.invert,
-      }));
+      changeAxis(axis, (current) => {
+        if (!oneWay) return { ...(current ?? {}), drives: found.axis, invert: found.invert };
+        // A toe takes the direction the action names, and nothing of the other.
+        const kept = { ...(current ?? {}) };
+        Reflect.deleteProperty(kept, "invert");
+        Reflect.deleteProperty(kept, "scale");
+        return { ...kept, drives: found.axis, end: found.invert ? "down" : "up" };
+      });
     },
   );
 
@@ -1596,6 +1640,8 @@ function renderPedalAxis(
   if (assignment !== undefined) {
     const grid = el("div", { class: "field-grid" });
     for (const [field, label, tip] of TUNING_FIELDS) {
+      // A pedal on one direction has no scale to set: the direction is the row's scale.
+      if (field === "scale" && assignment.end !== undefined) continue;
       const input = el("input", {
         type: "number",
         step: "any",
@@ -1827,7 +1873,15 @@ function renderPedalsVerdict(
       box.append(
         el("div", { class: "muted" }, [
           `${axis.label} drives ${gameAxisLabel(axis.drives).toLowerCase()}` +
-            (axis.row === null ? ", which reaches no game row" : ` (the game's ${axis.row} row)`) +
+            (axis.row === null
+              ? ", which reaches no game row"
+              : ` (the game's ${axis.row.replace(/[+-]$/, "")} row${
+                  axis.row.endsWith("+")
+                    ? ", forward half"
+                    : axis.row.endsWith("-")
+                      ? ", back half"
+                      : ""
+                })`) +
             (axis.name === null ? ", with no game name recorded yet" : ` as ${axis.name}`) +
             ` -- ${trust}.`,
         ]),
@@ -3859,6 +3913,11 @@ function adoptPendingSpec(): void {
   if (pending === null || Object.keys(pending.spec).length === 0) return;
   const data = state.working.get(pending.slug);
   if (data && data.positions[pending.position] === undefined) {
+    // A stick that was cleared and is being given a direction again is still a keyboard
+    // stick: the mode box showed it, and nothing wrote it.
+    if (pending.spec.directions !== undefined && pending.spec.mode === undefined) {
+      pending.spec.mode = "keyboard";
+    }
     data.positions[pending.position] = pending.spec;
   }
 }

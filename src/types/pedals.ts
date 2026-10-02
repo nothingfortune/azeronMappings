@@ -81,6 +81,14 @@ export interface PedalsDeviceData {
 export interface PedalAssignment {
   /** A game axis in the genre's vocabulary: thrust, vertical, strafe, yaw, pitch, roll. */
   drives: string;
+  /**
+   * For a pedal that is half an axis -- a toe brake, which rests at zero and is pressed one
+   * way: which end of the game axis it drives. `up` is the axis's up end ("Hover up",
+   * "Thrust forward"), `down` the other. The pedal is then written onto the game's own row
+   * for that direction, not onto the axis row, so two toes can drive the two ends of one
+   * axis. An assignment with an end has no `invert` or `scale`: the end is the direction.
+   */
+  end?: "up" | "down";
   /** Written to `bInvert` on the game's row when set; left as the game has it otherwise. */
   invert?: boolean;
   /** `DeadZone`. */

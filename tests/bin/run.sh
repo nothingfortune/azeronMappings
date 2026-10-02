@@ -48,11 +48,11 @@ says "azeron lint is clean" "everspace: 0 error\(s\), 0 warning\(s\)" ./bin/azer
 check "azeron build --check" ./bin/azeron build --check
 says "azeron roundtrip checks the golden profile" "round trip ok: .*single-v5" ./bin/azeron roundtrip
 says "the committed game bindings agree with actions.yaml" " 0 differ" \
-  ./bin/azeron ingame everspace --config dist/SpaceSims/everspace/Input.ini
+  ./bin/azeron ingame everspace --config "$AZERON_DATA/dist/SpaceSims/everspace/Input.ini"
 says "the pedals are reported with how far each name is trusted" "rudder .*\[inferred\] -- not flown" \
-  ./bin/azeron ingame everspace --config dist/SpaceSims/everspace/Input.ini
+  ./bin/azeron ingame everspace --config "$AZERON_DATA/dist/SpaceSims/everspace/Input.ini"
 says "capturing finds the recorded rudder where the layout expects it" "already recorded: rudder .*inferred" \
-  ./bin/azeron ingame everspace --capture-pedals --config dist/SpaceSims/everspace/Input.ini
+  ./bin/azeron ingame everspace --capture-pedals --config "$AZERON_DATA/dist/SpaceSims/everspace/Input.ini"
 check_fails "unknown command exits non-zero" ./bin/azeron nonsense
 check_fails "the cheatsheet command is gone" ./bin/azeron cheatsheet
 check "no generated HTML is tracked" bash -c '[ -z "$(git ls-files "*.html")" ]'

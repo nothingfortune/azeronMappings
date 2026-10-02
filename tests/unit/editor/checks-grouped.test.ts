@@ -21,11 +21,16 @@ function header(label: string): HTMLButtonElement {
   return found;
 }
 
-/** Mark the first `count` actions that no unit sends, and that have a key, as required. */
+/**
+ * Mark the first `count` actions that no unit sends, and that have a key, as required.
+ * Not yaw: the layout's rudder carries it, and an action a pedal carries is not missing.
+ */
 function requireUnbound(count: number): string[] {
   const names: string[] = [];
-  const rows = [...document.querySelectorAll(".ingame-row.unbound")].filter((row) =>
-    row.querySelector(".key-chip"),
+  const rows = [...document.querySelectorAll(".ingame-row.unbound")].filter(
+    (row) =>
+      row.querySelector(".key-chip") &&
+      !(row.querySelector(".who b")?.textContent ?? "").startsWith("Yaw"),
   );
   for (const row of rows.slice(0, count)) {
     names.push(row.querySelector(".who b")?.textContent ?? "");

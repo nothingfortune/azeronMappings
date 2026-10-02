@@ -33,6 +33,11 @@ export function normalizeProfileData(raw: unknown, where: string): ProfileData {
           "remove the line.",
       );
     }
+    // A stick with directions and no mode. Keyboard is the only mode a stick may have
+    // (constraint 1), so it is not a choice left open: the editor once wrote a stick this
+    // way, after it had been cleared and a direction put back, and it then compiled as no
+    // stick at all. Read as what it can only be, it is written back whole on the next save.
+    if (isRecord(spec.directions) && spec.mode === undefined) spec.mode = "keyboard";
   }
 
   return { ...raw, positions: rawPositions } as unknown as ProfileData;

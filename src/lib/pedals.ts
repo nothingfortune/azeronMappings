@@ -31,7 +31,7 @@ import type {
 } from "../types/pedals.js";
 import type { ActionSpec } from "../types/profile.js";
 import type { IniFile, PedalPlan, PedalRowBinding } from "./ingame.js";
-import { joystickAxisBindings, joystickDeviceOf, JOYSTICK_GROUP } from "./ingame.js";
+import { directionRow, joystickAxisBindings, joystickDeviceOf, JOYSTICK_GROUP } from "./ingame.js";
 import type { StickModeSet } from "./stickmodes.js";
 import { isPlainObject } from "./yaml.js";
 
@@ -48,6 +48,7 @@ export const NAME_STATUSES: readonly NameStatus[] = [
 const NUMBER_FIELDS = ["dead_zone", "scale", "sensitivity", "exponent"] as const;
 const ASSIGNMENT_FIELDS = new Set([
   "drives",
+  "end",
   "invert",
   "dead_zone",
   "scale",
@@ -173,6 +174,16 @@ function parseAssignment(raw: unknown, path: string, where: string): PedalAssign
   if (typeof raw.drives !== "string" || raw.drives === "")
     fail(path, `${where}.drives`, "needs a game axis");
   const out: PedalAssignment = { drives: raw.drives };
+  if (raw.end !== undefined) {
+    if (raw.end !== "up" && raw.end !== "down") fail(path, `${where}.end`, "expected up or down");
+    // The end is the direction: an invert or a scale beside it would say it twice.
+    for (const field of ["invert", "scale"] as const) {
+      if (raw[field] !== undefined) {
+        fail(path, `${where}.${field}`, "an axis driven one way has its direction in `end`");
+      }
+    }
+    out.end = raw.end;
+  }
   for (const field of ["invert", "shared"] as const) {
     const value = raw[field];
     if (value === undefined) continue;
@@ -238,10 +249,17 @@ export function gameRowFor(
   axis: string,
   modes: StickModeSet,
   actions: Readonly<Record<string, ActionSpec>>,
+  end?: "up" | "down",
 ): string | null {
   const ends = modes.axes[axis];
   if (!ends) return null;
-  return actions[ends.up]?.ingame ?? null;
+  if (end === undefined) return actions[ends.up]?.ingame ?? null;
+  // One end of the axis: the game's own row for that direction, which is the row the
+  // action at that end names, told from its other half by the sign of its scale.
+  const action = actions[ends[end]];
+  if (action?.ingame === undefined) return null;
+  const scale = action.ingame_scale ?? (end === "up" ? 1 : -1);
+  return directionRow(action.ingame, scale);
 }
 
 /** One pedal axis of a layout, resolved against everything it depends on. */
@@ -274,7 +292,8 @@ export function planAxes(
       label: spec?.label ?? pedalAxis,
       rest: spec?.rest ?? null,
       assignment,
-      row: modes === undefined ? null : gameRowFor(assignment.drives, modes, actions),
+      row:
+        modes === undefined ? null : gameRowFor(assignment.drives, modes, actions, assignment.end),
       name: entry?.name ?? null,
       status: entry?.status ?? null,
     };
@@ -313,9 +332,10 @@ export function ingamePlan(
       row: planned.row,
       name: planned.name,
       ...(planned.status === null ? {} : { status: planned.status }),
-      ...(a.invert === undefined ? {} : { invert: a.invert }),
+      // A direction row's scale is its direction, and it has no invert to speak of.
+      ...(a.invert === undefined || a.end !== undefined ? {} : { invert: a.invert }),
       ...(a.dead_zone === undefined ? {} : { deadZone: a.dead_zone }),
-      ...(a.scale === undefined ? {} : { scale: a.scale }),
+      ...(a.scale === undefined || a.end !== undefined ? {} : { scale: a.scale }),
       ...(a.sensitivity === undefined ? {} : { sensitivity: a.sensitivity }),
       ...(a.exponent === undefined ? {} : { exponent: a.exponent }),
     });
@@ -336,8 +356,10 @@ export function ingamePlan(
   // on one the layout no longer assigns is cleared, so changing a layout is one edit.
   const ownedRows = new Set<string>();
   for (const axis of Object.keys(modes.axes)) {
-    const row = gameRowFor(axis, modes, actions);
-    if (row !== null) ownedRows.add(row);
+    for (const end of [undefined, "up", "down"] as const) {
+      const row = gameRowFor(axis, modes, actions, end);
+      if (row !== null) ownedRows.add(row);
+    }
   }
   // Everything the device is known by in this game: a name on an owned row that is any of
   // them is ours to move, whichever axis it was recorded for.

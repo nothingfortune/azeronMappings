@@ -315,17 +315,22 @@ describe("an action dragged onto a pedal", () => {
     return over;
   }
 
-  it("makes the pedal drive the axis that action is an end of, the way round it says", () => {
+  it("puts a toe on the direction that action is: hover down on one, hover up on the other", () => {
     mount();
     dropOnPedal("Hover down", "left_toe");
-    expect(pedal("left_toe").querySelector("select")?.value).toBe("vertical");
-    expect(
-      pedal("left_toe").querySelector<HTMLInputElement>('input[data-field="invert"]')?.checked,
-    ).toBe(true);
+    expect(pedal("left_toe").querySelector("select")?.value).toBe("vertical:down");
     dropOnPedal("Hover up", "left_toe");
+    expect(pedal("left_toe").querySelector("select")?.value).toBe("vertical:up");
+    expect(pedal("left_toe").querySelector('input[data-field="invert"]')).toBeNull();
+  });
+
+  it("puts the rudder on the whole axis that action is an end of, the way round it says", () => {
+    mount();
+    dropOnPedal("Roll left", "rudder");
+    expect(pedal("rudder").querySelector("select")?.value).toBe("roll");
     expect(
-      pedal("left_toe").querySelector<HTMLInputElement>('input[data-field="invert"]')?.checked,
-    ).toBe(false);
+      pedal("rudder").querySelector<HTMLInputElement>('input[data-field="invert"]')?.checked,
+    ).toBe(true);
   });
 
   it("is not taken when the action is not one end of an axis", () => {

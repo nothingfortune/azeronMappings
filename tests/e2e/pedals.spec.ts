@@ -98,15 +98,17 @@ test.describe("the pedals in the editor", () => {
     const before = saved.get(SETS) ?? "";
     try {
       await page.goto("/");
-      // The pedal rules run on the unsaved edit, in the same Checks panel as every other:
-      // a second pedal on yaw is refused before anything is saved.
-      await pedalAxis(page, "left_toe").locator("select").selectOption("yaw");
+      // A toe is offered directions, and the pedal rules run on the unsaved edit, in the
+      // same Checks panel as every other: both toes on hover down is one row twice over.
+      await pedalAxis(page, "left_toe").locator("select").selectOption({ label: "Hover down" });
+      await pedalAxis(page, "right_toe").locator("select").selectOption({ label: "Hover down" });
       await expect(
         page.locator(".checks .rule", { hasText: "pedal-axis-assigned-twice" }),
       ).toBeVisible();
-      // The toes are calibrated to rest at zero, so one on a game axis raises nothing.
-      await pedalAxis(page, "left_toe").locator("select").selectOption("vertical");
-      await expect(page.locator(".checks .rule", { hasText: "pedal-" })).toHaveCount(0);
+      // Hover up on the other toe is its own row. Calibrated to rest at zero, neither
+      // raises anything.
+      await pedalAxis(page, "right_toe").locator("select").selectOption({ label: "Hover up" });
+      await expect(page.locator(".checks .rule", { hasText: "pedal" })).toHaveCount(0);
 
       // There is no pedals-only button: the one Save names what it would write.
       const save = page.locator("header button.dirty");
@@ -121,12 +123,13 @@ test.describe("the pedals in the editor", () => {
       await expect(report).toContainText("the game's Yaw row");
       await expect(report).toContainText("inferred, not flown");
       // What the game is given for the toe, and no finding against it from the server.
-      await expect(report).toContainText("the game's MoveUp row");
+      await expect(report).toContainText("the game's MoveUp row, back half");
       await expect(report).not.toContainText("pedal-rest-on-centred");
       await expect(page.locator("header button.dirty")).toHaveCount(0);
 
       const after = readFileSync(SETS, "utf8");
-      expect(after).toContain("left_toe: {drives: vertical, invert: false}");
+      expect(after).toContain("left_toe: {drives: vertical, end: down}");
+      expect(after).toContain("right_toe: {drives: vertical, end: up}");
       expect(after).toContain("rudder: {drives: yaw}");
       const comments = (text: string): string[] =>
         text.split("\n").filter((line) => line.trim().startsWith("#"));
