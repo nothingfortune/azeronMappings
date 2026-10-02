@@ -2,6 +2,7 @@
  * The Edit tab in a real browser: dragging an action or a key, every key one size, and a
  * layout added from the Azeron app's two exports.
  */
+import "../helpers/e2e-data.js";
 import { existsSync, readdirSync, rmSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
@@ -61,6 +62,34 @@ test.describe("drag and drop on the Edit tab", () => {
     const up = page.locator(".hand").nth(0).locator(".stick-dial .dir.up");
     await action(page, "Headlight").dragTo(up);
     await expect(up.locator(".name")).toHaveText("Headlight");
+  });
+});
+
+test.describe("clearing the board", () => {
+  test.use({ viewport: { width: 1920, height: 1080 } });
+
+  test("empties every key after asking, and an action can be dragged straight back on", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await expect(page.locator(".hand .key:not(.empty)")).not.toHaveCount(0);
+    page.once("dialog", (dialog) => {
+      expect(dialog.message()).toContain("Clear every key on both units");
+      void dialog.accept();
+    });
+    await page.getByRole("button", { name: "Clear all keys" }).click();
+    await expect(page.locator(".hand .key:not(.empty)")).toHaveCount(0);
+    await expect(page.locator(".action.bound")).toHaveCount(0);
+    await expect(page.locator("header button.dirty")).toHaveAttribute(
+      "title",
+      "Unsaved: Left unit, Right unit",
+    );
+
+    await action(page, "Engine boost")
+      .or(action(page, "Boost"))
+      .first()
+      .dragTo(key(page, 0, "pinky_1"));
+    await expect(key(page, 0, "pinky_1").locator(".name")).toHaveText(/Boost/i);
   });
 });
 

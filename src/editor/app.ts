@@ -64,6 +64,8 @@ import { applyStoredTheme, currentTheme, toggleTheme } from "./theme.js";
 declare global {
   interface Window {
     AZERON_PAYLOAD?: EditorPayload;
+    /** Set by `azeron serve`: the page may save edits on its own as they are made. */
+    AZERON_AUTOSAVE?: boolean;
   }
 }
 
@@ -396,6 +398,39 @@ function dropActionOnDirection(
   spec.directions[direction] = actionId;
   wire(actionId);
   state.selected = { slug, position };
+  render();
+}
+
+/**
+ * Empty every key of the layout, on both units, so it can be laid out again from the list.
+ *
+ * What a key does is cleared: its tap, long press and double tap, and a stick's four
+ * directions. What a unit is stays: a stick is still a keyboard stick, and the sensor and
+ * its sensitivity are as they were. The pedals are not keys and are left alone. Nothing is
+ * saved by this, so "Undo all unsaved edits" brings the layout back.
+ */
+function clearAllKeys(): void {
+  const units = slugsInSet().length === 1 ? "this unit" : "both units";
+  if (
+    !window.confirm(
+      `Clear every key on ${units} in ${state.setName}? Every action goes back to the list. ` +
+        "Nothing is saved until you press Save, and Undo all unsaved edits in the menu " +
+        "brings the layout back.",
+    )
+  ) {
+    return;
+  }
+  for (const slug of slugsInSet()) {
+    const positions = workingData(slug).positions;
+    const device = profileFor(slug).device;
+    for (const [position, spec] of Object.entries(positions)) {
+      if (device.isStick(position)) removeKey(spec, "directions");
+      else removeKey(positions, position);
+    }
+  }
+  state.selected = null;
+  state.slot = "tap";
+  saveNote = "Every key cleared. Drag actions from the list to lay it out again.";
   render();
 }
 
@@ -873,6 +908,11 @@ function renderPalette(): HTMLElement {
     ([, spec]) => (spec.tags ?? []).includes("required") && !spec.provided_by,
   );
   const missing = required.filter(([id]) => !bound.has(id));
+  const clearAll = el("button", { class: "btn small", type: "button", "data-clear-all": "" }, [
+    "Clear all keys",
+  ]);
+  clearAll.title = "Empty every key on the board, to lay the layout out again from this list.";
+  clearAll.addEventListener("click", clearAllKeys);
   // The title, the count and the filter share a row: they were three lines above the list.
   const filter = el("input", { type: "search", placeholder: "Filter actions", class: "filter" });
   panel.append(
@@ -882,6 +922,7 @@ function renderPalette(): HTMLElement {
         `${String(required.length - missing.length)}/${String(required.length)} required bound`,
       ]),
       filter,
+      clearAll,
     ]),
   );
 
@@ -1406,6 +1447,21 @@ function changeAxis(
   });
 }
 
+/**
+ * The game axis an action is one end of, and which end: "Thrust forward" is the up end of
+ * thrust, "Thrust backward" its down end. Null for an action that is not an end of any.
+ */
+function axisOfAction(
+  modes: StickModeSet,
+  actionId: string,
+): { axis: string; invert: boolean } | null {
+  for (const [axis, ends] of Object.entries(modes.axes)) {
+    if (ends.up === actionId) return { axis, invert: false };
+    if (ends.down === actionId) return { axis, invert: true };
+  }
+  return null;
+}
+
 const TUNING_FIELDS = [
   ["dead_zone", "Dead zone", "DeadZone: how far the axis must move before the game notices."],
   ["scale", "Scale", "Scale: multiplies the axis."],
@@ -1480,6 +1536,21 @@ function renderPedalAxis(
     );
   }
   cell.append(line);
+  // An action dragged from the list onto a pedal: the pedal drives the axis that action is
+  // an end of, the way round the action says. "Thrust backward" on a toe is reverse.
+  dropTarget(
+    cell,
+    (drag) => drag.kind === "action" && axisOfAction(modes, drag.id) !== null,
+    (drag) => {
+      const found = drag.kind === "action" ? axisOfAction(modes, drag.id) : null;
+      if (found === null) return;
+      changeAxis(axis, (current) => ({
+        ...(current ?? {}),
+        drives: found.axis,
+        invert: found.invert,
+      }));
+    },
+  );
 
   const trustRow = el("div", { class: "pedal-trust" }, [
     el("span", { class: `chip trust-${entry?.status ?? "none"}`, title: trust.long }, [
@@ -1917,6 +1988,7 @@ async function updateGame(game: EditorGame): Promise<{ ok: boolean; text: string
     if (reply.ok !== true) {
       return { ok: false, text: `The game was not updated: ${String(reply.error)}` };
     }
+    gameBehind = false;
     return { ok: true, text: describeGameUpdate(reply.result as GameUpdate) };
   } catch (error) {
     return { ok: false, text: `Could not reach the server: ${messageOf(error)}` };
@@ -2153,12 +2225,148 @@ function unsavedParts(): SchemePart[] {
  * outside the repo and needs the game closed -- but the report offers it when in-game keys
  * were saved.
  */
-async function saveScheme(): Promise<void> {
-  const parts = unsavedParts();
-  if (parts.length === 0) return;
-  saveNote = "saving...";
-  saveReport = null;
+const AUTOSAVE_KEY = "azeron-autosave";
+/** How long the page waits after the last edit before saving it. */
+const AUTOSAVE_DELAY = 800;
+
+/** Whether this page can save on its own at all: only the one `azeron serve` serves. */
+function autosaveAvailable(): boolean {
+  return canSave() && window.AZERON_AUTOSAVE === true;
+}
+
+/** On unless the owner turned it off from the menu; the choice is kept by the browser. */
+function autosaveOn(): boolean {
+  if (!autosaveAvailable()) return false;
+  try {
+    return window.localStorage.getItem(AUTOSAVE_KEY) !== "off";
+  } catch {
+    return true;
+  }
+}
+
+function setAutosave(on: boolean): void {
+  try {
+    if (on) window.localStorage.removeItem(AUTOSAVE_KEY);
+    else window.localStorage.setItem(AUTOSAVE_KEY, "off");
+  } catch {
+    // A browser that will not keep the choice still honours it until the page is closed.
+  }
+}
+
+let autosaveTimer: ReturnType<typeof setTimeout> | null = null;
+let saving = false;
+/** The edits a save was refused for, so the same edits are not sent again and again. */
+let failedSnapshot: string | null = null;
+
+/**
+ * What saving has left for the owner to do, which a save that happens on its own cannot
+ * hand over in a report each time: the files to import into the Azeron app, and the game
+ * that has not been told about new keys or pedals.
+ */
+const pendingImports = new Map<string, string>();
+let gameBehind = false;
+
+/** Save shortly after the last edit, once, unless these same edits were just refused. */
+function scheduleAutosave(): void {
+  if (autosaveTimer !== null) {
+    clearTimeout(autosaveTimer);
+    autosaveTimer = null;
+  }
+  if (!autosaveOn() || saving || !isDirty()) return;
+  if (failedSnapshot !== null && failedSnapshot === lastSnapshot) return;
+  autosaveTimer = setTimeout(() => {
+    autosaveTimer = null;
+    void saveScheme(true);
+  }, AUTOSAVE_DELAY);
+}
+
+/**
+ * Every state the layout has been through since it was opened, newest last, so a change
+ * can be taken back. With edits saving themselves there is no unsaved copy to fall back
+ * on: undo is the way back, and what it restores is saved in its turn.
+ */
+let history: string[] = [];
+let lastSnapshot: string | null = null;
+let lastSnapshotOf: string | null = null;
+let restoring = false;
+const HISTORY_LIMIT = 100;
+
+/** The whole layout as it stands: both keypads, the wiring and the pedals. */
+function snapshot(): string {
+  const game = currentGame();
+  return JSON.stringify({
+    profiles: slugsInSet().map((slug) => [slug, workingData(slug)]),
+    actions: state.workingActions ?? game.actions.actions ?? {},
+    sets: state.workingSets ?? currentSets(game),
+  });
+}
+
+/** Note the layout's state after a redraw, and keep the one before it if it changed. */
+function trackHistory(): void {
+  const of = `${String(state.gameIndex)}|${state.setName}`;
+  const now = snapshot();
+  if (lastSnapshotOf !== of) {
+    // Another game or layout: its history starts here.
+    history = [];
+  } else if (lastSnapshot !== null && now !== lastSnapshot && !restoring) {
+    history.push(lastSnapshot);
+    if (history.length > HISTORY_LIMIT) history.shift();
+  }
+  restoring = false;
+  lastSnapshot = now;
+  lastSnapshotOf = of;
+}
+
+/** Take back the last change to the layout. */
+function undo(): void {
+  const previous = history.pop();
+  if (previous === undefined) return;
+  const data = JSON.parse(previous) as {
+    profiles: [string, ProfileData][];
+    actions: Record<string, ActionSpec>;
+    sets: SetsData;
+  };
+  for (const [slug, profile] of data.profiles) state.working.set(slug, profile);
+  state.workingActions = data.actions;
+  state.workingSets = data.sets;
+  state.selected = null;
+  state.slot = "tap";
+  restoring = true;
   render();
+}
+
+/** The files a save changed, for the owner to import, with a way to say it is done. */
+function importsReport(): HTMLElement {
+  const box = el("div", { class: "save-report imports" });
+  box.append(el("div", {}, ["Import in the Azeron app, then write each to its unit:"]));
+  for (const path of pendingImports.values()) {
+    box.append(el("div", { class: "import-path" }, [el("code", {}, [path])]));
+  }
+  const done = el("button", { class: "btn small", type: "button" }, ["I have imported them"]);
+  done.addEventListener("click", () => {
+    pendingImports.clear();
+    saveReport = null;
+    render();
+  });
+  box.append(done);
+  return box;
+}
+
+/**
+ * Save everything that changed. `quiet` is a save the page makes on its own: it does not
+ * redraw to say it is saving or put a report on screen, and leaves what there is to do in
+ * the header instead.
+ */
+async function saveScheme(quiet = false): Promise<void> {
+  const parts = unsavedParts();
+  if (parts.length === 0 || saving) return;
+  saving = true;
+  const attempted = lastSnapshot;
+  if (!quiet) {
+    saveNote = "saving...";
+    saveReport = null;
+    render();
+  }
 
   const saved: string[] = [];
   const built = new Map<
@@ -2183,10 +2391,16 @@ async function saveScheme(): Promise<void> {
       saveNote =
         `not saved: ${part.name} -- ${messageOf(error)}` +
         (saved.length > 0 ? `. Already saved: ${saved.join(" and ")}.` : "");
+      saving = false;
+      failedSnapshot = attempted;
       render();
       return;
     }
   }
+  saving = false;
+  failedSnapshot = null;
+  for (const entry of built.values()) pendingImports.set(entry.output, entry.importPath);
+  gameBehind ||= inGameKeys || inGamePedals;
   const path = saved.pop();
   if (last === null || path === undefined) return;
   const check = last.check;
@@ -2195,6 +2409,12 @@ async function saveScheme(): Promise<void> {
       ? { ...last, check: { ...check, built: [...built.values()] } }
       : last;
   saveNote = null;
+  const failed = !check || "error" in check || check.buildErrors.length > 0;
+  if (quiet && !failed) {
+    // Nothing to read: the checks are in their panel, and what is left to do is in the header.
+    render();
+    return;
+  }
   const report = reportSave(path, merged, saved);
   if (inGameKeys || inGamePedals) {
     const what = inGameKeys && inGamePedals ? "keys and pedals" : inGamePedals ? "pedals" : "keys";
@@ -2339,7 +2559,43 @@ function renderHeader(): HTMLElement {
   // One main action. Served, that is saving -- it rebuilds and says what to import, and it
   // reads Saved when there is nothing to save, which is the page's unsaved marker. Opened
   // as a file there is nowhere to save to, so the main action is the import files.
+  const back = el("button", { class: "btn", type: "button", "data-undo": "" }, ["Undo"]);
+  back.title = "Take back the last change (Ctrl+Z)";
+  if (history.length === 0) back.setAttribute("disabled", "disabled");
+  back.addEventListener("click", undo);
+  header.append(back);
+
   if (canSave()) {
+    // What saving has left to do, kept here because a save that happens on its own has no
+    // report to put it in: files to import, and a game that has not been told.
+    if (pendingImports.size > 0) {
+      const count = pendingImports.size;
+      const imports = el("button", { class: "pill todo", type: "button", "data-todo": "import" }, [
+        `Re-import ${String(count)}`,
+      ]);
+      imports.title = `${String(count)} file(s) for the Azeron app have changed. Click for where they are.`;
+      imports.addEventListener("click", () => {
+        saveReport = importsReport();
+        render();
+      });
+      header.append(imports);
+    }
+    if (gameBehind && gameFileGaps(currentGame()).length === 0) {
+      const tell = el("button", { class: "pill todo", type: "button", "data-todo": "game" }, [
+        UPDATE_GAME,
+      ]);
+      tell.title = "The game has not been told about the new keys or pedals yet.";
+      tell.addEventListener("click", () => {
+        const blocked = gameUpdateBlocked();
+        if (blocked !== null) {
+          saveNote = blocked;
+          render();
+          return;
+        }
+        confirmUpdateGame(reportUpdateInSaveReport);
+      });
+      header.append(tell);
+    }
     // One Save for the whole control scheme -- both keypads and the in-game keys -- and the
     // unsaved marker says which parts it would write.
     const unsaved = unsavedParts();
@@ -2382,6 +2638,16 @@ function renderHeader(): HTMLElement {
     });
   } else {
     item("Download the layout as YAML", downloadLayoutYaml);
+  }
+  if (autosaveAvailable()) {
+    const on = autosaveOn();
+    item(on ? "Turn autosave off" : "Turn autosave on", () => {
+      setAutosave(!on);
+      saveNote = on
+        ? "Autosave is off: changes wait for Save."
+        : "Autosave is on: changes are saved as they are made.";
+      render();
+    });
   }
   item("Print layout", printLayout);
   item("Undo all unsaved edits", () => {
@@ -3614,7 +3880,48 @@ function resetSession(): void {
   }
 }
 
+/**
+ * Redraw the page, then note what the layout now is and arrange for it to be saved.
+ *
+ * Everything that changes the layout ends by calling this, so it is the one place that
+ * sees every change: the history for Undo and the save that follows an edit both hang here.
+ */
 function render(): void {
+  // A redraw replaces the filter box; typing in it should not be interrupted by a save.
+  const active = document.activeElement;
+  const typing = active instanceof HTMLInputElement && active.classList.contains("filter");
+  const caret = typing ? active.selectionStart : null;
+  // Before drawing, so the header's Undo button is drawn knowing about this change.
+  adoptPendingSpec();
+  trackHistory();
+  draw();
+  if (typing) {
+    const filter = document.querySelector<HTMLInputElement>(".panel .filter");
+    filter?.focus();
+    if (filter && caret !== null) filter.setSelectionRange(caret, caret);
+  }
+  scheduleAutosave();
+  if (!undoBound) {
+    undoBound = true;
+    document.addEventListener("keydown", (event) => {
+      if (!(event.ctrlKey || event.metaKey) || event.shiftKey || event.key.toLowerCase() !== "z") {
+        return;
+      }
+      // In a text box Ctrl+Z belongs to the text, and a key being captured is not a command.
+      const target = event.target;
+      const inField =
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement;
+      if (inField || capturing !== null || history.length === 0) return;
+      event.preventDefault();
+      undo();
+    });
+  }
+}
+let undoBound = false;
+
+function draw(): void {
   adoptPendingSpec();
   const root = document.getElementById("app");
   if (!root) return;
@@ -3746,6 +4053,12 @@ export function start(payload = window.AZERON_PAYLOAD): void {
   addLayout.files = {};
   dragging = null;
   wiringShown = null;
+  history = [];
+  lastSnapshot = null;
+  lastSnapshotOf = null;
+  failedSnapshot = null;
+  pendingImports.clear();
+  gameBehind = false;
   const firstGame = payload.games[0];
   resetSession();
   state = {

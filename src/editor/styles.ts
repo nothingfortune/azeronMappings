@@ -122,6 +122,8 @@ select, .btn {
 .save-report .import-path code { user-select: all; overflow-wrap: anywhere; color: var(--fg); }
 .save-note .dismiss { flex: none; }
 .workspace.single { display: block; }
+/* A tab that is one column of forms or a list reads better at a column's width, centred. */
+.workspace.single > .panel { max-width: 1280px; margin-inline: auto; }
 .panel.inset { background: var(--bg); margin-bottom: 12px; }
 /* Boards on the left, the in-game half on the right, so the two can be read together. */
 .ingame-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
@@ -170,7 +172,7 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 .keybind-note.bad { color: var(--error); }
 /* Not dimmed and not dead when nothing is selected: an action can still be dragged. */
 .note { font-size: 11.5px; color: var(--muted); margin-bottom: 10px; }
-.workspace { padding: 12px 14px; }
+.workspace { padding: 12px 14px; max-width: 2400px; margin-inline: auto; }
 /* The board on top at full width; the panels dock beneath it. */
 .dock { display: grid; grid-template-columns: 280px minmax(0, 1fr) 250px; gap: 12px;
         margin-top: 12px; align-items: start; }
@@ -208,12 +210,18 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 /* Both units stay on one row on a landscape window, because a pair is read as a pair; the
    keys narrow to fit (see fitStage) rather than the type shrinking. On a portrait window the
    pair stacks, each hand at a readable size, instead of two hands squeezed into the width. */
-.workspace.board .stage-wrap { overflow: hidden; }
+/* Centred in whatever room there is. "safe" keeps a board wider than its room at the left
+   edge, where the scale that then fits it starts from. */
+.workspace.board .stage-wrap { overflow: hidden; display: flex; justify-content: safe center; }
 .workspace.board .stage { display: flex; gap: 14px; align-items: stretch; flex-wrap: nowrap;
-         transform-origin: top left; width: max-content; }
+         transform-origin: top left; width: max-content; flex: none; }
 @media (orientation: portrait) {
   .workspace.board .stage { flex-direction: column; width: 100%; }
   .workspace.board .stage > .hand { align-self: stretch; }
+  /* A stacked hand is as wide as the window; its keys sit in the middle of it. */
+  .workspace.board .hand-body { align-items: center; }
+  .workspace.board .hand-body.thumb-right .thumb-row,
+  .workspace.board .hand-body.thumb-left .thumb-row { align-items: center; }
 }
 .hand { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
         padding: 8px 10px 10px; }
@@ -379,6 +387,10 @@ body.dragging-key .palette.drop-over { outline: none; }
 .finding b { display: block; font-size: 10.5px; letter-spacing: .03em; }
 .pill { font-size: 10.5px; padding: 2px 7px; border-radius: 99px; border: 1px solid var(--line); }
 .pill.ok { color: var(--ok); border-color: var(--ok); }
+/* Something saving has left for the owner to do. A button, so it is dressed as one. */
+.pill.todo { background: none; color: var(--accent); border-color: var(--accent); cursor: pointer;
+             font: inherit; font-size: 10.5px; white-space: nowrap; }
+.pill.todo:hover { background: var(--accent); color: var(--bg); }
 .pill.bad { color: var(--error); border-color: var(--error); }
 .muted { color: var(--muted); }
 .empty-state { color: var(--muted); font-size: 12px; padding: 14px; text-align: center; border: 1px dashed var(--line); border-radius: 10px; }
