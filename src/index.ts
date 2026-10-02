@@ -7,7 +7,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { parseArgs } from "node:util";
 
-import { dataDirs, isEntryPoint, repoPath, repoRoot } from "./config/paths.js";
+import { dataDirs, dataRoot, isEntryPoint, repoPath, repoRoot } from "./config/paths.js";
 import { bindingSheet, renderBindingsCsv, renderBindingsMarkdown } from "./lib/bindings.js";
 import { CompileError, compileProfile, dumps } from "./lib/compile.js";
 import { decompile, dumpProfile } from "./lib/decompile.js";
@@ -659,7 +659,7 @@ function cmdServe(port: number, host: string): number {
       readBody(request, response, 2_000_000, (body) => {
         try {
           const { path, content } = parseSaveRequest(body);
-          const target = resolveSavePath(repoRoot, path);
+          const target = resolveSavePath(dataRoot, path);
           // Nothing is written until the content parses as what the path says it is.
           validateSaveContent(path, content);
           mkdirSync(dirname(target), { recursive: true });
@@ -751,7 +751,7 @@ interface DecompileFlags {
 function cmdDecompile(exportPath: string, flags: DecompileFlags): number {
   const game = flags.game ? games(flags.game)[0] : undefined;
   const meta: Partial<ProfileMeta> = {
-    template: flags.template ?? relative(repoRoot, repoPath(exportPath)),
+    template: flags.template ?? relative(dataRoot, repoPath(exportPath)),
   };
   if (flags.set) meta.set = flags.set;
   if (flags.outputName) meta.output = flags.outputName;

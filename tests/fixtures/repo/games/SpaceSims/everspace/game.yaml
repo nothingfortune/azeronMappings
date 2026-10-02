@@ -1,0 +1,104 @@
+name: Everspace 2
+slug: everspace
+genre: SpaceSims
+template: templates/everspace2-v5.json
+
+# The game's own binding file. `azeron ingame` compares it with actions.yaml, and
+# `azeron ingame --apply` makes it agree. Close the game first: it rewrites the file on exit.
+# In this frozen copy the game is "not installed": the path names no file, so everything
+# that reads the game's bindings starts from the committed copy under dist/ and nothing a
+# test does can reach a real game.
+ingame_config: "/nonexistent/everspace2/Saved/Config/Windows/Input.ini"
+
+# The categories of that file this repo owns outright: 0 flight, 1 combat and ship, 2
+# opening menus, 3 system -- everything live while flying. Every keyboard row in them has
+# an action in actions.yaml, and applying writes their keys. 4 menu navigation, 5 menu
+# actions and 6 photo-mode camera are left as the game has them: they are never live at
+# the same time as flight, so they reuse flight keys on purpose.
+ingame_owned_categories: [0, 1, 2, 3]
+
+# The layout whose pedals are written into the Joystick axis rows of that file. The game has
+# one binding file, so one layout's control scheme is what it holds. Its pedals are in
+# sets.yaml; the game names for them in devices/<pedals>.yaml, once captured.
+ingame_set: akimbo-v10
+
+lint:
+  # Constraint 1: a stick in gamepad/analog mode made the game flip between gamepad and
+  # keyboard/mouse input and stuttered the frame rate. Keyboard mode only.
+  require_keyboard_stick: true
+
+  # Findings that are real but accepted on a specific profile. Each one is a decision,
+  # not a mute: say why, and revisit it when that profile is revised.
+  acknowledged:
+    - {profile: akimbo-v10, rule: akimbo-role-mismatch, position: dpad_left,
+       reason: "v10 specialises the hands rather than mirroring them: the right unit flies and the left fights, so the two thumb pads do different jobs by design. A deliberate departure from the 2026-09-28 lesson, and what a playtest has to judge."}
+    - {profile: akimbo-v10, rule: akimbo-role-mismatch, position: dpad_press,
+       reason: "v10 specialises the hands rather than mirroring them: the right unit flies and the left fights, so the two thumb pads do different jobs by design. A deliberate departure from the 2026-09-28 lesson, and what a playtest has to judge."}
+    - {profile: akimbo-v10, rule: akimbo-role-mismatch, position: dpad_right,
+       reason: "v10 specialises the hands rather than mirroring them: the right unit flies and the left fights, so the two thumb pads do different jobs by design. A deliberate departure from the 2026-09-28 lesson, and what a playtest has to judge."}
+    - {profile: akimbo-v10, rule: akimbo-role-mismatch, position: index_2,
+       reason: "v10 specialises the hands rather than mirroring them: the right unit flies and the left fights, so the two thumb pads do different jobs by design. A deliberate departure from the 2026-09-28 lesson, and what a playtest has to judge."}
+    - {profile: akimbo-v10, rule: akimbo-role-mismatch, position: index_4,
+       reason: "v10 specialises the hands rather than mirroring them: the right unit flies and the left fights, so the two thumb pads do different jobs by design. A deliberate departure from the 2026-09-28 lesson, and what a playtest has to judge."}
+    - {profile: akimbo-v10, rule: akimbo-role-mismatch, position: pinky_1,
+       reason: "v10 specialises the hands rather than mirroring them: the right unit flies and the left fights, so the two thumb pads do different jobs by design. A deliberate departure from the 2026-09-28 lesson, and what a playtest has to judge."}
+    - {profile: akimbo-v10, rule: akimbo-role-mismatch, position: pinky_side,
+       reason: "v10 specialises the hands rather than mirroring them: the right unit flies and the left fights, so the two thumb pads do different jobs by design. A deliberate departure from the 2026-09-28 lesson, and what a playtest has to judge."}
+    - {profile: akimbo-v10, rule: akimbo-role-mismatch, position: thumb_aux_lower,
+       reason: "v10 specialises the hands rather than mirroring them: the right unit flies and the left fights, so the two thumb pads do different jobs by design. A deliberate departure from the 2026-09-28 lesson, and what a playtest has to judge."}
+    - {profile: akimbo-v10-left, rule: duplicate-output-key, key: Digit5,
+       reason: "Not a choice anyone made: the imported layout labelled pinky_3 'Consumable 5', and
+                the game has four -- it sent consumable 1, as index_2 does. Kept rather than
+                guessed at; give pinky_3 a job once a playtest says what the pinky wants."}
+    - {profile: akimbo-v10-left, rule: duplicate-output-key, key: Escape,
+       reason: "From the imported layout: Escape on pinky_1 and on the pinky side key. Both are
+                pinky positions away from the consumables, so constraint 5 holds either way."}
+    - {profile: akimbo-v10-right, rule: duplicate-output-key, key: KeyS,
+       reason: "Deliberate: the action is reachable from more than one position in this layout."}
+    - {profile: akimbo-v10, rule: akimbo-role-mismatch, position: middle_1,
+       reason: "EXPERIMENT: middle_1 and middle_4 carry pulsed thrust on the right unit,
+                opposite menu and combat keys on the left. They exist to be flown and
+                deleted, not to be mirrored."}
+    - {profile: akimbo-v10, rule: akimbo-role-mismatch, position: middle_4,
+       reason: "EXPERIMENT: as middle_1 -- pulsed thrust, pending a playtest."}
+    - {profile: akimbo-v10-right, rule: duplicate-output-key, key: KeyW,
+       reason: "EXPERIMENT: thrust forward is on four inputs on purpose -- the stick, a
+                key from the imported layout, and two pulsed keys at different intervals
+                -- so they can be compared in one session. Delete the pulsed keys and
+                this line together once judged."}
+    - {profile: akimbo-v10, rule: akimbo-role-mismatch, position: dpad_up,
+       reason: "As the other pad positions: the left pad cycles weapons, the right pad pitches."}
+    - {profile: akimbo-v10, rule: akimbo-role-mismatch, position: dpad_down,
+       reason: "As the other pad positions: the left pad cycles weapons, the right pad pitches."}
+    - {profile: akimbo-v10-left, rule: duplicate-output-key, key: KeyR,
+       reason: "ring_3 keeps the R the imported layout had, and the d-pad cycles secondaries both
+                ways, gamepad-style. Drop one once a playtest shows which the hand reaches for."}
+    - {profile: single-v5, rule: duplicate-output-key, key: Tab,
+       reason: "Tab reaches the menu from two places (perks double-tap, ULT long-press).
+                Both are menu actions, so there is no combat ambiguity."}
+    - {profile: single-v5, rule: duplicate-output-key, key: KeyI,
+       reason: "Inventory from the ship menu key and from the thumb pad; deliberate."}
+    - {profile: single-v5, rule: combat-tap-delayed, position: dpad_press,
+       reason: "Baseline v5 as shipped: ULT waits 1000 ms for the long-press window.
+                Constraint 4 says this is wrong. v5 is the golden fixture and cannot change;
+                no later layout repeats it."}
+    - {profile: single-v5, rule: combat-tap-delayed, position: dpad_up,
+       reason: "Baseline v5: pitch up delayed 1000 ms by the crafting long-press. v5 called
+                it weapon cycling; the arrow it sends is pitch in game."}
+    - {profile: single-v5, rule: combat-tap-delayed, position: dpad_down,
+       reason: "Baseline v5: pitch down delayed 1000 ms by the inventory long-press."}
+    - {profile: single-v5, rule: combat-tap-delayed, position: dpad_left,
+       reason: "Baseline v5: yaw left delayed 1000 ms by the map long-press."}
+    - {profile: single-v5, rule: combat-tap-delayed, position: dpad_right,
+       reason: "Baseline v5: yaw right delayed 1000 ms by the data long-press."}
+    - {profile: single-v5, rule: menu-with-combat, position: dpad_press,
+       reason: "Tab on long-press next to the ULT tap. Tab is not Escape, and the pad is
+                not mashed the way a consumable is. Golden fixture; no later layout repeats it."}
+    - {profile: single-v5, rule: menu-with-combat, position: dpad_up,
+       reason: "Baseline v5: holding pitch up past the long-press window opens crafting."}
+    - {profile: single-v5, rule: menu-with-combat, position: dpad_down,
+       reason: "Baseline v5: holding pitch down past the window opens the inventory."}
+    - {profile: single-v5, rule: menu-with-combat, position: dpad_left,
+       reason: "Baseline v5: holding yaw left past the window opens the map."}
+    - {profile: single-v5, rule: menu-with-combat, position: dpad_right,
+       reason: "Baseline v5: holding yaw right past the window opens the data logs."}

@@ -9,7 +9,7 @@ import {
   posixJoin as join,
   repoPath,
   repoRelativePath,
-  repoRoot,
+  dataRoot,
 } from "../config/paths.js";
 import { messageOf } from "./object.js";
 import type { SetsData } from "../types/pedals.js";
@@ -44,7 +44,7 @@ export class Game implements GameLike {
   readonly sets: SetsData;
 
   constructor(dir: string) {
-    this.rel = repoRelativePath(repoRoot, repoPath(dir));
+    this.rel = repoRelativePath(dataRoot, repoPath(dir));
     const configPath = join(this.rel, "game.yaml");
     this.config = existsSync(repoPath(configPath)) ? (loadYaml(configPath) as GameConfig) : {};
     this.slug = this.config.slug ?? basename(this.rel);
@@ -146,7 +146,7 @@ export class Genre {
   readonly lintConfig: LintConfig;
 
   constructor(dir: string) {
-    this.rel = repoRelativePath(repoRoot, repoPath(dir));
+    this.rel = repoRelativePath(dataRoot, repoPath(dir));
     this.name = basename(this.rel);
     this.actions = loadActionSet(join(this.rel, "actions.yaml"));
     this.defaultPath = join(this.rel, "default.yaml");

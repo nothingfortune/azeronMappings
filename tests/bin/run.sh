@@ -3,6 +3,9 @@
 # actually starts from the built artifact and reports failure with a non-zero exit code.
 set -uo pipefail
 cd "$(dirname "$0")/../.."
+# Against the frozen copy of the data, like every other test: the owner's layouts can be half
+# way through a change without failing a check of the code. See tests/fixtures/repo.
+export AZERON_DATA="$PWD/tests/fixtures/repo"
 
 fails=0
 check() {

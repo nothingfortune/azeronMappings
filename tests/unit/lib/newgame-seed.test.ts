@@ -16,16 +16,17 @@ vi.mock("../../../src/config/paths.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../../src/config/paths.js")>();
   const root = mkdtempSync(join(tmpdir(), "azeron-newgame-seed-"));
   for (const dir of ["genres", "devices"])
-    cpSync(join(actual.repoRoot, dir), join(root, dir), { recursive: true });
+    cpSync(join(actual.dataRoot, dir), join(root, dir), { recursive: true });
   mkdirSync(join(root, "templates"));
   cpSync(
-    join(actual.repoRoot, "templates", "everspace2-v5.json"),
+    join(actual.dataRoot, "templates", "everspace2-v5.json"),
     join(root, "templates", "everspace2-v5.json"),
   );
   mkdirSync(join(root, "games"));
   return {
     ...actual,
     repoRoot: root,
+    dataRoot: root,
     repoPath: (...parts: readonly string[]) => {
       const joined = join(...parts);
       return isAbsolute(joined) ? joined : join(root, joined);

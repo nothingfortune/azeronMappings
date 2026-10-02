@@ -1,0 +1,67 @@
+# Default single-unit layout for a shooter.
+#
+# Firing and aiming stay on the mouse; the keypad owns movement, stance, abilities and
+# the menus. Tap only -- no long-press, no double-tap, no latching -- so nothing in a
+# firefight waits on a delay window (constraint 4) and nothing sticks on (constraint 6).
+# Start a new shooter from it with:
+#
+#   extends: genres/FPS/default.yaml
+profile:
+  name: FPS default (left)
+  device: cyborg2-left
+  unit: left
+  set: FPS-default
+
+lint:
+  require_keyboard_stick: true
+
+positions:
+  stick:
+    mode: keyboard
+    directions: {up: move_forward, right: strafe_right, down: move_back, left: strafe_left}
+
+  # Pinky bank: abilities / stratagems.
+  pinky_1: {label: Ability 1, tap: ability_1}
+  pinky_2: {label: Ability 2, tap: ability_2}
+  pinky_3: {label: Ability 3, tap: ability_3}
+  pinky_4: {label: Ability 4, tap: ability_4}
+
+  # Ring bank: weapon selection and equipment.
+  ring_1: {label: Weapon 1, tap: weapon_1}
+  ring_2: {label: Weapon 2, tap: weapon_2}
+  ring_3: {label: Sidearm, tap: weapon_3}
+  ring_4: {label: Equipment 1, tap: equipment_1}
+
+  # Middle: the things a fight needs constantly.
+  middle_1: {label: Equipment 2, tap: equipment_2}
+  middle_2: {label: Reload, tap: reload}
+  middle_3: {label: Interact, tap: interact}
+  middle_4: {label: Stim, tap: stim}
+
+  # Index: stance, with sprint on the resting row.
+  index_1: {label: Prone, tap: prone}
+  index_2: {label: Jump, tap: jump}
+  index_3: {label: Sprint, tap: sprint}
+  index_4: {label: Crouch, tap: crouch}
+
+  # Side keys: the two attacks that are not the trigger.
+  pinky_side: {label: Melee, tap: melee}
+  index_side: {label: Grenade, tap: grenade}
+
+  # Thumb pad: comms and weapon cycling.
+  dpad_up:     {label: Next weapon, tap: weapon_next}
+  dpad_down:   {label: Previous weapon, tap: weapon_prev}
+  dpad_left:   {label: Ping, tap: ping}
+  dpad_right:  {label: Emote, tap: emote}
+  dpad_press: {label: Push to talk, tap: push_to_talk}
+
+  # Thumb aux.
+  thumb_aux_upper: {label: Flashlight, tap: flashlight}
+  thumb_aux_lower: {label: Dive / dodge, tap: dive}
+  # stick_press is deliberately free -- the first thing a game adds goes here.
+
+  # Bottom row: menus only, so a long-press here is safe.
+  pinky_5:  {label: Main menu, tap: menu_main}
+  ring_5:   {label: Scoreboard, tap: scoreboard}
+  middle_5: {label: Inventory, tap: inventory}
+  index_5:  {label: Map, tap: map}

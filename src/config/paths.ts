@@ -6,10 +6,40 @@ import { fileURLToPath } from "node:url";
 /** Repo root, resolved from this file's location rather than the working directory. */
 export const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
-/** Join a repo-relative path onto the repo root; absolute paths pass through. */
+/** Where hand-authored data lives. */
+export const dataDirs = {
+  devices: "devices",
+  genres: "genres",
+  games: "games",
+  templates: "templates",
+  /** Compiled Azeron import JSON and the game's bindings. Committed; not the TypeScript build. */
+  dist: "dist",
+} as const;
+
+/**
+ * Where the data is: the folder that holds devices/, genres/, games/, templates/ and dist/.
+ *
+ * It is the repo itself, unless `AZERON_DATA` names another folder. The layouts are edited
+ * all day from the editor, and saved as they are edited, so they are not something a test
+ * of the code can be written against: the tests point this at a frozen copy
+ * (tests/fixtures/repo) and the owner's layout can be in any state without failing them.
+ */
+export const dataRoot =
+  process.env.AZERON_DATA !== undefined && process.env.AZERON_DATA !== ""
+    ? resolve(process.env.AZERON_DATA)
+    : repoRoot;
+
+const DATA_DIRS: ReadonlySet<string> = new Set(Object.values(dataDirs));
+
+/**
+ * Join a repo-relative path onto its root: the data root for anything under a data
+ * directory, the repo for everything else. Absolute paths pass through.
+ */
 export function repoPath(...parts: readonly string[]): string {
   const joined = join(...parts);
-  return isAbsolute(joined) ? joined : join(repoRoot, joined);
+  if (isAbsolute(joined)) return joined;
+  const first = joined.split(/[\\/]/)[0] ?? "";
+  return join(DATA_DIRS.has(first) ? dataRoot : repoRoot, joined);
 }
 
 /** The parts of `node:path` the repo-relative helpers use, so a test can pass `win32`. */
@@ -54,16 +84,6 @@ export function isEntryPoint(argv1: string | undefined, moduleUrl: string): bool
   };
   return real(argv1) === real(fileURLToPath(moduleUrl));
 }
-
-/** Where hand-authored data lives. */
-export const dataDirs = {
-  devices: "devices",
-  genres: "genres",
-  games: "games",
-  templates: "templates",
-  /** Compiled Azeron import JSON and the game's bindings. Committed; not the TypeScript build. */
-  dist: "dist",
-} as const;
 
 /**
  * A path as the machine the Azeron app runs on would write it.

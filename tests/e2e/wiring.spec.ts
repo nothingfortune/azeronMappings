@@ -2,6 +2,7 @@
  * The wiring through the real server: an action with no key is put on a control, the
  * editor picks the key, and one Save writes it into the game's actions.yaml.
  */
+import "../helpers/e2e-data.js";
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";

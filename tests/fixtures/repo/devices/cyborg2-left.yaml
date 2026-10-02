@@ -1,0 +1,64 @@
+# Azeron Cyborg II -- left-handed unit.
+#
+# PRESS-TESTED 2026-09-28 with `azeron probe`, both passes. Every pin below is an
+# observation. The map inferred from the app screenshot turned out to be correct: all 30
+# pressable positions reported exactly the pin it predicted.
+#
+# Rows run 1 (top / far) to 5 (bottom row); row 3 aligns with the side keys.
+#
+# OPEN QUESTION: is row 3 the resting row?
+
+device: cyborg2-left
+# The id the Azeron software files this unit under, in
+# Storage/DevicesStorage/<id>/ProfileStorage. Both units report USB PID 0x12f7, which is
+# 4855 in decimal -- the folder holding the profiles that were filed before the units
+# were told apart.
+software_device_id: "49229"
+hand: left
+mirrored: false
+
+# Press-tested: all 30 pressable positions confirmed.
+verified: true
+
+# Pins that exist in exports but whose physical key is unidentified. The compiler
+# never writes to these -- their records pass through from the template untouched.
+# The press test never saw them fire, which is why they are still here.
+#
+# Pin 0 is not a key at all: it carries type "2" and is the profile switch. A probe that
+# rebound it produced a profile the Azeron software repaired on import, which is how it
+# was identified. 28 and 29 are still unknown.
+unknown_pins: [0, 28, 29]
+
+positions:
+  pinky_1: {pin: 5, col: pinky, row: 1}
+  pinky_2: {pin: 4, col: pinky, row: 2}
+  pinky_3: {pin: 3, col: pinky, row: 3}
+  pinky_4: {pin: 2, col: pinky, row: 4}
+  pinky_5: {pin: 1, col: pinky, row: 5}
+  ring_1: {pin: 11, col: ring, row: 1}
+  ring_2: {pin: 10, col: ring, row: 2}
+  ring_3: {pin: 9, col: ring, row: 3}
+  ring_4: {pin: 8, col: ring, row: 4}
+  ring_5: {pin: 7, col: ring, row: 5}
+  middle_1: {pin: 17, col: middle, row: 1}
+  middle_2: {pin: 16, col: middle, row: 2}
+  middle_3: {pin: 15, col: middle, row: 3}
+  middle_4: {pin: 14, col: middle, row: 4}
+  middle_5: {pin: 13, col: middle, row: 5}
+  index_1: {pin: 26, col: index, row: 1}
+  index_2: {pin: 25, col: index, row: 2}
+  index_3: {pin: 24, col: index, row: 3}
+  index_4: {pin: 23, col: index, row: 4}
+  index_5: {pin: 22, col: index, row: 5}
+  pinky_side: {pin: 6, col: side, row: 3, side: outer}
+  index_side: {pin: 27, col: side, row: 3, side: inner}
+  dpad_up: {pin: 34, col: thumb, cluster: dpad}
+  dpad_left: {pin: 35, col: thumb, cluster: dpad}
+  dpad_press: {pin: 37, col: thumb, cluster: dpad}
+  dpad_right: {pin: 33, col: thumb, cluster: dpad}
+  dpad_down: {pin: 36, col: thumb, cluster: dpad}
+  thumb_aux_upper: {pin: 20, col: thumb, row: 1, cluster: aux}
+  thumb_aux_lower: {pin: 19, col: thumb, row: 2, cluster: aux}
+  # The thumbstick pressed in.
+  stick_press: {pin: 32, col: thumb, row: 3, cluster: stick}
+  stick: {pin: 31, pin_two: 30, col: thumb, row: 0, kind: stick}

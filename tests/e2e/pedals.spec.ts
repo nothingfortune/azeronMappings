@@ -4,6 +4,7 @@
  * the checks.
  */
 
+import "../helpers/e2e-data.js";
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";

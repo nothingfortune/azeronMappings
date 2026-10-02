@@ -7,6 +7,7 @@
  * a header that gets it refused.
  */
 
+import "../helpers/e2e-data.js";
 import { readFileSync } from "node:fs";
 import { request as httpRequest } from "node:http";
 

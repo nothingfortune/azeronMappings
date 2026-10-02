@@ -6,6 +6,7 @@
  * template -- is removed again, whether the specs pass or not.
  */
 
+import "../helpers/e2e-data.js";
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";

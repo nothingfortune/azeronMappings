@@ -6,6 +6,7 @@
  * the round trip leaves the file as it was.
  */
 
+import "../helpers/e2e-data.js";
 import { readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";
