@@ -108,6 +108,7 @@ describe("capturePedalsFrom", () => {
   });
 
   it("reports the owner's file as it is today as a disagreement, and writes nothing", () => {
+    const before = readFileSync(repoPath("devices/logitech-pro-flight-pedals.yaml"), "utf8");
     const done = capturePedalsFrom(game, { write: false, override: scratch(withMisboundYaw()) });
     expect(done.result.conflicts.map((found) => [found.pedalAxis, found.name, found.row])).toEqual([
       ["right_toe", AXIS1, "Yaw"],
@@ -115,9 +116,7 @@ describe("capturePedalsFrom", () => {
     expect(done.result.recorded).toEqual([]);
     expect(done.written).toBeNull();
     // A dry run leaves the device file in the repo as it was.
-    expect(readFileSync(repoPath("devices/logitech-pro-flight-pedals.yaml"), "utf8")).toContain(
-      `status: unconfirmed`,
-    );
+    expect(readFileSync(repoPath("devices/logitech-pro-flight-pedals.yaml"), "utf8")).toBe(before);
   });
 
   it("finds nothing to record in a file with only the flight stick bound", () => {

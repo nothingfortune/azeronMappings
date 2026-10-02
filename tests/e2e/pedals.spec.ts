@@ -85,7 +85,7 @@ test.describe("the pedals in the editor", () => {
     await expect(pedalAxis(page, "rudder").locator("select")).toHaveValue("yaw");
     await expect(pedalAxis(page, "left_toe").locator("select")).toHaveValue("");
     await expect(pedalAxis(page, "rudder").locator(".chip")).toHaveText("Inferred, not flown");
-    await expect(pedalAxis(page, "right_toe").locator(".chip")).toHaveText("Axis not established");
+    await expect(pedalAxis(page, "right_toe").locator(".chip")).toHaveText("Inferred, not flown");
     await expect(page.locator("[data-reading]")).toHaveText("Mode 2 (RC default), with pedals");
   });
 
@@ -96,11 +96,15 @@ test.describe("the pedals in the editor", () => {
     const before = saved.get(SETS) ?? "";
     try {
       await page.goto("/");
-      await pedalAxis(page, "left_toe").locator("select").selectOption("thrust");
-      // The pedal rule runs on the unsaved edit, in the same Checks panel as every other.
+      // The pedal rules run on the unsaved edit, in the same Checks panel as every other:
+      // a second pedal on yaw is refused before anything is saved.
+      await pedalAxis(page, "left_toe").locator("select").selectOption("yaw");
       await expect(
-        page.locator(".checks .rule", { hasText: "pedal-rest-on-centred" }),
+        page.locator(".checks .rule", { hasText: "pedal-axis-assigned-twice" }),
       ).toBeVisible();
+      // The toes are calibrated to rest at zero, so one on thrust raises nothing.
+      await pedalAxis(page, "left_toe").locator("select").selectOption("thrust");
+      await expect(page.locator(".checks .rule", { hasText: "pedal-" })).toHaveCount(0);
 
       // There is no pedals-only button: the one Save names what it would write.
       const save = page.locator("header button.dirty");
@@ -114,12 +118,13 @@ test.describe("the pedals in the editor", () => {
       await expect(report).toContainText("Pedals in akimbo-v10");
       await expect(report).toContainText("the game's Yaw row");
       await expect(report).toContainText("inferred, not flown");
-      // The linter's verdict on the saved file, from the server: the toe on a centred axis.
-      await expect(report).toContainText("pedal-rest-on-centred");
+      // What the game is given for the toe, and no finding against it from the server.
+      await expect(report).toContainText("the game's MoveForward row");
+      await expect(report).not.toContainText("pedal-rest-on-centred");
       await expect(page.locator("header button.dirty")).toHaveCount(0);
 
       const after = readFileSync(SETS, "utf8");
-      expect(after).toContain("left_toe: {drives: thrust}");
+      expect(after).toContain("left_toe: {drives: thrust, invert: false}");
       expect(after).toContain("rudder: {drives: yaw}");
       const comments = (text: string): string[] =>
         text.split("\n").filter((line) => line.trim().startsWith("#"));

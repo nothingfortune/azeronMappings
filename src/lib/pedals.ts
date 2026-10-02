@@ -101,6 +101,15 @@ export function parsePedalsDevice(raw: unknown, path: string): PedalsDeviceData 
       }
       axis.rest_end = value.rest_end;
     }
+    if (value.calibrated_rest !== undefined) {
+      if (value.calibrated_rest !== "centre") {
+        fail(path, `axes.${id}.calibrated_rest`, "expected centre");
+      }
+      if (rest !== "end") {
+        fail(path, `axes.${id}.calibrated_rest`, "only an axis that rests at an end has one");
+      }
+      axis.calibrated_rest = value.calibrated_rest;
+    }
     const given = value.names;
     if (given !== undefined && given !== null) {
       if (!isPlainObject(given)) fail(path, `axes.${id}.names`, "expected a mapping");

@@ -1253,7 +1253,9 @@ function renderPedalAxis(
       value === ""
         ? undefined
         : current === undefined
-          ? { drives: value }
+          ? // Said outright, so the box below shows what the game will be given: its thrust
+            // row is inverted as it ships, and an axis put there in silence would run backwards.
+            { drives: value, invert: false }
           : { ...current, drives: value },
     );
   });
@@ -1268,17 +1270,15 @@ function renderPedalAxis(
     invert.addEventListener("change", () => {
       changeAxis(axis, (current) => {
         if (current === undefined) return current;
-        const next = { ...current };
-        // Unchecked leaves the game's own setting alone, as an axis with no `invert` does.
-        if (invert.checked) next.invert = true;
-        else Reflect.deleteProperty(next, "invert");
-        return next;
+        // Written either way. Removing it would leave the game's own setting in place, and
+        // an unticked box over a row the game inverts would not mean what it shows.
+        return { ...current, invert: invert.checked };
       });
     });
     line.append(
       el(
         "label",
-        { class: "inv", title: "Reverse the direction. Unchecked leaves the game's own setting." },
+        { class: "inv", title: "Reverse the direction. The game's row is set to match the box." },
         [invert, "Invert"],
       ),
     );

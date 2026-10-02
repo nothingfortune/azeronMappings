@@ -165,14 +165,27 @@ describe("pedals in a layout but no device", () => {
 });
 
 describe("the toe-brake question", () => {
+  /** The device as it is with no Windows calibration: a toe rests at a full deflection. */
+  const uncalibrated = JSON.parse(JSON.stringify(device)) as typeof device;
+  for (const spec of Object.values(uncalibrated.axes))
+    Reflect.deleteProperty(spec, "calibrated_rest");
+  const bare = { [device.device]: uncalibrated };
+
   it("warns when an axis that rests at an end is bound to a centred game axis", () => {
-    const found = run(context(layout({ right_toe: { drives: "thrust" } })));
+    const found = run(context(layout({ right_toe: { drives: "thrust" } }), bare));
     const warning = found.find((f) => f.rule === "pedal-rest-on-centred");
     expect(warning?.level).toBe("warning");
     expect(warning?.position).toBe("right_toe");
     expect(warning?.message).toMatch(/full deflection/);
     // The device says where a toe rests, as measured, and the warning says so.
     expect(warning?.message).toMatch(/-1\.0 at rest/);
+  });
+
+  it("does not warn once a calibration that re-centres the axis is recorded", () => {
+    // The owner's toes: calibrated in Windows so that rest reads as the centre.
+    expect(device.axes.right_toe?.calibrated_rest).toBe("centre");
+    const found = run(context(layout({ right_toe: { drives: "thrust" } })));
+    expect(rules(found)).not.toContain("pedal-rest-on-centred");
   });
 
   it("does not warn for the rudder, which springs back to centre", () => {
@@ -186,7 +199,10 @@ describe("the toe-brake question", () => {
     const thrust = half.axes.thrust;
     if (!thrust) throw new Error("fixture");
     thrust.centred = false;
-    const found = run({ ...context(layout({ right_toe: { drives: "thrust" } })), modes: half });
+    const found = run({
+      ...context(layout({ right_toe: { drives: "thrust" } }), bare),
+      modes: half,
+    });
     expect(rules(found)).not.toContain("pedal-rest-on-centred");
   });
 });

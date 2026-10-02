@@ -663,8 +663,14 @@ export function checkLayouts(
         }
 
         // The toe-brake question. The game reads these axes about a centre; a pedal that
-        // rests at an end sits at a full deflection until someone shows otherwise.
-        if (spec?.rest === "end" && ends !== undefined && ends.centred !== false) {
+        // rests at an end sits at a full deflection unless a calibration has been recorded
+        // that makes its rest position read as the centre.
+        if (
+          spec?.rest === "end" &&
+          spec.calibrated_rest !== "centre" &&
+          ends !== undefined &&
+          ends.centred !== false
+        ) {
           findings.push({
             level: WARNING,
             rule: "pedal-rest-on-centred",
@@ -678,7 +684,8 @@ export function checkLayouts(
                   "calibration), so with the foot off it is a full deflection one way. "
                 : "With the foot off it may read as a full deflection one way. ") +
               "Do not bind it there as if it rested at zero: invert, scale and dead_zone cannot " +
-              "re-centre it. Acknowledge this once it has been flown.",
+              "re-centre it. A Windows calibration can -- see docs/guides/analog-input.md -- and " +
+              "`calibrated_rest: centre` on the axis in the device file records that it is set.",
           });
         }
       }

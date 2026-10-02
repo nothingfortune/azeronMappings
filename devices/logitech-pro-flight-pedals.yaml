@@ -16,12 +16,21 @@
 #            `rest_end` says which, as measured: with no Windows calibration stored, a toe
 #            reads -1.0 at rest and +1.0 fully pressed.
 #
-# THE TOE-BRAKE PROBLEM, now measured rather than guessed: a toe at rest is a FULL
-# DEFLECTION on any game axis read about a centre (thrust, yaw, ...). invert, scale and
-# dead_zone cannot re-centre it. The toes are modelled here and left off every layout until
-# someone has found what the game does with a one-sided axis; `pedal-rest-on-centred` warns
-# if one is bound to a two-sided axis. Pressing a toe also wins a capture meant for any
-# other pedal, which is how the rudder came to be recorded on the wrong name once.
+# THE TOE-BRAKE PROBLEM, and what answers it. Uncalibrated, a toe at rest is a FULL
+# DEFLECTION on any game axis read about a centre (thrust, yaw, ...), and invert, scale and
+# dead_zone cannot re-centre it; `pedal-rest-on-centred` warns if such an axis is bound to a
+# two-sided game axis. A Windows calibration can re-centre it, and `calibrated_rest: centre`
+# records that one is set on the owner's machine and was seen to work: measured 2026-10-01
+# through SDL's DirectInput backend, each toe reads 0 at rest and the top of the range fully
+# pressed -- half an axis, which is what a throttle is. The calibration is in the registry,
+# not in this repo (the values are in docs/guides/analog-input.md, option D); if it is lost,
+# a toe goes back to a full deflection at rest and this line is wrong until it is put back.
+# Pressing a toe also wins a capture meant for any other pedal, which is how the rudder came
+# to be recorded on the wrong name once.
+#
+# DO NOT ASK THE PEDALS FOR THEIR STATE. A HID GET_REPORT request (HidD_GetInputReport)
+# hung them on 2026-09-30: they answered once, then sent nothing to anything until they were
+# unplugged and plugged back in. Reading the reports they send on their own is safe.
 #
 # THE GAME'S NAMES FOR THE AXES. Everspace 2 reads joysticks through SDL and registers one
 # key per axis (and one per button and hat, of which these pedals have none), named
@@ -44,12 +53,14 @@
 # Generation writes any of them into the game's file and says which it was using. An axis
 # with no entry has nothing written for it and is reported as waiting.
 #
-# WHAT IS KNOWN, from the game's log and the driver, and what is inferred from it:
+# WHAT IS KNOWN, from the game's log, the driver and a recording, and what is inferred:
 #
-#   - The rudder is the last axis in every ordering of the device's axes (DirectInput's
-#     X, Y, Rz and the raw HID order Y, X, Rz), so it is Axis2. Strong, not yet flown.
-#   - Under SDL's DirectInput ordering Axis0 is the left toe and Axis1 the right toe. The
-#     pair is certain; which toe is 0 and which is 1 is the less certain part.
+#   - Recorded 2026-10-01 through SDL 2.30.6's DirectInput backend while each pedal was
+#     moved: the axis that rests at centre and swings both ways is Axis2 (the device's Rz),
+#     Axis0 follows the device's X and Axis1 its Y. The game reads the pedals through its
+#     own, older SDL, so this is the same backend but not the game itself: not flown.
+#   - The driver labels X "Left Toe" and Y "Right Toe", and X was the toe pressed first
+#     when the left was asked for first. So Axis0 is the left toe and Axis1 the right.
 #   - The owner's own Input.ini has Yaw on Axis1. That is a toe: the game's bind screen
 #     takes whatever moves first, and a toe at the end of its travel reads as full
 #     deflection from the start. It was a mis-capture, not a fact about the rudder, and
@@ -73,16 +84,18 @@ axes:
     label: Rudder
     rest: centre
     names:
-      everspace: {name: "JS0_SaitekProFlightRudderPedals_Axis2", status: inferred, note: "the rudder is the last axis in every ordering of the device's axes, so Axis2; not flown"}
+      everspace: {name: "JS0_SaitekProFlightRudderPedals_Axis2", status: inferred, note: "recorded through SDL's DirectInput backend as the axis that centres and swings both ways; not flown"}
   left_toe:
     label: Left toe brake
     rest: end
     rest_end: min
+    calibrated_rest: centre
     names:
-      everspace: {name: "JS0_SaitekProFlightRudderPedals_Axis0", status: unconfirmed, note: "SDL's DirectInput ordering puts the left toe first; which toe is Axis0 and which Axis1 is not established"}
+      everspace: {name: "JS0_SaitekProFlightRudderPedals_Axis0", status: inferred, note: "recorded through SDL's DirectInput backend following the device's X, which the driver labels Left Toe; not flown"}
   right_toe:
     label: Right toe brake
     rest: end
     rest_end: min
+    calibrated_rest: centre
     names:
-      everspace: {name: "JS0_SaitekProFlightRudderPedals_Axis1", status: unconfirmed, note: "SDL's DirectInput ordering puts the right toe second; which toe is Axis0 and which Axis1 is not established"}
+      everspace: {name: "JS0_SaitekProFlightRudderPedals_Axis1", status: inferred, note: "recorded through SDL's DirectInput backend following the device's Y, which the driver labels Right Toe; not flown"}

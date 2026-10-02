@@ -109,12 +109,32 @@ describe("the pedals device", () => {
     );
     expect(status).toEqual({
       rudder: "inferred",
-      left_toe: "unconfirmed",
-      right_toe: "unconfirmed",
+      left_toe: "inferred",
+      right_toe: "inferred",
     });
     expect(LIVE.axes.rudder?.names?.everspace?.name).toBe(AXIS2);
     // Axis1 is a toe: the earlier belief that it was the rudder was a mis-capture.
     expect(LIVE.axes.rudder?.names?.everspace?.name).not.toBe(AXIS1);
+  });
+
+  it("records a calibration only for an axis that rests at an end", () => {
+    // The owner's toes, as calibrated and recorded.
+    expect(LIVE.axes.left_toe?.calibrated_rest).toBe("centre");
+    expect(LIVE.axes.right_toe?.calibrated_rest).toBe("centre");
+    expect(LIVE.axes.rudder?.calibrated_rest).toBeUndefined();
+    const file = (axis: Record<string, unknown>) => ({
+      device: "p",
+      kind: "pedals",
+      axes: { a: axis },
+    });
+    const toe = parsePedalsDevice(file({ rest: "end", calibrated_rest: "centre" }), "p.yaml");
+    expect(toe.axes.a?.calibrated_rest).toBe("centre");
+    expect(() =>
+      parsePedalsDevice(file({ rest: "end", calibrated_rest: "max" }), "p.yaml"),
+    ).toThrow(/calibrated_rest/);
+    expect(() =>
+      parsePedalsDevice(file({ rest: "centre", calibrated_rest: "centre" }), "p.yaml"),
+    ).toThrow(/rests at an end/);
   });
 
   it("refuses a malformed file rather than repairing it", () => {
@@ -241,7 +261,7 @@ describe("ingamePlan", () => {
     const plan = ingamePlan(NAMED, LIVE, modes, game.actions.actions, game.slug);
     expect(plan.bindings.map((b) => [b.pedalAxis, b.name, b.status])).toEqual([
       ["rudder", AXIS2, "inferred"],
-      ["right_toe", AXIS1, "unconfirmed"],
+      ["right_toe", AXIS1, "inferred"],
     ]);
   });
 });

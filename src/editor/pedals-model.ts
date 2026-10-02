@@ -59,6 +59,9 @@ export function pedalAxisLabel(axis: string, spec: PedalAxisData | undefined): s
 export function restSentence(spec: PedalAxisData | undefined): string {
   if (spec === undefined) return "";
   if (spec.rest === "centre") return "Springs back to centre.";
+  if (spec.calibrated_rest === "centre") {
+    return "Rests at the end of its travel. Calibrated in Windows: 0.0 at rest, +1.0 pressed.";
+  }
   return spec.rest_end === "min"
     ? "Rests at the end of its travel: -1.0 at rest, +1.0 pressed."
     : "Rests at the end of its travel.";
@@ -102,7 +105,7 @@ export function restsOnCentred(
   modes: StickModeSet | undefined,
   drives: string,
 ): boolean {
-  if (spec?.rest !== "end") return false;
+  if (spec?.rest !== "end" || spec.calibrated_rest === "centre") return false;
   const ends = modes?.axes[drives];
   return ends !== undefined && ends.centred !== false;
 }

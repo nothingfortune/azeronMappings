@@ -11,6 +11,7 @@ import {
   pedalAxisLabel,
   pedalsCarry,
   readSticks,
+  restSentence,
   restsOnCentred,
   statusWords,
 } from "../../../src/editor/pedals-model.js";
@@ -60,9 +61,22 @@ describe("labels", () => {
 describe("the toe-brake question", () => {
   it("is only a question for an axis that rests at an end, on a centred game axis", () => {
     const axes = need(device).axes;
-    expect(restsOnCentred(axes.left_toe, modes, "thrust")).toBe(true);
+    const toe = axes.left_toe;
+    if (!toe) throw new Error("no left toe");
+    // As the pedals are without a Windows calibration.
+    const bare = { ...toe };
+    Reflect.deleteProperty(bare, "calibrated_rest");
+    expect(restsOnCentred(bare, modes, "thrust")).toBe(true);
     expect(restsOnCentred(axes.rudder, modes, "yaw")).toBe(false);
-    expect(restsOnCentred(axes.left_toe, modes, "not-an-axis")).toBe(false);
+    expect(restsOnCentred(bare, modes, "not-an-axis")).toBe(false);
+    expect(restSentence(bare)).toContain("-1.0 at rest");
+  });
+
+  it("is answered by a calibration that makes the rest position read as the centre", () => {
+    const toe = need(device).axes.left_toe;
+    expect(toe?.calibrated_rest).toBe("centre");
+    expect(restsOnCentred(toe, modes, "thrust")).toBe(false);
+    expect(restSentence(toe)).toContain("0.0 at rest");
   });
 });
 

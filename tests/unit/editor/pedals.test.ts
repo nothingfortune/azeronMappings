@@ -13,9 +13,18 @@ import { LIVE_SET } from "../../helpers/fixtures.js";
 const PAYLOAD = buildPayload();
 const SERVED = window as unknown as { AZERON_SERVED?: boolean };
 
-function mount(set = LIVE_SET): void {
+/** The payload with the toes as they are without the Windows calibration. */
+function uncalibrated(): typeof PAYLOAD {
+  const payload = structuredClone(PAYLOAD);
+  for (const device of Object.values(payload.pedals)) {
+    for (const spec of Object.values(device.axes)) Reflect.deleteProperty(spec, "calibrated_rest");
+  }
+  return payload;
+}
+
+function mount(set = LIVE_SET, payload = PAYLOAD): void {
   document.body.innerHTML = '<div id="app"></div>';
-  start(structuredClone(PAYLOAD));
+  start(structuredClone(payload));
   const select = document.querySelectorAll<HTMLSelectElement>("header select")[1];
   if (select && select.value !== set) {
     select.value = set;
@@ -80,7 +89,7 @@ describe("the pedals panel", () => {
 
   it("says how far each game name is trusted, and never calls any of it verified", () => {
     expect(axis("rudder").querySelector(".chip")?.textContent).toBe("Inferred, not flown");
-    expect(axis("left_toe").querySelector(".chip")?.textContent).toBe("Axis not established");
+    expect(axis("left_toe").querySelector(".chip")?.textContent).toBe("Inferred, not flown");
     expect(document.querySelector(".pedals")?.textContent ?? "").not.toMatch(/verified/i);
   });
 
@@ -210,7 +219,30 @@ describe("the checks", () => {
     mount();
   });
 
+  it("raise nothing for a calibrated toe on thrust, and say outright that it is not inverted", () => {
+    choose("left_toe", "thrust");
+    const rules = [...document.querySelectorAll(".checks .rule")].map((node) => node.textContent);
+    expect(rules).not.toContain("pedal-rest-on-centred");
+    expect(document.querySelector(".pedal-warn")).toBeNull();
+    // The game's thrust row is inverted as it ships: the box has to mean what it shows.
+    const invert = axis("left_toe").querySelector<HTMLInputElement>('input[data-field="invert"]');
+    expect(invert?.checked).toBe(false);
+    if (!invert) throw new Error("no invert");
+    invert.checked = true;
+    invert.dispatchEvent(new Event("change"));
+    const again = axis("left_toe").querySelector<HTMLInputElement>('input[data-field="invert"]');
+    if (!again) throw new Error("no invert");
+    again.checked = false;
+    again.dispatchEvent(new Event("change"));
+    // Unticked is written down rather than removed; what is sent is in the saving test.
+    expect(
+      axis("left_toe").querySelector<HTMLInputElement>('input[data-field="invert"]')?.checked,
+    ).toBe(false);
+  });
+
   it("run the pedal rules on the pedals as edited, before anything is saved", () => {
+    // Without the calibration a toe rests at a full deflection, and the rule says so.
+    mount(LIVE_SET, uncalibrated());
     expect(document.querySelector(".pedal-warn")).toBeNull();
     choose("left_toe", "thrust");
     const rules = [...document.querySelectorAll(".checks .rule")].map((node) => node.textContent);
@@ -296,8 +328,8 @@ describe("saving the pedals with everything else", () => {
     expect(sent?.path).toBe("/api/save");
     expect(sent?.body.path).toBe("games/SpaceSims/everspace/sets.yaml");
     expect(sent?.body.content).toContain("rudder: {drives: yaw}");
-    expect(sent?.body.content).toContain("left_toe: {drives: thrust}");
-    expect(sent?.body.content).toContain("THE TOES ARE DELIBERATELY NOT ASSIGNED");
+    expect(sent?.body.content).toContain("left_toe: {drives: thrust, invert: false}");
+    expect(sent?.body.content).toContain("THE TOES ARE NOT ASSIGNED YET");
     // Pedals only: no keypad or in-game call rode along.
     expect(calls.length).toBe(1);
 

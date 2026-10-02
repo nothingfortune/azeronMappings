@@ -35,12 +35,11 @@ sets:
         # stick can give, and it is what takes yaw off the left stick.
         rudder: {drives: yaw}
 
-        # THE TOES ARE DELIBERATELY NOT ASSIGNED. A toe brake rests at the end of its
-        # travel: measured on these pedals with no Windows calibration, -1.0 at rest and
-        # +1.0 fully pressed. Bound to any game axis the game reads about a centre -- thrust,
-        # yaw, anything in stick-modes.yaml -- that is a full deflection with the foot off,
-        # and invert, scale and dead_zone cannot re-centre it. The toes are modelled in the
-        # device file and wait here until someone has found what the game does with a
-        # one-sided axis; `pedal-rest-on-centred` warns the moment one is bound to a
-        # two-sided axis. What to try is for that test to say -- see playtests.md, 'rudder
-        # pedals'.
+        # THE TOES ARE NOT ASSIGNED YET. A toe brake rests at the end of its travel, and
+        # uncalibrated that is a full deflection on any game axis read about a centre. Both
+        # toes now carry a Windows calibration that makes rest read zero and a press full
+        # (the device file records it; the values are in docs/guides/analog-input.md), so
+        # one can drive a game axis as half of it: the right toe on thrust is the throttle
+        # this was bought for. It waits to be flown -- see playtests.md, 2026-10-01. The
+        # game's thrust row is inverted as it ships, so a toe there needs `invert: false`,
+        # which the editor's Pedals panel writes.

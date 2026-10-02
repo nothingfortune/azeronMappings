@@ -45,6 +45,14 @@ export interface PedalAxisData {
    */
   rest_end?: "min" | "max";
   /**
+   * For an axis that rests at an end: `centre` when a Windows calibration has been set and
+   * seen to make the rest position read 0.0 and a full press +1.0 -- half an axis, which is
+   * what a throttle is. The calibration lives in the machine's registry, not in the repo;
+   * this records that it is there, so the axis is no longer treated as a full deflection
+   * with the foot off.
+   */
+  calibrated_rest?: "centre";
+  /**
    * The name the game gives this axis, per game slug -- `JS<index>_<Device>_Axis<n>` in
    * Everspace 2, with the status that says how far to trust it. A name is never invented:
    * it is read from a file the game wrote, or reasoned from evidence and marked so.
