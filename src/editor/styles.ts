@@ -335,6 +335,10 @@ body.dragging-key .palette.drop-over { outline: none; }
   width: 100%; break-inside: avoid; margin-bottom: 3px;
 }
 .action:hover { border-color: var(--accent); }
+/* Already on a key somewhere in this layout: stepped back, so what is still to place stands
+   out. It can still be picked up -- the same action may sit on more than one key. */
+.action.bound { opacity: .5; }
+.action.bound:hover { opacity: 1; }
 .action .dot { width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--muted); }
 .action .dot.combat { background: var(--combat); }
 .action .dot.movement { background: var(--movement); }

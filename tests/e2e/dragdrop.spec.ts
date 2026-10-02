@@ -26,6 +26,20 @@ test.describe("drag and drop on the Edit tab", () => {
     await expect(page.locator("header button.dirty")).toHaveAttribute("title", /Left unit/);
   });
 
+  test("an action on a key is greyed in the list, and one that is not stands out", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const opacity = (label: string): Promise<number> =>
+      action(page, label).evaluate((node) => Number(getComputedStyle(node).opacity));
+    expect(await opacity("Boost")).toBeLessThan(0.7);
+    expect(await opacity("Headlight")).toBe(1);
+    await action(page, "Headlight").dragTo(key(page, 0, "pinky_5"));
+    // Move the pointer off it: hovering brings a greyed action back to full strength.
+    await page.mouse.move(5, 5);
+    await expect.poll(() => opacity("Headlight")).toBeLessThan(0.7);
+  });
+
   test("a key dragged onto another swaps with it, and dragged onto the list is cleared", async ({
     page,
   }) => {

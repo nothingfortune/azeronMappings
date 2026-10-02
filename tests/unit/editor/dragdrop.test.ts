@@ -73,6 +73,16 @@ describe("dragging an action", () => {
     expect(document.querySelector(".palette-target")?.textContent).toBe("Put on Left Pinky 5:");
   });
 
+  it("can be dropped on a second key once it is on one: greyed in the list, not locked", () => {
+    drag(action("Headlight"), () => key(0, "pinky_5"));
+    // On a key now, so it steps back in the list, and it can still be picked up.
+    expect(action("Headlight").classList.contains("bound")).toBe(true);
+    expect(action("Headlight").getAttribute("draggable")).toBe("true");
+    drag(action("Headlight"), () => key(1, "ring_1"));
+    expect(name(key(0, "pinky_5"))).toBe("Headlight");
+    expect(name(key(1, "ring_1"))).toBe("Headlight");
+  });
+
   it("replaces what a key held, as clicking the key and then the action does", () => {
     drag(action("Headlight"), () => key(0, "pinky_1"));
     expect(name(key(0, "pinky_1"))).toBe("Headlight");
