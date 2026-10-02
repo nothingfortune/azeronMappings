@@ -184,27 +184,50 @@ at one end and are pressed towards the other.
   `DeadZone`, `Sensitivity`, `Exponent`) cannot re-centre it: none of them is an offset.
   The toes are not bound to anything.
 
-**A Windows calibration that makes a toe rest at zero — written 2026-10-01, not yet seen to
-work.** The game reads the pedals through SDL's DirectInput backend, and DirectInput applies
-the calibration `joy.cpl` stores: a minimum, a centre and a maximum per axis, with everything
-from the centre up mapped onto the top half of the range. A toe reports 0 at rest and 127
-fully pressed, so a calibration of minimum 0, centre 0, maximum 127 should read 0.0 at rest
-and +1.0 pressed: half an axis, which is what a throttle is. The Logitech driver replaces
-the page that has the Calibrate button, so the two values were written directly:
+**A Windows calibration makes a toe rest at zero — set and measured 2026-10-01.** The game
+reads the pedals through SDL's DirectInput backend, and DirectInput applies the calibration
+`joy.cpl` stores: a minimum, a centre and a maximum per axis, with everything from the
+centre up mapped onto the top half of the range. A toe reports 0 at rest and 127 fully
+pressed, so a centre at 0 and a maximum at 127 make it read 0.0 at rest and +1.0 pressed:
+half an axis, which is what a throttle is. The Logitech driver replaces the page that has
+the Calibrate button, so the values are written directly:
 
 ```
 HKCU\System\CurrentControlSet\Control\MediaProperties\PrivateProperties\DirectInput\
-  VID_06A3&PID_0763\Calibration\0\Type\Axes\0   Calibration = 00000000 00000000 7f000000
-  VID_06A3&PID_0763\Calibration\0\Type\Axes\1   Calibration = 00000000 00000000 7f000000
+  VID_06A3&PID_0763\Calibration\0\Type\Axes\0   Calibration = 81ffffff 00000000 7f000000
+  VID_06A3&PID_0763\Calibration\0\Type\Axes\1   Calibration = 81ffffff 00000000 7f000000
 ```
 
-Axis 0 is X, the left toe, and axis 1 is Y, the right; the rudder (axis 5) is left alone.
-Deleting the two `Axes` keys puts the toes back as they were. What is not known: whether
-DirectInput accepts a centre equal to the minimum, and so whether the game sees a toe at
-rest as zero. A device is read with the calibration it had when the program opened it, so
-the game has to be started after the values are written. The check is to press each toe
-with something reading the pedals through DirectInput; until that has been seen, the toes
-stay off every layout.
+Three little-endian numbers: minimum −127, centre 0, maximum 127. Axis 0 is X, the left
+toe, and axis 1 is Y, the right; the rudder (axis 5) is left alone. Deleting the two `Axes`
+keys puts the toes back as they were.
+
+- **The minimum has to be below the rest position, not equal to it.** The first attempt
+  was minimum 0, centre 0, maximum 127. A pressed toe then read correctly, but at rest it
+  read −1.0 — a value at the minimum is the minimum, whatever the centre — and jumped to
+  the positive half at the first touch. With the minimum at −127, which the toe never
+  reaches, rest is the centre.
+- **Measured** by reading the pedals through SDL 2.30.6's DirectInput backend while each
+  toe was pressed: both rest at 0, rise in proportion and reach the top of the range fully
+  pressed. That is the same backend the game uses, in a newer SDL; it is not the game.
+  `calibrated_rest: centre` on each toe in the device file records it, and is what stops
+  `pedal-rest-on-centred` from warning.
+- A program reads a device with the calibration it had when it opened it, so the game has
+  to be started after the values are written.
+- The calibration belongs to the machine, not the repo. A driver reinstall, another
+  Windows user or another computer has none, and a toe is then a full deflection at rest
+  again. The registry key is filed under the device's instance (`Calibration\0`); whether a
+  different USB port counts as another instance has not been checked.
+
+**The game's thrust row is inverted as it ships.** `MoveForward` in the Joystick group has
+`bInvert=True`, the shape of a throttle lever pushed away from you. A toe put on thrust
+needs `invert: false`, or pressing it reverses. The editor writes `invert` outright for an
+axis assigned in the Pedals panel, so its box shows what the game is given.
+
+**Do not ask the pedals for their state.** A HID `GET_REPORT` request
+(`HidD_GetInputReport`), sent as a diagnostic on 2026-09-30, hung them: they answered once,
+then sent nothing to anything — the game and `joy.cpl` included — until they were unplugged
+and plugged back in. Listening to the reports they send on their own is safe.
 
 **This has a home in the repo.** The pedals are a device (`devices/logitech-pro-flight-
 pedals.yaml`), what a layout does with them is in the game's `sets.yaml` beside its profiles
@@ -220,10 +243,11 @@ log (`LogJoystickPlugin_*.log`) registers exactly three inputs for them, zero-ba
 `JS0_SaitekProFlightRudderPedals_Axis0`, `_Axis1`, `_Axis2`. Those three names are
 confirmed. Which is which is not:
 
-- The rudder is the last axis in every ordering (DirectInput's X, Y, Rz and the raw HID
-  order Y, X, Rz), so it is **`Axis2`** — strong, but inferred, and not flown.
-- Under SDL's DirectInput ordering `Axis0` is the left toe and `Axis1` the right toe. Which
-  toe is which is the less certain part; they are recorded as unconfirmed.
+- Recorded 2026-10-01 through SDL's DirectInput backend while each pedal was moved: the
+  axis that rests at centre and swings both ways is **`Axis2`**, so that is the rudder.
+  Measured in the backend the game uses, and not flown.
+- `Axis0` follows the device's X and `Axis1` its Y. The driver labels X "Left Toe" and Y
+  "Right Toe", and X was the toe pressed first when the left was asked for first.
 - The owner's own `Input.ini` had Yaw on `Axis1`. That is a toe: the game's bind screen
   takes whatever moves first, and a toe reads full deflection from the start, so it won a
   capture meant for the rudder. It was a mis-capture, not a fact about the rudder, and it
@@ -237,10 +261,9 @@ not yet flown is never mistaken for one that is.
 **What to do next.** Apply, then fly the rudder: does the ship yaw in proportion to the
 pedal, and stop when it centres? If it yaws on its own or the wrong way, the inference is
 wrong and `azeron ingame --capture-pedals` will say where the file and the device data
-disagree. Nothing about the toes can be settled until someone finds what the game does with
-a one-sided axis — a half-range option in its controls screen, say (none is known to
-exist). `pedal-rest-on-centred` warns on any
-rest-at-end axis assigned to a centred game axis, so binding one is a visible decision.
+disagree. Then a toe: put the right toe on thrust in the Pedals panel, write the game's
+bindings, and see whether thrust follows the pedal from nothing to full and stops when the
+foot comes off. If the ship thrusts on its own, the calibration is not reaching the game.
 
 The Azeron exposes a fixed set of USB HID interfaces, with configuration over hidraw on
 interface 4 in a proprietary protocol; the profile JSON this repo compiles chooses what

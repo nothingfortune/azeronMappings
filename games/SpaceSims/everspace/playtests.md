@@ -2,26 +2,30 @@
 
 What each layout actually felt like. Dated, newest first.
 
-## 2026-10-01 — a calibration for the toe brakes, written and not yet checked
+## 2026-10-01 — the toe brakes calibrated, and which axis is which
 
-The toes read -1.0 at rest, which no setting in the game can re-centre. A Windows
-calibration can: minimum and centre both at the rest position, maximum at full press, so
-rest reads 0.0 and a full press +1.0. It was written to the registry for the two toe axes
-(the values, and how to remove them, are in `docs/guides/analog-input.md`, option D). The
-game was closed at the time.
+Not flown: measured at the desk, by reading the pedals through the same DirectInput route
+the game uses while each one was pressed.
 
-**Not yet seen to work.** Two attempts to read the pedals while they were pressed, through
-the same library the game uses, recorded no movement at all: nobody was at the pedals.
-Until a press has been read, the toes stay off the layout.
+- **The toes now rest at zero.** Uncalibrated they read -1.0 at rest, which no setting in
+  the game can re-centre. With a Windows calibration (minimum below the rest position,
+  centre at it, maximum at full press) both read 0 at rest, rise in proportion, and reach
+  the top of the range fully pressed. The first attempt, with the minimum equal to the rest
+  position, read -1.0 at rest and jumped at the first touch. The values are in
+  `docs/guides/analog-input.md`, option D.
+- **Which is which.** The rudder is `Axis2`: the one that rests at centre and swings both
+  ways. `Axis0` is the left toe and `Axis1` the right.
+- **The pedals had been dead since the day before.** A diagnostic that asked them for their
+  state hung them, and nothing saw them move until they were unplugged and plugged back
+  in. Any flying done in between was without pedals.
+- The arrows stay on Pitch and Yaw. The game had them unbound, and with them unbound the
+  right thumb pad's pitch keys do nothing.
 
-**To check it:** read the pedals through DirectInput with the feet off, then with each toe
-pressed in turn, left first. A toe that rests at 0 and goes to the top of the range when
-pressed is calibrated; one that rests at the bottom is not, and the next thing to try is a
-minimum below the rest position rather than equal to it. The order of the presses also
-settles which of `Axis0` and `Axis1` is which toe.
-
-The same day: the arrows stay on Pitch and Yaw. The game had them unbound, and with them
-unbound the right thumb pad's pitch keys do nothing.
+**To fly:** write the game's bindings (game closed), which moves Yaw from the toe it was
+mis-bound to onto the rudder. Then, in the Pedals panel, put the right toe on thrust and
+write the bindings again. Does thrust follow the toe from nothing to full, and stop with
+the foot off? Does the ship creep with both feet off (the calibration not reaching the
+game), or reverse when the toe is pressed (the invert is the wrong way round)?
 
 ## 2026-09-30 — rudder pedals
 

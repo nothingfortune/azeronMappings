@@ -374,9 +374,10 @@ keyboard side's:
   negative** (`JS-1_T16000M_Button0` is a stick that is not plugged in), so compare the
   device part, never the index; the device is the product string with its spaces removed
   and axes are numbered from zero. The game's own log lists the three inputs it registers
-  for the pedals — those names are confirmed (`inputs`) — but **which is which is not**:
-  the rudder is `Axis2` by enumeration order (`inferred`), and the toes are `Axis0` and
-  `Axis1` in an order that is less certain still (`unconfirmed`). Generation writes any
+  for the pedals — those names are confirmed (`inputs`). Which is which was recorded
+  through SDL's DirectInput backend while each pedal was moved: the rudder is `Axis2`, the
+  left toe `Axis0` and the right `Axis1`. That is the backend the game uses and not the game,
+  so all three stay `inferred` until flown. Generation writes any
   status and says which it used; a pedal axis with no name writes nothing and is reported
   as waiting; `--require-pedals` turns that into a refusal. The rest of the layout generates
   regardless.
@@ -394,13 +395,22 @@ keyboard side's:
   written by hand (`--candidate axis=NAME`, or the file). It is a `candidate`, generated
   like any other name and flagged by status wherever it is reported. The repo never
   chooses one.
-- **The toe brakes cannot be bound to a centred game axis as they are.** Measured, with
-  no Windows calibration stored: a toe reads -1.0 at rest and +1.0 fully pressed, so on any
-  game axis read about a centre (all six flight axes) it is a **full deflection with the
-  foot off**, and `invert`, `scale`, `dead_zone`, `sensitivity` and `exponent` — the
-  fields the game's row offers — cannot re-centre it. The toes are modelled and left off
-  every layout. `pedal-rest-on-centred` warns on any rest-at-end axis assigned to a centred
-  game axis. See `docs/guides/analog-input.md`.
+- **A toe brake rests at the end of its travel, and a Windows calibration is what makes it
+  usable.** Uncalibrated, a toe reads -1.0 at rest and +1.0 fully pressed, so on any game
+  axis read about a centre (all six flight axes) it is a **full deflection with the foot
+  off**, and `invert`, `scale`, `dead_zone`, `sensitivity` and `exponent` — the fields the
+  game's row offers — cannot re-centre it. `pedal-rest-on-centred` warns on that. A
+  DirectInput calibration with the minimum _below_ the rest position, the centre at it and
+  the maximum at full press makes rest read 0.0 and a press +1.0 (measured 2026-10-01; a
+  minimum _equal_ to the rest position reads -1.0 at rest). `calibrated_rest: centre` on
+  the axis in the device file records that it is set and was seen to work, and stops the
+  warning. The calibration lives in the machine's registry, not the repo; the values are
+  in `docs/guides/analog-input.md`.
+- The game's `MoveForward` Joystick row ships with `bInvert=True`. The editor writes
+  `invert` outright for an axis assigned in the Pedals panel, so its box shows what the
+  game is given; an assignment with no `invert` leaves the row as the game has it.
+- **Never send the pedals a HID `GET_REPORT`** (`HidD_GetInputReport`). It hung them until
+  they were replugged. Listening to the reports they send is safe.
 
 ## Detecting the units
 

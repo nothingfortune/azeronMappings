@@ -89,6 +89,15 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 - The In-game and Setup tabs say what is missing when a game's own key settings are not
   connected, and withhold the buttons that could not work.
 
+- **The toe brakes can drive a game axis.** A Windows calibration makes a toe read zero at
+  rest and full when pressed, and `calibrated_rest: centre` on the axis in the pedals'
+  device file records that it is set, which stops `pedal-rest-on-centred` from warning.
+  Both toes are calibrated on the owner's machine and recorded; neither is on a layout yet.
+  An axis assigned in the Pedals panel now has `invert` written outright, because the
+  game's thrust row is inverted as it ships and an unticked box over it would not mean
+  what it shows. Which pedal is which game axis was recorded rather than reasoned: the
+  rudder is `Axis2`, the left toe `Axis0`, the right `Axis1`; none is flown.
+
 ### Layouts
 
 - **akimbo v10** now has pedals: the rudder on yaw, and its sticks are Mode 2 _with pedals_
