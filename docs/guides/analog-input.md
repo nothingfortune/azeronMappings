@@ -261,9 +261,10 @@ not yet flown is never mistaken for one that is.
 **What to do next.** Apply, then fly the rudder: does the ship yaw in proportion to the
 pedal, and stop when it centres? If it yaws on its own or the wrong way, the inference is
 wrong and `azeron ingame --capture-pedals` will say where the file and the device data
-disagree. Then a toe: put the right toe on thrust in the Pedals panel, write the game's
-bindings, and see whether thrust follows the pedal from nothing to full and stops when the
-foot comes off. If the ship thrusts on its own, the calibration is not reaching the game.
+disagree. Then the right toe, which `akimbo-v10` has on thrust: does thrust follow the pedal
+from nothing to full, and stop when the foot comes off? If the ship thrusts on its own, the
+calibration is not reaching the game; if pressing the toe reverses, the invert is the wrong
+way round.
 
 The Azeron exposes a fixed set of USB HID interfaces, with configuration over hidraw on
 interface 4 in a proprietary protocol; the profile JSON this repo compiles chooses what

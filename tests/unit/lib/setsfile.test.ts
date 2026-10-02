@@ -55,7 +55,11 @@ describe("patchSetPedals", () => {
   it("adds an axis and keeps every comment in the real file", () => {
     const next: SetPedals = {
       device: "logitech-pro-flight-pedals",
-      assign: { rudder: { drives: "yaw" }, left_toe: { drives: "thrust", invert: true } },
+      assign: {
+        rudder: { drives: "yaw" },
+        right_toe: { drives: "thrust", invert: false },
+        left_toe: { drives: "vertical", invert: true },
+      },
     };
     const patched = patchSetPedals(REAL, "akimbo-v10", next);
     expect(read(patched)["akimbo-v10"]?.pedals).toEqual(next);

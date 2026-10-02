@@ -41,16 +41,20 @@ function scratch(text: string): string {
 }
 
 describe("the live layout's pedals", () => {
-  it("are the rudder on yaw, resolved to the game's row, and no toe on anything", () => {
+  it("are the rudder on yaw and the right toe on thrust, resolved to the game's rows", () => {
     const pedals = pedalsFor(game);
     expect(pedals?.set).toBe("akimbo-v10");
-    expect(pedals?.axes.map((axis) => [axis.pedalAxis, axis.row])).toEqual([["rudder", "Yaw"]]);
+    expect(pedals?.axes.map((axis) => [axis.pedalAxis, axis.row])).toEqual([
+      ["rudder", "Yaw"],
+      ["right_toe", "MoveForward"],
+    ]);
   });
 
-  it("report the rudder's name as inferred, which is not flown", () => {
+  it("report each name as inferred, which is not flown", () => {
     const report = ingameReport(game, COMMITTED);
     expect(report.pedals?.axes.map((axis) => [axis.pedalAxis, axis.name, axis.status])).toEqual([
       ["rudder", AXIS2, "inferred"],
+      ["right_toe", AXIS1, "inferred"],
     ]);
   });
 
@@ -69,7 +73,7 @@ describe("applyIngame with pedals", () => {
     expect(result.written).toEqual([]);
   });
 
-  it("writes the rudder into the game's file from one where it is not yet bound, and says it is inferred", () => {
+  it("writes the pedals into the game's file from one where they are not yet bound, and says they are inferred", () => {
     const result = applyIngame(game, { write: false, override: scratch(withFlightStick()) });
     expect(
       result.pedals?.changes.map((change) => [
@@ -78,12 +82,17 @@ describe("applyIngame with pedals", () => {
         change.to,
         change.status,
       ]),
-    ).toEqual([["rudder", "Yaw", AXIS2, "inferred"]]);
+    ).toEqual([
+      ["right_toe", "MoveForward", AXIS1, "inferred"],
+      ["rudder", "Yaw", AXIS2, "inferred"],
+    ]);
   });
 
   it("moves the owner's mis-bound Yaw, a toe brake, onto the rudder", () => {
     const result = applyIngame(game, { write: false, override: scratch(withMisboundYaw()) });
+    // The toe goes to thrust, where the layout has it, and the rudder takes its place on Yaw.
     expect(result.pedals?.changes).toEqual([
+      expect.objectContaining({ row: "MoveForward", field: "Key1", from: "None", to: AXIS1 }),
       expect.objectContaining({ row: "Yaw", field: "Key1", from: AXIS1, to: AXIS2 }),
     ]);
   });
@@ -124,7 +133,7 @@ describe("capturePedalsFrom", () => {
     const done = capturePedalsFrom(game, { write: false, override: scratch(stickAxis) });
     expect(done.result.recorded).toEqual([]);
     expect(done.result.otherDevices).toEqual(["T16000M"]);
-    expect(done.result.unproven.map((entry) => entry.pedalAxis)).toEqual(["rudder"]);
+    expect(done.result.unproven.map((entry) => entry.pedalAxis)).toEqual(["rudder", "right_toe"]);
   });
 
   it("refuses a set with no pedals", () => {

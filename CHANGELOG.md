@@ -92,7 +92,7 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 - **The toe brakes can drive a game axis.** A Windows calibration makes a toe read zero at
   rest and full when pressed, and `calibrated_rest: centre` on the axis in the pedals'
   device file records that it is set, which stops `pedal-rest-on-centred` from warning.
-  Both toes are calibrated on the owner's machine and recorded; neither is on a layout yet.
+  Both toes are calibrated on the owner's machine and recorded.
   An axis assigned in the Pedals panel now has `invert` written outright, because the
   game's thrust row is inverted as it ships and an unticked box over it would not mean
   what it shows. Which pedal is which game axis was recorded rather than reasoned: the
@@ -108,10 +108,15 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Layouts
 
+- Actions already on a key somewhere in the layout are greyed in the list on the Edit tab,
+  so what is still to place stands out. They can still be dragged: one action may sit on
+  more than one key.
+
 - **akimbo v10** now has pedals: the rudder on yaw, and its sticks are Mode 2 _with pedals_
-  -- roll, not yaw, on the left stick, since the pedals carry the turn. The toe brakes are
-  bound to nothing: they read a full deflection at rest on any centred game axis (see
-  `playtests.md`). The rudder's name is inferred, not flown. Not yet flown.
+  -- roll, not yaw, on the left stick, since the pedals carry the turn. The right toe is on
+  thrust, as an analog throttle, now that a calibration makes it rest at zero; the stick's
+  thrust keys stay for full thrust and reverse. The left toe is on nothing. The names are
+  inferred, not flown. Not yet flown.
 - **akimbo v10** is the live pair: stick mode 2 with yaw on the left stick (now roll, with
   the pedals; see above), pitch and roll
   on the right thumb pad, weapons and targeting on the left hand, every label the

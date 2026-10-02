@@ -29,8 +29,8 @@ describe("the editor payload", () => {
     const assign = everspace?.sets.sets["akimbo-v10"]?.pedals?.assign;
     expect(sets.has("akimbo-v10")).toBe(true);
     expect(assign?.rudder?.drives).toBe("yaw");
-    // The toes rest at a full deflection and are bound to nothing.
-    expect(Object.keys(assign ?? {})).toEqual(["rudder"]);
+    // The right toe is the throttle; the left toe is bound to nothing.
+    expect(Object.keys(assign ?? {})).toEqual(["rudder", "right_toe"]);
     expect(everspace?.sets.sets["akimbo-v10"]?.pedals?.device).toBe("logitech-pro-flight-pedals");
   });
 

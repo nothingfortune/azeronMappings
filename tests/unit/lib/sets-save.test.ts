@@ -17,7 +17,7 @@ describe("the payload's sets.yaml", () => {
   it("is the file as written, comments included, for the page to patch", () => {
     const game = buildPayload().games.find((entry) => entry.slug === "everspace");
     expect(game?.setsText).toBe(readFileSync(repoPath(SETS), "utf8"));
-    expect(game?.setsText).toContain("THE TOES ARE NOT ASSIGNED YET");
+    expect(game?.setsText).toContain("THE RIGHT TOE IS THE THROTTLE");
   });
 
   it("is empty for a game that has none", () => {

@@ -219,8 +219,8 @@ describe("the checks", () => {
     mount();
   });
 
-  it("raise nothing for a calibrated toe on thrust, and say outright that it is not inverted", () => {
-    choose("left_toe", "thrust");
+  it("raise nothing for a calibrated toe on a game axis, and say outright that it is not inverted", () => {
+    choose("left_toe", "vertical");
     const rules = [...document.querySelectorAll(".checks .rule")].map((node) => node.textContent);
     expect(rules).not.toContain("pedal-rest-on-centred");
     expect(document.querySelector(".pedal-warn")).toBeNull();
@@ -243,14 +243,14 @@ describe("the checks", () => {
   it("run the pedal rules on the pedals as edited, before anything is saved", () => {
     // Without the calibration a toe rests at a full deflection, and the rule says so.
     mount(LIVE_SET, uncalibrated());
-    expect(document.querySelector(".pedal-warn")).toBeNull();
-    choose("left_toe", "thrust");
+    expect(axis("left_toe").querySelector(".pedal-warn")).toBeNull();
+    choose("left_toe", "vertical");
     const rules = [...document.querySelectorAll(".checks .rule")].map((node) => node.textContent);
     expect(rules).toContain("pedal-rest-on-centred");
-    const finding = [...document.querySelectorAll(".checks .finding")].find((node) =>
-      node.textContent.includes("pedal-rest-on-centred"),
-    );
-    expect(finding?.querySelector("b")?.textContent).toBe("Pedals: Left toe");
+    const named = [...document.querySelectorAll(".checks .finding")]
+      .filter((node) => node.textContent.includes("pedal-rest-on-centred"))
+      .map((node) => node.querySelector("b")?.textContent);
+    expect(named).toContain("Pedals: Left toe");
     expect(axis("left_toe").querySelector(".pedal-warn")?.textContent).toContain("full deflection");
     expect(document.querySelector("header .pill.lint")?.textContent).toContain("to look at");
   });
@@ -329,7 +329,7 @@ describe("saving the pedals with everything else", () => {
     expect(sent?.body.path).toBe("games/SpaceSims/everspace/sets.yaml");
     expect(sent?.body.content).toContain("rudder: {drives: yaw}");
     expect(sent?.body.content).toContain("left_toe: {drives: thrust, invert: false}");
-    expect(sent?.body.content).toContain("THE TOES ARE NOT ASSIGNED YET");
+    expect(sent?.body.content).toContain("THE RIGHT TOE IS THE THROTTLE");
     // Pedals only: no keypad or in-game call rode along.
     expect(calls.length).toBe(1);
 

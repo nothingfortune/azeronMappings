@@ -197,14 +197,17 @@ describe("a layout's pedals", () => {
     expect(gameRowFor("nonsense", modes, game.actions.actions)).toBeNull();
   });
 
-  it("put the rudder on yaw and no toe on anything, which rest at a full deflection", () => {
-    expect(Object.keys(liveLayout.assign)).toEqual(["rudder"]);
+  it("put the rudder on yaw and the right toe on thrust, and leave the left toe alone", () => {
+    expect(Object.keys(liveLayout.assign)).toEqual(["rudder", "right_toe"]);
     expect(liveLayout.assign.rudder?.drives).toBe("yaw");
+    // The throttle: the game's thrust row is inverted as it ships, so this is said outright.
+    expect(liveLayout.assign.right_toe).toEqual({ drives: "thrust", invert: false });
   });
 
-  it("carry the rudder's name with the status that says it is inferred, not flown", () => {
+  it("carry each name with the status that says it is inferred, not flown", () => {
     expect(LIVE_AXES.map((axis) => [axis.pedalAxis, axis.name, axis.status])).toEqual([
       ["rudder", AXIS2, "inferred"],
+      ["right_toe", AXIS1, "inferred"],
     ]);
   });
 
@@ -380,7 +383,8 @@ describe("capturePedals", () => {
       ]);
       expect(result.recorded).toEqual([]);
       expect(result.conflicts).toEqual([]);
-      expect(result.unproven).toEqual([]);
+      // The toe the layout puts on thrust is not bound in this file, so nothing vouches for it.
+      expect(result.unproven.map((entry) => entry.pedalAxis)).toEqual(["right_toe"]);
       expect(result.text).toBeNull();
     });
 
@@ -389,13 +393,15 @@ describe("capturePedals", () => {
       expect(result.conflicts.map((entry) => [entry.pedalAxis, entry.name, entry.row])).toEqual([
         ["right_toe", AXIS1, "Yaw"],
       ]);
-      expect(result.conflicts[0]?.reason).toMatch(/does not drive/);
+      expect(result.conflicts[0]?.reason).toMatch(/drives on 'MoveForward'.*has it on 'Yaw'/);
       expect(result.known).toEqual([]);
       expect(result.recorded).toEqual([]);
       expect(result.text).toBeNull();
-      // And the rudder, which the layout drives on Yaw, was not seen anywhere.
+      // The rudder, which the layout drives on Yaw, was not seen anywhere, and the toe was
+      // not seen on the thrust row the layout puts it on.
       expect(result.unproven.map((entry) => [entry.pedalAxis, entry.status])).toEqual([
         ["rudder", "inferred"],
+        ["right_toe", "inferred"],
       ]);
     });
 

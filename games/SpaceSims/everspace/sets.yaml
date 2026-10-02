@@ -35,11 +35,13 @@ sets:
         # stick can give, and it is what takes yaw off the left stick.
         rudder: {drives: yaw}
 
-        # THE TOES ARE NOT ASSIGNED YET. A toe brake rests at the end of its travel, and
-        # uncalibrated that is a full deflection on any game axis read about a centre. Both
-        # toes now carry a Windows calibration that makes rest read zero and a press full
-        # (the device file records it; the values are in docs/guides/analog-input.md), so
-        # one can drive a game axis as half of it: the right toe on thrust is the throttle
-        # this was bought for. It waits to be flown -- see playtests.md, 2026-10-01. The
-        # game's thrust row is inverted as it ships, so a toe there needs `invert: false`,
-        # which the editor's Pedals panel writes.
+        # THE RIGHT TOE IS THE THROTTLE: forward thrust in proportion to the pedal, from
+        # nothing with the foot off to full with it down. A toe brake rests at the end of
+        # its travel, which uncalibrated is a full deflection on a game axis read about a
+        # centre; both toes carry a Windows calibration that makes rest read zero and a
+        # press full (the device file records it; the values are in
+        # docs/guides/analog-input.md). The game's thrust row is inverted as it ships, so
+        # `invert: false` is said outright. Not flown -- see playtests.md, 2026-10-01. The
+        # stick's thrust keys stay: they are full thrust and the only reverse. The left toe
+        # is not assigned.
+        right_toe: {drives: thrust, invert: false}

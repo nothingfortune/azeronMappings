@@ -21,11 +21,15 @@ the game uses while each one was pressed.
 - The arrows stay on Pitch and Yaw. The game had them unbound, and with them unbound the
   right thumb pad's pitch keys do nothing.
 
-**To fly:** write the game's bindings (game closed), which moves Yaw from the toe it was
-mis-bound to onto the rudder. Then, in the Pedals panel, put the right toe on thrust and
-write the bindings again. Does thrust follow the toe from nothing to full, and stop with
-the foot off? Does the ship creep with both feet off (the calibration not reaching the
-game), or reverse when the toe is pressed (the invert is the wrong way round)?
+**The right toe is on thrust** in `akimbo-v10`, as the throttle: `invert: false`, because
+the game's thrust row is inverted as it ships. The stick's thrust keys stay, for full
+thrust and for reverse. The left toe is on nothing.
+
+**To fly:** update the game's keys (game closed). The first update moved Yaw from the toe
+it was mis-bound to onto the rudder; the next puts the right toe on the thrust row. Does
+thrust follow the toe from nothing to full, and stop with the foot off? Does the ship
+creep with both feet off (the calibration not reaching the game), or reverse when the toe
+is pressed (the invert is the wrong way round)?
 
 ## 2026-09-30 — rudder pedals
 
