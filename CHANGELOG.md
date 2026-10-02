@@ -115,6 +115,20 @@ Every profile change, and why. `playtests.md` records what each layout felt like
   have to be set by hand. `action-sends-nothing` is a new lint error for a control whose
   action has no key. The unsaved marker calls the in-game half "Wiring".
 
+- **Changes save themselves.** On the served page an edit is saved about a second after
+  the last one; the header shows what is left to do (files to re-import, the game to
+  update) in place of a report after every save. **Undo**, a header button and Ctrl+Z,
+  takes one change back at a time. The menu turns autosave off.
+- **Clear all keys** empties every key and stick direction on both units, after asking.
+- **A toe brake drives one direction of an axis**: hover up on one toe, hover down on the
+  other. It is written onto the game's own row for that direction. Not flown: whether the
+  game reads a pedal in proportion there, or as a button, is to be seen. An action dragged
+  onto a pedal sets what it drives.
+- The page is centred in a wide window.
+- `src/lib/elite.ts` reads Elite Dangerous's bindings file and names, groups and assigns a
+  mode of play to each of its 396 controls. Elite is not in the editor yet; the plan for
+  that is `docs/plans/control-owned-keys.md`.
+
 ### Layouts
 
 - Actions already on a key somewhere in the layout are greyed in the list on the Edit tab,
@@ -141,6 +155,16 @@ Every profile change, and why. `playtests.md` records what each layout felt like
   `azeron editor` and gitignored.
 
 ### Changed
+
+- **`required` means you cannot play without it.** It had come to mean whatever one layout
+  happened to have: every device and consumable slot, both weapon cycles and roll were
+  required, in space sims; 25 actions in a shooter. It is now moving, boost, the two drives
+  and interact, and their like in a shooter. A pedal that drives an axis carries its
+  actions, so they are not called missing for want of a key.
+- **No test reads the real layouts.** The unit tests, the CLI smoke tests and the browser
+  specs run against a frozen copy of the data. A layout half way through a change used to
+  fail 19 tests and block every commit, and the browser specs wrote into the layout files
+  while the editor might have them open.
 
 - **The board fits the window instead of shrinking into it.** Two hands side by side were
   scaled to whatever width was left: at 1080x1920 that was 0.69 and the labels came out
@@ -234,6 +258,10 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 - Writing the game's keys had two names, "Write the game's bindings" on the Setup tab and
   "Update the game's keys" everywhere else, and two code paths. It is one of each, and its
   report now lists what the pedals changed as well as the keys.
+
+- A stick that was cleared and given a direction again was saved without its mode, and
+  compiled as no stick at all. A stick with directions and no mode is read as the keyboard
+  stick it can only be, and the editor writes the mode.
 
 ### Known gaps
 

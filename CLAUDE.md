@@ -420,6 +420,13 @@ keyboard side's:
   the axis in the device file records that it is set and was seen to work, and stops the
   warning. The calibration lives in the machine's registry, not the repo; the values are
   in `docs/guides/analog-input.md`.
+- **A toe drives one direction of an axis** (`end: up|down` on its assignment in
+  `sets.yaml`), and is then written onto the game's own row for that direction — the
+  Joystick group keeps a `Scale=1` and a `Scale=-1` row beside each axis row, called
+  `MoveUp+` and `MoveUp-` here — so two toes can be hover up and hover down. An assignment
+  with an `end` has no `invert` or `scale`: the end is the direction. Whether the game reads
+  a pedal in proportion on those rows, or as a button, is not yet flown. A pedal that
+  drives an axis carries its actions as far as `missing-required` is concerned.
 - The game's `MoveForward` Joystick row ships with `bInvert=True`. The editor writes
   `invert` outright for an axis assigned in the Pedals panel, so its box shows what the
   game is given; an assignment with no `invert` leaves the row as the game has it.
@@ -460,10 +467,23 @@ Importing through the app stays the supported path.
   must come through identical. A failure indicates the compiler is rewriting a field it
   does not model; the fixture is the reference, not the thing to change.
 - Never make a suite green by deleting a test, adding `.skip`, or loosening an assertion.
+- **No test reads the real layouts.** `games/`, `dist/` and the rest are edited from the
+  editor all day and saved as they are edited; a test written against them fails whenever a
+  layout is half way through a change, which says nothing about the code. `AZERON_DATA`
+  names the folder that holds `devices/`, `genres/`, `games/`, `templates/` and `dist/`
+  (unset, it is the repo; `dataRoot` and `repoPath` in `config/paths.ts`). The unit tests
+  (`vitest.config.ts`) and the CLI smoke tests point it at `tests/fixtures/repo`, a frozen
+  copy in which the game's own file path names nothing, so no test can reach a real game.
+  The browser specs run in a throwaway copy of that (`playwright.config.ts`,
+  `tests/helpers/e2e-data.ts`), so nothing they write or leave behind touches anything.
+  `tests/fixtures/repo/README.md` says how to take a fresh copy, which is a deliberate act.
+  Whether the real layouts are sound is the editor's Checks panel and `azeron lint`, not
+  the gate.
 - Unit tests (happy-dom) cannot see CSS. Layout, overflow, stacking and theme colours are
   checked in `tests/e2e/editor.spec.ts` (`E2E_PORT=4181 npx playwright test`) at 1920x1080,
   1440x900, 1280x720 and two vertical windows; it is not part of `npm run check`. Look at
-  the page in a browser before and after a layout change, not only at the tests.
+  the page in a browser before and after a layout change, not only at the tests. The specs
+  start with autosave off; `autosave.spec.ts` turns it back on.
 - The pre-commit hook runs `test:quick` — every unit test, editor included; the pre-push
   hook runs the whole gate. Both are wired by `git config core.hooksPath .githooks`, which
   `npm install` sets.

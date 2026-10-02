@@ -46,8 +46,9 @@ which is which if you are unsure.
 ## Changing a binding
 
 A layout says which control does which action: this key is thrust, that one is boost. It
-is both keypads and the pedals, changed on the **Edit** tab and written by **one Save**
-(top right).
+is both keypads and the pedals, changed on the **Edit** tab. **Changes save themselves**
+about a second after the last one; **Undo** (or Ctrl+Z) takes one back, and the ⋯ menu
+turns autosave off if you would rather press Save.
 
 - The actions are listed under the two units: drag one onto a key, or onto one of a
   stick's four directions. Drag a key onto another to swap them, or back onto the list to
@@ -59,11 +60,12 @@ is both keypads and the pedals, changed on the **Edit** tab and written by **one
   **Update the game's keys…**. The **In-game** tab is where actions are named and given
   their roles; **Show the wiring** there shows the keys, and lets one be moved by hand.
 
-Save comes back with the linter's verdict and the file to re-import, as a path the Azeron
-app's dialog takes. If the wiring or the pedals changed it also offers **Update the game's keys…**,
-which asks whether the game is closed and then writes its `Input.ini` (the same step, under
-the same name, is in the header's menu and on the Setup tab). That is the one thing Save
-does not do on its own, because it writes outside the repo.
+What a save leaves for you to do shows in the header: **Re-import N** lists the files to
+import into the Azeron app, as paths its dialog takes, and **Update the game's keys…**
+appears when the wiring or the pedals changed. That one asks whether the game is closed and
+then writes its `Input.ini`; it is the one thing saving never does on its own, because it
+writes outside the repo. **Clear all keys**, on the Actions bar, empties the board to lay a
+layout out again; Undo brings it back.
 
 Stick modes (DJI Mode 1/2/3, the game's own twin-stick layout, and a roll variant) are
 applied to both sticks in one click from the editor's side panel.
@@ -71,7 +73,9 @@ applied to both sticks in one click from the editor's side panel.
 Rudder pedals are part of a layout. They sit beside the checks on the Edit tab — what each
 axis drives, and how far the game's name for it is trusted — and save with the keypads and
 the in-game keys. While the pedals carry yaw, a stick mode is applied in its with-pedals
-form, which gives the stick's freed direction to roll. A layout with no pedals offers
+form, which gives the stick's freed direction to roll. A toe brake is half an axis, so it
+is offered directions: hover up on one toe and hover down on the other. An action dragged
+from the list onto a pedal does the same. A layout with no pedals offers
 **Add pedals**.
 
 ## Learning a layout
@@ -151,4 +155,6 @@ stays the supported path.
 
 `npm run check` is the gate: build, typecheck, lint, format, unit tests and CLI smoke
 tests. The pre-commit hook runs every unit test; pre-push runs the whole gate.
-`npm run test:e2e` drives the served editor in a browser. See [CLAUDE.md](CLAUDE.md).
+`npm run test:e2e` drives the served editor in a browser. Every test runs against a frozen
+copy of the data (`tests/fixtures/repo`), never the layouts you are editing, so a layout
+half way through a change fails nothing. See [CLAUDE.md](CLAUDE.md).
