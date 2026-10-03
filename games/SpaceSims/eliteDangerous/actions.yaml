@@ -1,0 +1,450 @@
+# Elite Dangerous -- every control the game has, as an action, with the key it is sent on.
+#
+# Made from the game's own bindings files: every button control in every installed preset
+# (ControlSchemes/*.binds) and in the owner's old Custom file, 358 in all. Axis
+# controls are not here: a key cannot drive one. `ingame` is the control's name in the
+# game's file; `mode` is the mode of play it belongs to; the keys are the ones the game's
+# own KeyboardMouseOnly preset gives, where the keypad can send them, and an action with
+# none is given one by the editor when it is first put on a control.
+#
+# A key is one thing in each mode of play. Actions in modes that are never live together
+# (sets.yaml says which: a layout per mode) may share a key; within one they may not.
+game: Elite Dangerous
+
+actions:
+  # --- Ship --------------------------------------------------------------------------------
+  yaw_left:                                        {key: KeyA, ingame: YawLeftButton, mode: ship, label: Yaw left, tags: [movement]}
+  yaw_right:                                       {key: KeyD, ingame: YawRightButton, mode: ship, label: Yaw right, tags: [movement]}
+  yaw_to_roll_button:                              {ingame: YawToRollButton, mode: ship, label: Yaw into roll (hold), tags: [movement]}
+  roll_left:                                       {key: NumpadDivide, ingame: RollLeftButton, mode: ship, label: Roll left, tags: [movement]}
+  roll_right:                                      {key: BracketLeft, ingame: RollRightButton, mode: ship, label: Roll right, tags: [movement]}
+  pitch_up:                                        {key: NumpadMultiply, ingame: PitchUpButton, mode: ship, label: Pitch up, tags: [movement]}
+  pitch_down:                                      {key: NumpadSubtract, ingame: PitchDownButton, mode: ship, label: Pitch down, tags: [movement]}
+  strafe_left:                                     {key: KeyQ, ingame: LeftThrustButton, mode: ship, label: Left thrust, tags: [movement]}
+  strafe_right:                                    {key: KeyE, ingame: RightThrustButton, mode: ship, label: Right thrust, tags: [movement]}
+  hover_up:                                        {key: KeyR, ingame: UpThrustButton, mode: ship, label: Up thrust, tags: [movement]}
+  hover_down:                                      {key: KeyF, ingame: DownThrustButton, mode: ship, label: Down thrust, tags: [movement]}
+  throttle_up:                                     {key: Comma, ingame: ForwardThrustButton, mode: ship, label: Forward thrust, tags: [movement]}
+  throttle_down:                                   {key: Semicolon, ingame: BackwardThrustButton, mode: ship, label: Backward thrust, tags: [movement]}
+  use_alternate_flight_values_toggle:              {ingame: UseAlternateFlightValuesToggle, mode: ship, label: Alternate flight controls on/off, tags: [utility]}
+  toggle_reverse_throttle_input:                   {ingame: ToggleReverseThrottleInput, mode: ship, label: Reverse throttle, tags: [movement]}
+  forward_key:                                     {key: KeyW, ingame: ForwardKey, mode: ship, label: Increase throttle, tags: [movement, required]}
+  backward_key:                                    {key: KeyS, ingame: BackwardKey, mode: ship, label: Decrease throttle, tags: [movement, required]}
+  set_speed_minus100:                              {ingame: SetSpeedMinus100, mode: ship, label: Set speed to -100%, tags: [movement]}
+  set_speed_minus75:                               {ingame: SetSpeedMinus75, mode: ship, label: Set speed to -75%, tags: [movement]}
+  set_speed_minus50:                               {ingame: SetSpeedMinus50, mode: ship, label: Set speed to -50%, tags: [movement]}
+  set_speed_minus25:                               {ingame: SetSpeedMinus25, mode: ship, label: Set speed to -25%, tags: [movement]}
+  set_speed_zero:                                  {key: KeyX, ingame: SetSpeedZero, mode: ship, label: Set speed to 0%, tags: [movement]}
+  set_speed25:                                     {ingame: SetSpeed25, mode: ship, label: Set speed to 25%, tags: [movement]}
+  set_speed50:                                     {ingame: SetSpeed50, mode: ship, label: Set speed to 50%, tags: [movement]}
+  set_speed75:                                     {ingame: SetSpeed75, mode: ship, label: Set speed to 75%, tags: [movement]}
+  set_speed100:                                    {ingame: SetSpeed100, mode: ship, label: Set speed to 100%, tags: [movement]}
+  toggle_flight_assist:                            {key: KeyZ, ingame: ToggleFlightAssist, mode: ship, label: Flight assist on/off, tags: [movement]}
+  use_boost_juice:                                 {key: Tab, ingame: UseBoostJuice, mode: ship, label: Engine boost, tags: [movement, required]}
+  select_target:                                   {key: KeyT, ingame: SelectTarget, mode: ship, label: Target ahead, tags: [combat]}
+  cycle_next_target:                               {key: KeyG, ingame: CycleNextTarget, mode: ship, label: Cycle next target, tags: [combat]}
+  cycle_previous_target:                           {ingame: CyclePreviousTarget, mode: ship, label: Cycle previous target, tags: [combat]}
+  select_highest_threat:                           {key: KeyH, ingame: SelectHighestThreat, mode: ship, label: Target highest threat, tags: [combat]}
+  cycle_next_hostile_target:                       {ingame: CycleNextHostileTarget, mode: ship, label: Cycle next hostile target, tags: [combat]}
+  cycle_previous_hostile_target:                   {ingame: CyclePreviousHostileTarget, mode: ship, label: Cycle previous hostile target, tags: [combat]}
+  target_wingman0:                                 {key: Digit7, ingame: TargetWingman0, mode: ship, label: Target wingman 1, tags: [combat]}
+  target_wingman1:                                 {key: Digit8, ingame: TargetWingman1, mode: ship, label: Target wingman 2, tags: [combat]}
+  target_wingman2:                                 {key: Digit9, ingame: TargetWingman2, mode: ship, label: Target wingman 3, tags: [combat]}
+  select_targets_target:                           {key: Digit0, ingame: SelectTargetsTarget, mode: ship, label: Target wingman's target, tags: [combat]}
+  wing_nav_lock:                                   {key: Minus, ingame: WingNavLock, mode: ship, label: Wingman nav-lock, tags: [combat]}
+  target_next_route_system:                        {ingame: TargetNextRouteSystem, mode: ship, label: Target next system in route, tags: [combat]}
+  cycle_next_subsystem:                            {key: KeyY, ingame: CycleNextSubsystem, mode: ship, label: Cycle next subsystem, tags: [combat]}
+  cycle_previous_subsystem:                        {ingame: CyclePreviousSubsystem, mode: ship, label: Cycle previous subsystem, tags: [combat]}
+  primary_fire:                                    {mouse: left, ingame: PrimaryFire, mode: ship, label: Fire primary, tags: [combat, required]}
+  secondary_fire:                                  {mouse: right, ingame: SecondaryFire, mode: ship, label: Fire secondary, tags: [combat, required]}
+  cycle_fire_group_next:                           {key: KeyN, ingame: CycleFireGroupNext, mode: ship, label: Next fire group, tags: [combat]}
+  cycle_fire_group_previous:                       {ingame: CycleFireGroupPrevious, mode: ship, label: Previous fire group, tags: [combat]}
+  deploy_hardpoint_toggle:                         {key: KeyU, ingame: DeployHardpointToggle, mode: ship, label: Deploy or retract hardpoints, tags: [combat]}
+  toggle_button_up_input:                          {key: Delete, ingame: ToggleButtonUpInput, mode: ship, label: Silent running, tags: [combat]}
+  deploy_heat_sink:                                {key: KeyV, ingame: DeployHeatSink, mode: ship, label: Deploy heat sink, tags: [combat]}
+  ship_spot_light_toggle:                          {key: Insert, ingame: ShipSpotLightToggle, mode: ship, label: Ship lights, tags: [utility]}
+  orbit_lines_toggle:                              {key: Equal, ingame: OrbitLinesToggle, mode: ship, label: Orbit lines on/off, tags: [utility]}
+  radar_increase_range:                            {key: PageUp, ingame: RadarIncreaseRange, mode: ship, label: Radar range up, tags: [utility]}
+  radar_decrease_range:                            {key: PageDown, ingame: RadarDecreaseRange, mode: ship, label: Radar range down, tags: [utility]}
+  increase_engines_power:                          {key: ArrowUp, ingame: IncreaseEnginesPower, mode: ship, label: Power to engines, tags: [utility]}
+  increase_weapons_power:                          {key: ArrowRight, ingame: IncreaseWeaponsPower, mode: ship, label: Power to weapons, tags: [utility]}
+  increase_systems_power:                          {key: ArrowLeft, ingame: IncreaseSystemsPower, mode: ship, label: Power to systems, tags: [utility]}
+  reset_power_distribution:                        {key: ArrowDown, ingame: ResetPowerDistribution, mode: ship, label: Reset power distribution, tags: [utility]}
+  toggle_cargo_scoop:                              {key: Home, ingame: ToggleCargoScoop, mode: ship, label: Cargo scoop, tags: [utility]}
+  eject_all_cargo:                                 {ingame: EjectAllCargo, mode: ship, label: Eject all cargo, tags: [utility]}
+  landing_gear_toggle:                             {key: KeyL, ingame: LandingGearToggle, mode: ship, label: Landing gear, tags: [utility, required]}
+  use_shield_cell:                                 {ingame: UseShieldCell, mode: ship, label: Use shield cell, tags: [combat]}
+  fire_chaff_launcher:                             {ingame: FireChaffLauncher, mode: ship, label: Fire chaff, tags: [combat]}
+  hyper_super_combination:                         {key: KeyJ, ingame: HyperSuperCombination, mode: ship, label: Frame shift drive (jump or supercruise), tags: [travel, required]}
+  supercruise:                                     {ingame: Supercruise, mode: ship, label: Supercruise, tags: [travel]}
+  hyperspace:                                      {ingame: Hyperspace, mode: ship, label: Hyperspace jump, tags: [travel]}
+  disable_rotation_correct_toggle:                 {ingame: DisableRotationCorrectToggle, mode: ship, label: Rotational correction on/off, tags: [utility]}
+  galaxy_map_open:                                 {key: NumpadAdd, ingame: GalaxyMapOpen, mode: ship, label: Open galaxy map, tags: [menu]}
+  system_map_open:                                 {key: BracketRight, ingame: SystemMapOpen, mode: ship, label: Open system map, tags: [menu]}
+  ui_focus:                                        {meta: ShiftLeft, ingame: UIFocus, mode: ship, label: Look at panels (UI focus), tags: [menu]}
+  head_look_toggle:                                {mouse: middle, ingame: HeadLookToggle, mode: ship, label: Headlook on/off, tags: [utility]}
+  focus_left_panel:                                {key: Digit1, ingame: FocusLeftPanel, mode: ship, label: Target panel (left), tags: [menu]}
+  focus_right_panel:                               {key: Digit4, ingame: FocusRightPanel, mode: ship, label: Systems panel (right), tags: [menu]}
+  focus_radar_panel:                               {key: Digit3, ingame: FocusRadarPanel, mode: ship, label: Role panel (bottom), tags: [menu]}
+  focus_comms_panel:                               {key: Digit2, ingame: FocusCommsPanel, mode: ship, label: Comms panel, tags: [menu]}
+  quick_comms_panel:                               {key: Enter, ingame: QuickCommsPanel, mode: ship, label: Quick comms, tags: [menu]}
+  weapon_colour_toggle:                            {ingame: WeaponColourToggle, mode: ship, label: Weapon colour on/off, tags: [utility]}
+  engine_colour_toggle:                            {ingame: EngineColourToggle, mode: ship, label: Engine colour on/off, tags: [utility]}
+  charge_ecm:                                      {ingame: ChargeECM, mode: ship, label: Charge ECM, tags: [combat]}
+  player_hud_mode_toggle:                          {key: KeyM, ingame: PlayerHUDModeToggle, mode: ship, label: Switch HUD mode (combat or analysis), tags: [menu]}
+  open_codex_go_to_discovery:                      {key: KeyO, ingame: OpenCodexGoToDiscovery, mode: ship, label: Open codex, tags: [menu]}
+  exploration_fss_enter:                           {key: Quote, ingame: ExplorationFSSEnter, mode: ship, label: Enter system scanner (FSS), tags: [menu]}
+  trigger_field_neutraliser:                       {ingame: TriggerFieldNeutraliser, mode: ship, label: Trigger field neutraliser, tags: [combat]}
+  night_vision_toggle:                             {ingame: NightVisionToggle, mode: ship, label: Night vision, tags: [utility]}
+
+  # --- Ship, landing gear down -------------------------------------------------------------
+  yaw_left_button_landing:                         {ingame: YawLeftButton_Landing, mode: landing, label: Yaw left, tags: [movement]}
+  yaw_right_button_landing:                        {ingame: YawRightButton_Landing, mode: landing, label: Yaw right, tags: [movement]}
+  pitch_up_button_landing:                         {ingame: PitchUpButton_Landing, mode: landing, label: Pitch up, tags: [movement]}
+  pitch_down_button_landing:                       {ingame: PitchDownButton_Landing, mode: landing, label: Pitch down, tags: [movement]}
+  roll_left_button_landing:                        {ingame: RollLeftButton_Landing, mode: landing, label: Roll left, tags: [movement]}
+  roll_right_button_landing:                       {ingame: RollRightButton_Landing, mode: landing, label: Roll right, tags: [movement]}
+  left_thrust_button_landing:                      {ingame: LeftThrustButton_Landing, mode: landing, label: Left thrust, tags: [movement]}
+  right_thrust_button_landing:                     {ingame: RightThrustButton_Landing, mode: landing, label: Right thrust, tags: [movement]}
+  up_thrust_button_landing:                        {ingame: UpThrustButton_Landing, mode: landing, label: Up thrust, tags: [movement]}
+  down_thrust_button_landing:                      {ingame: DownThrustButton_Landing, mode: landing, label: Down thrust, tags: [movement]}
+  forward_thrust_button_landing:                   {ingame: ForwardThrustButton_Landing, mode: landing, label: Forward thrust, tags: [movement]}
+  backward_thrust_button_landing:                  {ingame: BackwardThrustButton_Landing, mode: landing, label: Backward thrust, tags: [movement]}
+
+  # --- Buggy (SRV) -------------------------------------------------------------------------
+  photo_camera_toggle_buggy:                       {ingame: PhotoCameraToggle_Buggy, mode: srv, label: Open camera suite, tags: [menu]}
+  toggle_drive_assist:                             {key: KeyZ, ingame: ToggleDriveAssist, mode: srv, label: Drive assist on/off, tags: [movement]}
+  steer_left_button:                               {key: KeyA, ingame: SteerLeftButton, mode: srv, label: Steer left, tags: [movement, required]}
+  steer_right_button:                              {key: KeyD, ingame: SteerRightButton, mode: srv, label: Steer right, tags: [movement, required]}
+  buggy_roll_left_button:                          {key: KeyA, ingame: BuggyRollLeftButton, mode: srv, label: Roll left, tags: [movement]}
+  buggy_roll_right_button:                         {key: KeyD, ingame: BuggyRollRightButton, mode: srv, label: Roll right, tags: [movement]}
+  buggy_pitch_up_button:                           {key: KeyW, ingame: BuggyPitchUpButton, mode: srv, label: Pitch up, tags: [movement]}
+  buggy_pitch_down_button:                         {key: KeyS, ingame: BuggyPitchDownButton, mode: srv, label: Pitch down, tags: [movement]}
+  vertical_thrusters_button:                       {key: Space, ingame: VerticalThrustersButton, mode: srv, label: Vertical thrusters, tags: [movement]}
+  buggy_primary_fire_button:                       {mouse: left, ingame: BuggyPrimaryFireButton, mode: srv, label: Primary fire, tags: [combat]}
+  buggy_secondary_fire_button:                     {mouse: right, ingame: BuggySecondaryFireButton, mode: srv, label: Secondary fire, tags: [combat]}
+  auto_break_buggy_button:                         {key: KeyX, ingame: AutoBreakBuggyButton, mode: srv, label: Handbrake, tags: [movement]}
+  headlights_buggy_button:                         {key: KeyL, ingame: HeadlightsBuggyButton, mode: srv, label: Headlights, tags: [utility]}
+  toggle_buggy_turret_button:                      {key: KeyU, ingame: ToggleBuggyTurretButton, mode: srv, label: Turret on/off, tags: [combat]}
+  select_target_buggy:                             {mouse: right, ingame: SelectTarget_Buggy, mode: srv, label: Target ahead, tags: [combat]}
+  buggy_turret_yaw_left_button:                    {ingame: BuggyTurretYawLeftButton, mode: srv, label: Turret yaw left, tags: [combat]}
+  buggy_turret_yaw_right_button:                   {ingame: BuggyTurretYawRightButton, mode: srv, label: Turret yaw right, tags: [combat]}
+  buggy_turret_pitch_up_button:                    {ingame: BuggyTurretPitchUpButton, mode: srv, label: Turret pitch up, tags: [combat]}
+  buggy_turret_pitch_down_button:                  {ingame: BuggyTurretPitchDownButton, mode: srv, label: Turret pitch down, tags: [combat]}
+  buggy_toggle_reverse_throttle_input:             {ingame: BuggyToggleReverseThrottleInput, mode: srv, label: Toggle reverse throttle, tags: [movement]}
+  increase_speed_button_max:                       {key: KeyE, ingame: IncreaseSpeedButtonMax, mode: srv, label: Accelerate, tags: [movement, required]}
+  decrease_speed_button_max:                       {key: KeyQ, ingame: DecreaseSpeedButtonMax, mode: srv, label: Brake or reverse, tags: [movement, required]}
+  increase_engines_power_buggy:                    {key: ArrowUp, ingame: IncreaseEnginesPower_Buggy, mode: srv, label: Power to engines, tags: [utility]}
+  increase_weapons_power_buggy:                    {key: ArrowRight, ingame: IncreaseWeaponsPower_Buggy, mode: srv, label: Power to weapons, tags: [utility]}
+  increase_systems_power_buggy:                    {key: ArrowLeft, ingame: IncreaseSystemsPower_Buggy, mode: srv, label: Power to systems, tags: [utility]}
+  reset_power_distribution_buggy:                  {key: ArrowDown, ingame: ResetPowerDistribution_Buggy, mode: srv, label: Reset power distribution, tags: [utility]}
+  toggle_cargo_scoop_buggy:                        {key: Home, ingame: ToggleCargoScoop_Buggy, mode: srv, label: Cargo scoop, tags: [utility]}
+  eject_all_cargo_buggy:                           {ingame: EjectAllCargo_Buggy, mode: srv, label: Eject all cargo, tags: [utility]}
+  ui_focus_buggy:                                  {meta: ShiftLeft, ingame: UIFocus_Buggy, mode: srv, label: Look at panels (UI focus), tags: [menu]}
+  focus_left_panel_buggy:                          {key: Digit1, ingame: FocusLeftPanel_Buggy, mode: srv, label: Target panel (left), tags: [menu]}
+  focus_comms_panel_buggy:                         {key: Digit2, ingame: FocusCommsPanel_Buggy, mode: srv, label: Comms panel, tags: [menu]}
+  quick_comms_panel_buggy:                         {key: Enter, ingame: QuickCommsPanel_Buggy, mode: srv, label: Quick comms, tags: [menu]}
+  focus_radar_panel_buggy:                         {key: Digit3, ingame: FocusRadarPanel_Buggy, mode: srv, label: Role panel (bottom), tags: [menu]}
+  focus_right_panel_buggy:                         {key: Digit4, ingame: FocusRightPanel_Buggy, mode: srv, label: Systems panel (right), tags: [menu]}
+  galaxy_map_open_buggy:                           {key: Insert, ingame: GalaxyMapOpen_Buggy, mode: srv, label: Open galaxy map, tags: [menu]}
+  system_map_open_buggy:                           {ingame: SystemMapOpen_Buggy, mode: srv, label: Open system map, tags: [menu]}
+  head_look_toggle_buggy:                          {mouse: middle, ingame: HeadLookToggle_Buggy, mode: srv, label: Headlook on/off, tags: [utility]}
+  recall_dismiss_ship:                             {key: PageUp, ingame: RecallDismissShip, mode: srv, label: Recall or dismiss ship, tags: [utility]}
+  buggy_cycle_fire_group_next:                     {ingame: BuggyCycleFireGroupNext, mode: srv, label: Cycle fire group next, tags: [combat]}
+  open_codex_go_to_discovery_buggy:                {ingame: OpenCodexGoToDiscovery_Buggy, mode: srv, label: Open codex, tags: [menu]}
+  player_hud_mode_toggle_buggy:                    {ingame: PlayerHUDModeToggle_Buggy, mode: srv, label: Switch HUD mode (combat or analysis), tags: [menu]}
+  buggy_cycle_fire_group_previous:                 {ingame: BuggyCycleFireGroupPrevious, mode: srv, label: Cycle fire group previous, tags: [combat]}
+
+  # --- On foot -----------------------------------------------------------------------------
+  photo_camera_toggle_humanoid:                    {ingame: PhotoCameraToggle_Humanoid, mode: foot, label: Open camera suite, tags: [menu]}
+  humanoid_forward_button:                         {key: KeyW, ingame: HumanoidForwardButton, mode: foot, label: Forward, tags: [movement, required]}
+  humanoid_backward_button:                        {key: KeyS, ingame: HumanoidBackwardButton, mode: foot, label: Backward, tags: [movement, required]}
+  humanoid_strafe_left_button:                     {key: KeyA, ingame: HumanoidStrafeLeftButton, mode: foot, label: Strafe left, tags: [movement, required]}
+  humanoid_strafe_right_button:                    {key: KeyD, ingame: HumanoidStrafeRightButton, mode: foot, label: Strafe right, tags: [movement, required]}
+  humanoid_sprint_button:                          {meta: ShiftLeft, ingame: HumanoidSprintButton, mode: foot, label: Sprint, tags: [movement]}
+  humanoid_crouch_button:                          {meta: ControlLeft, ingame: HumanoidCrouchButton, mode: foot, label: Crouch, tags: [movement]}
+  humanoid_jump_button:                            {key: Space, ingame: HumanoidJumpButton, mode: foot, label: Jump, tags: [movement, required]}
+  humanoid_primary_interact_button:                {key: KeyE, ingame: HumanoidPrimaryInteractButton, mode: foot, label: Interact, tags: [utility, required]}
+  humanoid_item_wheel_button:                      {meta: AltLeft, ingame: HumanoidItemWheelButton, mode: foot, label: Item wheel, tags: [menu]}
+  humanoid_primary_fire_button:                    {mouse: left, ingame: HumanoidPrimaryFireButton, mode: foot, label: Primary fire, tags: [combat, required]}
+  humanoid_select_primary_weapon_button:           {key: Digit1, ingame: HumanoidSelectPrimaryWeaponButton, mode: foot, label: Select primary weapon, tags: [combat]}
+  humanoid_select_secondary_weapon_button:         {key: Digit2, ingame: HumanoidSelectSecondaryWeaponButton, mode: foot, label: Select secondary weapon, tags: [combat]}
+  humanoid_hide_weapon_button:                     {key: KeyU, ingame: HumanoidHideWeaponButton, mode: foot, label: Hide weapon, tags: [combat]}
+  humanoid_zoom_button:                            {mouse: right, ingame: HumanoidZoomButton, mode: foot, label: Aim down sights, tags: [combat]}
+  humanoid_reload_button:                          {key: KeyR, ingame: HumanoidReloadButton, mode: foot, label: Reload, tags: [combat]}
+  humanoid_increase_systems_power_button:          {ingame: HumanoidIncreaseSystemsPowerButton, mode: foot, label: Increase systems power, tags: [utility]}
+  humanoid_increase_engines_power_button:          {ingame: HumanoidIncreaseEnginesPowerButton, mode: foot, label: Increase engines power, tags: [utility]}
+  humanoid_increase_weapons_power_button:          {ingame: HumanoidIncreaseWeaponsPowerButton, mode: foot, label: Increase weapons power, tags: [utility]}
+  humanoid_reset_power_distribution_button:        {ingame: HumanoidResetPowerDistributionButton, mode: foot, label: Reset power distribution, tags: [utility]}
+  humanoid_throw_grenade_button:                   {key: KeyX, ingame: HumanoidThrowGrenadeButton, mode: foot, label: Throw grenade, tags: [combat]}
+  humanoid_melee_button:                           {key: KeyV, ingame: HumanoidMeleeButton, mode: foot, label: Melee, tags: [combat]}
+  humanoid_toggle_shield_booster_module_button:    {key: Digit4, ingame: HumanoidToggleShieldBoosterModuleButton, mode: foot, label: Toggle shield booster module, tags: [utility]}
+  humanoid_toggle_jump_assist_module_button:       {key: Digit5, ingame: HumanoidToggleJumpAssistModuleButton, mode: foot, label: Toggle jump assist module, tags: [movement]}
+  humanoid_toggle_weapon_booster_module_button:    {key: Digit6, ingame: HumanoidToggleWeaponBoosterModuleButton, mode: foot, label: Toggle weapon booster module, tags: [combat]}
+  humanoid_activate_suit_ability_button:           {key: KeyT, ingame: HumanoidActivateSuitAbilityButton, mode: foot, label: Activate suit ability, tags: [utility]}
+  humanoid_pulse_scan_button:                      {key: KeyB, ingame: HumanoidPulseScanButton, mode: foot, label: Pulse scan, tags: [utility]}
+  humanoid_open_access_panel_button:               {key: KeyQ, ingame: HumanoidOpenAccessPanelButton, mode: foot, label: Open access panel, tags: [menu]}
+  humanoid_secondary_interact_button:              {key: KeyF, ingame: HumanoidSecondaryInteractButton, mode: foot, label: Interact (secondary), tags: [utility]}
+  humanoid_switch_to_recharge_tool:                {key: Digit3, ingame: HumanoidSwitchToRechargeTool, mode: foot, label: Switch to recharge tool, tags: [utility]}
+  humanoid_switch_to_comp_analyser:                {key: Digit4, ingame: HumanoidSwitchToCompAnalyser, mode: foot, label: Switch to profile analyser, tags: [utility]}
+  humanoid_toggle_tool_mode_button:                {key: KeyR, ingame: HumanoidToggleToolModeButton, mode: foot, label: Toggle tool mode, tags: [utility]}
+  humanoid_toggle_night_vision_button:             {key: KeyN, ingame: HumanoidToggleNightVisionButton, mode: foot, label: Toggle night vision, tags: [utility]}
+  humanoid_switch_to_suit_tool:                    {key: Digit5, ingame: HumanoidSwitchToSuitTool, mode: foot, label: Switch to suit tool, tags: [utility]}
+  humanoid_toggle_flashlight_button:               {key: KeyT, ingame: HumanoidToggleFlashlightButton, mode: foot, label: Toggle flashlight, tags: [utility]}
+  quick_comms_panel_humanoid:                      {key: Enter, ingame: QuickCommsPanel_Humanoid, mode: foot, label: Quick comms, tags: [menu]}
+  humanoid_conflict_contextual_ui_button:          {key: KeyE, ingame: HumanoidConflictContextualUIButton, mode: foot, label: Conflict contextual UI, tags: [utility]}
+  humanoid_toggle_shields_button:                  {key: KeyC, ingame: HumanoidToggleShieldsButton, mode: foot, label: Toggle shields, tags: [combat]}
+  humanoid_toggle_mission_help_panel_button:       {key: KeyE, ingame: HumanoidToggleMissionHelpPanelButton, mode: foot, label: Toggle mission help panel, tags: [menu]}
+  humanoid_item_wheel_button_x_left:               {ingame: HumanoidItemWheelButton_XLeft, mode: foot, label: Item wheel x left, tags: [menu]}
+  humanoid_item_wheel_button_x_right:              {ingame: HumanoidItemWheelButton_XRight, mode: foot, label: Item wheel x right, tags: [menu]}
+  humanoid_item_wheel_button_y_up:                 {ingame: HumanoidItemWheelButton_YUp, mode: foot, label: Item wheel y up, tags: [menu]}
+  humanoid_item_wheel_button_y_down:               {ingame: HumanoidItemWheelButton_YDown, mode: foot, label: Item wheel y down, tags: [menu]}
+  humanoid_select_next_weapon_button:              {ingame: HumanoidSelectNextWeaponButton, mode: foot, label: Select next weapon, tags: [combat]}
+  humanoid_select_previous_weapon_button:          {ingame: HumanoidSelectPreviousWeaponButton, mode: foot, label: Select previous weapon, tags: [combat]}
+  humanoid_walk_button:                            {key: Slash, ingame: HumanoidWalkButton, mode: foot, label: Walk, tags: [movement]}
+  humanoid_select_next_grenade_type_button:        {key: Tab, ingame: HumanoidSelectNextGrenadeTypeButton, mode: foot, label: Select next grenade type, tags: [combat]}
+  humanoid_clear_authority_level:                  {key: Minus, ingame: HumanoidClearAuthorityLevel, mode: foot, label: Clear authority level, tags: [utility]}
+  humanoid_health_pack:                            {key: Digit6, ingame: HumanoidHealthPack, mode: foot, label: Health pack, tags: [combat]}
+  humanoid_battery:                                {key: Digit7, ingame: HumanoidBattery, mode: foot, label: Battery, tags: [combat]}
+  humanoid_select_frag_grenade:                    {key: Digit8, ingame: HumanoidSelectFragGrenade, mode: foot, label: Select frag grenade, tags: [combat]}
+  humanoid_select_emp_grenade:                     {key: Digit9, ingame: HumanoidSelectEMPGrenade, mode: foot, label: Select EMP grenade, tags: [combat]}
+  humanoid_select_shield_grenade:                  {key: Digit0, ingame: HumanoidSelectShieldGrenade, mode: foot, label: Select shield grenade, tags: [combat]}
+  humanoid_emote_wheel_button:                     {key: KeyB, ingame: HumanoidEmoteWheelButton, mode: foot, label: Emote wheel, tags: [menu]}
+  humanoid_emote_slot1:                            {key: KeyB, ingame: HumanoidEmoteSlot1, mode: foot, label: Emote 1, tags: [menu]}
+  humanoid_utility_wheel_cycle_mode:               {mouse: right, ingame: HumanoidUtilityWheelCycleMode, mode: foot, label: Utility wheel cycle mode, tags: [menu]}
+  focus_comms_panel_humanoid:                      {ingame: FocusCommsPanel_Humanoid, mode: foot, label: Comms panel, tags: [menu]}
+  humanoid_switch_weapon:                          {ingame: HumanoidSwitchWeapon, mode: foot, label: Switch weapon, tags: [combat]}
+  humanoid_rotate_left_button:                     {ingame: HumanoidRotateLeftButton, mode: foot, label: Rotate left, tags: [movement]}
+  humanoid_rotate_right_button:                    {ingame: HumanoidRotateRightButton, mode: foot, label: Rotate right, tags: [movement]}
+  humanoid_pitch_up_button:                        {ingame: HumanoidPitchUpButton, mode: foot, label: Pitch up, tags: [movement]}
+  humanoid_pitch_down_button:                      {ingame: HumanoidPitchDownButton, mode: foot, label: Pitch down, tags: [movement]}
+  humanoid_conflict_contextual_ui:                 {ingame: HumanoidConflictContextualUI, mode: foot, label: Conflict contextual UI, tags: [utility]}
+  humanoid_select_previous_grenade_type_button:    {ingame: HumanoidSelectPreviousGrenadeTypeButton, mode: foot, label: Select previous grenade type, tags: [combat]}
+  humanoid_select_utility_weapon_button:           {ingame: HumanoidSelectUtilityWeaponButton, mode: foot, label: Select utility weapon, tags: [combat]}
+  galaxy_map_open_humanoid:                        {key: Insert, ingame: GalaxyMapOpen_Humanoid, mode: foot, label: Open galaxy map, tags: [menu]}
+  system_map_open_humanoid:                        {ingame: SystemMapOpen_Humanoid, mode: foot, label: Open system map, tags: [menu]}
+  humanoid_ping:                                   {ingame: HumanoidPing, mode: foot, label: Ping, tags: [utility]}
+  humanoid_emote_slot2:                            {ingame: HumanoidEmoteSlot2, mode: foot, label: Emote 2, tags: [menu]}
+  humanoid_emote_slot3:                            {ingame: HumanoidEmoteSlot3, mode: foot, label: Emote 3, tags: [menu]}
+  humanoid_emote_slot4:                            {ingame: HumanoidEmoteSlot4, mode: foot, label: Emote 4, tags: [menu]}
+  humanoid_emote_slot5:                            {ingame: HumanoidEmoteSlot5, mode: foot, label: Emote 5, tags: [menu]}
+  humanoid_emote_slot6:                            {ingame: HumanoidEmoteSlot6, mode: foot, label: Emote 6, tags: [menu]}
+  humanoid_emote_slot7:                            {ingame: HumanoidEmoteSlot7, mode: foot, label: Emote 7, tags: [menu]}
+  humanoid_emote_slot8:                            {ingame: HumanoidEmoteSlot8, mode: foot, label: Emote 8, tags: [menu]}
+
+  # --- System scanner (FSS) ----------------------------------------------------------------
+  exploration_fss_zoom_in:                         {mouse: left, ingame: ExplorationFSSZoomIn, mode: fss, label: Zoom in, tags: [utility]}
+  exploration_fss_zoom_out:                        {mouse: right, ingame: ExplorationFSSZoomOut, mode: fss, label: Zoom out, tags: [utility]}
+  exploration_fss_mini_zoom_in:                    {key: ArrowUp, ingame: ExplorationFSSMiniZoomIn, mode: fss, label: Mini zoom in, tags: [utility]}
+  exploration_fss_mini_zoom_out:                   {key: ArrowDown, ingame: ExplorationFSSMiniZoomOut, mode: fss, label: Mini zoom out, tags: [utility]}
+  exploration_fss_radio_tuning_x_increase:         {key: KeyD, ingame: ExplorationFSSRadioTuningX_Increase, mode: fss, label: Radio tuning x increase, tags: [utility]}
+  exploration_fss_radio_tuning_x_decrease:         {key: KeyA, ingame: ExplorationFSSRadioTuningX_Decrease, mode: fss, label: Radio tuning x decrease, tags: [utility]}
+  exploration_fss_discovery_scan:                  {mouse: middle, ingame: ExplorationFSSDiscoveryScan, mode: fss, label: Discovery scan (honk), tags: [utility]}
+  exploration_fss_quit:                            {key: Backspace, ingame: ExplorationFSSQuit, mode: fss, label: Leave the scanner, tags: [utility]}
+  exploration_fss_target:                          {key: KeyT, ingame: ExplorationFSSTarget, mode: fss, label: Target, tags: [utility]}
+  exploration_fss_show_help:                       {key: KeyH, ingame: ExplorationFSSShowHelp, mode: fss, label: Show help, tags: [utility]}
+  exploration_fss_camera_pitch_increase_button:    {ingame: ExplorationFSSCameraPitchIncreaseButton, mode: fss, label: Camera pitch increase, tags: [utility]}
+  exploration_fss_camera_pitch_decrease_button:    {ingame: ExplorationFSSCameraPitchDecreaseButton, mode: fss, label: Camera pitch decrease, tags: [utility]}
+  exploration_fss_camera_yaw_increase_button:      {ingame: ExplorationFSSCameraYawIncreaseButton, mode: fss, label: Camera yaw increase, tags: [utility]}
+  exploration_fss_camera_yaw_decrease_button:      {ingame: ExplorationFSSCameraYawDecreaseButton, mode: fss, label: Camera yaw decrease, tags: [utility]}
+
+  # --- Surface scanner (DSS) ---------------------------------------------------------------
+  exploration_saa_change_scanned_area_view_toggle: {mouse: middle, ingame: ExplorationSAAChangeScannedAreaViewToggle, mode: dss, label: Change scanned area view toggle, tags: [utility]}
+  exploration_saa_exit_third_person:               {key: Backspace, ingame: ExplorationSAAExitThirdPerson, mode: dss, label: Leave the scanner, tags: [utility]}
+  exploration_saa_next_genus:                      {key: KeyE, ingame: ExplorationSAANextGenus, mode: dss, label: Next genus, tags: [utility]}
+  exploration_saa_previous_genus:                  {key: KeyQ, ingame: ExplorationSAAPreviousGenus, mode: dss, label: Previous genus, tags: [utility]}
+  saa_third_person_yaw_left_button:                {ingame: SAAThirdPersonYawLeftButton, mode: dss, label: Yaw left, tags: [utility]}
+  saa_third_person_yaw_right_button:               {ingame: SAAThirdPersonYawRightButton, mode: dss, label: Yaw right, tags: [utility]}
+  saa_third_person_pitch_up_button:                {ingame: SAAThirdPersonPitchUpButton, mode: dss, label: Pitch up, tags: [utility]}
+  saa_third_person_pitch_down_button:              {ingame: SAAThirdPersonPitchDownButton, mode: dss, label: Pitch down, tags: [utility]}
+  saa_third_person_fov_out_button:                 {ingame: SAAThirdPersonFovOutButton, mode: dss, label: Field of view out, tags: [utility]}
+  saa_third_person_fov_in_button:                  {ingame: SAAThirdPersonFovInButton, mode: dss, label: Field of view in, tags: [utility]}
+
+  # --- Fighter orders ----------------------------------------------------------------------
+  order_request_dock:                              {key: Numpad0, ingame: OrderRequestDock, mode: fighter, label: "Order: request dock", tags: [combat]}
+  order_defensive_behaviour:                       {key: Numpad1, ingame: OrderDefensiveBehaviour, mode: fighter, label: "Order: defensive behaviour", tags: [combat]}
+  order_aggressive_behaviour:                      {key: Numpad2, ingame: OrderAggressiveBehaviour, mode: fighter, label: "Order: aggressive behaviour", tags: [combat]}
+  order_focus_target:                              {key: Numpad3, ingame: OrderFocusTarget, mode: fighter, label: "Order: focus target", tags: [combat]}
+  order_hold_fire:                                 {key: Numpad4, ingame: OrderHoldFire, mode: fighter, label: "Order: hold fire", tags: [combat]}
+  order_hold_position:                             {key: Numpad5, ingame: OrderHoldPosition, mode: fighter, label: "Order: hold position", tags: [combat]}
+  order_follow:                                    {key: Numpad6, ingame: OrderFollow, mode: fighter, label: "Order: follow", tags: [combat]}
+  open_orders:                                     {ingame: OpenOrders, mode: fighter, label: Open fighter orders, tags: [combat]}
+
+  # --- Multicrew ---------------------------------------------------------------------------
+  multi_crew_toggle_mode:                          {key: Tab, ingame: MultiCrewToggleMode, mode: multicrew, label: Toggle mode, tags: [utility]}
+  multi_crew_third_person_yaw_left_button:         {ingame: MultiCrewThirdPersonYawLeftButton, mode: multicrew, label: Yaw left, tags: [utility]}
+  multi_crew_third_person_yaw_right_button:        {ingame: MultiCrewThirdPersonYawRightButton, mode: multicrew, label: Yaw right, tags: [utility]}
+  multi_crew_third_person_pitch_up_button:         {ingame: MultiCrewThirdPersonPitchUpButton, mode: multicrew, label: Pitch up, tags: [utility]}
+  multi_crew_third_person_pitch_down_button:       {ingame: MultiCrewThirdPersonPitchDownButton, mode: multicrew, label: Pitch down, tags: [utility]}
+  multi_crew_third_person_fov_out_button:          {ingame: MultiCrewThirdPersonFovOutButton, mode: multicrew, label: Field of view out, tags: [utility]}
+  multi_crew_third_person_fov_in_button:           {ingame: MultiCrewThirdPersonFovInButton, mode: multicrew, label: Field of view in, tags: [utility]}
+  multi_crew_primary_fire:                         {mouse: left, ingame: MultiCrewPrimaryFire, mode: multicrew, label: Primary fire, tags: [combat]}
+  multi_crew_secondary_fire:                       {mouse: right, ingame: MultiCrewSecondaryFire, mode: multicrew, label: Secondary fire, tags: [combat]}
+  multi_crew_primary_utility_fire:                 {ingame: MultiCrewPrimaryUtilityFire, mode: multicrew, label: Primary utility fire, tags: [combat]}
+  multi_crew_secondary_utility_fire:               {ingame: MultiCrewSecondaryUtilityFire, mode: multicrew, label: Secondary utility fire, tags: [combat]}
+  multi_crew_cockpit_ui_cycle_forward:             {ingame: MultiCrewCockpitUICycleForward, mode: multicrew, label: Cockpit UI cycle forward, tags: [utility]}
+  multi_crew_cockpit_ui_cycle_backward:            {ingame: MultiCrewCockpitUICycleBackward, mode: multicrew, label: Cockpit UI cycle backward, tags: [utility]}
+
+  # --- Menus and panels --------------------------------------------------------------------
+  ui_up:                                           {key: KeyW, ingame: UI_Up, mode: ui, label: "Menu: up", tags: [menu]}
+  ui_down:                                         {key: KeyS, ingame: UI_Down, mode: ui, label: "Menu: down", tags: [menu]}
+  ui_left:                                         {key: KeyA, ingame: UI_Left, mode: ui, label: "Menu: left", tags: [menu]}
+  ui_right:                                        {key: KeyD, ingame: UI_Right, mode: ui, label: "Menu: right", tags: [menu]}
+  ui_select:                                       {key: Space, ingame: UI_Select, mode: ui, label: "Menu: select", tags: [menu]}
+  ui_back:                                         {key: Backspace, ingame: UI_Back, mode: ui, label: "Menu: back", tags: [menu]}
+  ui_toggle:                                       {key: Equal, ingame: UI_Toggle, mode: ui, label: "Menu: toggle", tags: [menu]}
+  cycle_next_panel:                                {key: KeyE, ingame: CycleNextPanel, mode: ui, label: Next panel tab, tags: [menu]}
+  cycle_previous_panel:                            {key: KeyQ, ingame: CyclePreviousPanel, mode: ui, label: Previous panel tab, tags: [menu]}
+  cycle_next_page:                                 {key: KeyC, ingame: CycleNextPage, mode: ui, label: Next page, tags: [menu]}
+  cycle_previous_page:                             {key: KeyZ, ingame: CyclePreviousPage, mode: ui, label: Previous page, tags: [menu]}
+
+  # --- Galaxy map --------------------------------------------------------------------------
+  cam_pitch_up:                                    {key: KeyT, ingame: CamPitchUp, mode: map, label: Camera pitch up, tags: [menu]}
+  cam_pitch_down:                                  {key: KeyG, ingame: CamPitchDown, mode: map, label: Camera pitch down, tags: [menu]}
+  cam_yaw_left:                                    {key: KeyQ, ingame: CamYawLeft, mode: map, label: Camera yaw left, tags: [menu]}
+  cam_yaw_right:                                   {key: KeyE, ingame: CamYawRight, mode: map, label: Camera yaw right, tags: [menu]}
+  cam_translate_forward:                           {key: KeyW, ingame: CamTranslateForward, mode: map, label: Camera translate forward, tags: [menu]}
+  cam_translate_backward:                          {key: KeyS, ingame: CamTranslateBackward, mode: map, label: Camera translate backward, tags: [menu]}
+  cam_translate_left:                              {key: KeyA, ingame: CamTranslateLeft, mode: map, label: Camera translate left, tags: [menu]}
+  cam_translate_right:                             {key: KeyD, ingame: CamTranslateRight, mode: map, label: Camera translate right, tags: [menu]}
+  cam_translate_up:                                {key: KeyR, ingame: CamTranslateUp, mode: map, label: Camera translate up, tags: [menu]}
+  cam_translate_down:                              {key: KeyF, ingame: CamTranslateDown, mode: map, label: Camera translate down, tags: [menu]}
+  cam_zoom_in:                                     {key: KeyZ, ingame: CamZoomIn, mode: map, label: Camera zoom in, tags: [menu]}
+  cam_zoom_out:                                    {key: KeyX, ingame: CamZoomOut, mode: map, label: Camera zoom out, tags: [menu]}
+  cam_translate_z_hold:                            {ingame: CamTranslateZHold, mode: map, label: Camera translate z hold, tags: [menu]}
+  galaxy_map_home:                                 {key: Home, ingame: GalaxyMapHome, mode: map, label: Galaxy map home, tags: [menu]}
+
+  # --- Headlook ----------------------------------------------------------------------------
+  head_look_reset:                                 {ingame: HeadLookReset, mode: headlook, label: Head look reset, tags: [utility]}
+  head_look_pitch_up:                              {ingame: HeadLookPitchUp, mode: headlook, label: Head look pitch up, tags: [utility]}
+  head_look_pitch_down:                            {ingame: HeadLookPitchDown, mode: headlook, label: Head look pitch down, tags: [utility]}
+  head_look_yaw_left:                              {ingame: HeadLookYawLeft, mode: headlook, label: Head look yaw left, tags: [utility]}
+  head_look_yaw_right:                             {ingame: HeadLookYawRight, mode: headlook, label: Head look yaw right, tags: [utility]}
+
+  # --- Camera suite ------------------------------------------------------------------------
+  photo_camera_toggle:                             {ingame: PhotoCameraToggle, mode: camera, label: Open camera suite, tags: [utility]}
+  toggle_vanity_camera:                            {meta: ShiftRight, ingame: ToggleVanityCamera, mode: camera, label: Toggle vanity camera, tags: [utility]}
+  toggle_vanity_camera_buggy:                      {meta: ShiftRight, ingame: ToggleVanityCamera_Buggy, mode: camera, label: Toggle vanity camera, tags: [utility]}
+  vanity_camera_scroll_left:                       {key: ArrowLeft, ingame: VanityCameraScrollLeft, mode: camera, label: Vanity camera scroll left, tags: [utility]}
+  vanity_camera_scroll_right:                      {key: ArrowRight, ingame: VanityCameraScrollRight, mode: camera, label: Vanity camera scroll right, tags: [utility]}
+  vanity_camera_one:                               {key: Numpad1, ingame: VanityCameraOne, mode: camera, label: "Camera: one", tags: [utility]}
+  vanity_camera_two:                               {key: Numpad2, ingame: VanityCameraTwo, mode: camera, label: "Camera: two", tags: [utility]}
+  vanity_camera_three:                             {key: Numpad3, ingame: VanityCameraThree, mode: camera, label: "Camera: three", tags: [utility]}
+  vanity_camera_four:                              {key: Numpad4, ingame: VanityCameraFour, mode: camera, label: "Camera: four", tags: [utility]}
+  vanity_camera_five:                              {key: Numpad5, ingame: VanityCameraFive, mode: camera, label: "Camera: five", tags: [utility]}
+  vanity_camera_six:                               {key: Numpad6, ingame: VanityCameraSix, mode: camera, label: "Camera: six", tags: [utility]}
+  vanity_camera_seven:                             {key: Numpad7, ingame: VanityCameraSeven, mode: camera, label: "Camera: seven", tags: [utility]}
+  vanity_camera_eight:                             {key: Numpad8, ingame: VanityCameraEight, mode: camera, label: "Camera: eight", tags: [utility]}
+  vanity_camera_nine:                              {key: Numpad9, ingame: VanityCameraNine, mode: camera, label: "Camera: nine", tags: [utility]}
+  toggle_free_cam:                                 {key: Numpad0, ingame: ToggleFreeCam, mode: camera, label: Toggle free camera, tags: [utility]}
+  free_cam_toggle_hud:                             {meta: ControlLeft, ingame: FreeCamToggleHUD, mode: camera, label: Free camera toggle HUD, tags: [utility]}
+  free_cam_speed_inc:                              {key: Equal, ingame: FreeCamSpeedInc, mode: camera, label: Free camera speed up, tags: [utility]}
+  free_cam_speed_dec:                              {key: Minus, ingame: FreeCamSpeedDec, mode: camera, label: Free camera speed down, tags: [utility]}
+  free_cam_zoom_in:                                {key: ArrowUp, ingame: FreeCamZoomIn, mode: camera, label: Free camera zoom in, tags: [utility]}
+  free_cam_zoom_out:                               {key: ArrowDown, ingame: FreeCamZoomOut, mode: camera, label: Free camera zoom out, tags: [utility]}
+  move_free_cam_forward:                           {key: KeyW, ingame: MoveFreeCamForward, mode: camera, label: Move free camera forward, tags: [utility]}
+  move_free_cam_backwards:                         {key: KeyS, ingame: MoveFreeCamBackwards, mode: camera, label: Move free camera backwards, tags: [utility]}
+  move_free_cam_right:                             {key: KeyD, ingame: MoveFreeCamRight, mode: camera, label: Move free camera right, tags: [utility]}
+  move_free_cam_left:                              {key: KeyA, ingame: MoveFreeCamLeft, mode: camera, label: Move free camera left, tags: [utility]}
+  move_free_cam_up:                                {key: KeyR, ingame: MoveFreeCamUp, mode: camera, label: Move free camera up, tags: [utility]}
+  move_free_cam_down:                              {key: KeyF, ingame: MoveFreeCamDown, mode: camera, label: Move free camera down, tags: [utility]}
+  pitch_camera_up:                                 {ingame: PitchCameraUp, mode: camera, label: Pitch camera up, tags: [utility]}
+  pitch_camera_down:                               {ingame: PitchCameraDown, mode: camera, label: Pitch camera down, tags: [utility]}
+  yaw_camera_left:                                 {ingame: YawCameraLeft, mode: camera, label: Yaw camera left, tags: [utility]}
+  yaw_camera_right:                                {ingame: YawCameraRight, mode: camera, label: Yaw camera right, tags: [utility]}
+  roll_camera_left:                                {key: KeyQ, ingame: RollCameraLeft, mode: camera, label: Roll camera left, tags: [utility]}
+  roll_camera_right:                               {key: KeyE, ingame: RollCameraRight, mode: camera, label: Roll camera right, tags: [utility]}
+  toggle_rotation_lock:                            {key: End, ingame: ToggleRotationLock, mode: camera, label: Toggle rotation lock, tags: [utility]}
+  fix_camera_relative_toggle:                      {key: Numpad0, ingame: FixCameraRelativeToggle, mode: camera, label: Fix camera relative toggle, tags: [utility]}
+  fix_camera_world_toggle:                         {key: Space, ingame: FixCameraWorldToggle, mode: camera, label: Fix camera world toggle, tags: [utility]}
+  quit_camera:                                     {key: Backspace, ingame: QuitCamera, mode: camera, label: Quit camera, tags: [utility]}
+  toggle_advance_mode:                             {key: Delete, ingame: ToggleAdvanceMode, mode: camera, label: Toggle advance mode, tags: [utility]}
+  f_stop_inc:                                      {key: ArrowRight, ingame: FStopInc, mode: camera, label: F-stop up, tags: [utility]}
+  f_stop_dec:                                      {key: ArrowLeft, ingame: FStopDec, mode: camera, label: F-stop down, tags: [utility]}
+  focus_distance_inc:                              {key: ArrowUp, ingame: FocusDistanceInc, mode: camera, label: Focus distance up, tags: [utility]}
+  focus_distance_dec:                              {key: ArrowDown, ingame: FocusDistanceDec, mode: camera, label: Focus distance down, tags: [utility]}
+  toggle_reverse_throttle_input_free_cam:          {ingame: ToggleReverseThrottleInputFreeCam, mode: camera, label: Toggle reverse throttle input free camera, tags: [utility]}
+  vanity_camera_ten:                               {ingame: VanityCameraTen, mode: camera, label: "Camera: ten", tags: [utility]}
+
+  # --- Store and commander creator ---------------------------------------------------------
+  commander_creator_undo:                          {key: KeyZ, ingame: CommanderCreator_Undo, mode: store, label: Undo, tags: [menu]}
+  commander_creator_redo:                          {key: KeyX, ingame: CommanderCreator_Redo, mode: store, label: Redo, tags: [menu]}
+  commander_creator_rotation_mouse_toggle:         {mouse: right, ingame: CommanderCreator_Rotation_MouseToggle, mode: store, label: Rotation mouse toggle, tags: [menu]}
+  store_enable_rotation:                           {mouse: middle, ingame: StoreEnableRotation, mode: store, label: Enable rotation, tags: [menu]}
+  store_cam_zoom_in:                               {key: KeyX, ingame: StoreCamZoomIn, mode: store, label: Camera zoom in, tags: [menu]}
+  store_cam_zoom_out:                              {key: KeyZ, ingame: StoreCamZoomOut, mode: store, label: Camera zoom out, tags: [menu]}
+  store_toggle:                                    {key: Tab, ingame: StoreToggle, mode: store, label: Toggle, tags: [menu]}
+  store_pitch_camera_up:                           {ingame: StorePitchCameraUp, mode: store, label: Pitch camera up, tags: [menu]}
+  store_pitch_camera_down:                         {ingame: StorePitchCameraDown, mode: store, label: Pitch camera down, tags: [menu]}
+  store_yaw_camera_left:                           {ingame: StoreYawCameraLeft, mode: store, label: Yaw camera left, tags: [menu]}
+  store_yaw_camera_right:                          {ingame: StoreYawCameraRight, mode: store, label: Yaw camera right, tags: [menu]}
+
+  # --- Everywhere --------------------------------------------------------------------------
+  mouse_reset:                                     {ingame: MouseReset, mode: general, label: Reset mouse, tags: [utility]}
+  hmd_reset:                                       {key: F12, ingame: HMDReset, mode: general, label: Reset headset view, tags: [utility]}
+  microphone_mute:                                 {ingame: MicrophoneMute, mode: general, label: Microphone mute, tags: [utility]}
+  show_pg_score_summary_input:                     {key: F1, ingame: ShowPGScoreSummaryInput, mode: general, label: CQC scoreboard, tags: [utility]}
+  pause:                                           {key: KeyP, ingame: Pause, mode: general, label: Pause menu, tags: [utility]}
+  friends_menu:                                    {ingame: FriendsMenu, mode: general, label: Friends menu, tags: [utility]}
+  block_mouse_decay:                               {ingame: BlockMouseDecay, mode: general, label: Hold mouse position, tags: [utility]}
+  galnet_audio_play_pause:                         {ingame: GalnetAudio_Play_Pause, mode: general, label: Galnet audio play pause, tags: [utility]}
+  galnet_audio_skip_forward:                       {ingame: GalnetAudio_SkipForward, mode: general, label: Galnet audio skip forward, tags: [utility]}
+  galnet_audio_skip_backward:                      {ingame: GalnetAudio_SkipBackward, mode: general, label: Galnet audio skip backward, tags: [utility]}
+  galnet_audio_clear_queue:                        {ingame: GalnetAudio_ClearQueue, mode: general, label: Galnet audio clear queue, tags: [utility]}
+
+  # --- Colony construction -----------------------------------------------------------------
+  trigger_colonisation_module:                     {key: KeyY, ingame: TriggerColonisationModule, mode: construction, label: Trigger colonisation module, tags: [utility]}
+  place_settlement:                                {key: KeyV, ingame: PlaceSettlement, mode: construction, label: Place settlement, tags: [utility]}
+  rotate_settlement_left:                          {key: KeyQ, ingame: RotateSettlementLeft, mode: construction, label: Rotate settlement left, tags: [utility]}
+  rotate_settlement_right:                         {key: KeyE, ingame: RotateSettlementRight, mode: construction, label: Rotate settlement right, tags: [utility]}
+  change_construction_option:                      {key: KeyN, ingame: ChangeConstructionOption, mode: construction, label: Change construction option, tags: [utility]}
+  exit_settlement_placement_camera:                {key: Backspace, ingame: ExitSettlementPlacementCamera, mode: construction, label: Exit settlement placement camera, tags: [utility]}
+
+# Keys the game's own default puts on more than one action live at the same time. It
+# tells them apart by what you are doing -- placing a settlement, aiming the camera --
+# so they are kept as the game has them. A key the editor gives is never one of these.
+duplicate_key_allowlist:
+  - {key: KeyA, actions: [yaw_left, ui_left, cam_translate_left, steer_left_button, buggy_roll_left_button, move_free_cam_left, exploration_fss_radio_tuning_x_decrease, humanoid_strafe_left_button]}
+  - {key: KeyD, actions: [yaw_right, ui_right, cam_translate_right, steer_right_button, buggy_roll_right_button, move_free_cam_right, exploration_fss_radio_tuning_x_increase, humanoid_strafe_right_button]}
+  - {key: KeyQ, actions: [strafe_left, cycle_previous_panel, cam_yaw_left, roll_camera_left, decrease_speed_button_max, rotate_settlement_left, humanoid_open_access_panel_button, exploration_saa_previous_genus]}
+  - {key: KeyE, actions: [strafe_right, cycle_next_panel, cam_yaw_right, roll_camera_right, increase_speed_button_max, rotate_settlement_right, humanoid_primary_interact_button, humanoid_conflict_contextual_ui_button, humanoid_toggle_mission_help_panel_button, exploration_saa_next_genus]}
+  - {key: KeyR, actions: [hover_up, cam_translate_up, move_free_cam_up, humanoid_reload_button, humanoid_toggle_tool_mode_button]}
+  - {key: KeyF, actions: [hover_down, cam_translate_down, move_free_cam_down, humanoid_secondary_interact_button]}
+  - {key: KeyW, actions: [forward_key, ui_up, cam_translate_forward, buggy_pitch_up_button, move_free_cam_forward, humanoid_forward_button]}
+  - {key: KeyS, actions: [backward_key, ui_down, cam_translate_backward, buggy_pitch_down_button, move_free_cam_backwards, humanoid_backward_button]}
+  - {key: KeyX, actions: [set_speed_zero, cam_zoom_out, auto_break_buggy_button, commander_creator_redo, humanoid_throw_grenade_button, store_cam_zoom_in]}
+  - {key: KeyZ, actions: [toggle_flight_assist, cycle_previous_page, cam_zoom_in, toggle_drive_assist, commander_creator_undo, store_cam_zoom_out]}
+  - {key: Tab, actions: [use_boost_juice, multi_crew_toggle_mode, store_toggle, humanoid_select_next_grenade_type_button]}
+  - {key: KeyT, actions: [select_target, cam_pitch_up, exploration_fss_target, humanoid_activate_suit_ability_button, humanoid_toggle_flashlight_button]}
+  - {key: KeyG, actions: [cycle_next_target, cam_pitch_down]}
+  - {key: KeyH, actions: [select_highest_threat, exploration_fss_show_help]}
+  - {key: Minus, actions: [wing_nav_lock, free_cam_speed_dec, humanoid_clear_authority_level]}
+  - {key: KeyY, actions: [cycle_next_subsystem, trigger_colonisation_module]}
+  - {key: "mouse:left", actions: [primary_fire, multi_crew_primary_fire, exploration_fss_zoom_in]}
+  - {key: "mouse:right", actions: [secondary_fire, buggy_secondary_fire_button, select_target_buggy, multi_crew_secondary_fire, commander_creator_rotation_mouse_toggle, exploration_fss_zoom_out, humanoid_zoom_button, humanoid_utility_wheel_cycle_mode]}
+  - {key: KeyN, actions: [cycle_fire_group_next, change_construction_option]}
+  - {key: Delete, actions: [toggle_button_up_input, toggle_advance_mode]}
+  - {key: KeyV, actions: [deploy_heat_sink, place_settlement]}
+  - {key: Equal, actions: [orbit_lines_toggle, ui_toggle, free_cam_speed_inc]}
+  - {key: ArrowUp, actions: [increase_engines_power, free_cam_zoom_in, focus_distance_inc, increase_engines_power_buggy, exploration_fss_mini_zoom_in]}
+  - {key: ArrowRight, actions: [increase_weapons_power, vanity_camera_scroll_right, f_stop_inc, increase_weapons_power_buggy]}
+  - {key: ArrowLeft, actions: [increase_systems_power, vanity_camera_scroll_left, f_stop_dec, increase_systems_power_buggy]}
+  - {key: ArrowDown, actions: [reset_power_distribution, free_cam_zoom_out, focus_distance_dec, reset_power_distribution_buggy, exploration_fss_mini_zoom_out]}
+  - {key: Home, actions: [toggle_cargo_scoop, galaxy_map_home, toggle_cargo_scoop_buggy]}
+  - {key: "mouse:middle", actions: [head_look_toggle, head_look_toggle_buggy, exploration_fss_discovery_scan, exploration_saa_change_scanned_area_view_toggle, store_enable_rotation]}
+  - {key: Digit4, actions: [humanoid_toggle_shield_booster_module_button, humanoid_switch_to_comp_analyser]}
+  - {key: Space, actions: [ui_select, vertical_thrusters_button, fix_camera_world_toggle, humanoid_jump_button]}
+  - {key: Backspace, actions: [ui_back, quit_camera, exploration_fss_quit, exploration_saa_exit_third_person, exit_settlement_placement_camera]}
+  - {key: KeyC, actions: [cycle_next_page, humanoid_toggle_shields_button]}
+  - {key: ShiftRight, actions: [toggle_vanity_camera, toggle_vanity_camera_buggy]}
+  - {key: Numpad1, actions: [vanity_camera_one, order_defensive_behaviour]}
+  - {key: Numpad2, actions: [vanity_camera_two, order_aggressive_behaviour]}
+  - {key: Numpad3, actions: [vanity_camera_three, order_focus_target]}
+  - {key: Numpad4, actions: [vanity_camera_four, order_hold_fire]}
+  - {key: Numpad5, actions: [vanity_camera_five, order_hold_position]}
+  - {key: Numpad6, actions: [vanity_camera_six, order_follow]}
+  - {key: Numpad0, actions: [toggle_free_cam, fix_camera_relative_toggle, order_request_dock]}
+  - {key: ControlLeft, actions: [free_cam_toggle_hud, humanoid_crouch_button]}
+  - {key: Digit5, actions: [humanoid_toggle_jump_assist_module_button, humanoid_switch_to_suit_tool]}
+  - {key: Digit6, actions: [humanoid_toggle_weapon_booster_module_button, humanoid_health_pack]}
+  - {key: KeyB, actions: [humanoid_pulse_scan_button, humanoid_emote_wheel_button, humanoid_emote_slot1]}

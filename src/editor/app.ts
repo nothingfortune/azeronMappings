@@ -31,6 +31,7 @@ import { describeDirection } from "../lib/binding.js";
 import type { BindingChange } from "../lib/actionfile.js";
 import { ueKeyFor } from "../lib/ingame.js";
 import { needsWire, wireAction } from "../lib/wiring.js";
+import { layoutModes, liveTogether, playsAction } from "../lib/modes.js";
 import { bindingLabel, isModifier, keyLabel } from "../lib/keys.js";
 import { ActionSet, Device, Profile } from "../lib/model-core.js";
 import { isFileName, slugFromName } from "../lib/scaffold.js";
@@ -318,10 +319,13 @@ function wire(actionId: string): void {
   // With a game file to write, only keys that file has a name for: one it cannot name
   // would be sent and never heard.
   const connected = gameFileGaps(game).length === 0;
+  // In a game with modes of play, only actions live at the same time hold a key against it.
+  const live = liveTogether(currentSets(game));
   const key = wireAction(
     editableActions(),
     actionId,
     connected ? (name) => ueKeyFor({ key: name }) !== null : undefined,
+    (other) => live(spec?.mode, other.mode),
   );
   if (key === null) {
     saveNote =
@@ -904,7 +908,11 @@ function renderPalette(): HTMLElement {
   const bound = boundActions();
   const panel = el("div", { class: "panel palette" });
 
-  const required = Object.entries(actions.actions).filter(
+  // A layout for one mode of play -- Elite's ship, buggy, on foot -- lists that mode's
+  // actions and the ones live in every mode, not the whole game's.
+  const modes = layoutModes(currentSets(game), state.setName);
+  const played = Object.entries(actions.actions).filter(([, spec]) => playsAction(modes, spec));
+  const required = played.filter(
     ([, spec]) => (spec.tags ?? []).includes("required") && !spec.provided_by,
   );
   const missing = required.filter(([id]) => !bound.has(id));
@@ -981,7 +989,7 @@ function renderPalette(): HTMLElement {
     applyFilter();
   });
   const byRole = new Map<string, [string, ActionSpec][]>();
-  for (const entry of Object.entries(actions.actions)) {
+  for (const entry of played) {
     const tags = new Set(entry[1].tags ?? []);
     const role = ROLE_TAGS.find((tag) => tags.has(tag)) ?? "other";
     const group = byRole.get(role) ?? [];
@@ -3090,7 +3098,9 @@ function renderInGame(): HTMLElement {
   }
 
   const table = el("div", { class: "ingame-list" });
+  const modes = layoutModes(currentSets(game), state.setName);
   for (const [id, spec] of Object.entries(actions.actions)) {
+    if (!playsAction(modes, spec)) continue;
     const where = bound.get(id);
     const item = el("div", { class: `ingame-row${where ? "" : " unbound"}` });
     item.append(

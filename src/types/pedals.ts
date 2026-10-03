@@ -118,6 +118,12 @@ export interface SetPedals {
 
 export interface SetLayout {
   pedals?: SetPedals;
+  /**
+   * The modes of play this layout is for, in a game that has them (Elite Dangerous's
+   * `ship`, `srv`, `foot`, ...). The layout shows and checks only actions in these modes,
+   * and actions in modes no layout plays together may share a key. Absent: every action.
+   */
+  modes?: string[];
 }
 
 /** A game's `sets.yaml`: the parts of a layout that belong to no single profile. */

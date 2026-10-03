@@ -80,9 +80,12 @@ export function needsWire(spec: ActionSpec | undefined): boolean {
 export function freeKey(
   actions: Readonly<Record<string, ActionSpec>>,
   usable: (key: string) => boolean = () => true,
+  /** Whether an action is live at the same time as the one being wired; only those count. */
+  live: (other: ActionSpec) => boolean = () => true,
 ): string | null {
   const taken = new Set<string>();
   for (const spec of Object.values(actions)) {
+    if (!live(spec)) continue;
     for (const value of [spec.key, spec.meta]) {
       if (typeof value === "string") taken.add(value);
     }
@@ -98,10 +101,11 @@ export function wireAction(
   actions: Record<string, ActionSpec>,
   id: string,
   usable?: (key: string) => boolean,
+  live?: (other: ActionSpec) => boolean,
 ): string | null {
   const spec = actions[id];
   if (!needsWire(spec)) return null;
-  const key = freeKey(actions, usable);
+  const key = freeKey(actions, usable, live);
   if (key === null) return null;
   actions[id] = { ...spec, key };
   return key;

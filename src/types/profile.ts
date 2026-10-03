@@ -32,6 +32,13 @@ export interface ActionSpec {
   tags?: string[];
   /** Bound somewhere other than a keypad key (the unit's mouse sensor, the mouse). */
   provided_by?: string;
+  /**
+   * The mode of play the action belongs to, for a game that has them -- Elite Dangerous's
+   * ship, buggy and on foot. Actions in modes that are never live together may share a key,
+   * and a layout shows only the modes it plays (`modes:` on its entry in sets.yaml).
+   * Absent means the action is live whenever the game is.
+   */
+  mode?: string;
   axis?: string;
   note?: string;
   /**

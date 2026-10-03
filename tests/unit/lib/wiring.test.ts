@@ -4,6 +4,7 @@
 import { describe, expect, it } from "vitest";
 
 import { ueKeyFor } from "../../../src/lib/ingame.js";
+import { ANALOG_KEYCODES } from "../../../src/lib/keys.js";
 import { lintProfiles } from "../../../src/lib/lint.js";
 import { Game } from "../../../src/lib/model.js";
 import { ActionSet, Profile } from "../../../src/lib/model-core.js";
@@ -41,6 +42,10 @@ describe("the pool of keys", () => {
       expect(key).not.toMatch(/^(Shift|Control|Alt|Meta)/);
     }
     expect(new Set(WIRE_POOL).size).toBe(WIRE_POOL.length);
+  });
+
+  it("holds only keys a keyboard-mode stick can send too, so a wired action can go on one", () => {
+    for (const key of WIRE_POOL) expect(ANALOG_KEYCODES[key], key).toBeTypeOf("number");
   });
 
   it("holds only keys Everspace 2's own file has a name for", () => {

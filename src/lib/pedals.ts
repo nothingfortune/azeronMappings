@@ -219,9 +219,19 @@ export function parseSets(raw: unknown, path: string): SetsData {
     }
     if (!isPlainObject(value)) fail(path, `sets.${name}`, "expected a mapping");
     for (const key of Object.keys(value)) {
-      if (key !== "pedals") fail(path, `sets.${name}.${key}`, "unknown field");
+      if (key !== "pedals" && key !== "modes") fail(path, `sets.${name}.${key}`, "unknown field");
     }
     const layout: SetLayout = {};
+    if (value.modes !== undefined && value.modes !== null) {
+      const modes = value.modes;
+      if (
+        !Array.isArray(modes) ||
+        !modes.every((mode) => typeof mode === "string" && mode !== "")
+      ) {
+        fail(path, `sets.${name}.modes`, "expected a list of modes");
+      }
+      layout.modes = modes as string[];
+    }
     if (value.pedals !== undefined && value.pedals !== null) {
       const pedals = value.pedals;
       if (!isPlainObject(pedals)) fail(path, `sets.${name}.pedals`, "expected a mapping");

@@ -19,6 +19,8 @@ import type {
 } from "../types/profile.js";
 import type { ActionSet, Profile } from "./model-core.js";
 import { needsWire } from "./wiring.js";
+import { actionsLiveTogether, layoutModes, liveTogether, playsAction } from "./modes.js";
+import type { LiveTogether } from "./modes.js";
 import type { Game, Genre } from "./model.js";
 import { gameRowFor } from "./pedals.js";
 import { axesOnSticks, detectStickModes, pedalAxes } from "./stickmodes.js";
@@ -130,23 +132,40 @@ export function actionsByEmittedKey(actions: ActionSet): Map<string, string> {
 }
 
 /** Rules that live in actions.yaml itself. */
-export function checkActions(actions: ActionSet): Finding[] {
+export function checkActions(actions: ActionSet, live: LiveTogether = () => true): Finding[] {
   const findings: Finding[] = [];
-  const allow = new Set(actions.duplicateKeyAllowlist.map((entry) => entry.key));
   for (const [signature, ids] of actions.bySignature()) {
     const parsed = JSON.parse(signature) as [string | null, string | null, string | null];
     const [key, meta, mouse] = parsed;
     if (ids.length < 2) continue;
     if (key === null && meta === null && mouse === null) continue;
-    if (key !== null && allow.has(key)) continue;
+    // Only actions live at the same time collide: in a game with modes of play, one key is
+    // one thing in each, and the game picks by where you are.
+    const clashing = ids.filter((id, index) =>
+      ids.some(
+        (other, at) =>
+          at !== index && actionsLiveTogether(live, actions.actions[id], actions.actions[other]),
+      ),
+    );
+    if (clashing.length < 2) continue;
+    // An allowance covers the actions it names, and only those; one that names none covers
+    // its key.
+    // A mouse button is allowed as `mouse:<button>`, the way the binding sheet names it.
+    const allowedAs = key ?? meta ?? (mouse === null ? null : `mouse:${mouse}`);
+    const allowed = actions.duplicateKeyAllowlist.some(
+      (entry) =>
+        entry.key === allowedAs &&
+        (entry.actions === undefined || clashing.every((id) => entry.actions?.includes(id))),
+    );
+    if (allowed) continue;
     const culprit = key ?? meta ?? mouse;
     findings.push({
       level: ERROR,
       rule: "key-collision",
       ...(culprit === null ? {} : { key: culprit }),
       message:
-        `${culprit ?? "?"} is sent by ${String(ids.length)} different actions ` +
-        `(${[...ids].sort().join(", ")}); if that is deliberate add it to duplicate_key_allowlist`,
+        `${culprit ?? "?"} is sent by ${String(clashing.length)} different actions ` +
+        `(${[...clashing].sort().join(", ")}); if that is deliberate add it to duplicate_key_allowlist`,
     });
   }
   return findings;
@@ -465,6 +484,8 @@ export function checkSet(
   actions: ActionSet,
   /** Actions something other than a key already carries: an axis a pedal drives. */
   covered: ReadonlySet<string> = new Set(),
+  /** The modes the layout plays; a required action of another mode is not its to carry. */
+  modes: ReadonlySet<string> | null = null,
 ): Finding[] {
   const findings: Finding[] = [];
   const first = profiles[0];
@@ -486,6 +507,7 @@ export function checkSet(
   for (const [id, spec] of Object.entries(actions.actions)) {
     const tags = new Set(spec.tags ?? []);
     if (!tags.has("required") || spec.provided_by || covered.has(id)) continue;
+    if (!playsAction(modes, spec)) continue;
     const key = emittedKey(actions, id, null);
     if (!bound.has(id) && (key === null || !sent.has(key))) {
       findings.push({
@@ -818,7 +840,7 @@ export function lintProfiles(
   config: LintConfig,
   layouts?: LayoutContext,
 ): LintResult {
-  let findings = checkActions(actions);
+  let findings = checkActions(actions, liveTogether(layouts?.sets));
   for (const profile of profiles)
     findings = findings.concat(checkProfile(profile, actions, config));
 
@@ -830,7 +852,14 @@ export function lintProfiles(
     bySet.set(key, list);
   }
   for (const key of [...bySet.keys()].sort()) {
-    findings = findings.concat(checkSet(bySet.get(key) ?? [], actions, pedalCovered(layouts, key)));
+    findings = findings.concat(
+      checkSet(
+        bySet.get(key) ?? [],
+        actions,
+        pedalCovered(layouts, key),
+        layoutModes(layouts?.sets, key),
+      ),
+    );
   }
   if (layouts !== undefined) findings = findings.concat(checkLayouts(layouts, actions, bySet));
 

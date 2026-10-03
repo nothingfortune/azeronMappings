@@ -274,6 +274,7 @@ export const ELITE_MODES = {
   camera: "Camera suite",
   store: "Store and commander creator",
   general: "Everywhere",
+  construction: "Colony construction",
 } as const;
 
 export type EliteMode = keyof typeof ELITE_MODES;
@@ -316,6 +317,10 @@ const GENERAL_TAGS = new Set([
 ]);
 
 function modeOf(tag: string): EliteMode {
+  // Placing a settlement and the colonisation module are a mode of their own, with keys that
+  // mean other things in the ship.
+  if (/Settlement|Colonisation|ConstructionOption/.test(tag)) return "construction";
+  if (/^FocusDistance|^ToggleVanityCamera/.test(tag)) return "camera";
   if (tag.startsWith("Humanoid") || tag.endsWith("_Humanoid")) return "foot";
   if (tag.includes("Buggy") || SRV_TAGS.has(tag)) return "srv";
   if (tag.endsWith("_Landing")) return "landing";
@@ -524,6 +529,7 @@ function groupOf(tag: string, mode: EliteMode): { group: string; role: EliteRole
   if (mode === "general") return { group: "General", role: "utility" };
   if (mode === "fighter") return { group: "Orders", role: "combat" };
   if (mode === "fss" || mode === "dss") return { group: "Scanner", role: "utility" };
+  if (mode === "construction") return { group: "Construction", role: "utility" };
   if (mode === "multicrew") return { group: "Multicrew", role: is(/Fire/) ? "combat" : "utility" };
 
   if (

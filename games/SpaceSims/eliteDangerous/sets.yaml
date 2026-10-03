@@ -1,0 +1,16 @@
+# Elite Dangerous is played in modes -- the ship, the buggy, on foot -- and the same key is
+# one thing in each. So it has a layout per mode rather than one for everything: each
+# entry below is a layout, its two profiles carry `set:` the same name, and `modes` says
+# which of the game's modes it plays. The editor shows a layout only its modes' actions,
+# and two actions may share a key only when no layout plays both their modes.
+#
+# The modes used everywhere -- the maps, menus, the camera, the general controls -- are in
+# every layout. Each layout is a profile of its own on the keypads, switched to with the
+# unit's profile button.
+sets:
+  ship:
+    modes: [ship, landing, fss, dss, fighter, multicrew, headlook, construction, map, ui, general, camera, store]
+  srv:
+    modes: [srv, map, ui, general, camera, store]
+  on-foot:
+    modes: [foot, map, ui, general, camera, store]
