@@ -7,7 +7,7 @@
  */
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 import { dataDirs, hostPath, posixJoin, repoPath } from "../config/paths.js";
 import type { ExportDocument } from "../types/azeron.js";
@@ -24,6 +24,7 @@ import {
   parseInput,
 } from "./ingame.js";
 import type { Comparison, IngameChange, PedalChange, PedalPlan, PedalWaiting } from "./ingame.js";
+import { applyBinds, compareBinds, describeControl, EliteError, parseBinds } from "./elite.js";
 import { loadDevice, loadProfileData, loadTemplate, writeText } from "./io.js";
 import type { LoadedPedals } from "./io.js";
 import { capturePedals, ingamePlan, planAxes, recordCandidateNames } from "./pedals.js";
@@ -494,6 +495,7 @@ export interface IngameReport {
 
 /** What the game's own binding file says about the keys we send. */
 export function ingameReport(game: Game, override?: string): IngameReport {
+  if (isElite(game)) return eliteReport(game, override);
   const path = ingameSource(game, override);
   const file = parseInput(readFileSync(path, "utf8"));
   // Menus and photo mode reuse flight keys on purpose. Where a game says which categories
@@ -522,7 +524,7 @@ export function ingameReport(game: Game, override?: string): IngameReport {
 
 /** The committed copy of the game's binding file, as last generated. */
 export function ingameDistPath(game: Game): string {
-  return posixJoin(game.distDir(), "Input.ini");
+  return posixJoin(game.distDir(), isElite(game) ? "Custom.4.1.binds" : "Input.ini");
 }
 
 /**
@@ -557,6 +559,8 @@ export interface IngameApplyResult {
   written: string[];
   /** Where the game's previous file was copied before being replaced, if it was. */
   backup: string | null;
+  /** Elite: every file copied aside, the bindings file and the list of presets. */
+  backups?: string[];
   /**
    * What the layout's pedals did to the Joystick rows. `waiting` are pedal axes with no
    * captured game name, which write nothing; null when the game's set has no pedals.
@@ -585,6 +589,7 @@ export function applyIngame(
     requirePedals?: boolean;
   },
 ): IngameApplyResult {
+  if (isElite(game)) return applyElite(game, options);
   const owned = new Set(game.config.ingame_owned_categories ?? []);
   if (owned.size === 0) {
     throw new IngameError(
@@ -838,4 +843,140 @@ export function setPedalCandidates(
     written = pedals.device.path;
   }
   return { set: pedals.set, device: pedals.device.data.device, text, written };
+}
+
+// --- Elite Dangerous ----------------------------------------------------------------------
+
+const isElite = (game: Game): boolean => game.config.ingame_format === "elite-binds";
+
+/** The file in which the game lists the preset it uses for each category of binding. */
+const START_PRESET = "StartPreset.4.start";
+
+/** What the game's own bindings file says about the keys we send. */
+function eliteReport(game: Game, override?: string): IngameReport {
+  const path = ingameSource(game, override);
+  const binds = parseBinds(readFileSync(path, "utf8"));
+  const rows: Comparison[] = compareBinds(binds, game.actions.actions).map((row) => {
+    const label = describeControl(row.control).label;
+    return {
+      action: row.action,
+      label,
+      ours: row.ours === "" ? null : row.ours,
+      theirs: row.theirs.map((key) => ({ action: row.control, display: label, key, scale: 1 })),
+      status: row.status === "missing" ? "unmatched" : row.status,
+    };
+  });
+  return { path, rows, collisions: [], pedals: null };
+}
+
+/**
+ * Make Elite's `Custom.4.1.binds` agree with actions.yaml, starting from the preset the
+ * game ships (`ingame_preset`) and never from the player's own file. With `toGame`, the
+ * game is also told to use it: every line of `StartPreset.4.start` is set to `Custom`.
+ *
+ * Everything that can be refused is checked before anything is written, so a refusal
+ * never leaves the committed copy updated and the game's folder half done.
+ */
+function applyElite(
+  game: Game,
+  options: { write: boolean; toGame?: boolean; override?: string },
+): IngameApplyResult {
+  const live = game.config.ingame_config;
+  const preset = game.config.ingame_preset;
+  const toGame = options.write && options.toGame === true;
+  let startPath: string | null = null;
+  if (toGame) {
+    if (live === undefined) {
+      throw new IngameError(`${game.slug} has no ingame_config in game.yaml to write to`);
+    }
+    if (!existsSync(dirname(live))) {
+      throw new IngameError(
+        `the game's bindings folder ${dirname(live)} does not exist, so nothing can be ` +
+          "written to it -- run the game once so it makes the folder, or correct ingame_config",
+      );
+    }
+    if (preset === undefined || !existsSync(preset)) {
+      throw new IngameError(
+        `the game's preset ${String(preset)} does not exist -- correct ingame_preset in game.yaml`,
+      );
+    }
+    startPath = join(dirname(live), START_PRESET);
+    if (!existsSync(startPath)) {
+      throw new IngameError(
+        `${startPath} does not exist, so the game cannot be told to use the new file -- ` +
+          "run the game once so it writes it",
+      );
+    }
+  }
+
+  // The preset is the base. Where it is not installed (another machine, CI) the committed
+  // copy stands in, which is a fixed point of the vocabulary.
+  const committedPath = repoPath(ingameDistPath(game));
+  const source =
+    options.override ??
+    (preset !== undefined && existsSync(preset)
+      ? preset
+      : existsSync(committedPath)
+        ? committedPath
+        : null);
+  if (source === null) {
+    throw new IngameError(
+      `${game.slug} has no ingame_preset on disk and no committed copy to start from`,
+    );
+  }
+  let result;
+  try {
+    result = applyBinds(readFileSync(source, "utf8"), game.actions.actions);
+  } catch (error) {
+    if (error instanceof EliteError) throw new IngameError(error.message);
+    throw error;
+  }
+  const changes: IngameChange[] = result.changes.map((change) => ({
+    action: change.action,
+    display: `${describeControl(change.control).label} [${change.slot.toLowerCase()}]`,
+    category: 0,
+    from: change.from === "" ? "unbound" : change.from,
+    to: change.to === "" ? "unbound" : change.to,
+    by: change.action,
+  }));
+
+  const written: string[] = [];
+  const backups: string[] = [];
+  if (options.write) {
+    const committed = ingameDistPath(game);
+    writeText(committed, result.text);
+    written.push(committed);
+    if (toGame && live !== undefined && startPath !== null) {
+      const when = new Date().toISOString().replace(/[:.]/g, "-");
+      if (!existsSync(live) || readFileSync(live, "utf8") !== result.text) {
+        if (existsSync(live)) {
+          backups.push(`${live}.bak-${when}`);
+          writeFileSync(`${live}.bak-${when}`, readFileSync(live));
+        }
+        writeFileSync(live, result.text, "utf8");
+        written.push(live);
+      }
+      const start = readFileSync(startPath, "utf8");
+      const eol = start.includes("\r\n") ? "\r\n" : "\n";
+      const custom = start
+        .split(/\r?\n/)
+        .map((line) => (line.trim() === "" ? line : "Custom"))
+        .join(eol);
+      if (custom !== start) {
+        backups.push(`${startPath}.bak-${when}`);
+        writeFileSync(`${startPath}.bak-${when}`, readFileSync(startPath));
+        writeFileSync(startPath, custom, "utf8");
+        written.push(startPath);
+      }
+    }
+  }
+  return {
+    source,
+    changes,
+    collisions: [],
+    written,
+    backup: backups[0] ?? null,
+    backups,
+    pedals: null,
+  };
 }

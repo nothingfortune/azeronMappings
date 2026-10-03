@@ -52,6 +52,8 @@ export interface ActionSpec {
    * `MoveRight` is one action: -1 strafes left, +1 right). Omitted for a single row.
    */
   ingame_scale?: number;
+  /** Where in the game the action applies, for a game whose controls differ by mode. */
+  mode?: string;
 }
 
 export interface DuplicateKeyAllowance {
@@ -198,6 +200,16 @@ export interface GameConfig {
   export_to?: string;
   /** The game's own binding file, e.g. Everspace 2's Input.ini. */
   ingame_config?: string;
+  /**
+   * What `ingame_config` is: Everspace 2's Unreal `Input.ini` (the default) or Elite
+   * Dangerous's `.binds` file.
+   */
+  ingame_format?: "unreal-ini" | "elite-binds";
+  /**
+   * Elite only: a preset the game ships. Every write starts from it, never from the
+   * player's own file, which may hold bindings to devices that are long gone.
+   */
+  ingame_preset?: string;
   /**
    * The binding-file categories whose keyboard rows this repo owns outright -- the ones
    * live while flying. Every row in them must have an action in `actions.yaml`, and

@@ -314,7 +314,11 @@ function cmdIngame(
           );
         }
         for (const path of result.written) out(`  wrote ${path}`);
-        if (result.backup !== null) out(`  the game's previous file is at ${result.backup}`);
+        if (result.backups !== undefined && result.backups.length > 0) {
+          for (const path of result.backups) out(`  the game's previous file is at ${path}`);
+        } else if (result.backup !== null) {
+          out(`  the game's previous file is at ${result.backup}`);
+        }
         for (const entry of result.collisions) {
           out(`  shared on purpose: ${entry.key} -> ${entry.actions.join(" + ")}`);
         }

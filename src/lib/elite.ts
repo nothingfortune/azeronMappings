@@ -16,6 +16,8 @@
  * change the lines it means to and leave the rest byte for byte. Node-free.
  */
 
+import type { ActionSpec } from "../types/profile.js";
+
 /** One place a control can be bound: a button has two, an axis one. */
 export interface EliteSlot {
   slot: "Primary" | "Secondary" | "Binding";
@@ -80,10 +82,23 @@ export function parseBinds(text: string): EliteBinds {
   let keyboardLayout: string | null = null;
   let open: EliteControl | null = null;
   let slot: EliteSlot | null = null;
+  let inComment = false;
 
   for (let index = rootAt + 1; index < lines.length; index += 1) {
     const line = (lines[index] ?? "").trim();
     if (line === "" || line === "</Root>") continue;
+
+    // The installed presets carry comments between controls ("Vanity Cam Start"). They are
+    // kept in `lines` like everything else and mean nothing here, whether they sit on one
+    // line or run over several.
+    if (inComment) {
+      if (line.includes("-->")) inComment = false;
+      continue;
+    }
+    if (line.startsWith("<!--")) {
+      if (!line.includes("-->", 4)) inComment = true;
+      continue;
+    }
 
     if (open === null) {
       const whole = /^<(\w+)>([^<]*)<\/\1>$/.exec(line);
@@ -107,8 +122,11 @@ export function parseBinds(text: string): EliteBinds {
         });
         continue;
       }
-      const opening = /^<(\w+)>$/.exec(line);
-      if (!opening) throw new EliteError(`line ${String(index + 1)}: not a control: ${line}`);
+      // An opening tag may carry attributes the game does not write today.
+      const opening = /^<(\w+)(\s[^<>]*[^/<>])?\s*>$/.exec(line);
+      // Anything else between controls is kept and not understood: only a file with no
+      // <Root> is not a bindings file.
+      if (!opening) continue;
       open = { tag: opening[1] ?? "", kind: "other", line: index, endLine: index, slots: [] };
       continue;
     }
@@ -607,4 +625,251 @@ export function summarise(binds: EliteBinds): EliteSummary {
     settings,
     duplicates: binds.duplicates,
   };
+}
+
+// --- writing ------------------------------------------------------------------------------
+
+/** What one action asks of its control, in the game's own names. */
+interface Wanted {
+  device: "Keyboard" | "Mouse";
+  key: string;
+  /** Held keys, as the game names them. */
+  modifiers: string[];
+}
+
+const MOUSE_BUTTONS: Record<string, string> = {
+  left: "Mouse_1",
+  right: "Mouse_2",
+  middle: "Mouse_3",
+};
+
+/**
+ * What an action sends, or null for one that sends nothing. An action may name a key, a key
+ * with one held modifier (`key` and `meta`), a modifier on its own (`meta` alone: the
+ * modifier is then the key), or a mouse button, which may also have a modifier held.
+ */
+function wantedBy(id: string, spec: ActionSpec): Wanted | null {
+  const key = spec.key ?? null;
+  const meta = spec.meta ?? null;
+  const mouse = spec.mouse ?? null;
+  if (key !== null && mouse !== null) {
+    throw new EliteError(`${id} names both a key (${key}) and a mouse button (${mouse})`);
+  }
+  const named = (name: string): string => {
+    const found = eliteKeyFor(name);
+    if (found === null) throw new EliteError(`${id}: Elite has no name for the key ${name}`);
+    return found;
+  };
+  if (mouse !== null) {
+    const button = MOUSE_BUTTONS[mouse];
+    if (button === undefined) {
+      throw new EliteError(`${id}: ${mouse} is not a mouse button (left, right or middle)`);
+    }
+    return { device: "Mouse", key: button, modifiers: meta === null ? [] : [named(meta)] };
+  }
+  if (key !== null) {
+    return { device: "Keyboard", key: named(key), modifiers: meta === null ? [] : [named(meta)] };
+  }
+  if (meta !== null) return { device: "Keyboard", key: named(meta), modifiers: [] };
+  return null;
+}
+
+/** A binding as a short string, in our key names where there are some: `ShiftLeft+KeyW`. */
+function describeBinding(device: string, key: string, modifiers: readonly string[]): string {
+  const name = (value: string): string =>
+    device === "Mouse" && /^Mouse_\d$/.test(value)
+      ? (Object.entries(MOUSE_BUTTONS).find(([, theirs]) => theirs === value)?.[0] ?? value)
+      : (nameForEliteKey(value) ?? value);
+  const held = modifiers.map((entry) => nameForEliteKey(entry) ?? entry).sort();
+  const base = device === "Mouse" ? `mouse ${name(key)}` : name(key);
+  return [...held, base].join("+");
+}
+
+const isKeyboardOrMouse = (slot: EliteSlot): boolean =>
+  isBound(slot) && (slot.device === "Keyboard" || slot.device === "Mouse");
+
+/** A slot the repo may rewrite: on the keyboard or mouse, or on nothing. */
+const isOurs = (slot: EliteSlot): boolean =>
+  slot.device === "Keyboard" || slot.device === "Mouse" || slot.device === NO_DEVICE;
+
+const bindingOf = (slot: EliteSlot): string =>
+  describeBinding(
+    slot.device,
+    slot.key,
+    slot.modifiers.map((entry) => entry.key),
+  );
+
+const wantedText = (wanted: Wanted | null): string =>
+  wanted === null ? "" : describeBinding(wanted.device, wanted.key, wanted.modifiers);
+
+/** Each control a vocabulary names, with the action that names it. Refuses what cannot be written. */
+function claims(
+  binds: EliteBinds,
+  vocabulary: Record<string, ActionSpec>,
+): { action: string; control: EliteControl; wanted: Wanted | null }[] {
+  const byTag = new Map<string, EliteControl>();
+  for (const control of binds.controls)
+    if (!byTag.has(control.tag)) byTag.set(control.tag, control);
+  const owner = new Map<string, string>();
+  const found: { action: string; control: EliteControl; wanted: Wanted | null }[] = [];
+  for (const [action, spec] of Object.entries(vocabulary)) {
+    const tag = spec.ingame;
+    if (tag === undefined) continue;
+    const earlier = owner.get(tag);
+    if (earlier !== undefined) {
+      throw new EliteError(`${earlier} and ${action} both name the control ${tag}`);
+    }
+    owner.set(tag, action);
+    const control = byTag.get(tag);
+    if (control === undefined) {
+      throw new EliteError(`${action} names ${tag}, which the bindings file does not have`);
+    }
+    if (control.kind !== "button") {
+      throw new EliteError(`${action} names ${tag}, which is not a button control`);
+    }
+    found.push({ action, control, wanted: wantedBy(action, spec) });
+  }
+  return found;
+}
+
+export interface EliteChange {
+  action: string;
+  control: string;
+  slot: "Primary" | "Secondary";
+  /** What the slot held, or "" when it held no keyboard or mouse binding. */
+  from: string;
+  /** What it holds now, or "" when it is cleared. */
+  to: string;
+}
+
+export interface EliteWrite {
+  text: string;
+  changes: EliteChange[];
+}
+
+/** The slot's lines as the game writes them, with `hold` kept from the slot it replaces. */
+function renderSlot(
+  name: string,
+  indent: string,
+  unit: string,
+  wanted: Wanted | null,
+  hold: string | null,
+): string[] {
+  const head =
+    wanted === null
+      ? `<${name} Device="{NoDevice}" Key=""`
+      : `<${name} Device="${wanted.device}" Key="${wanted.key}"`;
+  const children = [
+    ...(wanted?.modifiers ?? []).map((key) => `<Modifier Device="Keyboard" Key="${key}" />`),
+    ...(hold === null ? [] : [hold]),
+  ];
+  if (children.length === 0) return [`${indent}${head} />`];
+  return [
+    `${indent}${head}>`,
+    ...children.map((child) => `${indent}${unit}${child}`),
+    `${indent}</${name}>`,
+  ];
+}
+
+const indentOf = (line: string): string => /^\s*/.exec(line)?.[0] ?? "";
+
+/**
+ * Write a vocabulary into a bindings file, starting from `base` (a preset the game ships).
+ *
+ * The repo owns the keyboard and mouse bindings of every button control the vocabulary
+ * names: they are removed and the action's binding put in the first slot that is then
+ * free. A slot bound to anything else -- a joystick, a pedal -- is not ours and is left
+ * alone; if both are, nothing can be written and this refuses. Every other line of `base`
+ * is kept byte for byte. The result is a `Custom` preset 4.1, the one the game reads.
+ */
+export function applyBinds(base: string, vocabulary: Record<string, ActionSpec>): EliteWrite {
+  const binds = parseBinds(base);
+  const lines = [...binds.lines];
+  const changes: EliteChange[] = [];
+  const edits: { from: number; to: number; replacement: string[] }[] = [];
+
+  for (const { action, control, wanted } of claims(binds, vocabulary)) {
+    const slots = control.slots.filter(
+      (slot): slot is EliteSlot & { slot: "Primary" | "Secondary" } => slot.slot !== "Binding",
+    );
+    const free = slots.filter(isOurs);
+    const target = wanted === null ? undefined : free[0];
+    if (wanted !== null && target === undefined) {
+      throw new EliteError(
+        `${control.tag} has both slots bound to other devices: nothing can be written for ${action}`,
+      );
+    }
+    const unit = indentOf(lines[slots[0]?.line ?? control.line] ?? "").slice(
+      indentOf(lines[control.line] ?? "").length,
+    );
+    for (const slot of slots) {
+      const receives = slot === target;
+      if (!isKeyboardOrMouse(slot) && !receives) continue;
+      const own = isKeyboardOrMouse(slot) ? bindingOf(slot) : "";
+      const next = receives ? wanted : null;
+      const holdLine =
+        lines
+          .slice(slot.line, slot.endLine + 1)
+          .map((line) => line.trim())
+          .find((line) => line.startsWith("<Hold")) ?? null;
+      const replacement = renderSlot(
+        slot.slot,
+        indentOf(lines[slot.line] ?? ""),
+        unit === "" ? "\t" : unit,
+        next,
+        receives ? holdLine : null,
+      );
+      const existing = lines.slice(slot.line, slot.endLine + 1);
+      if (replacement.join("\n") === existing.join("\n")) continue;
+      edits.push({ from: slot.line, to: slot.endLine, replacement });
+      const to = wantedText(next);
+      if (own !== to)
+        changes.push({ action, control: control.tag, slot: slot.slot, from: own, to });
+    }
+  }
+
+  // From the bottom up, so the line numbers of the edits still to be made stay true.
+  for (const edit of edits.sort((a, b) => b.from - a.from)) {
+    lines.splice(edit.from, edit.to - edit.from + 1, ...edit.replacement);
+  }
+  const rootAt = lines.findIndex((line) => /^\s*<Root\b/.test(line));
+  lines[rootAt] =
+    `${indentOf(lines[rootAt] ?? "")}<Root PresetName="Custom" MajorVersion="4" MinorVersion="1">`;
+  return { text: lines.join(binds.eol), changes };
+}
+
+export interface EliteComparison {
+  action: string;
+  control: string;
+  /** What the vocabulary sends, or "" for an action that sends nothing. */
+  ours: string;
+  /** The keyboard and mouse bindings the file has on the control. */
+  theirs: string[];
+  /** `missing` is a control the file does not have. */
+  status: "agrees" | "differs" | "missing";
+}
+
+/** Which controls the vocabulary names have other keyboard or mouse bindings in `binds`. */
+export function compareBinds(
+  binds: EliteBinds,
+  vocabulary: Record<string, ActionSpec>,
+): EliteComparison[] {
+  const byTag = new Map<string, EliteControl>();
+  for (const control of binds.controls)
+    if (!byTag.has(control.tag)) byTag.set(control.tag, control);
+  const rows: EliteComparison[] = [];
+  for (const [action, spec] of Object.entries(vocabulary)) {
+    const tag = spec.ingame;
+    if (tag === undefined) continue;
+    const ours = wantedText(wantedBy(action, spec));
+    const control = byTag.get(tag);
+    if (control?.kind !== "button") {
+      rows.push({ action, control: tag, ours, theirs: [], status: "missing" });
+      continue;
+    }
+    const theirs = control.slots.filter(isKeyboardOrMouse).map(bindingOf);
+    const agrees = ours === "" ? theirs.length === 0 : theirs.length === 1 && theirs[0] === ours;
+    rows.push({ action, control: tag, ours, theirs, status: agrees ? "agrees" : "differs" });
+  }
+  return rows;
 }
