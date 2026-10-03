@@ -367,6 +367,24 @@ describe("reading comments", () => {
     expect(binds.major).toBe("");
   });
 
+  it("does not read a control out of a comment, nor close a control early", () => {
+    const binds = parseBinds(
+      file(
+        "\t<!-- an old control:",
+        "\t<Ghost>",
+        '\t\t<Primary Device="Keyboard" Key="Key_G" />',
+        "\t</Ghost> -->",
+        "\t<Fire>",
+        "\t\t<!-- </Fire> -->",
+        '\t\t<Primary Device="Keyboard" Key="Key_F" />',
+        `\t\t${NONE}`,
+        "\t</Fire>",
+      ),
+    );
+    expect(binds.controls.map((c) => c.tag)).toEqual(["Fire"]);
+    expect(binds.controls[0]?.slots).toHaveLength(2);
+  });
+
   it("keeps and skips a line it does not understand between controls", () => {
     const binds = parseBinds(file("\tsomething odd", button("Fire", none("Primary"))));
     expect(binds.controls.map((c) => c.tag)).toEqual(["Fire"]);
