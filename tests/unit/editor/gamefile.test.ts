@@ -141,3 +141,29 @@ describe("a game whose own settings file is connected", () => {
     expect(document.querySelector(".game-file")).toBeNull();
   });
 });
+
+describe("a game whose file is Elite's bindings", () => {
+  it("is connected without categories: Elite's file is owned control by control", () => {
+    served();
+    document.body.innerHTML = '<div id="app"></div>';
+    const payload = structuredClone(PAYLOAD);
+    const game = payload.games.find((entry) => entry.slug === "everspace");
+    if (!game) throw new Error("no everspace");
+    game.ingameFile = { configured: true, ownedCategories: 0, format: "elite-binds" };
+    start(payload);
+    const picker = document.querySelector<HTMLSelectElement>("header select");
+    if (!picker) throw new Error("no game selector");
+    picker.value = String(payload.games.indexOf(game));
+    picker.dispatchEvent(new Event("change"));
+    tab("In-game");
+    expect(document.querySelector(".game-file")).toBeNull();
+    tab("Setup");
+    expect(buttons()).toContain("Update the game's keys…");
+  });
+
+  it("is what the payload says for a game that names the format, and an ini otherwise", () => {
+    expect(PAYLOAD.games.find((game) => game.slug === "everspace")?.ingameFile?.format).toBe(
+      "unreal-ini",
+    );
+  });
+});

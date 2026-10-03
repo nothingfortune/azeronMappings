@@ -433,6 +433,48 @@ keyboard side's:
 - **Never send the pedals a HID `GET_REPORT`** (`HidD_GetInputReport`). It hung them until
   they were replugged. Listening to the reports they send is safe.
 
+### Elite Dangerous's `.binds`
+
+`ingame_format: elite-binds` in `game.yaml` makes the game's file Elite's
+`Custom.4.1.binds` rather than an Unreal ini. It is XML, one element per control, each
+button control with a `Primary` and a `Secondary` slot (a device, a key, optional
+`Modifier` and `Hold` children). `src/lib/elite.ts` reads it keeping every line, names,
+groups and gives a mode of play to every control (`describeControl`), and writes it.
+
+- Each action's `ingame` is the control's tag; `key`, `meta` and `mouse` are its binding. A
+  lone `meta` is the modifier key on its own. Elite numbers its mouse buttons left, right,
+  middle (`Mouse_1`–`Mouse_3`), which is not the Azeron's order.
+- **Writing starts from `ingame_preset`**, a preset the game ships (KeyboardMouseOnly),
+  never the player's own file, which may hold bindings to devices long gone.
+- The repo owns the **keyboard and mouse** slots of every control an action names: they are
+  cleared and the action's binding goes in the first free slot. Slots on other devices
+  (a stick, the pedals), axis controls, and every other line are kept byte for byte, BOM
+  and CRLF included. A binding the keypad cannot send — two modifiers held, the mouse
+  wheel — is cleared with the rest; the action is then unbound until a layout uses it.
+- The presets do not all list the same controls, and the vocabulary is the union of all
+  of them and the owner's old file. A control the base lacks is **added before `</Root>`**
+  in the game's own shape, so the file says what every control does.
+- `--apply` also rewrites `StartPreset.4.start` so every category reads `Custom` — the
+  game ignores `Custom.4.1.binds` otherwise — and copies both files aside first. The game
+  must be closed. `dist/<Genre>/<game>/Custom.4.1.binds` is the committed copy and must be
+  a fixed point, as `Input.ini` is.
+- `games/SpaceSims/eliteDangerous/actions.yaml` was made from the installed presets by a
+  one-off script: every button control, its tag, mode and role, and the preset's key
+  where the keypad can send it. 358 actions. Regenerating it would re-deal keys the
+  layouts depend on, so it is edited, not regenerated.
+
+### Modes of play
+
+A game like Elite is played in modes — the ship, the buggy, on foot — and one key is meant
+to be a different thing in each. An action may carry `mode:`, and a layout's entry in
+`sets.yaml` may list the `modes:` it plays. Two modes are **live together** when some
+layout plays both (`src/lib/modes.ts`); a game whose layouts list none (Everspace 2) has
+everything live at once. `key-collision` is only between actions live together, the
+editor lists a layout only its modes' actions and wires a key free among those live with
+the one being placed, and `missing-required` asks a layout only for the required actions
+of the modes it plays. Elite has a layout per mode, switched on the keypads with the
+profile button.
+
 ## Detecting the units
 
 The editor's press test reports what is connected over WebHID (Chrome and Edge only).

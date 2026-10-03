@@ -125,9 +125,24 @@ Every profile change, and why. `playtests.md` records what each layout felt like
   game reads a pedal in proportion there, or as a button, is to be seen. An action dragged
   onto a pedal sets what it drives.
 - The page is centred in a wide window.
-- `src/lib/elite.ts` reads Elite Dangerous's bindings file and names, groups and assigns a
-  mode of play to each of its 396 controls. Elite is not in the editor yet; the plan for
-  that is `docs/plans/control-owned-keys.md`.
+- **Elite Dangerous**, with every control the game has. `src/lib/elite.ts` reads its
+  bindings files and names, groups and gives a mode of play to each control; the action
+  list is every button control in every installed preset and in the owner's old file, 358
+  in all, each starting on the key the game's KeyboardMouseOnly preset gives it where the
+  keypad can send that key.
+- **Modes of play.** An action can carry a mode and a layout can list the modes it plays.
+  Actions in modes no layout plays together may share a key; the editor shows a layout only
+  its modes' actions, and `missing-required` asks only for theirs. Elite has three
+  layouts -- the ship, the buggy, on foot -- each also playing the maps, menus, camera and
+  general controls.
+- **Elite's keys are written too.** Update the game's keys… (and `azeron ingame --apply`)
+  for a game with `ingame_format: elite-binds` starts from the installed preset
+  (`ingame_preset`), takes over the keyboard and mouse slots of every control an action
+  names, adds the controls the preset lacks, and writes `Custom.4.1.binds` -- the committed
+  copy, and with `--apply` the game's, after pointing `StartPreset.4.start` at `Custom`
+  and copying both files aside. Bindings the keypad cannot send (Ctrl+Alt+Space for the
+  camera suite, the mouse wheel for weapons on foot) are cleared with the rest. Not yet
+  flown. The bindings reader skips XML comments.
 
 ### Layouts
 

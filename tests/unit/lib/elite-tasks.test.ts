@@ -117,7 +117,7 @@ describe("applyIngame for Elite, to the repo only", () => {
   });
 
   it("turns a refusal from the writer into an IngameError", () => {
-    const game = elite({}, { x: { ingame: "NoSuchControl", key: "KeyX" } });
+    const game = elite({}, { x: { ingame: "UseBoostJuice", key: "Fn" } });
     expect(() => applyIngame(game, { write: true })).toThrow(IngameError);
     expect(existsSync(committed(game))).toBe(false);
   });

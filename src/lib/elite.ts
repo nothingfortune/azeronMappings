@@ -702,16 +702,23 @@ const bindingOf = (slot: EliteSlot): string =>
 const wantedText = (wanted: Wanted | null): string =>
   wanted === null ? "" : describeBinding(wanted.device, wanted.key, wanted.modifiers);
 
-/** Each control a vocabulary names, with the action that names it. Refuses what cannot be written. */
+/**
+ * Each control a vocabulary names, with the action that names it, and the controls it names
+ * that the file does not have. Refuses what cannot be written.
+ */
 function claims(
   binds: EliteBinds,
   vocabulary: Record<string, ActionSpec>,
-): { action: string; control: EliteControl; wanted: Wanted | null }[] {
+): {
+  found: { action: string; control: EliteControl; wanted: Wanted | null }[];
+  absent: { action: string; tag: string; wanted: Wanted | null }[];
+} {
   const byTag = new Map<string, EliteControl>();
   for (const control of binds.controls)
     if (!byTag.has(control.tag)) byTag.set(control.tag, control);
   const owner = new Map<string, string>();
   const found: { action: string; control: EliteControl; wanted: Wanted | null }[] = [];
+  const absent: { action: string; tag: string; wanted: Wanted | null }[] = [];
   for (const [action, spec] of Object.entries(vocabulary)) {
     const tag = spec.ingame;
     if (tag === undefined) continue;
@@ -720,16 +727,20 @@ function claims(
       throw new EliteError(`${earlier} and ${action} both name the control ${tag}`);
     }
     owner.set(tag, action);
+    if (!/^[A-Za-z_][\w.-]*$/.test(tag)) {
+      throw new EliteError(`${action} names ${tag}, which is not a control name`);
+    }
     const control = byTag.get(tag);
     if (control === undefined) {
-      throw new EliteError(`${action} names ${tag}, which the bindings file does not have`);
+      absent.push({ action, tag, wanted: wantedBy(action, spec) });
+      continue;
     }
     if (control.kind !== "button") {
       throw new EliteError(`${action} names ${tag}, which is not a button control`);
     }
     found.push({ action, control, wanted: wantedBy(action, spec) });
   }
-  return found;
+  return { found, absent };
 }
 
 export interface EliteChange {
@@ -781,6 +792,11 @@ const indentOf = (line: string): string => /^\s*/.exec(line)?.[0] ?? "";
  * free. A slot bound to anything else -- a joystick, a pedal -- is not ours and is left
  * alone; if both are, nothing can be written and this refuses. Every other line of `base`
  * is kept byte for byte. The result is a `Custom` preset 4.1, the one the game reads.
+ *
+ * The game's presets do not all list the same controls: one made for a gamepad has some a
+ * keyboard preset lacks, and the player's own file has ones no preset has. A control the
+ * vocabulary names and `base` lacks is added at the end, in the shape the game writes, so
+ * the file says what every control does rather than leaving some to the game's defaults.
  */
 export function applyBinds(base: string, vocabulary: Record<string, ActionSpec>): EliteWrite {
   const binds = parseBinds(base);
@@ -788,7 +804,8 @@ export function applyBinds(base: string, vocabulary: Record<string, ActionSpec>)
   const changes: EliteChange[] = [];
   const edits: { from: number; to: number; replacement: string[] }[] = [];
 
-  for (const { action, control, wanted } of claims(binds, vocabulary)) {
+  const { found, absent } = claims(binds, vocabulary);
+  for (const { action, control, wanted } of found) {
     const slots = control.slots.filter(
       (slot): slot is EliteSlot & { slot: "Primary" | "Secondary" } => slot.slot !== "Binding",
     );
@@ -835,6 +852,26 @@ export function applyBinds(base: string, vocabulary: Record<string, ActionSpec>)
   const rootAt = lines.findIndex((line) => /^\s*<Root\b/.test(line));
   lines[rootAt] =
     `${indentOf(lines[rootAt] ?? "")}<Root PresetName="Custom" MajorVersion="4" MinorVersion="1">`;
+  if (absent.length > 0) {
+    const first = binds.controls[0];
+    const indent = first === undefined ? "\t" : indentOf(lines[first.line] ?? "") || "\t";
+    const slotIndent = `${indent}${indent}`;
+    const added = absent.flatMap(({ action, tag, wanted }) => {
+      if (wanted !== null) {
+        changes.push({ action, control: tag, slot: "Primary", from: "", to: wantedText(wanted) });
+      }
+      return [
+        `${indent}<${tag}>`,
+        ...renderSlot("Primary", slotIndent, indent, wanted, null),
+        ...renderSlot("Secondary", slotIndent, indent, null, null),
+        `${indent}</${tag}>`,
+      ];
+    });
+    const closeAt = lines.findLastIndex((line) => /^\s*<\/Root>/.test(line));
+    if (closeAt === -1)
+      throw new EliteError("the bindings file has no </Root> to add controls before");
+    lines.splice(closeAt, 0, ...added);
+  }
   return { text: lines.join(binds.eol), changes };
 }
 

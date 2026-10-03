@@ -52,8 +52,6 @@ export interface ActionSpec {
    * `MoveRight` is one action: -1 strafes left, +1 right). Omitted for a single row.
    */
   ingame_scale?: number;
-  /** Where in the game the action applies, for a game whose controls differ by mode. */
-  mode?: string;
 }
 
 export interface DuplicateKeyAllowance {

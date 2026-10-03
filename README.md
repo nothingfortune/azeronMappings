@@ -43,6 +43,18 @@ Both units report the same USB product id, so nothing on the computer can tell t
 apart for you — the app lists them separately, and the press test (below) will confirm
 which is which if you are unsure.
 
+### Elite Dangerous
+
+Elite is played in modes, and has a layout for each: **ship**, **srv** (the buggy) and
+**on-foot**, each a pair of files in `dist/SpaceSims/eliteDangerous/`. Import all six, one
+profile per mode on each unit, and switch between them with the unit's profile button as
+you get out of the ship. The same button is a different thing in each.
+
+Update the game's keys… writes Elite's `Custom.4.1.binds` and tells the game to use it
+(`StartPreset.4.start`), keeping copies of both. Close Elite first. Anything you had bound
+to a joystick in the game is not in the new file: it starts from the game's keyboard
+preset, not your old one.
+
 ## Changing a binding
 
 A layout says which control does which action: this key is thrust, that one is boost. It

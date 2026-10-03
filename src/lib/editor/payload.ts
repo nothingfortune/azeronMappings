@@ -75,6 +75,7 @@ export function buildPayload(): EditorPayload {
       ingameFile: {
         configured: game.config.ingame_config !== undefined,
         ownedCategories: game.config.ingame_owned_categories?.length ?? 0,
+        format: game.config.ingame_format ?? "unreal-ini",
       },
     };
   });

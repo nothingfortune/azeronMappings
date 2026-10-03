@@ -31,6 +31,7 @@ import { describeDirection } from "../lib/binding.js";
 import type { BindingChange } from "../lib/actionfile.js";
 import { ueKeyFor } from "../lib/ingame.js";
 import { needsWire, wireAction } from "../lib/wiring.js";
+import { eliteKeyFor } from "../lib/elite.js";
 import { layoutModes, liveTogether, playsAction } from "../lib/modes.js";
 import { bindingLabel, isModifier, keyLabel } from "../lib/keys.js";
 import { ActionSet, Device, Profile } from "../lib/model-core.js";
@@ -324,7 +325,11 @@ function wire(actionId: string): void {
   const key = wireAction(
     editableActions(),
     actionId,
-    connected ? (name) => ueKeyFor({ key: name }) !== null : undefined,
+    connected
+      ? game.ingameFile?.format === "elite-binds"
+        ? (name) => eliteKeyFor(name) !== null
+        : (name) => ueKeyFor({ key: name }) !== null
+      : undefined,
     (other) => live(spec?.mode, other.mode),
   );
   if (key === null) {
@@ -2903,7 +2908,10 @@ function gameFileGaps(game: EditorGame): string[] {
         "or change them.",
     );
   }
-  if ((game.ingameFile?.ownedCategories ?? 0) === 0) {
+  // Elite's file is owned control by control, through each action's `ingame`; only an
+  // Unreal ini is split into categories the layout owns and ones it leaves to the game.
+  const categorised = (game.ingameFile?.format ?? "unreal-ini") === "unreal-ini";
+  if (categorised && (game.ingameFile?.ownedCategories ?? 0) === 0) {
     gaps.push(
       "it does not know which parts of that file the layout controls, so it cannot tell its " +
         "own keys from the game's menu keys.",

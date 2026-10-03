@@ -257,9 +257,49 @@ describe("applyBinds refusals", () => {
     expect(applyBinds(base, vocab({ fire: { ingame: "Fire" } })).changes).toEqual([]);
   });
 
-  it("refuses a control the file does not have", () => {
-    expect(() => applyBinds(base, vocab({ x: { ingame: "NoSuchControl", key: "KeyF" } }))).toThrow(
-      /NoSuchControl/,
+  it("adds a control the file does not have, at the end, in the game's own shape", () => {
+    const actions = vocab({
+      neutraliser: { ingame: "TriggerFieldNeutraliser", key: "KeyN", meta: "ShiftLeft" },
+      ping: { ingame: "HumanoidPing" },
+    });
+    const { text, changes } = applyBinds(base, actions);
+    const lines = text.split("\r\n");
+    expect(lines.slice(-12)).toEqual([
+      "\t<TriggerFieldNeutraliser>",
+      '\t\t<Primary Device="Keyboard" Key="Key_N">',
+      '\t\t\t<Modifier Device="Keyboard" Key="Key_LeftShift" />',
+      "\t\t</Primary>",
+      `\t\t${NONE}`,
+      "\t</TriggerFieldNeutraliser>",
+      "\t<HumanoidPing>",
+      '\t\t<Primary Device="{NoDevice}" Key="" />',
+      `\t\t${NONE}`,
+      "\t</HumanoidPing>",
+      "</Root>",
+      "",
+    ]);
+    // What it reads back as, and a second write over it adds nothing.
+    expect(controlOf(text, "TriggerFieldNeutraliser").slots[0]).toMatchObject({
+      device: "Keyboard",
+      key: "Key_N",
+    });
+    expect(changes).toEqual([
+      {
+        action: "neutraliser",
+        control: "TriggerFieldNeutraliser",
+        slot: "Primary",
+        from: "",
+        to: "ShiftLeft+KeyN",
+      },
+    ]);
+    const again = applyBinds(text, actions);
+    expect(again.text).toBe(text);
+    expect(again.changes).toEqual([]);
+  });
+
+  it("refuses a control name that would not be a control", () => {
+    expect(() => applyBinds(base, vocab({ x: { ingame: "Jump><Fire", key: "KeyF" } }))).toThrow(
+      /not a control name/,
     );
   });
 

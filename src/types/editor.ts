@@ -35,7 +35,12 @@ export interface EditorGame {
    * the categories of it that this repo owns are. The path itself stays on the server. A
    * game started from an export has neither, which is why its keys cannot be written yet.
    */
-  ingameFile?: { configured: boolean; ownedCategories: number };
+  ingameFile?: {
+    configured: boolean;
+    ownedCategories: number;
+    /** Which kind of file the game keeps its keys in: Everspace's Unreal ini, or Elite's. */
+    format?: "unreal-ini" | "elite-binds";
+  };
 }
 
 export interface EditorGenre {
