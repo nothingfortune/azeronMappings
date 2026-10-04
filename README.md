@@ -39,6 +39,13 @@ works in bash only). `npm run azeron -- help` lists everything.
 3. **Write each profile to its unit, then close the app before playing.** Profiles run
    onboard, and the app rewrites its own files while it is open.
 
+**Is what is on the units the layout?** The editor reads the Azeron app's own copy of each
+profile and compares it with the layout, key by key. While the app has an older one, the
+header shows **Re-import N**: it lists each unit's file to import and every key the unit
+does something else on — "Ring 4: the unit has Inventory (I); the layout has Ultimate
+(G)" — and those keys are marked _not on unit_ on the board. Coming back to the page from
+the app checks again. `npm run azeron -- units` says the same in the terminal.
+
 Both units report the same USB product id, so nothing on the computer can tell them
 apart for you — the app lists them separately, and the press test (below) will confirm
 which is which if you are unsure.
@@ -129,6 +136,7 @@ The linter's rules came from real play sessions. Each finding names its rule:
 | `hold-on-movement`                    | warning | A latching flight key — boost must not latch                      |
 | `duplicate-output-key`                | warning | The same key sent from two positions                              |
 | `akimbo-role-mismatch`                | warning | The same finger doing unrelated jobs on each hand                 |
+| `label-names-other-action`            | warning | A key labelled with another action's name, which the unit shows   |
 | `unverified-device`                   | warning | A device map nobody has press-tested                              |
 | `stale-acknowledgement`               | note    | An acceptance for a finding that no longer exists                 |
 

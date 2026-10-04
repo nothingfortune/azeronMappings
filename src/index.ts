@@ -46,11 +46,13 @@ import {
   checkAfterSave,
   setPedalCandidates,
   ingameReport,
+  unitsReport,
   lintFails,
   profilePathFor,
   templatePathFor,
 } from "./lib/tasks.js";
 import type { SaveCheck } from "./lib/tasks.js";
+import type { UnitsReport } from "./lib/units.js";
 import type { ExportDocument } from "./types/azeron.js";
 import { ERROR, WARNING, formatFinding, lintGame, lintGenre } from "./lib/lint.js";
 import type { LintResult } from "./lib/lint.js";
@@ -531,6 +533,22 @@ function cmdServe(port: number, host: string): number {
       send(200, JSON.stringify(payload()));
       return;
     }
+    if (request.method === "GET" && url.startsWith("/api/units")) {
+      const query = new URL(url, "http://localhost").searchParams;
+      const slug = query.get("game");
+      try {
+        if (!slug) throw new Error("name a game: /api/units?game=<slug>&set=<layout>");
+        const game = games(slug)[0];
+        if (!game) throw new Error(`no game '${slug}'`);
+        send(
+          200,
+          JSON.stringify({ ok: true, report: unitsReport(game, query.get("set") ?? undefined) }),
+        );
+      } catch (error) {
+        send(400, JSON.stringify({ ok: false, error: messageOf(error) }));
+      }
+      return;
+    }
     if (request.method === "GET" && url.startsWith("/api/ingame")) {
       const slug = new URL(url, "http://localhost").searchParams.get("game");
       try {
@@ -706,6 +724,47 @@ function cmdServe(port: number, host: string): number {
     out("  Ctrl-C to stop.");
   });
   return 0;
+}
+
+/** The report as lines: each unit, then what differs on it. */
+function unitsLines(report: UnitsReport): string[] {
+  const lines: string[] = [];
+  if (report.store === null) {
+    lines.push("the Azeron app's profiles were not found on this computer (set AZERON_STORE)");
+  }
+  for (const unit of report.units) {
+    const head = `${unit.set} ${unit.unit}: `;
+    if (unit.status === "matches") lines.push(`${head}the app has it as it is now`);
+    if (unit.status === "unbuilt") lines.push(`${head}${unit.file} has not been built`);
+    if (unit.status === "missing") {
+      lines.push(`${head}the app has no profile named "${unit.name}". Import ${unit.importPath}`);
+    }
+    if (unit.status === "differs") {
+      const count = unit.differences.length;
+      lines.push(
+        `${head}the app's copy differs on ${String(count)} control${count === 1 ? "" : "s"}. ` +
+          `Import ${unit.importPath} and write it to the unit.`,
+      );
+      for (const difference of unit.differences) {
+        lines.push(`  ${difference.where}: the app has ${difference.app}`);
+        lines.push(`  ${" ".repeat(difference.where.length)}  the layout has ${difference.layout}`);
+      }
+    }
+  }
+  return lines;
+}
+
+/** Whether the Azeron app holds each layout as it is compiled now. Non-zero when it does not. */
+function cmdUnits(selector: string | undefined, set: string | undefined, store?: string): number {
+  let behind = false;
+  for (const game of games(selector)) {
+    const report = unitsReport(game, set, store);
+    if (report.units.length === 0) continue;
+    out(`${game.name}${report.store === null ? "" : `  (app profiles: ${report.store})`}`);
+    for (const line of unitsLines(report)) out(`  ${line}`);
+    behind ||= report.units.some((unit) => unit.status !== "matches");
+  }
+  return behind ? 1 : 0;
 }
 
 function cmdBindings(selector: string | undefined): number {
@@ -892,6 +951,9 @@ function usage(): void {
                                   the constraint rules from real play sessions
   roundtrip [game]                verify golden profiles rebuild their template
   bindings [game]                 the in-game key list to check against the game
+  units [game] [--set S] [--store PATH]
+                                  whether the Azeron app holds each layout as it is now,
+                                  and which controls differ; non-zero when one does not
   ingame [game] [--apply] [--config PATH] [--require-pedals]
                                   compare the game's own bindings; --apply makes them agree
   ingame [game] --capture-pedals [--set S] [--config PATH] [--assign NAME=axis]...
@@ -974,6 +1036,8 @@ export function main(argv: string[]): number {
       return cmdRoundtrip(positionals[0]);
     case "bindings":
       return cmdBindings(positionals[0]);
+    case "units":
+      return cmdUnits(positionals[0], values.set, values.store);
     case "ingame":
       return cmdIngame(positionals[0], values.config, values.apply, {
         capture: values["capture-pedals"],

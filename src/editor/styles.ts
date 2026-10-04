@@ -267,6 +267,14 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 .key .sub { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
             font-size: 10px; line-height: 1.25; color: var(--muted); }
 .key .sub.flag { color: var(--warn); }
+/* A key the unit does something else on until the layout is imported. */
+.key.unit-stale { box-shadow: inset 0 0 0 2px var(--warn); position: relative; }
+.key.unit-stale::after { content: "≠ unit"; position: absolute; top: 3px; right: 6px;
+                         font-size: 9px; line-height: 1.2; color: var(--warn); }
+.units-report > .btn { justify-self: start; }
+.units-report .unit-behind { margin-top: 8px; }
+.units-report .unit-differences { margin: 4px 0 6px 18px; padding: 0; }
+.units-report .unit-differences li { margin: 2px 0; }
 /* Drag and drop: what is being carried, and where it may be put down. */
 .key[draggable="true"], .action[draggable="true"] { cursor: grab; }
 .drop-over { outline: 2px dashed var(--accent); outline-offset: 1px; }

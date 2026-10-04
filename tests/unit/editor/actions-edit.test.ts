@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { start } from "../../../src/editor/app.js";
 import { buildPayload } from "../../../src/lib/editor/payload.js";
 import { showWiring } from "../../helpers/editor.js";
+import { LIVE_SET } from "../../helpers/fixtures.js";
 
 const PAYLOAD = buildPayload();
 
@@ -162,5 +163,39 @@ describe("naming and tagging actions", () => {
     toggle("Headlight", "required");
     const after = document.querySelector(".checks")?.textContent ?? "";
     expect(after).not.toBe(before);
+  });
+});
+
+describe("renaming an action that is on keys", () => {
+  beforeEach(() => {
+    calls = served();
+    document.body.innerHTML = '<div id="app"></div>';
+    start(structuredClone(PAYLOAD));
+    const select = document.querySelectorAll<HTMLSelectElement>("header select")[1];
+    if (select && select.value !== LIVE_SET) {
+      select.value = LIVE_SET;
+      select.dispatchEvent(new Event("change"));
+    }
+  });
+
+  afterEach(() => {
+    (window as unknown as { AZERON_SERVED?: boolean }).AZERON_SERVED = false;
+    vi.unstubAllGlobals();
+  });
+
+  const rightKey = (position: string): string | undefined =>
+    document.querySelectorAll(".hand")[1]?.querySelector(`.key[data-position="${position}"] .name`)
+      ?.textContent ?? undefined;
+
+  it("renames the keys named after it, which is the name the unit shows", () => {
+    expect(rightKey("index_2")).toBe("Thrust forward");
+    header("In-game").click();
+    showWiring();
+    rename("Thrust forward", "Forward");
+    header("Edit").click();
+    expect(rightKey("index_2")).toBe("Forward");
+    // A key given its own name keeps it: that name was chosen, not inherited.
+    expect(rightKey("middle_4")).toBe("Thrust fwd (pulse 100)");
+    expect(header("Save").title).toContain("Right unit");
   });
 });

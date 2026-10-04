@@ -23,6 +23,7 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
+  statSync,
   writeFileSync,
 } from "node:fs";
 import { homedir, platform } from "node:os";
@@ -99,6 +100,40 @@ export function listStoredProfiles(store: string, deviceId: string): StoredProfi
       return { id: data.id, name: data.name, file };
     })
     .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export interface StoredProfile {
+  deviceId: string;
+  /** The file, under the store. */
+  path: string;
+  /** When the app last wrote it. */
+  modified: Date;
+  profile: ExportProfile;
+}
+
+/**
+ * Every copy of a profile the app holds under `name`, newest first. The app gives an
+ * imported profile a new id but keeps its name, so the name is what finds it; importing
+ * the same file twice leaves two. A file that does not parse is passed over: the app owns
+ * the directory, and a half-written file is its business.
+ */
+export function findStoredProfiles(store: string, name: string): StoredProfile[] {
+  const found: StoredProfile[] = [];
+  for (const deviceId of listDeviceIds(store)) {
+    const dir = join(store, deviceId, "ProfileStorage");
+    for (const file of readdirSync(dir).filter((entry) => entry.endsWith(".json"))) {
+      const path = join(dir, file);
+      let profile: ExportProfile;
+      try {
+        profile = JSON.parse(readFileSync(path, "utf8")) as ExportProfile;
+      } catch {
+        continue;
+      }
+      if (profile.name !== name || !Array.isArray(profile.inputs)) continue;
+      found.push({ deviceId, path, modified: statSync(path).mtime, profile });
+    }
+  }
+  return found.sort((a, b) => b.modified.getTime() - a.modified.getTime());
 }
 
 /** True when the Azeron app looks like it is running. */

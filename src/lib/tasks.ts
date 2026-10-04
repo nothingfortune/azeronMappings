@@ -48,6 +48,9 @@ import {
 import { dumpYaml } from "./yaml.js";
 import { loadInherited } from "./yaml-io.js";
 import { messageOf } from "./object.js";
+import { findStore, findStoredProfiles } from "./install.js";
+import { compareUnit } from "./units.js";
+import type { UnitCheck, UnitDifference, UnitsReport } from "./units.js";
 
 export interface BuiltProfile {
   profile: string;
@@ -979,4 +982,57 @@ function applyElite(
     backups,
     pedals: null,
   };
+}
+
+/**
+ * Whether the Azeron app holds each layout's profiles as they are compiled now. Only reads:
+ * the app's directory is the app's. `setName` narrows to one layout.
+ */
+export function unitsReport(game: Game, setName?: string, store?: string): UnitsReport {
+  const found = findStore(store);
+  const units: UnitCheck[] = [];
+  for (const profile of game.loadedProfiles()) {
+    const set = profile.set ?? "";
+    if (setName !== undefined && set !== setName) continue;
+    const file = posixJoin(game.distDir(), profile.outputName);
+    const base = {
+      set,
+      unit: profile.unit ?? "?",
+      name: profile.name ?? profile.slug,
+      file,
+      importPath: hostPath(repoPath(file)),
+      copies: 0,
+      differences: [] as UnitDifference[],
+    };
+    if (!existsSync(repoPath(file))) {
+      units.push({ ...base, status: "unbuilt" });
+      continue;
+    }
+    const document = JSON.parse(readFileSync(repoPath(file), "utf8")) as ExportDocument;
+    const compiled =
+      document.profiles.find((entry) => entry.name === profile.name) ??
+      document.profiles[profile.meta.template_profile ?? 0];
+    if (compiled === undefined) {
+      units.push({ ...base, status: "unbuilt" });
+      continue;
+    }
+    const name = compiled.name;
+    const copies = found === null ? [] : findStoredProfiles(found, name);
+    const newest = copies[0];
+    if (newest === undefined) {
+      units.push({ ...base, name, status: "missing" });
+      continue;
+    }
+    const differences = compareUnit(compiled, newest.profile, profile.device, game.actions);
+    units.push({
+      ...base,
+      name,
+      status: differences.length === 0 ? "matches" : "differs",
+      appFile: hostPath(newest.path),
+      appModified: newest.modified.toISOString(),
+      copies: copies.length,
+      differences,
+    });
+  }
+  return { store: found === null ? null : hostPath(found), units };
 }

@@ -46,6 +46,7 @@ output, so `npm run build` first:
 | `azeron lint [game] [--strict]`                     | the constraint rules; `--show-acknowledged` too                                 |
 | `azeron roundtrip [game]`                           | golden profiles must rebuild their template exactly                             |
 | `azeron bindings [game]`                            | the in-game key list, to check against the game                                 |
+| `azeron units [game] [--set S]`                     | whether the Azeron app has each layout as it is now, and which keys differ      |
 | `azeron ingame [game] [--apply]`                    | compare the game's `Input.ini`; `--apply` rewrites it                           |
 | `azeron ingame [game] --capture-pedals`             | record the pedals' game names from a file they were bound in                    |
 | `azeron ingame [game] --candidate axis=NAME`        | write a hand-written pedal name (a candidate)                                   |
@@ -499,6 +500,24 @@ refuses to run rather than guess:
 - the app rewrites that directory as it pleases, so it must be closed first.
 
 Importing through the app stays the supported path.
+
+**Reading the store is how the repo knows what the units have.** A layout reaches a unit
+only through an import, and the page's own list of files a save changed did not survive a
+reload: the units went on with an old layout while the board showed the new one, and a
+key labelled Ultimate opened the inventory. `unitsReport` in `tasks.ts` finds the app's
+copy of each profile by name (the app gives an import a new id but keeps its name; the
+newest copy wins), and `compareUnit` in `src/lib/units.ts` compares it with the compiled
+file control by control, both read the same way so a key the app spells another way is the
+same key. Only the pins the compiler writes are compared. It only ever reads. The CLI is
+`azeron units`; the served page asks `/api/units` when it opens a layout, after a save, and
+when the window regains focus, and only when the payload says the store is on this
+computer (`appStore`). Tests set `AZERON_STORE` to a folder that is not there, so none of
+them reads the owner's store; one that wants a store makes its own.
+
+The app also logs every button press as `BP_<pin>` / `BR_<pin>` in
+`<appdata>/Azeron Software/combined.log`, with the binds it sends a unit (`Send bind`) and
+each import (`Successfully read 1 profiles from file`). That log is how the stale import
+was found.
 
 ## Testing
 

@@ -454,6 +454,32 @@ export function checkProfile(profile: Profile, actions: ActionSet, config: LintC
     }
   }
 
+  // The label is what the unit shows for the key, and it is compiled as written. A label
+  // that is another action's name is one left behind -- by a hand edit, or an action renamed
+  // in another layout -- and the unit would show the wrong name on the key.
+  const byName = new Map<string, string>();
+  for (const id of Object.keys(actions.actions)) {
+    const named = actions.label(id).trim().toLowerCase();
+    if (!byName.has(named)) byName.set(named, id);
+  }
+  for (const [position, spec] of Object.entries(profile.positions)) {
+    if (typeof spec.tap !== "string" || spec.label === undefined) continue;
+    const label = spec.label.trim().toLowerCase();
+    if (label === actions.label(spec.tap).trim().toLowerCase()) continue;
+    const other = byName.get(label);
+    if (other === undefined || other === spec.tap) continue;
+    findings.push({
+      level: WARNING,
+      rule: "label-names-other-action",
+      profile: name,
+      position,
+      message:
+        `labelled "${spec.label}", which is '${other}', but it sends '${spec.tap}' ` +
+        `(${actions.label(spec.tap)}). The unit would show the wrong name on the key: rename ` +
+        "it, or put the action on it again to name it after the action.",
+    });
+  }
+
   for (const [emitted, sources] of keySources) {
     if (sources.length < 2) continue;
     const parts = emitted.split("+");

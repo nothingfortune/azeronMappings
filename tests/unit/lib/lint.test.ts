@@ -50,6 +50,29 @@ describe("rules catch the known failures", () => {
   const rules = (findings: Finding[], level: string): string[] =>
     findings.filter((finding) => finding.level === level).map((finding) => finding.rule);
 
+  it("warns on a key labelled with another action's name, which the unit would show", () => {
+    const findings = mutate((data) => {
+      const key = data.positions.pinky_1;
+      if (key) key.label = "Inventory";
+    });
+    const found = findings.filter((finding) => finding.rule === "label-names-other-action");
+    expect(found.map((finding) => [finding.level, finding.position])).toEqual([
+      [WARNING, "pinky_1"],
+    ]);
+    expect(found[0]?.message).toContain("'inventory'");
+    expect(found[0]?.message).toContain("'consume_1'");
+  });
+
+  it("leaves a key's own name alone, and its action's name in another case", () => {
+    const findings = mutate((data) => {
+      const key = data.positions.pinky_1;
+      if (key) key.label = "Heal (spam)";
+      const other = data.positions.index_1;
+      if (other) other.label = "HOVER UP";
+    });
+    expect(findings.map((finding) => finding.rule)).not.toContain("label-names-other-action");
+  });
+
   it("errors on a stick in gamepad mode", () => {
     const findings = mutate((data) => {
       const stick = data.positions.stick;

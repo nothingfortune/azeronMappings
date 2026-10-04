@@ -60,4 +60,10 @@ export interface EditorPayload {
   templates: Record<string, ExportDocument>;
   games: EditorGame[];
   genres: EditorGenre[];
+  /**
+   * Whether the Azeron app's own profiles are on this computer, so the served page can ask
+   * which of a layout's controls the app does not have yet (`/api/units`). Absent in a page
+   * written before it existed.
+   */
+  appStore?: boolean;
 }

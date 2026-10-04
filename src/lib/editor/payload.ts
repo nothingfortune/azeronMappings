@@ -11,6 +11,7 @@ import type { ExportDocument } from "../../types/azeron.js";
 import type { EditorGame, EditorGenre, EditorPayload } from "../../types/editor.js";
 import type { PedalsDeviceData } from "../../types/pedals.js";
 import type { ActionSetData, DeviceData } from "../../types/profile.js";
+import { findStore } from "../install.js";
 import { loadTemplate } from "../io.js";
 import { Game, Genre } from "../model.js";
 
@@ -93,5 +94,14 @@ export function buildPayload(): EditorPayload {
     };
   });
 
-  return { generatedAt: new Date().toISOString(), devices, pedals, templates, games, genres };
+  const store = findStore();
+  return {
+    generatedAt: new Date().toISOString(),
+    devices,
+    pedals,
+    templates,
+    games,
+    genres,
+    appStore: store !== null && existsSync(store),
+  };
 }

@@ -6,6 +6,8 @@ cd "$(dirname "$0")/../.."
 # Against the frozen copy of the data, like every other test: the owner's layouts can be half
 # way through a change without failing a check of the code. See tests/fixtures/repo.
 export AZERON_DATA="$PWD/tests/fixtures/repo"
+# An Azeron app profile folder that is not there, so no test reads the real one.
+export AZERON_STORE="$PWD/tests/fixtures/no-azeron-app"
 
 fails=0
 check() {
@@ -57,6 +59,9 @@ check_fails "unknown command exits non-zero" ./bin/azeron nonsense
 check_fails "the cheatsheet command is gone" ./bin/azeron cheatsheet
 check "no generated HTML is tracked" bash -c '[ -z "$(git ls-files "*.html")" ]'
 check_fails "unknown game exits non-zero" ./bin/azeron lint no-such-game
+says "units says when the app has no copy of a layout" 'has no profile named "Everspace 2 akimbo v10 \(right\)"' \
+  ./bin/azeron units everspace --set akimbo-v10
+check_fails "units exits non-zero while the app is behind" ./bin/azeron units everspace --set akimbo-v10
 says "install refuses without --yes" "Re-run with --yes" ./bin/azeron install everspace
 says "install refuses one device id for a pair" "would send profiles for 2 units" \
   ./bin/azeron install everspace --device-id 0 --dry-run

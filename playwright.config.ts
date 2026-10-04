@@ -55,7 +55,8 @@ export default defineConfig({
   webServer: {
     // The built CLI, so the spec exercises what ships rather than a dev shim.
     command: `node build/index.js serve --port ${String(PORT)}`,
-    env: { AZERON_DATA: DATA },
+    // No Azeron app: the page must not read the owner's real profiles, or differ by machine.
+    env: { AZERON_DATA: DATA, AZERON_STORE: join(DATA, "no-azeron-app") },
     url: `http://127.0.0.1:${String(PORT)}`,
     reuseExistingServer: false,
     timeout: 60_000,

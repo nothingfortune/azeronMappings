@@ -32,6 +32,7 @@ import type { BindingChange } from "../lib/actionfile.js";
 import { ueKeyFor } from "../lib/ingame.js";
 import { needsWire, wireAction } from "../lib/wiring.js";
 import { eliteKeyFor } from "../lib/elite.js";
+import type { UnitCheck, UnitDifference, UnitsReport } from "../lib/units.js";
 import { layoutModes, liveTogether, playsAction } from "../lib/modes.js";
 import { bindingLabel, isModifier, keyLabel } from "../lib/keys.js";
 import { ActionSet, Device, Profile } from "../lib/model-core.js";
@@ -519,6 +520,16 @@ function keyCard(slug: string, position: string, extraClass = ""): HTMLElement {
       );
     }
     card.title = [name, ...extras.map((extra) => extra.text)].join("\n");
+  }
+  // The unit does something else here until the layout is imported: say so on the key,
+  // which is where the hand's surprise is looked into.
+  const stale = unitDifference(slug, position);
+  if (stale !== null && !stale.labelOnly) {
+    card.classList.add("unit-stale");
+    card.title = [
+      card.title || positionLabel(position),
+      `Not on the unit yet: it has ${stale.app}.`,
+    ].join("\n");
   }
   if (!isStick) wireKey(card, slug, position, spec !== undefined);
 
@@ -2333,6 +2344,114 @@ let failedSnapshot: string | null = null;
 const pendingImports = new Map<string, string>();
 let gameBehind = false;
 
+/**
+ * What the Azeron app holds for the open layout, against what it compiles to now, and for
+ * which game and layout it was asked. The app is where a layout reaches the units, and the
+ * page remembering which files a save changed did not survive a reload: the units went on
+ * with an old layout while the board showed the new one, and a key labelled Ultimate
+ * opened the inventory. So the page asks the app's own copy -- on opening a layout, after
+ * every save, and on coming back to the page from the app.
+ */
+let unitsKnown: { of: string; report: UnitsReport | null } | null = null;
+let unitsAsking: string | null = null;
+
+const unitsOf = (): string => `${currentGame().slug}|${state.setName}`;
+
+/** Whether the page can ask: served, and the app's profiles are on this computer. */
+const canAskUnits = (): boolean => canSave() && state.payload.appStore === true;
+
+function askUnits(): void {
+  if (!canAskUnits()) return;
+  const of = unitsOf();
+  unitsAsking = of;
+  const query = `game=${encodeURIComponent(currentGame().slug)}&set=${encodeURIComponent(state.setName)}`;
+  void fetch(`/api/units?${query}`)
+    .then((response) => response.json())
+    .then((result: { ok?: boolean; report?: UnitsReport }) => {
+      if (unitsAsking !== of) return;
+      unitsAsking = null;
+      unitsKnown = { of, report: result.ok === true ? (result.report ?? null) : null };
+      // A units report on screen is redrawn with the answer, so Check again shows it.
+      if (saveReport?.classList.contains("units-report") === true) {
+        const report = currentUnits();
+        saveReport = report === null ? null : unitsReportBox(report);
+      }
+      render();
+    })
+    .catch(() => {
+      if (unitsAsking === of) unitsAsking = null;
+      unitsKnown = { of, report: null };
+    });
+}
+
+/** The app's copy of the open layout, when it is known and the app was found. */
+function currentUnits(): UnitsReport | null {
+  if (unitsKnown?.of !== unitsOf()) return null;
+  const report = unitsKnown.report;
+  return report !== null && report.store !== null ? report : null;
+}
+
+/** The units whose copy in the app is not the layout as it is now. */
+const unitsBehind = (report: UnitsReport): UnitCheck[] =>
+  report.units.filter((unit) => unit.status === "differs" || unit.status === "missing");
+
+/** Where the app's copy of a key differs from the layout, for marking it on the board. */
+function unitDifference(slug: string, position: string): UnitDifference | null {
+  const report = currentUnits();
+  if (report === null) return null;
+  const unit = profileFor(slug).unit;
+  const check = report.units.find((entry) => entry.unit === unit);
+  return check?.differences.find((entry) => entry.position === position) ?? null;
+}
+
+/** Which unit needs which file, and every control on it the app has otherwise. */
+function unitsReportBox(report: UnitsReport): HTMLElement {
+  const box = el("div", { class: "save-report imports units-report" });
+  const behind = unitsBehind(report);
+  if (behind.length === 0) {
+    box.append(el("div", {}, ["The Azeron app has this layout on both units as it is now."]));
+    return box;
+  }
+  box.append(
+    el("div", {}, [
+      "The Azeron app does not have this layout as it is now, so the units do not either. " +
+        "Import each file below in the app, then write it to its unit:",
+    ]),
+  );
+  for (const unit of behind) {
+    const count = unit.differences.length;
+    box.append(
+      el("div", { class: "unit-behind" }, [
+        el("strong", {}, [`${unitLabel(unit.unit)} unit`]),
+        unit.status === "missing"
+          ? ` -- the app has no profile named "${unit.name}"`
+          : ` -- ${String(count)} control${count === 1 ? "" : "s"} differ`,
+      ]),
+    );
+    box.append(el("div", { class: "import-path" }, [el("code", {}, [unit.importPath])]));
+    if (count > 0) {
+      const list = el("ul", { class: "unit-differences" });
+      for (const difference of unit.differences) {
+        list.append(
+          el("li", {}, [
+            el("strong", {}, [difference.where]),
+            difference.labelOnly
+              ? `: the same key, named "${difference.app}" in the app`
+              : `: the unit has ${difference.app}; the layout has ${difference.layout}`,
+          ]),
+        );
+      }
+      box.append(list);
+    }
+  }
+  const again = el("button", { class: "btn small", type: "button" }, ["Check again"]);
+  again.addEventListener("click", () => {
+    askUnits();
+  });
+  box.append(again);
+  return box;
+}
+
 /** Save shortly after the last edit, once, unless these same edits were just refused. */
 function scheduleAutosave(): void {
   if (autosaveTimer !== null) {
@@ -2468,6 +2587,7 @@ async function saveScheme(quiet = false): Promise<void> {
   failedSnapshot = null;
   for (const entry of built.values()) pendingImports.set(entry.output, entry.importPath);
   gameBehind ||= inGameKeys || inGamePedals;
+  if (built.size > 0) askUnits();
   const path = saved.pop();
   if (last === null || path === undefined) return;
   const check = last.check;
@@ -2635,14 +2755,20 @@ function renderHeader(): HTMLElement {
   if (canSave()) {
     // What saving has left to do, kept here because a save that happens on its own has no
     // report to put it in: files to import, and a game that has not been told.
-    if (pendingImports.size > 0) {
-      const count = pendingImports.size;
+    // What the app holds, when the page could ask it; otherwise what this page has saved.
+    const units = currentUnits();
+    const behind = units === null ? null : unitsBehind(units);
+    const count = behind === null ? pendingImports.size : behind.length;
+    if (count > 0) {
       const imports = el("button", { class: "pill todo", type: "button", "data-todo": "import" }, [
         `Re-import ${String(count)}`,
       ]);
-      imports.title = `${String(count)} file(s) for the Azeron app have changed. Click for where they are.`;
+      imports.title =
+        behind === null
+          ? `${String(count)} file(s) for the Azeron app have changed. Click for where they are.`
+          : `The Azeron app's copy of ${String(count)} unit(s) is not this layout. Click for which keys.`;
       imports.addEventListener("click", () => {
-        saveReport = importsReport();
+        saveReport = units === null ? importsReport() : unitsReportBox(units);
         render();
       });
       header.append(imports);
@@ -2965,8 +3091,16 @@ let renaming: string | null = null;
 function renameAction(id: string, text: string): void {
   const label = text.trim();
   renaming = null;
+  const before = actionSetFor(currentGame()).label(id);
   if (label !== "" && label !== actionSetFor(currentGame()).actions[id]?.label) {
     (editableActions()[id] ??= {}).label = label;
+    // A key is labelled as written, and the label is what the unit shows. Every key in the
+    // layout named after the action is renamed with it; one given its own name keeps it.
+    for (const slug of slugsInSet()) {
+      for (const spec of Object.values(workingData(slug).positions)) {
+        if (spec.tap === id && spec.label === before) spec.label = label;
+      }
+    }
   }
   render();
 }
@@ -3978,8 +4112,13 @@ function render(): void {
     if (filter && caret !== null) filter.setSelectionRange(caret, caret);
   }
   scheduleAutosave();
+  if (canAskUnits() && unitsKnown?.of !== unitsOf() && unitsAsking !== unitsOf()) askUnits();
   if (!undoBound) {
     undoBound = true;
+    // Back from the Azeron app, where the layout may just have been imported.
+    window.addEventListener("focus", () => {
+      if (state.payload.games.length > 0) askUnits();
+    });
     document.addEventListener("keydown", (event) => {
       if (!(event.ctrlKey || event.metaKey) || event.shiftKey || event.key.toLowerCase() !== "z") {
         return;
@@ -4136,6 +4275,8 @@ export function start(payload = window.AZERON_PAYLOAD): void {
   failedSnapshot = null;
   pendingImports.clear();
   gameBehind = false;
+  unitsKnown = null;
+  unitsAsking = null;
   const firstGame = payload.games[0];
   resetSession();
   state = {

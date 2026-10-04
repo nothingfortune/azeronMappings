@@ -6,6 +6,18 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Added
 
+- **The editor knows what is on the units.** It reads the Azeron app's own copy of each
+  profile and compares it with the layout control by control. The header's **Re-import N**
+  now comes from that rather than from the saves this page made, which a reload forgot:
+  the right unit was still on the 2 October import while the board had moved on, so Ring
+  4, labelled Ultimate, sent I and opened the inventory. The report names each key the unit
+  does otherwise and the file to import; those keys are marked on the board; coming back
+  to the page checks again. `azeron units` is the same from the terminal. It only reads.
+- **Renaming an action renames the keys named after it.** A key's label is what the unit
+  shows, and it is compiled as written, so a rename on the In-game tab left the keys and
+  the unit showing the old name. A key given its own name keeps it.
+  `label-names-other-action` warns on a key labelled with another action's name.
+
 - **A new game from the Setup tab.** A name, a kind of game, the export, which unit it
   came from and a layout name; the game is created, selected and editable. `createGame` in
   `tasks.ts` is the one operation, shared with `azeron import`, and it now validates every
