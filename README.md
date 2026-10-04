@@ -46,6 +46,15 @@ does something else on — "Ring 4: the unit has Inventory (I); the layout has U
 (G)" — and those keys are marked _not on unit_ on the board. Coming back to the page from
 the app checks again. `npm run azeron -- units` says the same in the terminal.
 
+**Is a unit running the layout?** The app's copy is not the unit: each unit runs one of
+three profiles held in its own memory, picked with its profile button, and only the Azeron
+app can read them. So the editor asks the unit itself. **Check this unit**, beside each
+unit's name on the board, lights up one control at a time; press it, and the page reads the
+key or mouse button that arrives. Each key goes green or red, and at the end the page says
+whether the unit is running this layout, which controls are not, and what to do about it —
+including when the unit is on a press-test profile, which two of its slots still hold.
+Point at the board for the mouse-button keys: a click on the bar is a click on its buttons.
+
 Both units report the same USB product id, so nothing on the computer can tell them
 apart for you — the app lists them separately, and the press test (below) will confirm
 which is which if you are unsure.

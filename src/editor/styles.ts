@@ -272,6 +272,25 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 .key.unit-stale::after { content: "≠ unit"; position: absolute; top: 3px; right: 6px;
                          font-size: 9px; line-height: 1.2; color: var(--warn); }
 .units-report > .btn { justify-self: start; }
+/* Checking a unit by pressing it: the key to press next, and what each one sent. */
+.check-bar { display: grid; gap: 6px; padding: 8px 16px; background: var(--panel);
+             border-bottom: 1px solid var(--line); }
+.check-bar .check-ask { font-size: 14px; }
+.check-bar .check-count, .check-bar .check-note { color: var(--muted); font-size: 12px; }
+.check-bar .check-buttons { display: flex; gap: 6px; flex-wrap: wrap; }
+.check-bar .check-verdict { font-weight: 600; }
+.check-bar .check-verdict.ok { color: var(--ok); }
+.check-bar .check-verdict.bad { color: var(--error); }
+.check-bar .check-differing { margin: 0 0 0 18px; padding: 0; }
+.key.check-next, .dir.check-next { outline: 3px solid var(--accent); outline-offset: 1px;
+                                   animation: check-pulse 1s ease-in-out infinite; }
+.key.check-ok, .dir.check-ok { box-shadow: inset 0 0 0 2px var(--ok); }
+.key.check-bad, .dir.check-bad { box-shadow: inset 0 0 0 2px var(--error); }
+@keyframes check-pulse { 50% { outline-color: color-mix(in srgb, var(--accent) 35%, transparent); } }
+@media (prefers-reduced-motion: reduce) {
+  .key.check-next, .dir.check-next { animation: none; }
+}
+.hand > .title .check-unit { margin-left: auto; align-self: center; }
 .units-report .unit-behind { margin-top: 8px; }
 .units-report .unit-differences { margin: 4px 0 6px 18px; padding: 0; }
 .units-report .unit-differences li { margin: 2px 0; }
@@ -446,7 +465,7 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 1
 @media print {
   :root:root:root { ${LIGHT} color-scheme: light; }
   @page { size: landscape; margin: 10mm; }
-  header, .save-note, .dock, .menu { display: none !important; }
+  header, .save-note, .dock, .menu, .check-bar, .check-unit { display: none !important; }
   body { background: #fff; }
   .workspace { padding: 0; }
   .print-title { display: block; font-size: 16px; font-weight: 600; margin-bottom: 8px; }

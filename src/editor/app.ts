@@ -33,6 +33,8 @@ import { ueKeyFor } from "../lib/ingame.js";
 import { needsWire, wireAction } from "../lib/wiring.js";
 import { eliteKeyFor } from "../lib/elite.js";
 import type { UnitCheck, UnitDifference, UnitsReport } from "../lib/units.js";
+import { describeSent, expectedPresses, verdict } from "../lib/checkunit.js";
+import type { ExpectedPress, Sent } from "../lib/checkunit.js";
 import { layoutModes, liveTogether, playsAction } from "../lib/modes.js";
 import { bindingLabel, isModifier, keyLabel } from "../lib/keys.js";
 import { ActionSet, Device, Profile } from "../lib/model-core.js";
@@ -531,6 +533,12 @@ function keyCard(slug: string, position: string, extraClass = ""): HTMLElement {
       `Not on the unit yet: it has ${stale.app}.`,
     ].join("\n");
   }
+  const mark = checkMark(slug, position);
+  if (mark !== null) {
+    card.classList.add(mark.cls);
+    if (mark.note !== null)
+      card.title = [card.title || positionLabel(position), mark.note].join("\n");
+  }
   if (!isStick) wireKey(card, slug, position, spec !== undefined);
 
   card.addEventListener("click", () => {
@@ -575,6 +583,11 @@ function stickDial(slug: string, position: string, press: string | null): HTMLEl
     });
     cell.append(el("span", { class: "glyph" }, [DIR_GLYPH[direction] ?? ""]));
     if (label !== null) cell.append(el("span", { class: "name" }, [label]));
+    const mark = checkMark(slug, `${position}:${direction}`);
+    if (mark !== null) {
+      cell.classList.add(mark.cls);
+      if (mark.note !== null) cell.title = `stick ${direction}\n${mark.note}`;
+    }
     cell.addEventListener("click", select);
     dropTarget(
       cell,
@@ -612,12 +625,23 @@ function renderHand(slug: string): HTMLElement {
   const data = workingData(slug);
 
   const wrap = el("div", { class: "hand" });
-  wrap.append(
-    el("div", { class: "title" }, [
-      el("b", {}, [data.profile.name ?? slug]),
-      el("span", {}, [`${unitLabel(data.profile.unit)} unit`]),
-    ]),
-  );
+  const title = el("div", { class: "title" }, [
+    el("b", {}, [data.profile.name ?? slug]),
+    el("span", {}, [`${unitLabel(data.profile.unit)} unit`]),
+  ]);
+  if (state.mode === "edit" && checkRun === null) {
+    // What the unit runs is in its own memory; pressing it is how the page finds out.
+    const check = el("button", { class: "btn small check-unit", type: "button" }, [
+      "Check this unit",
+    ]);
+    check.title =
+      "Press each key on the unit when asked, and see whether it is running this layout.";
+    check.addEventListener("click", () => {
+      startCheck(slug);
+    });
+    title.append(check);
+  }
+  wrap.append(title);
 
   const layout = handLayout(device);
   const columns = layout.columns.map((entry) =>
@@ -2539,6 +2563,314 @@ function importsReport(): HTMLElement {
 }
 
 /**
+ * Checking a unit by pressing it. The page cannot read what a unit runs -- that is in the
+ * unit's memory, which only the Azeron app reads -- but it sees everything a unit sends. A
+ * run asks for each control in turn and compares what arrives with the layout, so the
+ * answer is the unit's own, whichever onboard profile it is on.
+ */
+interface CheckRun {
+  slug: string;
+  presses: ExpectedPress[];
+  /** The press being asked for; `presses.length` once every one has been asked. */
+  at: number;
+  results: Map<string, { arrived: Sent; text: string } | "skipped">;
+  /** Modifiers down now, so a key arrives with what is held for it. */
+  held: Set<string>;
+  /** A modifier pressed with nothing after it yet: on its own it is the press. */
+  pendingModifier: string | null;
+  /** One press arrives as a burst -- a repeating key, a modifier and its key -- read once. */
+  lockUntil: number;
+  /** The layout on screen had edits not saved when the run began. */
+  unsaved: boolean;
+}
+
+let checkRun: CheckRun | null = null;
+let checkBound = false;
+const CHECK_SETTLE_MS = 400;
+const MOUSE_NAMES: Record<number, string> = { 0: "left", 1: "middle", 2: "right" };
+
+const checking = (): boolean => checkRun !== null && checkRun.at < checkRun.presses.length;
+
+/**
+ * Whether a click belongs to the page rather than the unit: the run's own bar and the
+ * header. Anywhere else a click during a run is the unit's mouse button, and is read.
+ */
+const onCheckBar = (event: Event): boolean =>
+  event.target instanceof Element && event.target.closest(".check-bar, header") !== null;
+
+function startCheck(slug: string): void {
+  const presses = expectedPresses(
+    workingData(slug),
+    profileFor(slug).device,
+    actionSetFor(currentGame()),
+  );
+  capturing = null;
+  state.selected = null;
+  checkRun = {
+    slug,
+    presses,
+    at: 0,
+    results: new Map(),
+    held: new Set(),
+    pendingModifier: null,
+    lockUntil: 0,
+    unsaved: isDirty(),
+  };
+  bindCheck();
+  render();
+}
+
+/** Record what arrived for the press being asked for, and ask for the next. */
+function recordPress(arrived: Sent): void {
+  const run = checkRun;
+  const press = run?.presses[run.at];
+  if (run === null || press === undefined) return;
+  run.results.set(press.id, { arrived, text: describeSent(arrived, actionSetFor(currentGame())) });
+  run.at += 1;
+  run.pendingModifier = null;
+  run.lockUntil = Date.now() + CHECK_SETTLE_MS;
+  render();
+}
+
+function stepCheck(by: 1 | -1): void {
+  const run = checkRun;
+  if (run === null) return;
+  if (by === 1) {
+    const press = run.presses[run.at];
+    if (press !== undefined && !run.results.has(press.id)) run.results.set(press.id, "skipped");
+    run.at = Math.min(run.at + 1, run.presses.length);
+  } else {
+    run.at = Math.max(run.at - 1, 0);
+    const press = run.presses[run.at];
+    if (press !== undefined) run.results.delete(press.id);
+  }
+  render();
+}
+
+/**
+ * The listeners, on the window and before anything else, so a key the unit sends during a
+ * run is a reading and nothing more: not Undo, not Escape, not a letter in the filter box,
+ * and not a click on whatever the pointer is over. The bar's buttons stay buttons.
+ */
+function bindCheck(): void {
+  if (checkBound) return;
+  checkBound = true;
+  const swallow = (event: Event): void => {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  };
+  window.addEventListener(
+    "keydown",
+    (event) => {
+      const run = checkRun;
+      if (run === null || !checking()) return;
+      swallow(event);
+      // A key held down repeats, and a turbo key sends fresh presses for as long as it is
+      // held: either keeps the run waiting, so one press is one reading however long.
+      if (event.repeat || Date.now() < run.lockUntil) {
+        run.lockUntil = Math.max(run.lockUntil, Date.now() + CHECK_SETTLE_MS);
+        if (isModifier(event.code)) run.held.add(event.code);
+        return;
+      }
+      if (isModifier(event.code)) {
+        run.held.add(event.code);
+        run.pendingModifier ??= event.code;
+        return;
+      }
+      recordPress({ kind: "key", code: event.code, modifiers: [...run.held] });
+    },
+    true,
+  );
+  window.addEventListener(
+    "keyup",
+    (event) => {
+      const run = checkRun;
+      if (run === null) return;
+      if (isModifier(event.code)) run.held.delete(event.code);
+      if (!checking()) return;
+      swallow(event);
+      if (run.pendingModifier === event.code && Date.now() >= run.lockUntil) {
+        recordPress({ kind: "key", code: event.code, modifiers: [] });
+      }
+    },
+    true,
+  );
+  window.addEventListener(
+    "mousedown",
+    (event) => {
+      if (!checking() || onCheckBar(event)) return;
+      swallow(event);
+      const run = checkRun;
+      const button = MOUSE_NAMES[event.button];
+      if (run === null || button === undefined) return;
+      if (Date.now() < run.lockUntil) {
+        run.lockUntil = Date.now() + CHECK_SETTLE_MS;
+        return;
+      }
+      recordPress({ kind: "mouse", button });
+    },
+    true,
+  );
+  for (const type of ["click", "auxclick", "contextmenu", "mouseup"]) {
+    window.addEventListener(
+      type,
+      (event) => {
+        if (checking() && !onCheckBar(event)) swallow(event);
+      },
+      true,
+    );
+  }
+}
+
+/** How a key or stick direction reads in a run: next, sent what it should, or not. */
+function checkMark(slug: string, id: string): { cls: string; note: string | null } | null {
+  const run = checkRun;
+  if (run?.slug !== slug) return null;
+  if (run.presses[run.at]?.id === id) return { cls: "check-next", note: "Press this now." };
+  const result = run.results.get(id);
+  const press = run.presses.find((entry) => entry.id === id);
+  if (result === undefined || result === "skipped" || press === undefined) return null;
+  return verdict([press], new Map([[id, result]])).matches
+    ? { cls: "check-ok", note: `Sent ${result.text}, as the layout has.` }
+    : { cls: "check-bad", note: `Sent ${result.text}; the layout has ${press.does}.` };
+}
+
+/** The bar over the board during a run, and what the run came to once it is over. */
+function renderCheckBar(run: CheckRun): HTMLElement {
+  const unit = unitLabel(workingData(run.slug).profile.unit);
+  const bar = el("div", { class: "check-bar" });
+  const button = (label: string, act: () => void): HTMLButtonElement => {
+    const node = el("button", { class: "btn small", type: "button" }, [label]);
+    node.addEventListener("click", act);
+    return node;
+  };
+  const stop = (): void => {
+    checkRun = null;
+    render();
+  };
+  const press = run.presses[run.at];
+
+  if (run.presses.length === 0) {
+    bar.append(
+      el("div", {}, [`The ${unit.toLowerCase()} unit has nothing on it to check.`]),
+      button("Close", stop),
+    );
+    return bar;
+  }
+
+  if (press !== undefined) {
+    const done = [...run.results.values()].filter((result) => result !== "skipped");
+    const wrong = verdict(run.presses, run.results).differing.length;
+    bar.append(
+      el("div", { class: "check-ask" }, [
+        `Checking the ${unit.toLowerCase()} unit: press `,
+        el("strong", {}, [press.prompt]),
+        ` on it. The layout has ${press.does} there.`,
+        ...(press.sends.kind === "mouse"
+          ? [" Point at the board first: on this bar, a click is a click on its buttons."]
+          : []),
+      ]),
+      el("div", { class: "check-count" }, [
+        `${String(run.at + 1)} of ${String(run.presses.length)} · ` +
+          `${String(done.length - wrong)} as the layout · ${String(wrong)} not`,
+      ]),
+      el("div", { class: "check-buttons" }, [
+        button("Back", () => {
+          stepCheck(-1);
+        }),
+        button("Skip", () => {
+          stepCheck(1);
+        }),
+        button("Stop", stop),
+      ]),
+    );
+    if (run.unsaved) {
+      bar.append(
+        el("div", { class: "check-note" }, [
+          "This layout has changes that are not saved yet. A unit can only have what was " +
+            "saved and imported.",
+        ]),
+      );
+    }
+    return bar;
+  }
+
+  // Every control has been asked for: say what the unit is running.
+  const probeKeys = new Map(
+    probePayload()
+      .assignments.filter((entry) => entry.kind === "button")
+      .map((entry) => [profileFor(run.slug).device.positionByPin[entry.pin] ?? "", entry.key]),
+  );
+  const result = verdict(run.presses, run.results, probeKeys);
+  const skipped = result.skipped > 0 ? ` (${String(result.skipped)} skipped)` : "";
+  if (result.checked === 0) {
+    bar.append(
+      el("div", { class: "check-verdict" }, ["Nothing was pressed, so nothing is known."]),
+    );
+  } else if (result.matches) {
+    bar.append(
+      el("div", { class: "check-verdict ok" }, [
+        `The ${unit.toLowerCase()} unit is running this layout: all ${String(result.checked)} ` +
+          `controls sent what the layout has${skipped}.`,
+      ]),
+    );
+  } else {
+    bar.append(
+      el("div", { class: "check-verdict bad" }, [
+        `The ${unit.toLowerCase()} unit is not running this layout: ` +
+          `${String(result.differing.length)} of ${String(result.checked)} controls sent ` +
+          `something else${skipped}.`,
+      ]),
+    );
+    const list = el("ul", { class: "check-differing" });
+    for (const { press: wrong, arrived } of result.differing) {
+      list.append(
+        el("li", {}, [
+          el("strong", {}, [wrong.prompt]),
+          `: sent ${arrived}; the layout has ${wrong.does}`,
+        ]),
+      );
+    }
+    bar.append(list);
+    const app = currentUnits()?.units.find(
+      (entry) => entry.unit === workingData(run.slug).profile.unit,
+    );
+    let advice: string;
+    if (result.onProbe) {
+      advice =
+        "Those are the press-test profile's keys: the unit is on one of its press-test " +
+        "slots. Press its profile button until it is on this layout, or pick the layout in " +
+        "the Azeron app.";
+    } else if (app !== undefined && app.status !== "matches") {
+      advice = `The Azeron app has an older copy too. Import ${app.importPath} there and write it to the unit.`;
+    } else if (result.differing.length * 2 > result.checked) {
+      advice =
+        "Most controls differ, so the unit is probably on another of its onboard profiles. " +
+        "Press its profile button, or pick this layout in the Azeron app and write it to the unit.";
+    } else {
+      advice =
+        "Import this unit's file in the Azeron app and write it to the unit, then check again.";
+    }
+    bar.append(el("div", { class: "check-note" }, [advice]));
+  }
+  const others = slugsInSet().filter((slug) => slug !== run.slug);
+  bar.append(
+    el("div", { class: "check-buttons" }, [
+      button("Check again", () => {
+        startCheck(run.slug);
+      }),
+      ...others.map((slug) =>
+        button(`Check the ${unitLabel(workingData(slug).profile.unit).toLowerCase()} unit`, () => {
+          startCheck(slug);
+        }),
+      ),
+      button("Close", stop),
+    ]),
+  );
+  return bar;
+}
+
+/**
  * Save everything that changed. `quiet` is a save the page makes on its own: it does not
  * redraw to say it is saving or put a report on screen, and leaves what there is to do in
  * the header instead.
@@ -4082,6 +4414,7 @@ function adoptPendingSpec(): void {
  */
 function resetSession(): void {
   capturing = null;
+  checkRun = null;
   captureProblem = null;
   renaming = null;
   pendingSpec = null;
@@ -4189,6 +4522,9 @@ function draw(): void {
   root.append(
     el("div", { class: "print-title" }, [`${currentGame().name} \u2014 ${state.setName}`]),
   );
+  // A run belongs to a unit of the layout on screen; another layout ends it.
+  if (checkRun !== null && !slugsInSet().includes(checkRun.slug)) checkRun = null;
+  if (checkRun !== null) root.append(renderCheckBar(checkRun));
   const stage = el("div", { class: "stage" });
   const slugs = slugsInSet();
   for (const slug of slugs) stage.append(renderHand(slug));

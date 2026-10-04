@@ -514,7 +514,23 @@ when the window regains focus, and only when the payload says the store is on th
 computer (`appStore`). Tests set `AZERON_STORE` to a folder that is not there, so none of
 them reads the owner's store; one that wants a store makes its own.
 
-The app also logs every button press as `BP_<pin>` / `BR_<pin>` in
+**What a unit runs is not on disk.** Each unit holds three onboard profiles (OBM) and runs
+the one its profile button picked. The app reads them over a private HID protocol, and the
+code that does is shipped as compiled V8 bytecode (`out/main` in its `app.asar`), so the
+repo does not speak it: a guessed request to a unit could change what it holds, and one to
+the pedals hung them. The app persists only the onboard slots' labels, in its IndexedDB
+(`deviceData.<pid>.obmProfileLabels`), under the one product id both units share. On
+2026-10-04 slots 0 and 1 still held the press-test probe, slot 2 akimbo v10.
+
+So the editor asks the unit itself: **Check this unit** (`src/lib/checkunit.ts`, the run in
+`app.ts`) asks for each control in board order and reads the keystroke or mouse button that
+arrives, on window capture listeners that swallow it, so a key from the unit is never Undo
+or a click on the board. The header and the run's bar stay the page's. One press is one
+reading: a settling window that every key event restarts covers repeats, turbo and a
+modifier with its key. The verdict names a unit left on a probe slot from the probe's own
+keys.
+
+The app also logs every button press as `BP_<id>` / `BR_<id>` (the record id, not the pin) in
 `<appdata>/Azeron Software/combined.log`, with the binds it sends a unit (`Send bind`) and
 each import (`Successfully read 1 profiles from file`). That log is how the stale import
 was found.
