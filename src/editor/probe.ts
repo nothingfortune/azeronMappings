@@ -39,6 +39,15 @@ const STICK_PROMPTS: Record<StickDirection, string> = {
 
 type Mode = "pins" | "zero";
 
+/**
+ * A probe written to a unit stays in its on-board memory after the test, and the unit's
+ * profile button cycles through it like any other profile: a press then sends a probe key,
+ * which looks like a broken layout. Two units carried two each for a week.
+ */
+export const REMOVE_PROBES =
+  "Then, in the Azeron app, delete PROBE 1 pins and PROBE 2 stick zero from the unit's " +
+  "on-board profiles, or its profile button will land on them.";
+
 interface State {
   payload: ProbePayload;
   mode: Mode;
@@ -654,12 +663,18 @@ function render(): void {
         el("span", {}, [`${String(state.zeroStep + 1)} / ${String(PHYSICAL_PUSHES.length)}`]),
       );
     } else {
-      banner.append(el("b", {}, ["Zero measured."]), el("span", {}, ["Export the map below."]));
+      banner.append(
+        el("b", {}, ["Zero measured."]),
+        el("span", {}, [`Export the map below. ${REMOVE_PROBES}`]),
+      );
     }
   } else {
     const prompt = currentPrompt();
     if (state.step >= totalSteps()) {
-      banner.append(el("b", {}, ["Done."]), el("span", {}, ["Export the map below."]));
+      banner.append(
+        el("b", {}, ["Done."]),
+        el("span", {}, [`Export the map below. ${REMOVE_PROBES}`]),
+      );
     } else {
       banner.append(
         el("b", {}, [prompt.direction ? STICK_PROMPTS[prompt.direction] : `Press ${prompt.label}`]),

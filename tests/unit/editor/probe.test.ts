@@ -102,6 +102,19 @@ describe("the press test", () => {
     expect(document.querySelector(".prompt .bad")?.textContent).toContain("not the stick");
   });
 
+  it("says, once it is done, to take the probes off the unit", () => {
+    for (let i = 0; i < 60; i += 1) {
+      const skip = [...document.querySelectorAll("button")].find((b) => b.textContent === "Skip");
+      if (!skip || document.querySelector(".prompt b")?.textContent === "Done.") break;
+      skip.click();
+    }
+    expect(document.querySelector(".prompt b")?.textContent).toBe("Done.");
+    // Left on the unit, the profile button cycles onto them and every key sends a probe key.
+    expect(document.querySelector(".prompt")?.textContent).toContain(
+      "delete PROBE 1 pins and PROBE 2 stick zero from the unit's on-board profiles",
+    );
+  });
+
   it("keeps the two units' captures apart", () => {
     press(keyForPin(1));
     const unitSelect = document.querySelector<HTMLSelectElement>(".probe-bar select");

@@ -159,7 +159,9 @@ is rotated half a turn — so each map is measured. `npm run azeron -- probe` wr
 `dist/probe/probe-1-pins.json`, a profile where every pin sends a different key, and
 `probe-2-stick-zero.json` for the stick. Import one onto a unit, open the editor's
 **Press test** tab, and press what it highlights; it records which pin fired and exports
-a corrected `devices/<unit>.yaml`.
+a corrected `devices/<unit>.yaml`. Then delete **PROBE 1 pins** and **PROBE 2 stick zero**
+from the unit's on-board profiles in the Azeron app: left there, the unit's profile button
+cycles onto them and every key sends a probe key.
 
 **Bringing a layout from the Azeron app.** In the Setup tab, **Add a layout**: a name, the
 export for the left unit and the export for the right (either alone will do), then **Add

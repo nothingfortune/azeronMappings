@@ -12,6 +12,9 @@ Every profile change, and why. `playtests.md` records what each layout felt like
   unit runs is in its own memory, which only the Azeron app can read, so pressing it is how
   the unit answers for itself -- whichever of its three onboard profiles it is on. Two of
   those still hold the press-test probe, and a run on one says so.
+- The press test says, when it is done, to delete the probe profiles from the unit's
+  on-board memory, as does `azeron probe`. Both units carried two of them in their three
+  on-board slots from 28 September to 4 October, one press of the profile button away.
 - **The editor knows what is on the units.** It reads the Azeron app's own copy of each
   profile and compares it with the layout control by control. The header's **Re-import N**
   now comes from that rather than from the saves this page made, which a reload forgot:

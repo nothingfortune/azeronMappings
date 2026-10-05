@@ -4320,7 +4320,9 @@ function renderPressTest(): HTMLElement {
   panel.append(
     el("div", { class: "muted" }, [
       "Import the pins profile onto a unit, press what the diagram asks for, then export " +
-        "the device map. The stick-zero profile measures the stick's rotation.",
+        "the device map. The stick-zero profile measures the stick's rotation. When the test " +
+        "is done, delete both probes from the unit's on-board profiles in the Azeron app: " +
+        "left there, its profile button cycles onto them.",
     ]),
     controls,
   );

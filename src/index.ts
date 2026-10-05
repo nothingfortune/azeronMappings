@@ -227,6 +227,8 @@ function cmdProbe(devices: string[], templatePath: string, outDir: string): numb
   out("  1. Import probe-1-pins.json in the Azeron app and write it to the unit.");
   out("  2. Close the app, open the editor, and switch to Press test.");
   out("  3. Export the device YAML it produces over devices/<unit>.yaml.");
+  out("  4. Delete PROBE 1 pins and PROBE 2 stick zero from the unit's on-board profiles in");
+  out("     the Azeron app. Left there, the unit's profile button cycles onto them.");
   out("");
   out("  `azeron editor` can download both profiles itself -- this command is for");
   out("  getting them without opening a browser.");
