@@ -72,6 +72,18 @@ test.describe("the server's request checks", () => {
     expect(refused.status).toBe(403);
   });
 
+  test("takes a line for its output from the write bar, and only as JSON", async () => {
+    const taken = await send(
+      "POST",
+      "/api/unit-log",
+      JSON_HEADERS,
+      JSON.stringify({ line: "e2e" }),
+    );
+    expect(taken.status).toBe(200);
+    const refused = await send("POST", "/api/unit-log", { "content-type": "text/plain" }, "e2e");
+    expect(refused.status).toBe(415);
+  });
+
   test("refuses a Host that is not loopback", async () => {
     const refused = await send("GET", "/api/payload", { host: `rebind.example:${String(PORT)}` });
     expect(refused.status).toBe(403);

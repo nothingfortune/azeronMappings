@@ -63,11 +63,19 @@ import type { DetectionState, HidLike } from "../lib/hid.js";
 import { buildProbeProfile, buildStickCalibrationProfile } from "../lib/probe.js";
 import type { ProbePayload } from "../types/probe.js";
 import { start as startProbe, stop as stopProbe } from "./probe.js";
-import { connectUnit, unitMatches } from "./unit-write.js";
-import type { ConfigPicker, ConnectedUnit } from "./unit-write.js";
-import { MAX_PROFILE_NAME } from "../lib/unitproto.js";
+import {
+  CONFIG_FILTER,
+  closeUnits,
+  explain,
+  findUnits,
+  planFor,
+  slotName,
+  upToDate,
+  withSlot,
+} from "./unit-write.js";
+import type { ConfigHid, FoundUnit, UnitPlan, WriteTarget } from "./unit-write.js";
 import type { StoredProfile } from "../lib/unitproto.js";
-import type { UnitIdentity, WriteReport } from "../lib/unitsession.js";
+import type { SlotDifference, WriteReport } from "../lib/unitsession.js";
 import { CSS } from "./styles.js";
 import { applyStoredTheme, currentTheme, toggleTheme } from "./theme.js";
 
@@ -634,7 +642,7 @@ function renderHand(slug: string): HTMLElement {
     el("b", {}, [data.profile.name ?? slug]),
     el("span", {}, [`${unitLabel(data.profile.unit)} unit`]),
   ]);
-  if (state.mode === "edit" && checkRun === null && writeRun === null) {
+  if (state.mode === "edit" && checkRun === null) {
     // What the unit runs is in its own memory; pressing it is how the page finds out.
     const check = el("button", { class: "btn small check-unit", type: "button" }, [
       "Check this unit",
@@ -644,14 +652,7 @@ function renderHand(slug: string): HTMLElement {
     check.addEventListener("click", () => {
       startCheck(slug);
     });
-    const write = el("button", { class: "btn small write-unit", type: "button" }, [
-      "Write to unit",
-    ]);
-    write.title = "Write this layout into one of the unit's onboard slots, over USB.";
-    write.addEventListener("click", () => {
-      startWrite(slug);
-    });
-    title.append(check, write);
+    title.append(check);
   }
   wrap.append(title);
 
@@ -2883,33 +2884,45 @@ function renderCheckBar(run: CheckRun): HTMLElement {
 }
 
 // ---------------------------------------------------------------------------------------
-// Writing a layout into a unit
+// Writing the layout into the units
 
 /**
- * A write in progress: picking the unit, choosing a slot, writing, and what the slot held
- * when it was read back. Belongs to one unit of the layout on screen.
+ * A write of the layout on screen into the units: getting ready (saving, the Azeron app,
+ * finding the units), the plan for each unit, writing, and what each slot held afterwards.
  */
 interface WriteRun {
-  slug: string;
-  stage: "start" | "connecting" | "choose" | "writing" | "done" | "failed";
+  stage: "preparing" | "app-running" | "needs-access" | "ready" | "writing" | "done" | "failed";
+  /** What the bar says it is doing while it does it. */
+  status: string;
   note: string | null;
-  connected: ConnectedUnit | null;
-  slots: StoredProfile[];
-  /** The slot to write; `slots.length` is a new one after the last. */
-  slot: number | null;
-  name: string;
-  progress: string | null;
-  report: WriteReport | null;
-  /** What the slot held before it was written over, to put back by hand if wanted. */
-  before: StoredProfile | null;
-  /** Whether the Azeron app is running; null when the page cannot ask. */
-  appRunning: boolean | null;
+  units: FoundUnit[];
+  plans: UnitPlan[];
+  /** Units the page has been given that could not be opened or asked. */
+  problems: string[];
+  results: { plan: UnitPlan; report: WriteReport | null; error: string | null }[];
 }
 
 let writeRun: WriteRun | null = null;
 
-function configPicker(): ConfigPicker | undefined {
-  return (navigator as unknown as { hid?: ConfigPicker }).hid;
+function unitsApi(): ConfigHid | undefined {
+  return (navigator as unknown as { hid?: ConfigHid }).hid;
+}
+
+/** What happened, in the server's output, so a failure on the owner's screen can be read later. */
+function unitLog(line: string): void {
+  if (!canSave() || /^input \d+ written/.test(line)) return;
+  void fetch("/api/unit-log", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ line }),
+  }).catch(() => undefined);
+}
+
+/** Progress goes into its own line, rather than redrawing the board for every input. */
+function unitProgress(line: string): void {
+  unitLog(line);
+  const progress = document.querySelector(".write-bar .write-progress");
+  if (progress !== null) progress.textContent = line;
 }
 
 /** The profile exactly as Save builds it into `dist/`. */
@@ -2926,145 +2939,189 @@ function compiledFor(slug: string): ExportProfile {
   return compiled;
 }
 
-function startWrite(slug: string): void {
+function writeTargets(): WriteTarget[] {
+  return slugsInSet().map((slug) => {
+    const profile = profileFor(slug);
+    const data = workingData(slug);
+    return {
+      slug,
+      unit: data.profile.unit ?? slug,
+      device: profile.device.name,
+      softwareDeviceId: profile.device.softwareDeviceId,
+      name: slotName(data.profile.name ?? slug),
+      profile: compiledFor(slug),
+      unknownPins: [...profile.device.unknownPins],
+    };
+  });
+}
+
+function startWrite(): void {
+  if (writeRun !== null) return;
   capturing = null;
   state.selected = null;
-  const name = (workingData(slug).profile.name ?? slug).slice(0, MAX_PROFILE_NAME).trimEnd();
   const run: WriteRun = {
-    slug,
-    stage: "start",
+    stage: "preparing",
+    status: "Getting ready…",
     note: null,
-    connected: null,
-    slots: [],
-    slot: null,
-    name,
-    progress: null,
-    report: null,
-    before: null,
-    appRunning: null,
+    units: [],
+    plans: [],
+    problems: [],
+    results: [],
   };
   writeRun = run;
-  if (canSave()) {
-    void fetch("/api/azeron-app")
-      .then((response) => response.json())
-      .then((body: unknown) => {
-        run.appRunning = (body as { running?: unknown }).running === true;
-        if (writeRun === run) render();
-      })
-      .catch(() => undefined);
+  render();
+  void prepareWrite(run);
+}
+
+async function azeronAppRunning(): Promise<boolean> {
+  try {
+    const body = (await (await fetch("/api/azeron-app")).json()) as { running?: unknown };
+    return body.running === true;
+  } catch {
+    return false;
   }
+}
+
+/** Save, check the Azeron app, find and identify the units, and plan each unit's write. */
+async function prepareWrite(run: WriteRun): Promise<void> {
+  const step = (status: string): void => {
+    run.stage = "preparing";
+    run.status = status;
+    if (writeRun === run) render();
+  };
+  try {
+    const hid = unitsApi();
+    if (!hid) {
+      throw new Error(
+        "This browser has no WebHID, which writing to the units needs. Use Chrome or Edge.",
+      );
+    }
+    if (canSave() && isDirty()) {
+      step("Saving the layout first…");
+      await saveScheme(true);
+      if (isDirty())
+        throw new Error(
+          "The layout could not be saved, so nothing was written. The header says why.",
+        );
+    }
+    if (canSave()) {
+      step("Checking the Azeron app is closed…");
+      if (await azeronAppRunning()) {
+        run.stage = "app-running";
+        if (writeRun === run) render();
+        return;
+      }
+    }
+    step("Finding the units…");
+    await closeUnits(run.units);
+    const { units, problems } = await findUnits(hid, unitProgress);
+    run.units = units;
+    run.problems = problems;
+    run.plans = writeTargets().map((target) => planFor(target, units));
+    run.stage = run.plans.some((plan) => plan.found === null) ? "needs-access" : "ready";
+    unitLog(
+      `units: ${units.map((unit) => String(unit.identity.deviceId)).join(", ") || "none"}` +
+        (problems.length > 0 ? `; could not open: ${problems.join(" | ")}` : ""),
+    );
+  } catch (error) {
+    run.stage = "failed";
+    run.note = messageOf(error);
+    unitLog(`not ready: ${run.note}`);
+  }
+  if (writeRun === run) render();
+}
+
+function closeAzeronApp(run: WriteRun): void {
+  run.stage = "preparing";
+  run.status = "Closing the Azeron app…";
   render();
-}
-
-/** Ends a write and lets go of the unit. */
-function endWrite(redraw = true): void {
-  const run = writeRun;
-  writeRun = null;
-  void run?.connected?.transport.close();
-  if (redraw) render();
-}
-
-/** Which device map has this unit's id, for saying which unit was picked. */
-function deviceNamed(identity: UnitIdentity): string | null {
-  const match = Object.values(state.payload.devices).find(
-    (device) => device.software_device_id === String(identity.deviceId),
-  );
-  return match?.device ?? null;
-}
-
-function connectForWrite(run: WriteRun): void {
-  run.stage = "connecting";
-  run.note = null;
-  render();
-  const device = profileFor(run.slug).device;
-  // The picker has to open from the click, so this is the first thing that waits.
-  void connectUnit(configPicker(), (line) => {
-    run.progress = line;
-    // Only the progress line changes; redrawing the board for each input is slow.
-    const progress = document.querySelector(".write-bar .write-progress");
-    if (writeRun === run && progress !== null) progress.textContent = line;
+  void fetch("/api/azeron-app/close", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: "{}",
   })
-    .then(async (connected) => {
-      if (connected === null) {
-        run.stage = "start";
-        run.note = "No unit was picked.";
-        return;
-      }
-      run.connected = connected;
-      if (!unitMatches(connected.identity, device.softwareDeviceId)) {
-        const other = deviceNamed(connected.identity);
+    .then((response) => response.json())
+    .then((body: unknown) => {
+      if ((body as { running?: unknown }).running === true) {
         run.stage = "failed";
-        run.note =
-          `That is unit ${String(connected.identity.deviceId)}` +
-          (other === null ? ", which no device map names" : `, the ${other}`) +
-          `. This layout is for the ${device.name} (unit ${device.softwareDeviceId ?? "with no id recorded"}). ` +
-          "Nothing was written.";
+        run.note = "The Azeron app would not close. Quit it from its tray icon, then try again.";
+        render();
         return;
       }
-      run.slots = await connected.session.readAll();
-      const same = run.slots.find((slot) => slot.name === run.name);
-      run.slot =
-        same?.slot ??
-        (run.slots.length < connected.identity.profileLimit ? run.slots.length : null);
-      run.stage = "choose";
+      void prepareWrite(run);
     })
     .catch((error: unknown) => {
       run.stage = "failed";
       run.note = messageOf(error);
-    })
-    .finally(() => {
-      if (writeRun === run) render();
+      render();
     });
 }
 
-function writeNow(run: WriteRun): void {
-  const connected = run.connected;
-  const slot = run.slot;
-  if (connected === null || slot === null) return;
-  const existing = run.slots.find((entry) => entry.slot === slot);
-  if (
-    existing !== undefined &&
-    !window.confirm(
-      `Replace slot ${String(slot)}, "${existing.name}", on the unit with this layout?`,
-    )
-  ) {
-    return;
-  }
-  let profile: ExportProfile;
-  try {
-    profile = compiledFor(run.slug);
-  } catch (error) {
-    run.note = messageOf(error);
-    render();
-    return;
-  }
-  run.stage = "writing";
-  run.note = null;
-  run.before = existing ?? null;
-  run.progress = null;
-  render();
-  void connected.session
-    .writeProfile({
-      slot,
-      name: run.name,
-      profile,
-      unknownPins: [...profileFor(run.slug).device.unknownPins],
-    })
-    .then((report) => {
-      run.report = report;
-      run.stage = "done";
+/** One pick from the browser's dialog, for a unit the page has not been given before. */
+function grantUnit(run: WriteRun): void {
+  const hid = unitsApi();
+  if (!hid) return;
+  // The dialog only opens from the click itself, so nothing is awaited before it.
+  void hid
+    .requestDevice({ filters: [CONFIG_FILTER] })
+    .then((devices) => {
+      if (devices.length === 0) {
+        run.note = "No unit was picked.";
+        render();
+        return;
+      }
+      run.note = null;
+      void prepareWrite(run);
     })
     .catch((error: unknown) => {
-      run.stage = "failed";
-      run.note =
-        `${messageOf(error)}. ` +
-        (run.progress === null
-          ? "Nothing was written."
-          : "The slot may hold part of the layout; write it again.");
-    })
-    .finally(() => {
-      if (writeRun === run) render();
+      run.note = explain(error, "picking a unit");
+      render();
     });
+}
+
+function writeAll(run: WriteRun): void {
+  const plans = run.plans.filter(
+    (plan) => plan.found !== null && plan.slot !== null && !upToDate(plan),
+  );
+  if (plans.length === 0) return;
+  run.stage = "writing";
+  run.results = [];
+  render();
+  void (async () => {
+    for (const plan of plans) {
+      const unit = `${unitLabel(plan.target.unit).toLowerCase()} unit`;
+      const { found, slot } = plan;
+      if (found === null || slot === null) continue;
+      run.status = `Writing the ${unit} into slot ${String(slot)}…`;
+      render();
+      try {
+        const report = await found.session.writeProfile({
+          slot,
+          name: plan.target.name,
+          profile: plan.target.profile,
+          unknownPins: plan.target.unknownPins,
+        });
+        run.results.push({ plan, report, error: null });
+        unitLog(
+          `${unit}: slot ${String(slot)} written, ${String(report.problems.length)} difference(s) on reading back`,
+        );
+      } catch (error) {
+        const message = explain(error, `writing the ${unit}`);
+        run.results.push({ plan, report: null, error: message });
+        unitLog(`${unit}: ${message}`);
+      }
+    }
+    run.stage = "done";
+    await closeUnits(run.units);
+    if (writeRun === run) render();
+  })();
+}
+
+function endWrite(redraw = true): void {
+  const run = writeRun;
+  writeRun = null;
+  if (run) void closeUnits(run.units);
+  if (redraw) render();
 }
 
 /** What a slot held, in a file: the decoded inputs and each record's bytes. */
@@ -3084,13 +3141,46 @@ function downloadSlot(profile: StoredProfile): void {
   );
 }
 
+const CHANGE_WORDS: [RegExp, string][] = [
+  [/^keyValues\[0\]$/, "tap"],
+  [/^keyValues\[(\d)\]$/, "tap key $1"],
+  [/^metaValues\[\d\]$/, "tap modifier"],
+  [/^keyValuesLong\[0\]$/, "long press"],
+  [/^keyValuesLong\[\d\]$/, "long press key"],
+  [/^metaValuesLong\[\d\]$/, "long press modifier"],
+  [/^keyValuesDouble\[0\]$/, "double tap"],
+  [/^keyValuesDouble\[\d\]$/, "double tap key"],
+  [/^metaValuesDouble\[\d\]$/, "double tap modifier"],
+  [/^types$/, "kind of binding"],
+  [/^invertXAxis$/, "stick inverts X"],
+  [/^invertYAxis$/, "stick inverts Y"],
+  [/^isRightAnalog$/, "stick reads the right-hand keys"],
+  [/^analogKeys\.(\w+)\.(\w+)\[0\]$/, "stick $2 ($1 block)"],
+  [/^diagonalKeys\.(\w+)\.(\w+)\[0\]$/, "stick $2 ($1 block)"],
+];
+
+/** A difference between a slot and the layout, said the way the board says it. */
+function describeChange(slug: string, change: SlotDifference): string {
+  const position = profileFor(slug).device.positionByPin[change.pin];
+  const where =
+    (position === undefined ? `pin ${String(change.pin)}` : positionLabel(position)) +
+    (change.label === null ? "" : ` (${change.label})`);
+  let words = change.field;
+  for (const [pattern, replacement] of CHANGE_WORDS) {
+    if (pattern.test(change.field)) {
+      words = change.field.replace(pattern, replacement);
+      break;
+    }
+  }
+  return `${where}: ${words} is ${change.held} on the unit, ${change.wanted} in the layout`;
+}
+
 function renderWriteBar(run: WriteRun): HTMLElement {
-  const data = workingData(run.slug);
-  const unit = unitLabel(data.profile.unit).toLowerCase();
   const bar = el("div", { class: "check-bar write-bar" });
-  const button = (label: string, act: () => void, disabled = false): HTMLButtonElement => {
-    const node = el("button", { class: "btn small", type: "button" }, [label]);
-    if (disabled) node.setAttribute("disabled", "disabled");
+  const button = (label: string, act: () => void, primary = false): HTMLButtonElement => {
+    const node = el("button", { class: `btn small${primary ? " primary" : ""}`, type: "button" }, [
+      label,
+    ]);
     node.addEventListener("click", act);
     return node;
   };
@@ -3099,9 +3189,9 @@ function renderWriteBar(run: WriteRun): HTMLElement {
   });
   bar.append(
     el("div", { class: "check-ask" }, [
-      `Write the ${unit} layout, `,
-      el("strong", {}, [data.profile.name ?? run.slug]),
-      ", into a slot on the unit.",
+      "Write ",
+      el("strong", {}, [state.setName]),
+      " into the units",
     ]),
   );
   if (run.note !== null) {
@@ -3110,167 +3200,230 @@ function renderWriteBar(run: WriteRun): HTMLElement {
     );
   }
 
-  if (run.stage === "start") {
-    const blockers: string[] = [];
-    if (isDirty()) {
-      blockers.push(
-        "This layout has edits that are not saved. Save first, so the unit holds what the repo does.",
-      );
-    }
-    if (run.appRunning === true) {
-      blockers.push(
-        "The Azeron app is running. Close it first: it talks to the unit on the same channel, " +
-          "and the two would talk over each other.",
-      );
-    }
-    for (const blocker of blockers)
-      bar.append(el("div", { class: "check-verdict bad" }, [blocker]));
-    if (run.appRunning === null) {
-      bar.append(el("div", { class: "check-note" }, ["Make sure the Azeron app is closed."]));
-    }
-    bar.append(
-      el("div", { class: "check-note" }, [
-        "The browser asks which unit; pick either. The unit says who it is, and nothing is " +
-          `written unless it is the ${unit} one.`,
-      ]),
-      el("div", { class: "check-buttons" }, [
-        button(
-          "Pick the unit…",
-          () => {
-            connectForWrite(run);
-          },
-          blockers.length > 0,
-        ),
-        close,
-      ]),
-    );
-    return bar;
-  }
-
-  if (run.stage === "connecting") {
-    bar.append(
-      el("div", { class: "check-note" }, ["Asking the unit who it is and what its slots hold…"]),
-      el("div", { class: "check-buttons" }, [close]),
-    );
-    return bar;
-  }
-
-  const identity = run.connected?.identity;
-  if (identity !== undefined && run.stage === "choose") {
-    bar.append(
-      el("div", { class: "check-count" }, [
-        `Unit ${String(identity.deviceId)}, firmware ${String(identity.firmware)}: ` +
-          `${String(run.slots.length)} of ${String(identity.profileLimit)} slots used, ` +
-          `running slot ${String(identity.activeSlot)}.`,
-      ]),
-    );
-    const list = el("div", { class: "write-slots" });
-    const choice = (slot: number, label: string): void => {
-      const radio = el("input", { type: "radio", name: "write-slot", value: String(slot) });
-      if (run.slot === slot) radio.setAttribute("checked", "checked");
-      radio.addEventListener("change", () => {
-        run.slot = slot;
-        render();
-      });
-      list.append(el("label", {}, [radio, label]));
-    };
-    for (const slot of run.slots) {
-      choice(
-        slot.slot,
-        `slot ${String(slot.slot)}: ${slot.name}` +
-          (slot.slot === identity.activeSlot ? " (running)" : "") +
-          " — replace it",
-      );
-    }
-    if (run.slots.length < identity.profileLimit) {
-      choice(run.slots.length, `a new slot (${String(run.slots.length)})`);
-    }
-    bar.append(list);
-    const name = el("input", {
-      type: "text",
-      value: run.name,
-      maxlength: String(MAX_PROFILE_NAME),
-    });
-    name.addEventListener("change", () => {
-      run.name = name.value;
-    });
-    bar.append(
-      el("div", { class: "field" }, [el("label", {}, ["Name on the unit"]), name]),
-      el("div", { class: "check-note" }, [
-        "Every key, the stick and the timings are written. The slot's lights, and the sensor " +
-          "and DPI, stay as the slot has them: set those in the Azeron app for now.",
-      ]),
-      el("div", { class: "check-buttons" }, [
-        button(
-          "Write",
-          () => {
-            run.name = name.value;
-            writeNow(run);
-          },
-          run.slot === null,
-        ),
-        close,
-      ]),
-    );
-    return bar;
-  }
-
-  if (run.stage === "writing") {
-    bar.append(
-      el("div", { class: "check-note write-progress" }, [run.progress ?? "Writing…"]),
-      el("div", { class: "check-note" }, ["Leave the unit plugged in until this says it is done."]),
-    );
-    return bar;
-  }
-
-  const report = run.report;
-  if (run.stage === "done" && report !== null) {
-    if (report.problems.length === 0) {
+  if (run.stage === "preparing" || run.stage === "writing") {
+    bar.append(el("div", { class: "check-note write-progress" }, [run.status]));
+    if (run.stage === "writing") {
       bar.append(
-        el("div", { class: "check-verdict ok" }, [
-          `Slot ${String(report.slot)} now holds "${report.stored.name}": ${String(report.written)} ` +
-            "controls written, and read back as written.",
+        el("div", { class: "check-note" }, [
+          "Leave the units plugged in until this says it is done.",
         ]),
       );
     } else {
-      bar.append(
-        el("div", { class: "check-verdict bad" }, [
-          `Slot ${String(report.slot)} was written, but reading it back found ` +
-            `${String(report.problems.length)} difference(s):`,
-        ]),
-      );
-      const list = el("ul", { class: "check-differing" });
-      for (const problem of report.problems.slice(0, 20)) list.append(el("li", {}, [problem]));
-      bar.append(list);
+      bar.append(el("div", { class: "check-buttons" }, [close]));
     }
-    if (identity !== undefined && identity.activeSlot !== report.slot) {
-      bar.append(
-        el("div", { class: "check-note" }, [
-          `The unit is running slot ${String(identity.activeSlot)}. Press its profile button ` +
-            `to get to slot ${String(report.slot)}, then Check this unit.`,
-        ]),
-      );
-    }
+    return bar;
   }
+
+  if (run.stage === "app-running") {
+    bar.append(
+      el("div", { class: "check-verdict bad" }, [
+        "The Azeron app is running. It talks to the units on the same channel, so it has to be closed first.",
+      ]),
+      el("div", { class: "check-buttons" }, [
+        button(
+          "Close the Azeron app",
+          () => {
+            closeAzeronApp(run);
+          },
+          true,
+        ),
+        close,
+      ]),
+    );
+    return bar;
+  }
+
+  if (run.stage === "failed") {
+    bar.append(
+      el("div", { class: "check-buttons" }, [
+        button(
+          "Try again",
+          () => {
+            run.note = null;
+            void prepareWrite(run);
+          },
+          true,
+        ),
+        close,
+      ]),
+    );
+    return bar;
+  }
+
+  if (run.stage === "done") {
+    for (const { plan, report, error } of run.results) {
+      const unit = `${unitLabel(plan.target.unit)} unit`;
+      if (error !== null) {
+        bar.append(el("div", { class: "check-verdict bad" }, [`${unit}: ${error}`]));
+      } else if (report !== null && report.problems.length === 0) {
+        bar.append(
+          el("div", { class: "check-verdict ok" }, [
+            `${unit}: slot ${String(report.slot)} now holds "${report.stored.name}" ` +
+              `(${String(report.written)} controls), read back as written.`,
+          ]),
+        );
+      } else if (report !== null) {
+        bar.append(
+          el("div", { class: "check-verdict bad" }, [
+            `${unit}: slot ${String(report.slot)} was written, but reading it back found ` +
+              `${String(report.problems.length)} difference(s):`,
+          ]),
+        );
+        const list = el("ul", { class: "check-differing" });
+        for (const change of report.differences.slice(0, 12)) {
+          list.append(el("li", {}, [describeChange(plan.target.slug, change)]));
+        }
+        bar.append(list);
+      }
+      const running = plan.found?.identity.activeSlot;
+      if (report !== null && running !== undefined && running !== report.slot) {
+        bar.append(
+          el("div", { class: "check-note" }, [
+            `The ${unit.toLowerCase()} is running slot ${String(running)}: press its profile ` +
+              `button to get to slot ${String(report.slot)}.`,
+          ]),
+        );
+      }
+    }
+    const buttons = el("div", { class: "check-buttons" });
+    for (const { plan } of run.results) {
+      const before = plan.replaces;
+      if (before === null) continue;
+      buttons.append(
+        button(
+          `Download what the ${plan.target.unit} unit's slot ${String(before.slot)} held`,
+          () => {
+            downloadSlot(before);
+          },
+        ),
+      );
+    }
+    buttons.append(close);
+    bar.append(buttons);
+    return bar;
+  }
+
+  // Ready, or waiting to be given a unit: what each unit will get.
+  for (const problem of run.problems)
+    bar.append(el("div", { class: "check-verdict bad" }, [problem]));
+  const list = el("div", { class: "write-plans" });
+  run.plans.forEach((plan, index) => {
+    const unit = `${unitLabel(plan.target.unit)} unit`;
+    const row = el("div", { class: "write-plan" });
+    if (plan.found === null) {
+      row.append(
+        el("strong", {}, [unit]),
+        ` (${plan.target.softwareDeviceId ?? "no id in its device map"}): not found. ` +
+          "The page has not been given it yet, or it is not plugged in.",
+      );
+      list.append(row);
+      return;
+    }
+    const { identity, slots } = plan.found;
+    const select = el("select", {});
+    for (const slot of slots) {
+      const option = el("option", { value: String(slot.slot) }, [
+        `slot ${String(slot.slot)}: ${slot.name}${slot.slot === identity.activeSlot ? " (running)" : ""}`,
+      ]);
+      if (slot.slot === plan.slot) option.setAttribute("selected", "selected");
+      select.append(option);
+    }
+    if (slots.length < identity.profileLimit) {
+      const option = el("option", { value: String(slots.length) }, [
+        `a new slot (${String(slots.length)})`,
+      ]);
+      if (plan.slot === slots.length) option.setAttribute("selected", "selected");
+      select.append(option);
+    }
+    if (plan.slot === null) {
+      const none = el("option", { value: "" }, ["the unit is full: pick a slot to replace"]);
+      none.setAttribute("selected", "selected");
+      select.prepend(none);
+    }
+    select.value = plan.slot === null ? "" : String(plan.slot);
+    select.addEventListener("change", () => {
+      run.plans[index] = withSlot(plan, select.value === "" ? null : Number(select.value));
+      render();
+    });
+    let summary: string;
+    if (plan.slot === null) summary = "";
+    else if (plan.replaces === null) summary = "a new slot";
+    else if (upToDate(plan)) summary = "already holds this layout; nothing to write";
+    else {
+      const controls = new Set(plan.changes.map((change) => change.id)).size;
+      summary = `${String(controls)} control(s) change`;
+    }
+    row.append(
+      el("strong", {}, [unit]),
+      ` (${String(identity.deviceId)}) → `,
+      select,
+      ` ${summary}`,
+    );
+    list.append(row);
+    if (plan.changes.some((change) => /invert|isRightAnalog/.test(change.field))) {
+      list.append(
+        el("div", { class: "check-verdict bad" }, [
+          `This changes how the ${unit.toLowerCase()}'s stick is inverted: ` +
+            plan.changes
+              .filter((change) => /invert|isRightAnalog/.test(change.field))
+              .map((change) => describeChange(plan.target.slug, change))
+              .join("; ") +
+            ".",
+        ]),
+      );
+    }
+    if (plan.changes.length > 0) {
+      const details = el("details", {}, [el("summary", {}, ["What changes"])]);
+      const changes = el("ul", { class: "check-differing" });
+      for (const change of plan.changes.slice(0, 40)) {
+        changes.append(el("li", {}, [describeChange(plan.target.slug, change)]));
+      }
+      details.append(changes);
+      list.append(details);
+    }
+  });
+  bar.append(list);
   const buttons = el("div", { class: "check-buttons" });
-  const before = run.before;
-  if (before !== null) {
+  if (run.stage === "needs-access") {
     buttons.append(
-      button(`Download what slot ${String(before.slot)} held`, () => {
-        downloadSlot(before);
-      }),
+      button(
+        "Give the page a unit…",
+        () => {
+          grantUnit(run);
+        },
+        true,
+      ),
+    );
+    bar.append(
+      el("div", { class: "check-note" }, [
+        'Once per unit: the browser lists both as "Azeron Keypad - C0nf1gur4t0r". Pick ' +
+          "either; the page works out which it is and remembers it.",
+      ]),
     );
   }
-  if (run.stage === "failed") {
+  const writable = run.plans.filter(
+    (plan) => plan.found !== null && plan.slot !== null && !upToDate(plan),
+  );
+  if (writable.length > 0) {
     buttons.append(
-      button("Start again", () => {
-        endWrite(false);
-        startWrite(run.slug);
-      }),
+      button(
+        writable.length === run.plans.length
+          ? "Write"
+          : `Write the ${writable.map((plan) => plan.target.unit).join(" and ")} unit`,
+        () => {
+          writeAll(run);
+        },
+        run.stage === "ready",
+      ),
     );
   }
   buttons.append(close);
-  bar.append(buttons);
+  bar.append(
+    el("div", { class: "check-note" }, [
+      "Every key, the stick and the timings are written. The slot's lights, sensor and DPI stay as they are.",
+    ]),
+    buttons,
+  );
   return bar;
 }
 
@@ -3543,6 +3696,12 @@ function renderHeader(): HTMLElement {
     get.addEventListener("click", downloadAll);
     header.append(get);
   }
+  // The layout straight into the units: both hands, each into the slot that holds it.
+  const write = el("button", { class: "btn write-units", type: "button" }, ["Write to units"]);
+  write.title = "Write this layout into the units' onboard memory over USB. Saves first.";
+  if (writeRun !== null) write.setAttribute("disabled", "disabled");
+  write.addEventListener("click", startWrite);
+  header.append(write);
 
   // Everything else is occasional, and lives behind one button.
   const items = el("div", { class: "menu-items" });
@@ -4883,6 +5042,7 @@ function draw(): void {
   if (!root) return;
   root.replaceChildren();
   root.append(renderHeader());
+  if (writeRun !== null) root.append(renderWriteBar(writeRun));
   if (saveNote !== null) {
     root.append(el("div", { class: "save-note" }, [saveNote]));
   }
@@ -4932,8 +5092,7 @@ function draw(): void {
   // A run belongs to a unit of the layout on screen; another layout ends it.
   if (checkRun !== null && !slugsInSet().includes(checkRun.slug)) checkRun = null;
   if (checkRun !== null) root.append(renderCheckBar(checkRun));
-  if (writeRun !== null && !slugsInSet().includes(writeRun.slug)) endWrite(false);
-  if (writeRun !== null) root.append(renderWriteBar(writeRun));
+
   const stage = el("div", { class: "stage" });
   const slugs = slugsInSet();
   for (const slug of slugs) stage.append(renderHand(slug));

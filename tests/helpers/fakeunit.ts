@@ -6,7 +6,13 @@
  *
  * It refuses -- by not answering -- anything outside what the real unit was seen to do.
  */
-import { Command, REPORT_LENGTH } from "../../src/lib/unitproto.js";
+import {
+  Command,
+  REPORT_LENGTH,
+  encodeInputRecord,
+  isWritableInput,
+} from "../../src/lib/unitproto.js";
+import type { InputRecord } from "../../src/types/azeron.js";
 import type { UnitTransport } from "../../src/lib/unitsession.js";
 
 interface Slot {
@@ -18,7 +24,6 @@ interface Slot {
 export interface FakeUnitOptions {
   firmware?: number;
   deviceId?: number;
-  isRightStick?: boolean;
   activeSlot?: number;
   profileLimit?: number;
   /** Change a record as it is stored, to stand for a unit that took a write differently. */
@@ -84,13 +89,10 @@ function store(write: Uint8Array): Uint8Array {
     out.push(coneA, coneB, eight);
     for (let i = 0; i < 48; i++) le(u16());
     // The real bit order is not known; this one only has to be consistent with itself.
+    // As the real unit stores them: 0x08 invert X, 0x10 invert Y (the app's decoding
+    // says so), the other three in an order of the fake's own.
     const flags =
-      combined |
-      (holdTrigger << 1) |
-      (angleLock << 2) |
-      (invertX << 3) |
-      (invertY << 4) |
-      (right << 5);
+      combined | (holdTrigger << 1) | (angleLock << 2) | (invertX << 3) | (invertY << 4);
     out.push(
       mouseSensitivity,
       throttle,
@@ -102,7 +104,7 @@ function store(write: Uint8Array): Uint8Array {
       holdType,
     );
     for (const key of holdKeys) le(key);
-    out.push(rotate, lockAngle, lockSize, 0, 0, 0);
+    out.push(rotate, lockAngle, lockSize, right, 0, 0);
     return Uint8Array.from(out);
   }
   const blocks = [4, 24, 46];
@@ -145,7 +147,6 @@ export class FakeUnit implements UnitTransport {
     this.options = {
       firmware: options.firmware ?? 111,
       deviceId: options.deviceId ?? 49229,
-      isRightStick: options.isRightStick ?? false,
       activeSlot: options.activeSlot ?? 2,
       profileLimit: options.profileLimit ?? 6,
       corrupt: options.corrupt,
@@ -171,6 +172,21 @@ export class FakeUnit implements UnitTransport {
     report[6] = bytes.length;
     report.set(bytes, 7);
     this.outbox.push(report);
+  }
+
+  /** Put a slot on the unit as if it had always been there, after the ones it has. */
+  seed(
+    name: string,
+    inputs: readonly InputRecord[],
+    unknownPins: readonly number[] = [0, 28, 29],
+  ): this {
+    const slot = this.slots.size;
+    const records = new Map<number, Uint8Array>();
+    for (const input of inputs.filter((entry) => isWritableInput(entry, unknownPins))) {
+      records.set(input.id, store(encodeInputRecord(slot, input)));
+    }
+    this.slots.set(slot, { name, records });
+    return this;
   }
 
   send(report: Uint8Array): Promise<void> {
@@ -207,25 +223,7 @@ export class FakeUnit implements UnitTransport {
         return;
       }
       case Command.KEYPAD_DETAILS: {
-        const details = [
-          1,
-          50,
-          1,
-          10,
-          o.isRightStick ? 1 : 0,
-          0,
-          8,
-          5,
-          0xd7,
-          0xff,
-          0xdc,
-          0xff,
-          52,
-          0,
-          69,
-          0,
-          0,
-        ];
+        const details = [1, 50, 1, 10, 0, 0, 8, 5, 0xd7, 0xff, 0xdc, 0xff, 52, 0, 69, 0, 0];
         this.reply(command, [
           ...details,
           o.deviceId & 0xff,
@@ -257,17 +255,21 @@ export class FakeUnit implements UnitTransport {
         this.reply(command, [o.activeSlot, 0]);
         return;
       }
-      case Command.CHECK_PROFILE:
+      case Command.CHECK_PROFILE: {
+        // Answered only for the next free slot, which it adds; a slot that exists is ignored.
+        const slot = payload[0] ?? 0;
+        if (slot !== this.slots.size || slot >= o.profileLimit) return;
+        this.slots.set(slot, { name: "", records: new Map<number, Uint8Array>() });
         this.reply(Command.RELEASED_ALL_BUTTONS);
-        {
-          this.reply(command);
-          return;
-        }
+        this.reply(command);
+        return;
+      }
       case Command.PROFILE_NAME: {
         const slot = payload[0] ?? 0;
         const name = String.fromCharCode(...payload.slice(2, 2 + (payload[1] ?? 0)));
         const existing = this.slots.get(slot);
-        this.slots.set(slot, { name, records: existing?.records ?? new Map<number, Uint8Array>() });
+        if (!existing) return;
+        existing.name = name;
         this.reply(command);
         return;
       }
@@ -281,7 +283,8 @@ export class FakeUnit implements UnitTransport {
         return;
       }
       case Command.REQUEST_PROFILE: {
-        this.beginStream([payload[0] ?? 0]);
+        // Whatever it is asked, the unit sends the slot it is running.
+        this.beginStream([o.activeSlot]);
         return;
       }
       case Command.PROFILE_PAYLOAD_V2: {

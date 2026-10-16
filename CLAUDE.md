@@ -520,15 +520,22 @@ runs the one its profile button picked. The app reads and writes them over a pri
 protocol, shipped as compiled V8 bytecode (`out/main` in its `app.asar`). On 2026-10-14 the
 protocol was recovered by watching the app do it (`docs/guides/unit-protocol.md`), and the
 repo now speaks the part the app was seen to use: `src/lib/unitproto.ts` builds and reads
-the reports, `src/lib/unitsession.ts` runs the exchanges, and the editor's **Write to unit**
-(`src/editor/unit-write.ts`, WebHID) writes a layout into a slot and reads it back.
+the reports, `src/lib/unitsession.ts` runs the exchanges, and the header's **Write to units**
+(`src/editor/unit-write.ts`, WebHID) writes the layout into both units and reads it back.
+It finds the units the page has been given, and knows which is which by the id each one
+reports; each hand goes into the slot that already has the layout's name.
 
-- `hostReports` sends only the ten commands the app was seen to send, in the shapes it sent
+- `hostReports` sends only the nine commands the app was seen to send, in the shapes it sent
   them. Reset, DFU, the device id and the details save cannot be built. Do not add a command
   to `SENDABLE_COMMANDS` without a capture of the app sending it.
 - A unit says who it is (`KEYPAD_DETAILS` carries the id in `software_device_id`), and
   nothing is written to a unit its device map does not name, or on firmware other than 111.
-- A write is checked by reading the slot back; a difference is reported, never assumed away.
+- A write is checked by reading the slots back; a difference is reported, never assumed
+  away. `REQUEST_PROFILE` answers with the running slot whatever it is asked, so it cannot
+  read another; `CHECK_PROFILE` adds a slot and is ignored for one that exists.
+- The fake unit (`tests/helpers/fakeunit.ts`) behaves as the real ones did, those two quirks
+  included. A test that passes against a fake that is kinder than the hardware proves
+  nothing: the first version did, and its every overwrite stalled on the real unit.
 - `tests/unit/lib/unitproto.test.ts` is the contract: the app's own reports, byte for byte.
 - The Azeron app must be closed during a write: it talks on the same channel. The pedals are
   still never asked anything.

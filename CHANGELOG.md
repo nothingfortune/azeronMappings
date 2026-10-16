@@ -6,14 +6,21 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Added
 
-- **Write to unit**, beside Check this unit on each hand: the editor writes the layout
-  straight into one of the unit's onboard slots over WebHID, then reads the slot back and
-  says whether it holds what was written. No Azeron app, no export, no import. The protocol
-  was recovered on 2026-10-14 by watching the app write a profile
-  (`docs/guides/unit-protocol.md`); the repo sends only what the app was seen to send, and
-  refuses a unit whose id is not the layout's, firmware it was not checked against, a
-  running Azeron app, and unsaved edits. The slot's previous contents can be downloaded.
-  Sensor, DPI and lights are not written yet.
+- **Write to units**, in the header: the editor writes the layout straight into the units'
+  onboard slots over WebHID, then reads each slot back and says whether it holds what was
+  written. No Azeron app, no export, no import. It finds the units the page has been given,
+  knows which is which from the id each one reports, puts each hand into the slot that
+  already has the layout's name, and says beforehand how many controls each slot will
+  change -- warning when a stick's inversion does. It saves first, can close the Azeron app
+  when that is in the way, and says in plain words what went wrong. The protocol was
+  recovered on 2026-10-14 by watching the app write a profile
+  (`docs/guides/unit-protocol.md`) and checked on both units on 2026-10-15; the repo sends
+  only what the app was seen to send. Sensor, DPI and lights are not written yet. The first
+  version stalled on every overwrite, before writing anything: it asked the unit to add a
+  slot that was already there.
+- The right unit's akimbo slot, as the Azeron app wrote it on 5 October, inverts the stick's
+  Y axis where the layout inverts X. Writing the layout from the editor changes that, and
+  the editor says so before it does.
 
 - **`azeron hidcap`**, for reading what the Azeron app says to a unit. It reads a USBPcap
   capture (pcap or pcapng) and prints the HID conversation -- reports set and asked for,

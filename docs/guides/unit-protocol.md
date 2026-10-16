@@ -49,7 +49,7 @@ session passes over.
 
 ## Commands
 
-The app's enum has 60. The repo sends ten, and `hostReports` refuses any other:
+The app's enum has 60. The repo sends nine, and `hostReports` refuses any other:
 
 | Command                  | Code   | Used for                                                                     |
 | ------------------------ | ------ | ---------------------------------------------------------------------------- |
@@ -98,28 +98,39 @@ last item.
 
 ## A write
 
-`CHECK_PROFILE`, `PROFILE_NAME`, then `OBM_COPY` for every input the app would write, each
-part acknowledged -- then `REQUEST_PROFILE` for the slot, and every input compared with what
-was meant. The editor shows any difference. It refuses before sending anything when the
-layout cannot be encoded, when the unit's id is not the one the layout's device map names,
-when the firmware is not 111, while the layout has unsaved edits, and while the Azeron app
-is running (it talks on the same channel).
+The slots are read first (a write needs to know how many there are). For a new slot after
+the last one, `CHECK_PROFILE` adds it; an existing slot is written over without it. Then
+`PROFILE_NAME`, then `OBM_COPY` for every input the app would write, each part
+acknowledged -- then every slot is read again and the written one compared with what was
+meant, input by input. `REQUEST_PROFILE` is not used for that: whatever slot it is asked
+for, the unit answers with the one it is running.
+
+Seen on 2026-10-15, on both units: an overwrite of an existing slot and a new slot, 31
+inputs each in about 1.5 seconds, read back with no differences.
+
+The editor's **Write to units** finds the units the page has been given, asks each its id,
+and matches it to the device map that records it, so it knows which is which without
+being told. Each hand goes into the slot that already has the layout's name, or a new one.
+It says, before writing, how many controls each slot will change, and warns when a stick's
+inversion changes. It refuses a unit no device map names, firmware other than 111, and a
+running Azeron app (which it can close).
 
 ## Not known yet
 
-- **Overwriting a slot that exists.** The app was seen to write a free slot. The editor
-  writes an existing one the same way and checks it by reading it back; the first real
-  overwrite should go to a slot that holds nothing of value.
 - **The sensor and DPI** (`sensor:`, `dpi:`). The import path did not write them, so the
   editor leaves them as the slot has them. Capturing the app toggling them would add them.
 - **LEDs.** `RGB_LED_STATE` (`0x2f`) carries the colours transformed in a way not yet worked
   out, and they read back changed again. Not written.
-- **Which stored bit is which stick switch.** The one write that set them set four at
-  once. The read-back check only insists on them where none was meant to be on. Where
-  `isRightAnalog` and `invertYAxis` sit in the write was inferred from the field order (both
-  were off in that write); a right unit's write should be checked against the slot the app
-  wrote before it is trusted.
+- **Three of the stick's switches.** Combined, hold trigger and angle lock are three bits
+  of `0x07` in an order not yet known; the read-back check counts them. Invert X (`0x08`),
+  invert Y (`0x10`) and the right stick (its own byte) are confirmed by the app's decoding.
+- **The right unit's slot 2, as the app wrote it on 5 October, inverts Y, not X**, by the
+  app's own decoding -- while the layout says invert X. The app's older paged write and its
+  `OBM_COPY` disagree. Writing the layout from the editor makes it invert X, which changes
+  how the right stick behaves; the editor says so before writing.
 - **The cones.** The app wrote vertical 41 and horizontal 49 and read back 49 and 45. Its
   own round trip disagrees with itself; the layouts here use 45 and 45, where it does not
   matter.
 - **`DELETE_PROFILE`, `ADD_PROFILE`, `SWITCH_PROFILE`.** Not sent.
+- **Which unit is which hand.** `KEYPAD_DETAILS` byte 4 reads 0 on both units, so it is not
+  the hand; the unit's id is what tells them apart.

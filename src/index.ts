@@ -15,6 +15,7 @@ import { buildPayload } from "./lib/editor/payload.js";
 import { renderEditorHtml } from "./lib/editor/html.js";
 import {
   appIsRunning,
+  closeApp,
   findStore,
   installProfile,
   listDeviceIds,
@@ -549,6 +550,30 @@ function cmdServe(port: number, host: string): number {
     if (request.method === "GET" && url === "/api/azeron-app") {
       // The editor writes to a unit on the channel the Azeron app uses, so it asks first.
       send(200, JSON.stringify({ ok: true, running: appIsRunning() }));
+      return;
+    }
+    if (request.method === "POST" && url === "/api/azeron-app/close") {
+      // Asked for from the write bar, by the owner, when the app is in the way.
+      readBody(request, response, 1_000, () => {
+        void closeApp().then((running) => {
+          send(200, JSON.stringify({ ok: true, running }));
+        });
+      });
+      return;
+    }
+    if (request.method === "POST" && url === "/api/unit-log") {
+      // What a write to the units did on the page, in this output, where a failure on the
+      // owner's screen can be read afterwards.
+      readBody(request, response, 10_000, (body) => {
+        try {
+          const { line } = JSON.parse(body) as { line?: unknown };
+          if (typeof line !== "string") throw new Error("needs a line");
+          out(`[units] ${line.slice(0, 2_000)}`);
+          send(200, JSON.stringify({ ok: true }));
+        } catch (error) {
+          send(400, JSON.stringify({ ok: false, error: messageOf(error) }));
+        }
+      });
       return;
     }
     if (request.method === "GET" && url.startsWith("/api/units")) {

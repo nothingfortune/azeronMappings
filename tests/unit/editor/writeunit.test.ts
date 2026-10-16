@@ -1,7 +1,8 @@
 // @vitest-environment happy-dom
 /**
- * Writing a layout into a unit from the Edit board, over a fake WebHID device that is a
- * fake unit underneath: pick the unit, see its slots, write, and read back what it holds.
+ * Writing the layout into the units from the header, over a fake WebHID in front of fake
+ * units that behave as the real ones did: the page finds the units it has been given,
+ * knows which is which by asking, and writes each hand into the slot that holds it.
  */
 import { readFileSync } from "node:fs";
 
@@ -12,23 +13,38 @@ import type { ConfigDevice, InputReportLike } from "../../../src/editor/unit-wri
 import { repoPath } from "../../../src/config/paths.js";
 import { buildPayload } from "../../../src/lib/editor/payload.js";
 import { Command } from "../../../src/lib/unitproto.js";
-import { UnitSession } from "../../../src/lib/unitsession.js";
-import type { ExportDocument, ExportProfile } from "../../../src/types/azeron.js";
+import type { ExportDocument, InputRecord } from "../../../src/types/azeron.js";
 import { FakeUnit } from "../../helpers/fakeunit.js";
 import type { FakeUnitOptions } from "../../helpers/fakeunit.js";
 import { LIVE_SET } from "../../helpers/fixtures.js";
 
 const PAYLOAD = buildPayload();
 /** A whole write, under a busy test run: comfortably longer than the second it takes alone. */
-const WRITE = { timeout: 15_000 };
+const WAIT = { timeout: 15_000 };
 
-/** WebHID's device, standing in front of a fake unit: what it says arrives as input reports. */
+const compiled = (side: "left" | "right"): InputRecord[] => {
+  const document = JSON.parse(
+    readFileSync(repoPath(`dist/SpaceSims/everspace/everspace_akimbo_v10_${side}.json`), "utf8"),
+  ) as ExportDocument;
+  return document.profiles[0]?.inputs ?? [];
+};
+
+/** WebHID's device in front of a fake unit: what the unit says arrives as input reports. */
 class FakeHidDevice implements ConfigDevice {
   opened = false;
   readonly productName = "Azeron Keypad - C0nf1gur4t0r";
+  readonly vendorId = 0x16d0;
+  readonly productId = 0x12f7;
+  readonly collections = [{ usagePage: 0xff01 }];
+  failOpen = false;
   private readonly listeners = new Set<(event: InputReportLike) => void>();
   constructor(readonly unit: FakeUnit) {}
   open(): Promise<void> {
+    if (this.failOpen) {
+      const error = new Error("Failed to open the device.");
+      error.name = "InvalidStateError";
+      return Promise.reject(error);
+    }
     this.opened = true;
     return Promise.resolve();
   }
@@ -56,34 +72,39 @@ class FakeHidDevice implements ConfigDevice {
   }
 }
 
-let unit: FakeUnit;
-let filters: unknown;
+/** A unit as it comes: three slots, running the third, which holds an older layout. */
+function makeUnit(
+  side: "left" | "right",
+  options: FakeUnitOptions = {},
+  third?: InputRecord[],
+): FakeHidDevice {
+  const unit = new FakeUnit({ deviceId: side === "left" ? 49229 : 29993, ...options });
+  const older =
+    third ??
+    compiled(side).map((input) =>
+      input.id === 1 ? { ...input, keyValues: ["KeyZ", "0", "0", "0"] } : input,
+    );
+  unit
+    .seed("Basic", compiled(side))
+    .seed("Joystick", compiled(side))
+    .seed("Everspace 2 akimbo", older);
+  return new FakeHidDevice(unit);
+}
 
-const compiled = (side: "left" | "right"): ExportProfile => {
-  const document = JSON.parse(
-    readFileSync(repoPath(`dist/SpaceSims/everspace/everspace_akimbo_v10_${side}.json`), "utf8"),
-  ) as ExportDocument;
-  const profile = document.profiles[0];
-  if (!profile) throw new Error("no profile");
-  return profile;
-};
+let granted: FakeHidDevice[] = [];
+let pickable: FakeHidDevice[] = [];
 
-/** A unit as it comes: three slots already on it, as the left unit had. */
-async function plugIn(options: FakeUnitOptions = {}): Promise<void> {
-  unit = new FakeUnit(options);
-  const seed = new UnitSession(unit);
-  const side = options.isRightStick === true ? "right" : "left";
-  for (const [slot, name] of ["PROBE press test", "PROBE 1 pins", "Everspace 2 akimbo"].entries()) {
-    await seed.writeProfile({ slot, name, profile: compiled(side), unknownPins: [0, 28, 29] });
-  }
-  unit.received.length = 0;
-  const device = new FakeHidDevice(unit);
+function plugIn(given: FakeHidDevice[], toPick: FakeHidDevice[] = []): void {
+  granted = [...given];
+  pickable = [...toPick];
   Object.defineProperty(navigator, "hid", {
     configurable: true,
     value: {
-      requestDevice: (options: { filters: unknown }) => {
-        filters = options.filters;
-        return Promise.resolve([device]);
+      getDevices: () => Promise.resolve([...granted]),
+      requestDevice: () => {
+        const picked = pickable.shift();
+        if (picked) granted.push(picked);
+        return Promise.resolve(picked ? [picked] : []);
       },
     },
   });
@@ -101,138 +122,162 @@ function mount(): void {
 
 const bar = (): string => document.querySelector(".write-bar")?.textContent ?? "";
 
-function barButton(label: string): HTMLButtonElement {
+function barButton(label: string | RegExp): HTMLButtonElement {
   const found = [...document.querySelectorAll<HTMLButtonElement>(".write-bar button")].find(
-    (button) => button.textContent === label,
+    (button) =>
+      typeof label === "string" ? button.textContent === label : label.test(button.textContent),
   );
-  if (!found) throw new Error(`no ${label} button in: ${bar()}`);
+  if (!found) throw new Error(`no ${String(label)} button in: ${bar()}`);
   return found;
 }
 
-function writeButton(hand: 0 | 1): HTMLButtonElement {
-  const found = document
-    .querySelectorAll(".hand")
-    [hand]?.querySelector<HTMLButtonElement>(".write-unit");
-  if (!found) throw new Error("no Write to unit button");
-  return found;
+function writeToUnits(): void {
+  const button = document.querySelector<HTMLButtonElement>("header .write-units");
+  if (!button) throw new Error("no Write to units button");
+  button.click();
 }
 
 beforeEach(() => {
+  // The page asks the server about the Azeron app only when it is served; these are not.
   mount();
 });
 
 afterEach(() => {
+  const close = [...document.querySelectorAll<HTMLButtonElement>(".write-bar button")].find(
+    (button) => button.textContent === "Cancel" || button.textContent === "Close",
+  );
+  close?.click();
   vi.restoreAllMocks();
 });
 
-describe("writing a layout into a unit", () => {
-  it("is offered on each unit, beside checking it", () => {
-    expect(writeButton(0).textContent).toBe("Write to unit");
-    expect(writeButton(1).textContent).toBe("Write to unit");
+describe("writing the layout into the units", () => {
+  it("is one button in the header", () => {
+    expect(document.querySelector("header .write-units")?.textContent).toBe("Write to units");
   });
 
-  it("asks the browser only for the units' configuration interface", async () => {
-    await plugIn();
-    writeButton(0).click();
-    barButton("Pick the unit…").click();
+  it("finds both units it has been given, knows which is which, and picks the slot that holds the layout", async () => {
+    const left = makeUnit("left");
+    const right = makeUnit("right");
+    // Given in the other order: the page goes by what each unit says, not the order.
+    plugIn([right, left]);
+    writeToUnits();
     await vi.waitFor(() => {
-      expect(bar()).toContain("slots used");
-    }, WRITE);
-    expect(filters).toEqual([{ vendorId: 0x16d0, productId: 0x12f7, usagePage: 0xff01 }]);
+      expect(bar()).toContain("Left unit (49229) →");
+    }, WAIT);
+    expect(bar()).toContain("Right unit (29993) →");
+    const chosen = [...document.querySelectorAll<HTMLSelectElement>(".write-plan select")].map(
+      (select) => select.value,
+    );
+    expect(chosen).toEqual(["2", "2"]);
+    expect(bar()).toContain("1 control(s) change");
   });
 
-  it("offers to replace the slot that already has the layout's name", async () => {
-    await plugIn();
-    writeButton(0).click();
-    expect(bar()).toContain("Write the left layout");
-    barButton("Pick the unit…").click();
+  it("writes both hands with one more click, and reads each back", async () => {
+    const left = makeUnit("left");
+    const right = makeUnit("right");
+    plugIn([left, right]);
+    writeToUnits();
     await vi.waitFor(() => {
-      expect(bar()).toContain("Unit 49229, firmware 111: 3 of 6 slots used, running slot 2.");
-    }, WRITE);
-    expect(bar()).toContain("slot 2: Everspace 2 akimbo (running) — replace it");
-    expect(bar()).toContain("a new slot (3)");
-    const chosen = document.querySelector<HTMLInputElement>(".write-slots input[checked]");
-    expect(chosen?.value).toBe("2");
-  });
-
-  it(
-    "writes into a new slot and reads it back as written",
-    async () => {
-      await plugIn();
-      writeButton(0).click();
-      barButton("Pick the unit…").click();
-      await vi.waitFor(() => {
-        expect(bar()).toContain("a new slot (3)");
-      }, WRITE);
-      const fresh = document.querySelector<HTMLInputElement>('.write-slots input[value="3"]');
-      fresh?.dispatchEvent(new Event("change"));
-      barButton("Write").click();
-      await vi.waitFor(() => {
-        expect(bar()).toContain("read back as written");
-      }, WRITE);
-      expect(bar()).toContain('Slot 3 now holds "Everspace 2 akimbo"');
-      expect(bar()).toContain("The unit is running slot 2.");
-      expect(unit.slots.get(3)?.records.size).toBeGreaterThan(20);
-    },
-    WRITE.timeout,
-  );
-
-  it(
-    "replaces a slot only once asked, and keeps what it held",
-    async () => {
-      await plugIn();
-      const confirm = vi.fn(() => true);
-      Object.defineProperty(window, "confirm", { configurable: true, value: confirm });
-      writeButton(0).click();
-      barButton("Pick the unit…").click();
-      await vi.waitFor(() => {
-        expect(bar()).toContain("replace it");
-      }, WRITE);
-      barButton("Write").click();
-      expect(confirm).toHaveBeenCalledWith(
-        'Replace slot 2, "Everspace 2 akimbo", on the unit with this layout?',
-      );
-      await vi.waitFor(() => {
-        expect(bar()).toContain("read back as written");
-      }, WRITE);
-      expect(barButton("Download what slot 2 held")).toBeTruthy();
-    },
-    WRITE.timeout,
-  );
-
-  it("writes nothing when the replacement is not confirmed", async () => {
-    await plugIn();
-    Object.defineProperty(window, "confirm", { configurable: true, value: () => false });
-    writeButton(0).click();
-    barButton("Pick the unit…").click();
-    await vi.waitFor(() => {
-      expect(bar()).toContain("replace it");
-    }, WRITE);
-    unit.received.length = 0;
+      expect(bar()).toContain("Right unit (29993) →");
+    }, WAIT);
     barButton("Write").click();
-    expect(unit.received).toEqual([]);
-    expect(bar()).toContain("replace it");
+    await vi.waitFor(() => {
+      expect(bar()).toContain('Left unit: slot 2 now holds "Everspace 2 akimbo"');
+      expect(bar()).toContain('Right unit: slot 2 now holds "Everspace 2 akimbo"');
+    }, WAIT);
+    expect(bar()).toContain("read back as written");
+    expect(left.unit.received.some((report) => report[2] === Command.CHECK_PROFILE)).toBe(false);
+    expect(left.opened).toBe(false);
   });
 
-  it("refuses to write the left layout into the right unit", async () => {
-    await plugIn({ deviceId: 29993, isRightStick: true });
-    writeButton(0).click();
-    barButton("Pick the unit…").click();
+  it("says a slot that already holds the layout has nothing to write", async () => {
+    plugIn([makeUnit("left", {}, compiled("left")), makeUnit("right", {}, compiled("right"))]);
+    writeToUnits();
     await vi.waitFor(() => {
-      expect(bar()).toContain("Nothing was written");
-    }, WRITE);
-    expect(bar()).toContain("That is unit 29993, the cyborg2-right");
-    expect(unit.received.some((report) => report[2] === Command.OBM_COPY)).toBe(false);
-    expect(unit.received.some((report) => report[2] === Command.PROFILE_NAME)).toBe(false);
+      expect(bar()).toContain("already holds this layout; nothing to write");
+    }, WAIT);
+    expect(
+      [...document.querySelectorAll(".write-bar button")].map((button) => button.textContent),
+    ).not.toContain("Write");
   });
 
-  it("refuses firmware it was not checked against, before writing anything", async () => {
-    await plugIn({ firmware: 112 });
-    writeButton(1).click();
-    barButton("Pick the unit…").click();
+  it("asks once for a unit it has not been given, and works out which one it got", async () => {
+    const right = makeUnit("right");
+    plugIn([makeUnit("left")], [right]);
+    writeToUnits();
     await vi.waitFor(() => {
-      expect(bar()).toContain("firmware 112 is not one this was checked against");
-    }, WRITE);
-    expect(unit.received.every((report) => report[2] === Command.FIRMWARE_VERSION)).toBe(true);
+      expect(bar()).toContain("Right unit (29993): not found");
+    }, WAIT);
+    barButton("Give the page a unit…").click();
+    await vi.waitFor(() => {
+      expect(bar()).toContain("Right unit (29993) →");
+    }, WAIT);
+    expect(barButton("Write")).toBeTruthy();
+  });
+
+  it("says plainly when a unit cannot be opened, and still offers the other", async () => {
+    const left = makeUnit("left");
+    left.failOpen = true;
+    plugIn([left, makeUnit("right")]);
+    writeToUnits();
+    await vi.waitFor(() => {
+      expect(bar()).toContain("could not be opened");
+    }, WAIT);
+    expect(bar()).toContain("close the Azeron app, or unplug the unit and plug it back in");
+    expect(bar()).toContain("Left unit (49229): not found");
+    expect(barButton("Write the right unit")).toBeTruthy();
+  });
+
+  it("says plainly when a unit stops answering in the middle of a write", async () => {
+    const left = makeUnit("left");
+    plugIn([left, makeUnit("right")]);
+    writeToUnits();
+    await vi.waitFor(() => {
+      expect(bar()).toContain("Right unit (29993) →");
+    }, WAIT);
+    // Silent from the next report on: the write starts and gets no answer.
+    Object.assign(left.unit, {
+      options: {
+        ...(left.unit as unknown as { options: object }).options,
+        goSilentAfter: left.unit.received.length + 3,
+      },
+    });
+    barButton("Write").click();
+    await vi.waitFor(() => {
+      expect(bar()).toContain("Left unit: The unit stopped answering while writing the left unit");
+    }, WAIT);
+    expect(bar()).toContain('Right unit: slot 2 now holds "Everspace 2 akimbo"');
+  });
+
+  it("warns before changing which way a stick is inverted", async () => {
+    // The right unit's slot as the Azeron app wrote it in October: Y inverted, not X.
+    const appWritten = compiled("right").map((input) =>
+      input.types[0] === "4"
+        ? {
+            ...input,
+            analogSettings: {
+              ...input.analogSettings,
+              invertXAxis: false,
+              invertYAxis: true,
+            } as InputRecord["analogSettings"],
+          }
+        : input,
+    );
+    plugIn([makeUnit("left"), makeUnit("right", {}, appWritten as InputRecord[])]);
+    writeToUnits();
+    await vi.waitFor(() => {
+      expect(bar()).toContain("This changes how the right unit's stick is inverted");
+    }, WAIT);
+    expect(bar()).toContain("stick inverts X is false on the unit, true in the layout");
+    expect(bar()).toContain("stick inverts Y is true on the unit, false in the layout");
+  });
+
+  it("says when the browser has no WebHID", async () => {
+    Object.defineProperty(navigator, "hid", { configurable: true, value: undefined });
+    writeToUnits();
+    await vi.waitFor(() => {
+      expect(bar()).toContain("This browser has no WebHID");
+    }, WAIT);
+    expect(barButton("Try again")).toBeTruthy();
   });
 });

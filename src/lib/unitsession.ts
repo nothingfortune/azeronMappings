@@ -35,9 +35,11 @@ export interface UnitTransport {
 export interface UnitIdentity {
   firmware: number;
   keypadType: number;
-  /** The id the Azeron app files the unit under: `software_device_id` in its device map. */
+  /**
+   * The id the Azeron app files the unit under: `software_device_id` in its device map. The
+   * only thing that tells the two units apart; both say the same about which hand they are.
+   */
   deviceId: number;
-  isRightStick: boolean;
   profileLimit: number;
   activeSlot: number;
 }
@@ -49,6 +51,9 @@ const STREAM_TIMEOUT_MS = 10_000;
 
 export class UnitSession {
   private seq = 0;
+  /** How many slots the unit holds, once they have been read; a write needs to know. */
+  private slotCount: number | null = null;
+  private profileLimit: number | null = null;
 
   constructor(
     private readonly transport: UnitTransport,
@@ -105,10 +110,10 @@ export class UnitSession {
       firmware,
       keypadType,
       deviceId: (details[17] ?? 0) | ((details[18] ?? 0) << 8),
-      isRightStick: details[4] === 1,
       profileLimit: limit[0] ?? 0,
       activeSlot: active[0] ?? 0,
     };
+    this.profileLimit = identity.profileLimit;
     this.log(
       `unit ${String(identity.deviceId)}, firmware ${String(firmware)}, ` +
         `slot ${String(identity.activeSlot)} active of ${String(identity.profileLimit)}`,
@@ -130,16 +135,20 @@ export class UnitSession {
   }
 
   /** Every onboard slot, as stored. */
-  readAll(): Promise<StoredProfile[]> {
-    return this.stream(Command.PROFILE_PAYLOAD_V2, new Uint8Array());
+  async readAll(): Promise<StoredProfile[]> {
+    const slots = await this.stream(Command.PROFILE_PAYLOAD_V2, new Uint8Array());
+    this.slotCount = slots.length;
+    return slots;
   }
 
+  /**
+   * One slot, as stored. Read from the whole list: REQUEST_PROFILE answers with the slot
+   * the unit is running whatever it is asked (seen 2026-10-15), so it cannot read another.
+   */
   async readSlot(slot: number): Promise<StoredProfile> {
-    const [profile] = await this.stream(Command.REQUEST_PROFILE, Uint8Array.of(slot));
-    if (profile?.slot !== slot) {
-      throw new ProtocolError(`asked for slot ${String(slot)} and got something else`);
-    }
-    return profile;
+    const found = (await this.readAll()).find((profile) => profile.slot === slot);
+    if (found === undefined) throw new ProtocolError(`the unit has no slot ${String(slot)}`);
+    return found;
   }
 
   /**
@@ -156,7 +165,22 @@ export class UnitSession {
     const records = inputs.map((input) => ({ input, bytes: encodeInputRecord(slot, input) }));
     const namePayload = profileNamePayload(slot, name);
 
-    await this.ask(Command.CHECK_PROFILE, Uint8Array.of(slot));
+    if (this.slotCount === null || this.profileLimit === null) {
+      throw new ProtocolError("read the unit's slots before writing one");
+    }
+    if (slot > this.slotCount || slot >= this.profileLimit) {
+      throw new ProtocolError(
+        `slot ${String(slot)} is past the end: the unit has ${String(this.slotCount)} of ` +
+          `${String(this.profileLimit)}, and a new one goes at ${String(this.slotCount)}`,
+      );
+    }
+    // CHECK_PROFILE is how the app adds a slot: the unit answers it for the next free one
+    // and ignores it for one that exists (seen 2026-10-15). An existing slot is renamed and
+    // written over without it.
+    if (slot === this.slotCount) {
+      await this.ask(Command.CHECK_PROFILE, Uint8Array.of(slot));
+      this.slotCount++;
+    }
     await this.ask(Command.PROFILE_NAME, namePayload);
     let written = 0;
     for (const record of records) {
@@ -167,9 +191,10 @@ export class UnitSession {
       );
     }
     const stored = await this.readSlot(slot);
-    const problems = compareStored(inputs, stored);
+    const differences = compareStored(inputs, stored);
+    const problems = differences.map(describeDifference);
     if (stored.name !== name) problems.push(`the slot is named "${stored.name}", not "${name}"`);
-    return { slot, written, stored, problems };
+    return { slot, written, stored, problems, differences };
   }
 }
 
@@ -187,6 +212,7 @@ export interface WriteReport {
   stored: StoredProfile;
   /** Every way the slot as read back differs from what was written. Empty is success. */
   problems: string[];
+  differences: SlotDifference[];
 }
 
 const KEY_LISTS = [
@@ -233,62 +259,102 @@ function canonical(token: unknown, mouse: boolean): string {
   return mouse ? String(value) : String(storedKeyCode(value));
 }
 
+/** One way a slot differs from the layout: what the unit holds where the layout wants another. */
+export interface SlotDifference {
+  /** The input's id and pin, and its label when the layout gives one. */
+  id: number;
+  pin: number;
+  label: string | null;
+  /** The field, as the export names it: `keyValues[0]`, `invertXAxis`, `analogKeys.left.up[0]`. */
+  field: string;
+  held: string;
+  wanted: string;
+}
+
+export function describeDifference(difference: SlotDifference): string {
+  return (
+    `input ${String(difference.id)} (pin ${String(difference.pin)}) ${difference.field} is ` +
+    `${difference.held}, not ${difference.wanted}`
+  );
+}
+
 /**
- * What differs between the inputs that were written and the slot as the unit holds it.
- *
- * Keys are compared by the code the unit stores, so "16" and "ShiftLeft" are the same key.
- * For the stick, the tuning the unit stores plainly is compared; its packed booleans are
- * compared only where none was meant to be set, because which bit is which is not known.
+ * What differs between the inputs that were (or would be) written and a slot as the unit
+ * holds it. Keys are compared by the code the unit stores, so "16" and "ShiftLeft" are the
+ * same key. The stick's switches are compared by name where the app's decoding names them,
+ * and counted where it does not.
  */
-export function compareStored(inputs: readonly InputRecord[], stored: StoredProfile): string[] {
-  const problems: string[] = [];
+export function compareStored(
+  inputs: readonly InputRecord[],
+  stored: StoredProfile,
+): SlotDifference[] {
+  const differences: SlotDifference[] = [];
   const byId = new Map(stored.inputs.map((input) => [input.id, input]));
   for (const input of inputs) {
+    const label = typeof input.label === "string" && input.label !== "" ? input.label : null;
+    const differ = (field: string, held: unknown, wanted: unknown): void => {
+      differences.push({
+        id: input.id,
+        pin: input.pinOne,
+        label,
+        field,
+        held: String(held),
+        wanted: String(wanted),
+      });
+    };
     const held = byId.get(input.id);
-    const where = `input ${String(input.id)} (pin ${String(input.pinOne)})`;
     if (!held) {
-      problems.push(`${where} is not in the slot`);
+      differ("record", "missing", "present");
       continue;
     }
     if (held.pinOne !== input.pinOne || held.pinTwo !== input.pinTwo) {
-      problems.push(`${where} is on pin ${String(held.pinOne)}/${String(held.pinTwo)}`);
-    }
-    if (held.types.join() !== input.types.join() && input.types[0] !== "4") {
-      problems.push(`${where} has types ${held.types.join("/")}, not ${input.types.join("/")}`);
+      differ(
+        "pins",
+        `${String(held.pinOne)}/${String(held.pinTwo)}`,
+        `${String(input.pinOne)}/${String(input.pinTwo)}`,
+      );
     }
     if (input.types[0] === "4") {
-      problems.push(...compareStick(where, input, held));
+      compareStick(input, held, differ);
       continue;
     }
+    if (held.types.join() !== input.types.join())
+      differ("types", held.types.join("/"), input.types.join("/"));
     KEY_LISTS.forEach((list, index) => {
       const mouse = input.types[Math.floor(index / 2)] === "15" && list.startsWith("key");
-      const want = ((input[list] as unknown[] | undefined) ?? []).map((t) => canonical(t, mouse));
-      const have = held[list].map((t) => canonical(t, mouse));
-      for (let i = 0; i < have.length; i++) {
-        if ((want[i] ?? "0") !== have[i]) {
-          problems.push(`${where} ${list}[${String(i)}] is ${held[list][i] ?? "?"}`);
+      const wanted = (input[list] as unknown[] | undefined) ?? [];
+      held[list].forEach((token, i) => {
+        if (canonical(wanted[i] ?? "0", mouse) !== canonical(token, mouse)) {
+          differ(
+            `${list}[${String(i)}]`,
+            token,
+            typeof wanted[i] === "string" || typeof wanted[i] === "number" ? wanted[i] : "0",
+          );
         }
-      }
+      });
     });
     for (const field of PLAIN) {
-      const want = input[field] ?? DEFAULTS[field];
-      if (want !== held[field])
-        problems.push(`${where} ${field} is ${String(held[field])}, not ${String(want)}`);
+      const wanted = input[field] ?? DEFAULTS[field];
+      if (wanted !== held[field]) differ(field, held[field], wanted);
     }
     for (const field of ["featureDelay", "doubleDelay"] as const) {
-      if (input[field] !== held[field]) {
-        problems.push(`${where} ${field} is ${String(held[field])}, not ${String(input[field])}`);
-      }
+      if (input[field] !== held[field]) differ(field, held[field], input[field]);
     }
   }
-  return problems;
+  return differences;
 }
 
-function compareStick(where: string, input: InputRecord, held: StoredInput): string[] {
-  const problems: string[] = [];
+function compareStick(
+  input: InputRecord,
+  held: StoredInput,
+  differ: (field: string, held: unknown, wanted: unknown) => void,
+): void {
   const stick = held.stick;
   const analog = input.analogSettings as Record<string, unknown> | undefined;
-  if (!stick || !analog) return [`${where} is not a stick in the slot`];
+  if (!stick || !analog) {
+    differ("stick", "not a stick", "a stick");
+    return;
+  }
   const want = (field: string, fallback: number): number => {
     const value = analog[field];
     return typeof value === "number" ? value : fallback;
@@ -308,50 +374,48 @@ function compareStick(where: string, input: InputRecord, held: StoredInput): str
     ["lockZoneSize", want("lockZoneSize", 30), stick.lockZoneSize],
   ];
   for (const [field, expected, actual] of plain) {
-    if (expected !== actual)
-      problems.push(`${where} ${field} is ${String(actual)}, not ${String(expected)}`);
+    if (expected !== actual) differ(field, actual, expected);
   }
-  if ((analog.isEightDirectionalTrigger === true) !== stick.isEightDirectionalTrigger) {
-    problems.push(
-      `${where} isEightDirectionalTrigger is ${String(stick.isEightDirectionalTrigger)}`,
-    );
+  for (const field of [
+    "isEightDirectionalTrigger",
+    "isAnalogSmoothing",
+    "isRightAnalog",
+    "invertXAxis",
+    "invertYAxis",
+  ] as const) {
+    if ((analog[field] === true) !== stick[field])
+      differ(field, stick[field], analog[field] === true);
   }
-  if ((analog.isAnalogSmoothing === true) !== stick.isAnalogSmoothing) {
-    problems.push(`${where} isAnalogSmoothing is ${String(stick.isAnalogSmoothing)}`);
-  }
-  const packed = ["isCombinedAnalog", "isHoldTrigger", "isAngleLock", "invertXAxis", "invertYAxis"];
-  if (
-    !packed.some((field) => analog[field] === true) &&
-    analog.isRightAnalog !== true &&
-    stick.flags !== 0
-  ) {
-    problems.push(
-      `${where} has stick switches set (0x${stick.flags.toString(16)}) that were meant to be off`,
-    );
-  }
-  const groups = ["analogKeys", "diagonalKeys"] as const;
-  const order: [number, string, string, string][] = [];
+  // Which of these three is which bit is not known, so they are counted, not named.
+  const others = ["isCombinedAnalog", "isHoldTrigger", "isAngleLock"].filter(
+    (field) => analog[field] === true,
+  ).length;
+  const othersStored = [1, 2, 4].filter((bit) => (stick.flags & bit) !== 0).length;
+  if (others !== othersStored)
+    differ("combined / hold trigger / angle lock switched on", othersStored, others);
   let index = 0;
-  for (const group of groups) {
+  for (const group of ["analogKeys", "diagonalKeys"] as const) {
     const directions =
       group === "analogKeys"
         ? ["up", "right", "down", "left"]
         : ["up_right", "up_left", "down_left", "down_right"];
     for (const side of ["left", "right"]) {
-      for (const direction of directions) order.push([index++, group, side, direction]);
-    }
-  }
-  for (const [i, group, side, direction] of order) {
-    const block = analog[group] as Record<string, Record<string, unknown[]>> | undefined;
-    const entry = block?.[side]?.[direction] ?? [];
-    const stored = stick.keys[i] ?? ["0", "0", "0"];
-    for (let k = 0; k < 3; k++) {
-      if (stickKeyCode(entry[k]) !== storedKeyCode(stored[k])) {
-        problems.push(
-          `${where} ${group}.${side}.${direction}[${String(k)}] is ${stored[k] ?? "?"}`,
-        );
+      for (const direction of directions) {
+        const block = analog[group] as Record<string, Record<string, unknown[]>> | undefined;
+        const entry = block?.[side]?.[direction] ?? [];
+        const storedKeys = stick.keys[index] ?? ["0", "0", "0"];
+        for (let k = 0; k < 3; k++) {
+          if (stickKeyCode(entry[k]) !== storedKeyCode(storedKeys[k])) {
+            const wanted = entry[k];
+            differ(
+              `${group}.${side}.${direction}[${String(k)}]`,
+              storedKeys[k] ?? "0",
+              typeof wanted === "string" || typeof wanted === "number" ? wanted : "0",
+            );
+          }
+        }
+        index++;
       }
     }
   }
-  return problems;
 }

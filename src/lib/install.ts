@@ -159,6 +159,34 @@ export function appIsRunning(): boolean {
 }
 
 /**
+ * Close the Azeron app, so something else can talk to the units. Asks it to close first,
+ * then makes it, and says whether it is still running.
+ */
+export async function closeApp(): Promise<boolean> {
+  const isWindowsish = platform() === "win32" || wslWindowsHome() !== null;
+  for (const force of [false, true]) {
+    if (!appIsRunning()) return false;
+    try {
+      if (isWindowsish) {
+        const args = ["/IM", "Azeron Software.exe", "/T", ...(force ? ["/F"] : [])];
+        execFileSync("taskkill.exe", args, { stdio: "ignore" });
+      } else {
+        execFileSync("pkill", [force ? "-KILL" : "-TERM", "-f", "Azeron Software"], {
+          stdio: "ignore",
+        });
+      }
+    } catch {
+      // Not running by the time it was asked, or not allowed: the check below says which.
+    }
+    const until = Date.now() + 3000;
+    while (Date.now() < until && appIsRunning()) {
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+  }
+  return appIsRunning();
+}
+
+/**
  * Project a profile onto the key set the app itself writes.
  *
  * Without a reference the export shape is used as-is, which carries fields the store has

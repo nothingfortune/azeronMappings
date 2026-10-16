@@ -118,7 +118,6 @@ export const SENDABLE_COMMANDS: ReadonlySet<number> = new Set([
   Command.PROFILE_LIMIT,
   Command.HARDWARE_PROFILE_INDEX,
   Command.PROFILE_PAYLOAD_V2,
-  Command.REQUEST_PROFILE,
   Command.PROFILE_INPUT_PIECE,
   Command.CHECK_PROFILE,
   Command.PROFILE_NAME,
@@ -537,10 +536,10 @@ function stickEntry(analog: AnalogSettings, path: readonly [string, string, stri
 
 /**
  * The keyboard-mode stick. Its 33 bytes of tuning come in the order the app sends them;
- * every value was told apart by giving it a value no other field had. Three placements are
- * inferred from that order rather than seen apart: the four booleans that sat side by side
- * set to true, and `isRightAnalog` and `invertYAxis`, both false in that write. A right
- * unit's write is checked against the slot the app itself wrote before it is trusted.
+ * every value was told apart by giving it a value no other field had. `isRightAnalog`,
+ * `invertXAxis` and `invertYAxis` were confirmed on 2026-10-15 by the app's own decoding of
+ * a right-unit slot this wrote. Still inferred from the order: which of the three booleans
+ * set together in that first write -- combined, hold trigger, angle lock -- is which.
  */
 export function encodeStickRecord(slot: number, input: InputRecord): Uint8Array {
   const analog = input.analogSettings;
@@ -682,10 +681,14 @@ export interface StoredStick {
   isAnalogSmoothing: boolean;
   triggerMagnitude: number;
   /**
-   * Four of the stick's booleans, packed. Which bit is which is not yet known: the only
-   * write that set them set four at once.
+   * The packed switches: 0x08 invert X and 0x10 invert Y (confirmed by the app's decoding),
+   * and combined, hold trigger and angle lock in 0x07, in an order not yet known.
    */
   flags: number;
+  invertXAxis: boolean;
+  invertYAxis: boolean;
+  /** Stored in its own byte after the lock zone. */
+  isRightAnalog: boolean;
   combinedAnalogMagnitude: number;
   holdMagnitude: number;
   holdType: number;
@@ -696,6 +699,12 @@ export interface StoredStick {
   /** [key, modifier, modifier] for the 16 stick directions, in STICK_KEY_ORDER. */
   keys: [string, string, string][];
 }
+
+/** Bits of the stored stick switches the app's own decoding names. */
+export const STICK_INVERT_X = 0x08;
+export const STICK_INVERT_Y = 0x10;
+/** Combined, hold trigger and angle lock, in an order not yet known. */
+export const STICK_OTHER_SWITCHES = 0x07;
 
 class Reader {
   private at = 0;
@@ -813,6 +822,7 @@ function decodeStick(
   const rotateStickButtonId = r.u8();
   const lockZoneAngle = r.u8();
   const lockZoneSize = r.u8();
+  const isRightAnalog = r.u8() === 1;
   const none = (count: number): string[] => Array.from({ length: count }, () => NONE_TOKEN);
   return {
     ...head,
@@ -848,6 +858,9 @@ function decodeStick(
       isAnalogSmoothing,
       triggerMagnitude,
       flags,
+      invertXAxis: (flags & STICK_INVERT_X) !== 0,
+      invertYAxis: (flags & STICK_INVERT_Y) !== 0,
+      isRightAnalog,
       combinedAnalogMagnitude,
       holdMagnitude,
       holdType,
