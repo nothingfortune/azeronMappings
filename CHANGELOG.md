@@ -6,6 +6,15 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Added
 
+- **Write to unit**, beside Check this unit on each hand: the editor writes the layout
+  straight into one of the unit's onboard slots over WebHID, then reads the slot back and
+  says whether it holds what was written. No Azeron app, no export, no import. The protocol
+  was recovered on 2026-10-14 by watching the app write a profile
+  (`docs/guides/unit-protocol.md`); the repo sends only what the app was seen to send, and
+  refuses a unit whose id is not the layout's, firmware it was not checked against, a
+  running Azeron app, and unsaved edits. The slot's previous contents can be downloaded.
+  Sensor, DPI and lights are not written yet.
+
 - **`azeron hidcap`**, for reading what the Azeron app says to a unit. It reads a USBPcap
   capture (pcap or pcapng) and prints the HID conversation -- reports set and asked for,
   reports the unit sent, the descriptors it was asked for -- and `diff` names the byte

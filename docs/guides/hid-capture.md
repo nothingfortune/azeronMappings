@@ -1,10 +1,12 @@
 # Capturing what the Azeron app says to a unit
 
-The repo does not speak the units' configuration protocol, and a guessed request to a unit
-could change what it holds. The way to learn the protocol is to **watch the Azeron app do
-it**, one setting at a time, and read the bytes. This is the whole procedure. Nothing here
-sends anything to a unit: USBPcap only copies the traffic, and `azeron hidcap` only reads
-the file it is given.
+The repo speaks the part of the units' configuration protocol the Azeron app was seen to
+use -- reading slots and writing a layout into one (`docs/guides/unit-protocol.md`). The
+rest, the sensor, DPI, lights and deleting a slot, is still to be learned, and a guessed
+request to a unit could change what it holds. The way to learn it is to **watch the Azeron
+app do it**, one setting at a time, and read the bytes. This is the procedure with USBPcap.
+Nothing here sends anything to a unit: USBPcap only copies the traffic, and `azeron hidcap`
+only reads the file it is given.
 
 ## What is known before you start
 

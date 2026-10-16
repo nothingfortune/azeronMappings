@@ -515,13 +515,23 @@ when the window regains focus, and only when the payload says the store is on th
 computer (`appStore`). Tests set `AZERON_STORE` to a folder that is not there, so none of
 them reads the owner's store; one that wants a store makes its own.
 
-**What a unit runs is not on disk.** Each unit holds three onboard profiles (OBM) and runs
-the one its profile button picked. The app reads them over a private HID protocol, and the
-code that does is shipped as compiled V8 bytecode (`out/main` in its `app.asar`), so the
-repo does not speak it: a guessed request to a unit could change what it holds, and one to
-the pedals hung them. The app persists only the onboard slots' labels, in its IndexedDB
-(`deviceData.<pid>.obmProfileLabels`), under the one product id both units share. On
-2026-10-04 slots 0 and 1 still held the press-test probe, slot 2 akimbo v10.
+**What a unit runs is not on disk.** Each unit holds onboard profiles (OBM, up to six) and
+runs the one its profile button picked. The app reads and writes them over a private HID
+protocol, shipped as compiled V8 bytecode (`out/main` in its `app.asar`). On 2026-10-14 the
+protocol was recovered by watching the app do it (`docs/guides/unit-protocol.md`), and the
+repo now speaks the part the app was seen to use: `src/lib/unitproto.ts` builds and reads
+the reports, `src/lib/unitsession.ts` runs the exchanges, and the editor's **Write to unit**
+(`src/editor/unit-write.ts`, WebHID) writes a layout into a slot and reads it back.
+
+- `hostReports` sends only the ten commands the app was seen to send, in the shapes it sent
+  them. Reset, DFU, the device id and the details save cannot be built. Do not add a command
+  to `SENDABLE_COMMANDS` without a capture of the app sending it.
+- A unit says who it is (`KEYPAD_DETAILS` carries the id in `software_device_id`), and
+  nothing is written to a unit its device map does not name, or on firmware other than 111.
+- A write is checked by reading the slot back; a difference is reported, never assumed away.
+- `tests/unit/lib/unitproto.test.ts` is the contract: the app's own reports, byte for byte.
+- The Azeron app must be closed during a write: it talks on the same channel. The pedals are
+  still never asked anything.
 
 So the editor asks the unit itself: **Check this unit** (`src/lib/checkunit.ts`, the run in
 `app.ts`) asks for each control in board order and reads the keystroke or mouse button that

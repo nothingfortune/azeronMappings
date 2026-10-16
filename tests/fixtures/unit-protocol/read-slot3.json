@@ -1,0 +1,3716 @@
+{
+  "source": "REQUEST_PROFILE for slot 3 straight after the write above",
+  "frames": [
+    "17002e0121001700000101000c030e524520616c6c206669656c64730000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "24002e0221012400010100010100140050009600c8002c0101000000000106010415060f010001022500000000000000000000000000000000000000f4019600",
+    "39002e0321023901020003020102ff010b0b14f01af008f015f002e001e004e000000000000000000000000000000000000000000000000000000000f4019600",
+    "13002e042102130102010200000000000000000000000000000002e001e004e000000000000000000000000000000000000000000000000000000000f4019600",
+    "39002e0521033902020000020203ff01010b1df00000000000000000000000001bf006f00000000004e0000000000000000000000000000000000000b5019600",
+    "13002e06210313020201010000000000000000000000000000000000000000001bf006f00000000004e0000000000000000000000000000000000000b5019600",
+    "39002e0721043903020001020304ff010b0119f0000000000000000000000000000000000000000000000000000005f011f00000000020e000000000f401e900",
+    "13002e0821041303020100000000000000000000000000000000000000000000000000000000000000000000000005f011f00000000020e000000000f401e900",
+    "39002e0921053904020006020405ff010b0b10f000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "13002e0a2105130402010701d20400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "39002e0b21063905020007020508ff01010b18f00000000000000000000000001cf00000000000000000000000000000000000000000000000000000f4019600",
+    "13002e0c2106130502010602000000004d0500000000000000000000000000001cf00000000000000000000000000000000000000000000000000000f4019600",
+    "39002e0d21073906020004020609ff010b0117f000000000000000000000000000000000000000000000000000000af0000000000000000000000000f4019600",
+    "13002e0e21071306020105040000000000000000be050000000000000000000000000000000000000000000000000af0000000000000000000000000f4019600",
+    "39002e0f2108390702000502070aff010b0b0bf000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "13002e1021081307020104000000014d0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "39002e112109390802000a02080bff01010b0df00000000000000000000000000ef00000000000000000000000000000000000000000000000000000f4019600",
+    "13002e122109130802010b0000000000000001580000000000000000000000000ef00000000000000000000000000000000000000000000000000000f4019600",
+    "39002e13210a390902000b02090eff010b010ff0000000000000000000000000000000000000000000000000000013f0000000000000000000000000f4019600",
+    "13002e14210a130902010a000000000000000000000001630000000000000000000000000000000000000000000013f0000000000000000000000000f4019600",
+    "39002e15210b390a020008020a0fff0101011ef00000000000000000000000001ff000000000000000000000000020f00000000000000000000000006302b100",
+    "13002e16210b130a0201090000000000000000000000000000000000000000001ff000000000000000000000000020f00000000000000000000000006302b100",
+    "39002e17210c390b020009020b10ff0f0b0b010000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "13002e18210c130b02010800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "39002e19210d390c02000e020c11ff0f0b0b020000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "13002e1a210d130c02010f00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "39002e1b210e390d02000f020d0dff0f0b0b030000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "13002e1c210e130d02010e00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "39002e1d210f390e02000c020e17ff010b0be9e400000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "13002e1e210f130e02010d00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "39002e1f2110390f02000d020f18ff0f0b0b030000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "13002e202110130f02010c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "39002e2121113910020012021019ff010b0b20e000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "13002e222111131002011300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "39002e232112391102001302111aff010b0b68f000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "13002e242112131102011200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "39002e2521133912020010021216ff010b0b000000000000000040e00000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "13002e262113131202011100000000000000000000000000000040e00000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "39002e272114391302001102131bff010b0b000000000000000002e00000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "13002e282114131302011000000000000000000000000000000002e00000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "39002e2921153914020016021413ff010b0b2ef000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "13002e2a2115131402011700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "39002e2b2116391502001702150000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f401c800",
+    "13002e2c2116131502011600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f401c800",
+    "39002e2d21173916020014021625ff010b0b0af000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "13002e2e2117131602011500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "39002e2f21183917020015021720ff010b0b000000000000000004e00000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "13002e302118131702011400000000000000000000000000000004e00000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "39002e312119391802001a02181f1e0400005b000b0025000700312d010cf0000000000ff0000000000ef0000000000df00000000017f0000000000bf0000000",
+    "39002e322119391802001a000af00000000009f0000000001ef0000000001ff00000000020f00000000021f00000000022f00000000023f00000000024f00000",
+    "20002e332119201802011b000025f000000000060d01050f070802110000000000153f1b00000000000021f00000000022f00000000023f00000000024f00000",
+    "39002e34211a391c02001e021c22ff010b0b1af000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "13002e35211a131c02011f00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "39002e36211b391d02001f021d23ff010b0b3bf000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "13002e37211b131d02011e00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "39002e38211c391e02001c021e24ff010b0b16f000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "13002e39211c131e02011d00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "39002e3a211d391f02001d021f21ff010b0b3af000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "13002e3b211d131f02011c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "39002e3c211e3924020026022406ff010b0b29f000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "13002e3d211e132402012700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "39002e3e211f3925020027022501ff0b0b0b000000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "13002e3f211f132502012600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "39002e4021203926020024022607ff010b0b0ef000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "13002e412120132602012500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "39002e422121392902002b022914ff010b0b09f000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+    "13002e432121132902012a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600"
+  ],
+  "decoded": [
+    {
+      "inputs": [
+        {
+          "id": 1,
+          "pinOne": 2,
+          "pinTwo": 255,
+          "types": ["1", "11", "11"],
+          "keyValues": ["KeyQ", "KeyW", "KeyE", "KeyR"],
+          "metaValues": ["ShiftLeft", "ControlLeft", "AltLeft"],
+          "keyValuesLong": ["0", "0", "0", "0"],
+          "metaValuesLong": ["0", "0", "0"],
+          "keyValuesDouble": ["0", "0", "0", "0"],
+          "metaValuesDouble": ["0", "0", "0"],
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "x": 0,
+          "y": 0,
+          "interval": 20,
+          "yInterval": 20,
+          "xLong": 0,
+          "yLong": 0,
+          "intervalLong": 20,
+          "yIntervalLong": 20,
+          "xDouble": 0,
+          "yDouble": 0,
+          "intervalDouble": 20,
+          "yIntervalDouble": 20,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "mouseSensitivity": 5,
+            "analogKeys": {
+              "left": {
+                "up": ["KeyW", 0, 0],
+                "right": ["KeyD", 0, 0],
+                "down": ["KeyS", 0, 0],
+                "left": ["KeyA", 0, 0]
+              },
+              "right": {
+                "up": ["ArrowUp", 0, 0],
+                "right": ["ArrowRight", 0, 0],
+                "down": ["ArrowDown", 0, 0],
+                "left": ["ArrowLeft", 0, 0]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              },
+              "right": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": ["16", "0", "0"],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          }
+        },
+        {
+          "id": 2,
+          "pinOne": 3,
+          "pinTwo": 255,
+          "types": ["1", "1", "11"],
+          "keyValues": ["KeyZ", "0", "0", "0"],
+          "metaValues": ["0", "0", "0"],
+          "keyValuesLong": ["KeyX", "KeyC", "0", "0"],
+          "metaValuesLong": ["AltLeft", "0", "0"],
+          "keyValuesDouble": ["0", "0", "0", "0"],
+          "metaValuesDouble": ["0", "0", "0"],
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "featureDelay": 437,
+          "doubleDelay": 150,
+          "x": 0,
+          "y": 0,
+          "interval": 20,
+          "yInterval": 20,
+          "xLong": 0,
+          "yLong": 0,
+          "intervalLong": 20,
+          "yIntervalLong": 20,
+          "xDouble": 0,
+          "yDouble": 0,
+          "intervalDouble": 20,
+          "yIntervalDouble": 20,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "mouseSensitivity": 5,
+            "analogKeys": {
+              "left": {
+                "up": ["KeyW", 0, 0],
+                "right": ["KeyD", 0, 0],
+                "down": ["KeyS", 0, 0],
+                "left": ["KeyA", 0, 0]
+              },
+              "right": {
+                "up": ["ArrowUp", 0, 0],
+                "right": ["ArrowRight", 0, 0],
+                "down": ["ArrowDown", 0, 0],
+                "left": ["ArrowLeft", 0, 0]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              },
+              "right": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": ["16", "0", "0"],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          }
+        },
+        {
+          "id": 3,
+          "pinOne": 4,
+          "pinTwo": 255,
+          "types": ["1", "11", "1"],
+          "keyValues": ["KeyV", "0", "0", "0"],
+          "metaValues": ["0", "0", "0"],
+          "keyValuesLong": ["0", "0", "0", "0"],
+          "metaValuesLong": ["0", "0", "0"],
+          "keyValuesDouble": ["KeyB", "KeyN", "0", "0"],
+          "metaValuesDouble": ["ShiftRight", "0", "0"],
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "featureDelay": 500,
+          "doubleDelay": 233,
+          "x": 0,
+          "y": 0,
+          "interval": 20,
+          "yInterval": 20,
+          "xLong": 0,
+          "yLong": 0,
+          "intervalLong": 20,
+          "yIntervalLong": 20,
+          "xDouble": 0,
+          "yDouble": 0,
+          "intervalDouble": 20,
+          "yIntervalDouble": 20,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "mouseSensitivity": 5,
+            "analogKeys": {
+              "left": {
+                "up": ["KeyW", 0, 0],
+                "right": ["KeyD", 0, 0],
+                "down": ["KeyS", 0, 0],
+                "left": ["KeyA", 0, 0]
+              },
+              "right": {
+                "up": ["ArrowUp", 0, 0],
+                "right": ["ArrowRight", 0, 0],
+                "down": ["ArrowDown", 0, 0],
+                "left": ["ArrowLeft", 0, 0]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              },
+              "right": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": ["16", "0", "0"],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          }
+        },
+        {
+          "id": 4,
+          "pinOne": 5,
+          "pinTwo": 255,
+          "types": ["1", "11", "11"],
+          "keyValues": ["KeyM", "0", "0", "0"],
+          "metaValues": ["0", "0", "0"],
+          "keyValuesLong": ["0", "0", "0", "0"],
+          "metaValuesLong": ["0", "0", "0"],
+          "keyValuesDouble": ["0", "0", "0", "0"],
+          "metaValuesDouble": ["0", "0", "0"],
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "x": 0,
+          "y": 0,
+          "interval": 20,
+          "yInterval": 20,
+          "xLong": 0,
+          "yLong": 0,
+          "intervalLong": 20,
+          "yIntervalLong": 20,
+          "xDouble": 0,
+          "yDouble": 0,
+          "intervalDouble": 20,
+          "yIntervalDouble": 20,
+          "isHold": true,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 1234,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "mouseSensitivity": 5,
+            "analogKeys": {
+              "left": {
+                "up": ["KeyW", 0, 0],
+                "right": ["KeyD", 0, 0],
+                "down": ["KeyS", 0, 0],
+                "left": ["KeyA", 0, 0]
+              },
+              "right": {
+                "up": ["ArrowUp", 0, 0],
+                "right": ["ArrowRight", 0, 0],
+                "down": ["ArrowDown", 0, 0],
+                "left": ["ArrowLeft", 0, 0]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              },
+              "right": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": ["16", "0", "0"],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          }
+        },
+        {
+          "id": 5,
+          "pinOne": 8,
+          "pinTwo": 255,
+          "types": ["1", "1", "11"],
+          "keyValues": ["KeyU", "0", "0", "0"],
+          "metaValues": ["0", "0", "0"],
+          "keyValuesLong": ["KeyY", "0", "0", "0"],
+          "metaValuesLong": ["0", "0", "0"],
+          "keyValuesDouble": ["0", "0", "0", "0"],
+          "metaValuesDouble": ["0", "0", "0"],
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "x": 0,
+          "y": 0,
+          "interval": 20,
+          "yInterval": 20,
+          "xLong": 0,
+          "yLong": 0,
+          "intervalLong": 20,
+          "yIntervalLong": 20,
+          "xDouble": 0,
+          "yDouble": 0,
+          "intervalDouble": 20,
+          "yIntervalDouble": 20,
+          "isHold": false,
+          "isHoldLong": true,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 1357,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "mouseSensitivity": 5,
+            "analogKeys": {
+              "left": {
+                "up": ["KeyW", 0, 0],
+                "right": ["KeyD", 0, 0],
+                "down": ["KeyS", 0, 0],
+                "left": ["KeyA", 0, 0]
+              },
+              "right": {
+                "up": ["ArrowUp", 0, 0],
+                "right": ["ArrowRight", 0, 0],
+                "down": ["ArrowDown", 0, 0],
+                "left": ["ArrowLeft", 0, 0]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              },
+              "right": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": ["16", "0", "0"],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          }
+        },
+        {
+          "id": 6,
+          "pinOne": 9,
+          "pinTwo": 255,
+          "types": ["1", "11", "1"],
+          "keyValues": ["KeyT", "0", "0", "0"],
+          "metaValues": ["0", "0", "0"],
+          "keyValuesLong": ["0", "0", "0", "0"],
+          "metaValuesLong": ["0", "0", "0"],
+          "keyValuesDouble": ["KeyG", "0", "0", "0"],
+          "metaValuesDouble": ["0", "0", "0"],
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "x": 0,
+          "y": 0,
+          "interval": 20,
+          "yInterval": 20,
+          "xLong": 0,
+          "yLong": 0,
+          "intervalLong": 20,
+          "yIntervalLong": 20,
+          "xDouble": 0,
+          "yDouble": 0,
+          "intervalDouble": 20,
+          "yIntervalDouble": 20,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": true,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 1470,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "mouseSensitivity": 5,
+            "analogKeys": {
+              "left": {
+                "up": ["KeyW", 0, 0],
+                "right": ["KeyD", 0, 0],
+                "down": ["KeyS", 0, 0],
+                "left": ["KeyA", 0, 0]
+              },
+              "right": {
+                "up": ["ArrowUp", 0, 0],
+                "right": ["ArrowRight", 0, 0],
+                "down": ["ArrowDown", 0, 0],
+                "left": ["ArrowLeft", 0, 0]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              },
+              "right": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": ["16", "0", "0"],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          }
+        },
+        {
+          "id": 7,
+          "pinOne": 10,
+          "pinTwo": 255,
+          "types": ["1", "11", "11"],
+          "keyValues": ["KeyH", "0", "0", "0"],
+          "metaValues": ["0", "0", "0"],
+          "keyValuesLong": ["0", "0", "0", "0"],
+          "metaValuesLong": ["0", "0", "0"],
+          "keyValuesDouble": ["0", "0", "0", "0"],
+          "metaValuesDouble": ["0", "0", "0"],
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "x": 0,
+          "y": 0,
+          "interval": 20,
+          "yInterval": 20,
+          "xLong": 0,
+          "yLong": 0,
+          "intervalLong": 20,
+          "yIntervalLong": 20,
+          "xDouble": 0,
+          "yDouble": 0,
+          "intervalDouble": 20,
+          "yIntervalDouble": 20,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": true,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 77,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "mouseSensitivity": 5,
+            "analogKeys": {
+              "left": {
+                "up": ["KeyW", 0, 0],
+                "right": ["KeyD", 0, 0],
+                "down": ["KeyS", 0, 0],
+                "left": ["KeyA", 0, 0]
+              },
+              "right": {
+                "up": ["ArrowUp", 0, 0],
+                "right": ["ArrowRight", 0, 0],
+                "down": ["ArrowDown", 0, 0],
+                "left": ["ArrowLeft", 0, 0]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              },
+              "right": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": ["16", "0", "0"],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          }
+        },
+        {
+          "id": 8,
+          "pinOne": 11,
+          "pinTwo": 255,
+          "types": ["1", "1", "11"],
+          "keyValues": ["KeyJ", "0", "0", "0"],
+          "metaValues": ["0", "0", "0"],
+          "keyValuesLong": ["KeyK", "0", "0", "0"],
+          "metaValuesLong": ["0", "0", "0"],
+          "keyValuesDouble": ["0", "0", "0", "0"],
+          "metaValuesDouble": ["0", "0", "0"],
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "x": 0,
+          "y": 0,
+          "interval": 20,
+          "yInterval": 20,
+          "xLong": 0,
+          "yLong": 0,
+          "intervalLong": 20,
+          "yIntervalLong": 20,
+          "xDouble": 0,
+          "yDouble": 0,
+          "intervalDouble": 20,
+          "yIntervalDouble": 20,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": true,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 88,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "mouseSensitivity": 5,
+            "analogKeys": {
+              "left": {
+                "up": ["KeyW", 0, 0],
+                "right": ["KeyD", 0, 0],
+                "down": ["KeyS", 0, 0],
+                "left": ["KeyA", 0, 0]
+              },
+              "right": {
+                "up": ["ArrowUp", 0, 0],
+                "right": ["ArrowRight", 0, 0],
+                "down": ["ArrowDown", 0, 0],
+                "left": ["ArrowLeft", 0, 0]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              },
+              "right": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": ["16", "0", "0"],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          }
+        },
+        {
+          "id": 9,
+          "pinOne": 14,
+          "pinTwo": 255,
+          "types": ["1", "11", "1"],
+          "keyValues": ["KeyL", "0", "0", "0"],
+          "metaValues": ["0", "0", "0"],
+          "keyValuesLong": ["0", "0", "0", "0"],
+          "metaValuesLong": ["0", "0", "0"],
+          "keyValuesDouble": ["KeyP", "0", "0", "0"],
+          "metaValuesDouble": ["0", "0", "0"],
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "x": 0,
+          "y": 0,
+          "interval": 20,
+          "yInterval": 20,
+          "xLong": 0,
+          "yLong": 0,
+          "intervalLong": 20,
+          "yIntervalLong": 20,
+          "xDouble": 0,
+          "yDouble": 0,
+          "intervalDouble": 20,
+          "yIntervalDouble": 20,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": true,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 99,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "mouseSensitivity": 5,
+            "analogKeys": {
+              "left": {
+                "up": ["KeyW", 0, 0],
+                "right": ["KeyD", 0, 0],
+                "down": ["KeyS", 0, 0],
+                "left": ["KeyA", 0, 0]
+              },
+              "right": {
+                "up": ["ArrowUp", 0, 0],
+                "right": ["ArrowRight", 0, 0],
+                "down": ["ArrowDown", 0, 0],
+                "left": ["ArrowLeft", 0, 0]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              },
+              "right": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": ["16", "0", "0"],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          }
+        },
+        {
+          "id": 10,
+          "pinOne": 15,
+          "pinTwo": 255,
+          "types": ["1", "1", "1"],
+          "keyValues": ["Digit1", "0", "0", "0"],
+          "metaValues": ["0", "0", "0"],
+          "keyValuesLong": ["Digit2", "0", "0", "0"],
+          "metaValuesLong": ["0", "0", "0"],
+          "keyValuesDouble": ["Digit3", "0", "0", "0"],
+          "metaValuesDouble": ["0", "0", "0"],
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "featureDelay": 611,
+          "doubleDelay": 177,
+          "x": 0,
+          "y": 0,
+          "interval": 20,
+          "yInterval": 20,
+          "xLong": 0,
+          "yLong": 0,
+          "intervalLong": 20,
+          "yIntervalLong": 20,
+          "xDouble": 0,
+          "yDouble": 0,
+          "intervalDouble": 20,
+          "yIntervalDouble": 20,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "mouseSensitivity": 5,
+            "analogKeys": {
+              "left": {
+                "up": ["KeyW", 0, 0],
+                "right": ["KeyD", 0, 0],
+                "down": ["KeyS", 0, 0],
+                "left": ["KeyA", 0, 0]
+              },
+              "right": {
+                "up": ["ArrowUp", 0, 0],
+                "right": ["ArrowRight", 0, 0],
+                "down": ["ArrowDown", 0, 0],
+                "left": ["ArrowLeft", 0, 0]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              },
+              "right": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": ["16", "0", "0"],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          }
+        },
+        {
+          "id": 11,
+          "pinOne": 16,
+          "pinTwo": 255,
+          "types": ["15", "11", "11"],
+          "keyValues": ["1", "0", "0", "0"],
+          "metaValues": ["0", "0", "0"],
+          "keyValuesLong": ["0", "0", "0", "0"],
+          "metaValuesLong": ["0", "0", "0"],
+          "keyValuesDouble": ["0", "0", "0", "0"],
+          "metaValuesDouble": ["0", "0", "0"],
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "x": 0,
+          "y": 0,
+          "interval": 20,
+          "yInterval": 20,
+          "xLong": 0,
+          "yLong": 0,
+          "intervalLong": 20,
+          "yIntervalLong": 20,
+          "xDouble": 0,
+          "yDouble": 0,
+          "intervalDouble": 20,
+          "yIntervalDouble": 20,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "mouseSensitivity": 5,
+            "analogKeys": {
+              "left": {
+                "up": ["KeyW", 0, 0],
+                "right": ["KeyD", 0, 0],
+                "down": ["KeyS", 0, 0],
+                "left": ["KeyA", 0, 0]
+              },
+              "right": {
+                "up": ["ArrowUp", 0, 0],
+                "right": ["ArrowRight", 0, 0],
+                "down": ["ArrowDown", 0, 0],
+                "left": ["ArrowLeft", 0, 0]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              },
+              "right": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": ["16", "0", "0"],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          }
+        },
+        {
+          "id": 12,
+          "pinOne": 17,
+          "pinTwo": 255,
+          "types": ["15", "11", "11"],
+          "keyValues": ["2", "0", "0", "0"],
+          "metaValues": ["0", "0", "0"],
+          "keyValuesLong": ["0", "0", "0", "0"],
+          "metaValuesLong": ["0", "0", "0"],
+          "keyValuesDouble": ["0", "0", "0", "0"],
+          "metaValuesDouble": ["0", "0", "0"],
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "x": 0,
+          "y": 0,
+          "interval": 20,
+          "yInterval": 20,
+          "xLong": 0,
+          "yLong": 0,
+          "intervalLong": 20,
+          "yIntervalLong": 20,
+          "xDouble": 0,
+          "yDouble": 0,
+          "intervalDouble": 20,
+          "yIntervalDouble": 20,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "mouseSensitivity": 5,
+            "analogKeys": {
+              "left": {
+                "up": ["KeyW", 0, 0],
+                "right": ["KeyD", 0, 0],
+                "down": ["KeyS", 0, 0],
+                "left": ["KeyA", 0, 0]
+              },
+              "right": {
+                "up": ["ArrowUp", 0, 0],
+                "right": ["ArrowRight", 0, 0],
+                "down": ["ArrowDown", 0, 0],
+                "left": ["ArrowLeft", 0, 0]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              },
+              "right": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": ["16", "0", "0"],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          }
+        },
+        {
+          "id": 13,
+          "pinOne": 13,
+          "pinTwo": 255,
+          "types": ["15", "11", "11"],
+          "keyValues": ["3", "0", "0", "0"],
+          "metaValues": ["0", "0", "0"],
+          "keyValuesLong": ["0", "0", "0", "0"],
+          "metaValuesLong": ["0", "0", "0"],
+          "keyValuesDouble": ["0", "0", "0", "0"],
+          "metaValuesDouble": ["0", "0", "0"],
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "x": 0,
+          "y": 0,
+          "interval": 20,
+          "yInterval": 20,
+          "xLong": 0,
+          "yLong": 0,
+          "intervalLong": 20,
+          "yIntervalLong": 20,
+          "xDouble": 0,
+          "yDouble": 0,
+          "intervalDouble": 20,
+          "yIntervalDouble": 20,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "mouseSensitivity": 5,
+            "analogKeys": {
+              "left": {
+                "up": ["KeyW", 0, 0],
+                "right": ["KeyD", 0, 0],
+                "down": ["KeyS", 0, 0],
+                "left": ["KeyA", 0, 0]
+              },
+              "right": {
+                "up": ["ArrowUp", 0, 0],
+                "right": ["ArrowRight", 0, 0],
+                "down": ["ArrowDown", 0, 0],
+                "left": ["ArrowLeft", 0, 0]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              },
+              "right": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": ["16", "0", "0"],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          }
+        },
+        {
+          "id": 14,
+          "pinOne": 23,
+          "pinTwo": 255,
+          "types": ["1", "11", "11"],
+          "keyValues": ["AudioVolumeUp", "0", "0", "0"],
+          "metaValues": ["0", "0", "0"],
+          "keyValuesLong": ["0", "0", "0", "0"],
+          "metaValuesLong": ["0", "0", "0"],
+          "keyValuesDouble": ["0", "0", "0", "0"],
+          "metaValuesDouble": ["0", "0", "0"],
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "x": 0,
+          "y": 0,
+          "interval": 20,
+          "yInterval": 20,
+          "xLong": 0,
+          "yLong": 0,
+          "intervalLong": 20,
+          "yIntervalLong": 20,
+          "xDouble": 0,
+          "yDouble": 0,
+          "intervalDouble": 20,
+          "yIntervalDouble": 20,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "mouseSensitivity": 5,
+            "analogKeys": {
+              "left": {
+                "up": ["KeyW", 0, 0],
+                "right": ["KeyD", 0, 0],
+                "down": ["KeyS", 0, 0],
+                "left": ["KeyA", 0, 0]
+              },
+              "right": {
+                "up": ["ArrowUp", 0, 0],
+                "right": ["ArrowRight", 0, 0],
+                "down": ["ArrowDown", 0, 0],
+                "left": ["ArrowLeft", 0, 0]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              },
+              "right": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": ["16", "0", "0"],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          }
+        },
+        {
+          "id": 15,
+          "pinOne": 24,
+          "pinTwo": 255,
+          "types": ["15", "11", "11"],
+          "keyValues": ["3", "0", "0", "0"],
+          "metaValues": ["0", "0", "0"],
+          "keyValuesLong": ["0", "0", "0", "0"],
+          "metaValuesLong": ["0", "0", "0"],
+          "keyValuesDouble": ["0", "0", "0", "0"],
+          "metaValuesDouble": ["0", "0", "0"],
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "x": 0,
+          "y": 0,
+          "interval": 20,
+          "yInterval": 20,
+          "xLong": 0,
+          "yLong": 0,
+          "intervalLong": 20,
+          "yIntervalLong": 20,
+          "xDouble": 0,
+          "yDouble": 0,
+          "intervalDouble": 20,
+          "yIntervalDouble": 20,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "mouseSensitivity": 5,
+            "analogKeys": {
+              "left": {
+                "up": ["KeyW", 0, 0],
+                "right": ["KeyD", 0, 0],
+                "down": ["KeyS", 0, 0],
+                "left": ["KeyA", 0, 0]
+              },
+              "right": {
+                "up": ["ArrowUp", 0, 0],
+                "right": ["ArrowRight", 0, 0],
+                "down": ["ArrowDown", 0, 0],
+                "left": ["ArrowLeft", 0, 0]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              },
+              "right": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": ["16", "0", "0"],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          }
+        },
+        {
+          "id": 16,
+          "pinOne": 25,
+          "pinTwo": 255,
+          "types": ["1", "11", "11"],
+          "keyValues": ["ShiftRight", "0", "0", "0"],
+          "metaValues": ["0", "0", "0"],
+          "keyValuesLong": ["0", "0", "0", "0"],
+          "metaValuesLong": ["0", "0", "0"],
+          "keyValuesDouble": ["0", "0", "0", "0"],
+          "metaValuesDouble": ["0", "0", "0"],
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "x": 0,
+          "y": 0,
+          "interval": 20,
+          "yInterval": 20,
+          "xLong": 0,
+          "yLong": 0,
+          "intervalLong": 20,
+          "yIntervalLong": 20,
+          "xDouble": 0,
+          "yDouble": 0,
+          "intervalDouble": 20,
+          "yIntervalDouble": 20,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "mouseSensitivity": 5,
+            "analogKeys": {
+              "left": {
+                "up": ["KeyW", 0, 0],
+                "right": ["KeyD", 0, 0],
+                "down": ["KeyS", 0, 0],
+                "left": ["KeyA", 0, 0]
+              },
+              "right": {
+                "up": ["ArrowUp", 0, 0],
+                "right": ["ArrowRight", 0, 0],
+                "down": ["ArrowDown", 0, 0],
+                "left": ["ArrowLeft", 0, 0]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              },
+              "right": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": ["16", "0", "0"],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          }
+        },
+        {
+          "id": 17,
+          "pinOne": 26,
+          "pinTwo": 255,
+          "types": ["1", "11", "11"],
+          "keyValues": ["F13", "0", "0", "0"],
+          "metaValues": ["0", "0", "0"],
+          "keyValuesLong": ["0", "0", "0", "0"],
+          "metaValuesLong": ["0", "0", "0"],
+          "keyValuesDouble": ["0", "0", "0", "0"],
+          "metaValuesDouble": ["0", "0", "0"],
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "x": 0,
+          "y": 0,
+          "interval": 20,
+          "yInterval": 20,
+          "xLong": 0,
+          "yLong": 0,
+          "intervalLong": 20,
+          "yIntervalLong": 20,
+          "xDouble": 0,
+          "yDouble": 0,
+          "intervalDouble": 20,
+          "yIntervalDouble": 20,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "mouseSensitivity": 5,
+            "analogKeys": {
+              "left": {
+                "up": ["KeyW", 0, 0],
+                "right": ["KeyD", 0, 0],
+                "down": ["KeyS", 0, 0],
+                "left": ["KeyA", 0, 0]
+              },
+              "right": {
+                "up": ["ArrowUp", 0, 0],
+                "right": ["ArrowRight", 0, 0],
+                "down": ["ArrowDown", 0, 0],
+                "left": ["ArrowLeft", 0, 0]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              },
+              "right": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": ["16", "0", "0"],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          }
+        },
+        {
+          "id": 18,
+          "pinOne": 22,
+          "pinTwo": 255,
+          "types": ["1", "11", "11"],
+          "keyValues": ["0", "0", "0", "0"],
+          "metaValues": ["AltRight", "0", "0"],
+          "keyValuesLong": ["0", "0", "0", "0"],
+          "metaValuesLong": ["0", "0", "0"],
+          "keyValuesDouble": ["0", "0", "0", "0"],
+          "metaValuesDouble": ["0", "0", "0"],
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "x": 0,
+          "y": 0,
+          "interval": 20,
+          "yInterval": 20,
+          "xLong": 0,
+          "yLong": 0,
+          "intervalLong": 20,
+          "yIntervalLong": 20,
+          "xDouble": 0,
+          "yDouble": 0,
+          "intervalDouble": 20,
+          "yIntervalDouble": 20,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "mouseSensitivity": 5,
+            "analogKeys": {
+              "left": {
+                "up": ["KeyW", 0, 0],
+                "right": ["KeyD", 0, 0],
+                "down": ["KeyS", 0, 0],
+                "left": ["KeyA", 0, 0]
+              },
+              "right": {
+                "up": ["ArrowUp", 0, 0],
+                "right": ["ArrowRight", 0, 0],
+                "down": ["ArrowDown", 0, 0],
+                "left": ["ArrowLeft", 0, 0]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              },
+              "right": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": ["16", "0", "0"],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          }
+        },
+        {
+          "id": 19,
+          "pinOne": 27,
+          "pinTwo": 255,
+          "types": ["1", "11", "11"],
+          "keyValues": ["0", "0", "0", "0"],
+          "metaValues": ["ShiftLeft", "0", "0"],
+          "keyValuesLong": ["0", "0", "0", "0"],
+          "metaValuesLong": ["0", "0", "0"],
+          "keyValuesDouble": ["0", "0", "0", "0"],
+          "metaValuesDouble": ["0", "0", "0"],
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "x": 0,
+          "y": 0,
+          "interval": 20,
+          "yInterval": 20,
+          "xLong": 0,
+          "yLong": 0,
+          "intervalLong": 20,
+          "yIntervalLong": 20,
+          "xDouble": 0,
+          "yDouble": 0,
+          "intervalDouble": 20,
+          "yIntervalDouble": 20,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "mouseSensitivity": 5,
+            "analogKeys": {
+              "left": {
+                "up": ["KeyW", 0, 0],
+                "right": ["KeyD", 0, 0],
+                "down": ["KeyS", 0, 0],
+                "left": ["KeyA", 0, 0]
+              },
+              "right": {
+                "up": ["ArrowUp", 0, 0],
+                "right": ["ArrowRight", 0, 0],
+                "down": ["ArrowDown", 0, 0],
+                "left": ["ArrowLeft", 0, 0]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              },
+              "right": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": ["16", "0", "0"],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          }
+        },
+        {
+          "id": 20,
+          "pinOne": 19,
+          "pinTwo": 255,
+          "types": ["1", "11", "11"],
+          "keyValues": ["Equal", "0", "0", "0"],
+          "metaValues": ["0", "0", "0"],
+          "keyValuesLong": ["0", "0", "0", "0"],
+          "metaValuesLong": ["0", "0", "0"],
+          "keyValuesDouble": ["0", "0", "0", "0"],
+          "metaValuesDouble": ["0", "0", "0"],
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "x": 0,
+          "y": 0,
+          "interval": 20,
+          "yInterval": 20,
+          "xLong": 0,
+          "yLong": 0,
+          "intervalLong": 20,
+          "yIntervalLong": 20,
+          "xDouble": 0,
+          "yDouble": 0,
+          "intervalDouble": 20,
+          "yIntervalDouble": 20,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "mouseSensitivity": 5,
+            "analogKeys": {
+              "left": {
+                "up": ["KeyW", 0, 0],
+                "right": ["KeyD", 0, 0],
+                "down": ["KeyS", 0, 0],
+                "left": ["KeyA", 0, 0]
+              },
+              "right": {
+                "up": ["ArrowUp", 0, 0],
+                "right": ["ArrowRight", 0, 0],
+                "down": ["ArrowDown", 0, 0],
+                "left": ["ArrowLeft", 0, 0]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              },
+              "right": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": ["16", "0", "0"],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          }
+        },
+        {
+          "id": 21,
+          "pinOne": 0,
+          "pinTwo": 0,
+          "types": ["2", "0", "0"],
+          "keyValues": ["0", "0", "0", "0"],
+          "metaValues": ["0", "0", "0"],
+          "keyValuesLong": ["0", "0", "0", "0"],
+          "metaValuesLong": ["0", "0", "0"],
+          "keyValuesDouble": ["0", "0", "0", "0"],
+          "metaValuesDouble": ["0", "0", "0"],
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "featureDelay": 500,
+          "doubleDelay": 200,
+          "x": 0,
+          "y": 0,
+          "interval": 20,
+          "yInterval": 20,
+          "xLong": 0,
+          "yLong": 0,
+          "intervalLong": 20,
+          "yIntervalLong": 20,
+          "xDouble": 0,
+          "yDouble": 0,
+          "intervalDouble": 20,
+          "yIntervalDouble": 20,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "mouseSensitivity": 5,
+            "analogKeys": {
+              "left": {
+                "up": ["KeyW", 0, 0],
+                "right": ["KeyD", 0, 0],
+                "down": ["KeyS", 0, 0],
+                "left": ["KeyA", 0, 0]
+              },
+              "right": {
+                "up": ["ArrowUp", 0, 0],
+                "right": ["ArrowRight", 0, 0],
+                "down": ["ArrowDown", 0, 0],
+                "left": ["ArrowLeft", 0, 0]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              },
+              "right": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": ["16", "0", "0"],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          }
+        },
+        {
+          "id": 22,
+          "pinOne": 37,
+          "pinTwo": 255,
+          "types": ["1", "11", "11"],
+          "keyValues": ["KeyG", "0", "0", "0"],
+          "metaValues": ["0", "0", "0"],
+          "keyValuesLong": ["0", "0", "0", "0"],
+          "metaValuesLong": ["0", "0", "0"],
+          "keyValuesDouble": ["0", "0", "0", "0"],
+          "metaValuesDouble": ["0", "0", "0"],
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "x": 0,
+          "y": 0,
+          "interval": 20,
+          "yInterval": 20,
+          "xLong": 0,
+          "yLong": 0,
+          "intervalLong": 20,
+          "yIntervalLong": 20,
+          "xDouble": 0,
+          "yDouble": 0,
+          "intervalDouble": 20,
+          "yIntervalDouble": 20,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "mouseSensitivity": 5,
+            "analogKeys": {
+              "left": {
+                "up": ["KeyW", 0, 0],
+                "right": ["KeyD", 0, 0],
+                "down": ["KeyS", 0, 0],
+                "left": ["KeyA", 0, 0]
+              },
+              "right": {
+                "up": ["ArrowUp", 0, 0],
+                "right": ["ArrowRight", 0, 0],
+                "down": ["ArrowDown", 0, 0],
+                "left": ["ArrowLeft", 0, 0]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              },
+              "right": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": ["16", "0", "0"],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          }
+        },
+        {
+          "id": 23,
+          "pinOne": 32,
+          "pinTwo": 255,
+          "types": ["1", "11", "11"],
+          "keyValues": ["0", "0", "0", "0"],
+          "metaValues": ["AltLeft", "0", "0"],
+          "keyValuesLong": ["0", "0", "0", "0"],
+          "metaValuesLong": ["0", "0", "0"],
+          "keyValuesDouble": ["0", "0", "0", "0"],
+          "metaValuesDouble": ["0", "0", "0"],
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "x": 0,
+          "y": 0,
+          "interval": 20,
+          "yInterval": 20,
+          "xLong": 0,
+          "yLong": 0,
+          "intervalLong": 20,
+          "yIntervalLong": 20,
+          "xDouble": 0,
+          "yDouble": 0,
+          "intervalDouble": 20,
+          "yIntervalDouble": 20,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "mouseSensitivity": 5,
+            "analogKeys": {
+              "left": {
+                "up": ["KeyW", 0, 0],
+                "right": ["KeyD", 0, 0],
+                "down": ["KeyS", 0, 0],
+                "left": ["KeyA", 0, 0]
+              },
+              "right": {
+                "up": ["ArrowUp", 0, 0],
+                "right": ["ArrowRight", 0, 0],
+                "down": ["ArrowDown", 0, 0],
+                "left": ["ArrowLeft", 0, 0]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              },
+              "right": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": ["16", "0", "0"],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          }
+        },
+        {
+          "id": 24,
+          "pinOne": 31,
+          "pinTwo": 30,
+          "types": ["4", "0", "0"],
+          "keyValues": ["0", "0", "0", "0"],
+          "metaValues": ["0", "0", "0"],
+          "keyValuesLong": ["0", "0", "0", "0"],
+          "metaValuesLong": ["0", "0", "0"],
+          "keyValuesDouble": ["0", "0", "0", "0"],
+          "metaValuesDouble": ["0", "0", "0"],
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "isHold": false,
+          "isHoldDouble": false,
+          "isHoldLong": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 37,
+            "lowerLimit": 11,
+            "upperLimit": 91,
+            "sensitivity": 7,
+            "analogKeys": {
+              "left": {
+                "up": ["KeyI", 0, 0],
+                "right": ["KeyL", 0, 0],
+                "down": ["KeyK", 0, 0],
+                "left": ["KeyJ", 0, 0]
+              },
+              "right": {
+                "up": ["KeyT", 0, 0],
+                "right": ["KeyH", 0, 0],
+                "down": ["KeyG", 0, 0],
+                "left": ["KeyF", 0, 0]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              },
+              "right": {
+                "up_right": ["Digit5", 0, 0],
+                "up_left": ["Digit6", 0, 0],
+                "down_left": ["Digit7", 0, 0],
+                "down_right": ["Digit8", 0, 0]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 49,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": true,
+            "mouseSensitivity": 6,
+            "analogThrottle": 13,
+            "isAnalogSmoothing": true,
+            "triggerMagnitude": 5,
+            "isCombinedAnalog": true,
+            "combinedAnalogMagnitude": 7,
+            "isHoldTrigger": true,
+            "holdMagnitude": 8,
+            "holdType": "2",
+            "holdKeyValues": ["17", "0", "0"],
+            "rotateStickButtonId": 21,
+            "isAngleLock": true,
+            "lockZoneAngle": 63,
+            "lockZoneSize": 27,
+            "isRightAnalog": false,
+            "invertXAxis": true,
+            "invertYAxis": false
+          }
+        },
+        {
+          "id": 28,
+          "pinOne": 34,
+          "pinTwo": 255,
+          "types": ["1", "11", "11"],
+          "keyValues": ["KeyW", "0", "0", "0"],
+          "metaValues": ["0", "0", "0"],
+          "keyValuesLong": ["0", "0", "0", "0"],
+          "metaValuesLong": ["0", "0", "0"],
+          "keyValuesDouble": ["0", "0", "0", "0"],
+          "metaValuesDouble": ["0", "0", "0"],
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "x": 0,
+          "y": 0,
+          "interval": 20,
+          "yInterval": 20,
+          "xLong": 0,
+          "yLong": 0,
+          "intervalLong": 20,
+          "yIntervalLong": 20,
+          "xDouble": 0,
+          "yDouble": 0,
+          "intervalDouble": 20,
+          "yIntervalDouble": 20,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "mouseSensitivity": 5,
+            "analogKeys": {
+              "left": {
+                "up": ["KeyW", 0, 0],
+                "right": ["KeyD", 0, 0],
+                "down": ["KeyS", 0, 0],
+                "left": ["KeyA", 0, 0]
+              },
+              "right": {
+                "up": ["ArrowUp", 0, 0],
+                "right": ["ArrowRight", 0, 0],
+                "down": ["ArrowDown", 0, 0],
+                "left": ["ArrowLeft", 0, 0]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              },
+              "right": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": ["16", "0", "0"],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          }
+        },
+        {
+          "id": 29,
+          "pinOne": 35,
+          "pinTwo": 255,
+          "types": ["1", "11", "11"],
+          "keyValues": ["F2", "0", "0", "0"],
+          "metaValues": ["0", "0", "0"],
+          "keyValuesLong": ["0", "0", "0", "0"],
+          "metaValuesLong": ["0", "0", "0"],
+          "keyValuesDouble": ["0", "0", "0", "0"],
+          "metaValuesDouble": ["0", "0", "0"],
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "x": 0,
+          "y": 0,
+          "interval": 20,
+          "yInterval": 20,
+          "xLong": 0,
+          "yLong": 0,
+          "intervalLong": 20,
+          "yIntervalLong": 20,
+          "xDouble": 0,
+          "yDouble": 0,
+          "intervalDouble": 20,
+          "yIntervalDouble": 20,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "mouseSensitivity": 5,
+            "analogKeys": {
+              "left": {
+                "up": ["KeyW", 0, 0],
+                "right": ["KeyD", 0, 0],
+                "down": ["KeyS", 0, 0],
+                "left": ["KeyA", 0, 0]
+              },
+              "right": {
+                "up": ["ArrowUp", 0, 0],
+                "right": ["ArrowRight", 0, 0],
+                "down": ["ArrowDown", 0, 0],
+                "left": ["ArrowLeft", 0, 0]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              },
+              "right": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": ["16", "0", "0"],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          }
+        },
+        {
+          "id": 30,
+          "pinOne": 36,
+          "pinTwo": 255,
+          "types": ["1", "11", "11"],
+          "keyValues": ["KeyS", "0", "0", "0"],
+          "metaValues": ["0", "0", "0"],
+          "keyValuesLong": ["0", "0", "0", "0"],
+          "metaValuesLong": ["0", "0", "0"],
+          "keyValuesDouble": ["0", "0", "0", "0"],
+          "metaValuesDouble": ["0", "0", "0"],
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "x": 0,
+          "y": 0,
+          "interval": 20,
+          "yInterval": 20,
+          "xLong": 0,
+          "yLong": 0,
+          "intervalLong": 20,
+          "yIntervalLong": 20,
+          "xDouble": 0,
+          "yDouble": 0,
+          "intervalDouble": 20,
+          "yIntervalDouble": 20,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "mouseSensitivity": 5,
+            "analogKeys": {
+              "left": {
+                "up": ["KeyW", 0, 0],
+                "right": ["KeyD", 0, 0],
+                "down": ["KeyS", 0, 0],
+                "left": ["KeyA", 0, 0]
+              },
+              "right": {
+                "up": ["ArrowUp", 0, 0],
+                "right": ["ArrowRight", 0, 0],
+                "down": ["ArrowDown", 0, 0],
+                "left": ["ArrowLeft", 0, 0]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              },
+              "right": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": ["16", "0", "0"],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          }
+        },
+        {
+          "id": 31,
+          "pinOne": 33,
+          "pinTwo": 255,
+          "types": ["1", "11", "11"],
+          "keyValues": ["F1", "0", "0", "0"],
+          "metaValues": ["0", "0", "0"],
+          "keyValuesLong": ["0", "0", "0", "0"],
+          "metaValuesLong": ["0", "0", "0"],
+          "keyValuesDouble": ["0", "0", "0", "0"],
+          "metaValuesDouble": ["0", "0", "0"],
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "x": 0,
+          "y": 0,
+          "interval": 20,
+          "yInterval": 20,
+          "xLong": 0,
+          "yLong": 0,
+          "intervalLong": 20,
+          "yIntervalLong": 20,
+          "xDouble": 0,
+          "yDouble": 0,
+          "intervalDouble": 20,
+          "yIntervalDouble": 20,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "mouseSensitivity": 5,
+            "analogKeys": {
+              "left": {
+                "up": ["KeyW", 0, 0],
+                "right": ["KeyD", 0, 0],
+                "down": ["KeyS", 0, 0],
+                "left": ["KeyA", 0, 0]
+              },
+              "right": {
+                "up": ["ArrowUp", 0, 0],
+                "right": ["ArrowRight", 0, 0],
+                "down": ["ArrowDown", 0, 0],
+                "left": ["ArrowLeft", 0, 0]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              },
+              "right": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": ["16", "0", "0"],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          }
+        },
+        {
+          "id": 36,
+          "pinOne": 6,
+          "pinTwo": 255,
+          "types": ["1", "11", "11"],
+          "keyValues": ["Escape", "0", "0", "0"],
+          "metaValues": ["0", "0", "0"],
+          "keyValuesLong": ["0", "0", "0", "0"],
+          "metaValuesLong": ["0", "0", "0"],
+          "keyValuesDouble": ["0", "0", "0", "0"],
+          "metaValuesDouble": ["0", "0", "0"],
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "x": 0,
+          "y": 0,
+          "interval": 20,
+          "yInterval": 20,
+          "xLong": 0,
+          "yLong": 0,
+          "intervalLong": 20,
+          "yIntervalLong": 20,
+          "xDouble": 0,
+          "yDouble": 0,
+          "intervalDouble": 20,
+          "yIntervalDouble": 20,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "mouseSensitivity": 5,
+            "analogKeys": {
+              "left": {
+                "up": ["KeyW", 0, 0],
+                "right": ["KeyD", 0, 0],
+                "down": ["KeyS", 0, 0],
+                "left": ["KeyA", 0, 0]
+              },
+              "right": {
+                "up": ["ArrowUp", 0, 0],
+                "right": ["ArrowRight", 0, 0],
+                "down": ["ArrowDown", 0, 0],
+                "left": ["ArrowLeft", 0, 0]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              },
+              "right": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": ["16", "0", "0"],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          }
+        },
+        {
+          "id": 37,
+          "pinOne": 1,
+          "pinTwo": 255,
+          "types": ["11", "11", "11"],
+          "keyValues": ["0", "0", "0", "0"],
+          "metaValues": ["0", "0", "0"],
+          "keyValuesLong": ["0", "0", "0", "0"],
+          "metaValuesLong": ["0", "0", "0"],
+          "keyValuesDouble": ["0", "0", "0", "0"],
+          "metaValuesDouble": ["0", "0", "0"],
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "x": 0,
+          "y": 0,
+          "interval": 20,
+          "yInterval": 20,
+          "xLong": 0,
+          "yLong": 0,
+          "intervalLong": 20,
+          "yIntervalLong": 20,
+          "xDouble": 0,
+          "yDouble": 0,
+          "intervalDouble": 20,
+          "yIntervalDouble": 20,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "mouseSensitivity": 5,
+            "analogKeys": {
+              "left": {
+                "up": ["KeyW", 0, 0],
+                "right": ["KeyD", 0, 0],
+                "down": ["KeyS", 0, 0],
+                "left": ["KeyA", 0, 0]
+              },
+              "right": {
+                "up": ["ArrowUp", 0, 0],
+                "right": ["ArrowRight", 0, 0],
+                "down": ["ArrowDown", 0, 0],
+                "left": ["ArrowLeft", 0, 0]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              },
+              "right": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": ["16", "0", "0"],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          }
+        },
+        {
+          "id": 38,
+          "pinOne": 7,
+          "pinTwo": 255,
+          "types": ["1", "11", "11"],
+          "keyValues": ["KeyK", "0", "0", "0"],
+          "metaValues": ["0", "0", "0"],
+          "keyValuesLong": ["0", "0", "0", "0"],
+          "metaValuesLong": ["0", "0", "0"],
+          "keyValuesDouble": ["0", "0", "0", "0"],
+          "metaValuesDouble": ["0", "0", "0"],
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "x": 0,
+          "y": 0,
+          "interval": 20,
+          "yInterval": 20,
+          "xLong": 0,
+          "yLong": 0,
+          "intervalLong": 20,
+          "yIntervalLong": 20,
+          "xDouble": 0,
+          "yDouble": 0,
+          "intervalDouble": 20,
+          "yIntervalDouble": 20,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "mouseSensitivity": 5,
+            "analogKeys": {
+              "left": {
+                "up": ["KeyW", 0, 0],
+                "right": ["KeyD", 0, 0],
+                "down": ["KeyS", 0, 0],
+                "left": ["KeyA", 0, 0]
+              },
+              "right": {
+                "up": ["ArrowUp", 0, 0],
+                "right": ["ArrowRight", 0, 0],
+                "down": ["ArrowDown", 0, 0],
+                "left": ["ArrowLeft", 0, 0]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              },
+              "right": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": ["16", "0", "0"],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          }
+        },
+        {
+          "id": 41,
+          "pinOne": 20,
+          "pinTwo": 255,
+          "types": ["1", "11", "11"],
+          "keyValues": ["KeyF", "0", "0", "0"],
+          "metaValues": ["0", "0", "0"],
+          "keyValuesLong": ["0", "0", "0", "0"],
+          "metaValuesLong": ["0", "0", "0"],
+          "keyValuesDouble": ["0", "0", "0", "0"],
+          "metaValuesDouble": ["0", "0", "0"],
+          "macro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "longMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "doubleMacro": {
+            "repeat": false,
+            "steps": [],
+            "v": 1
+          },
+          "featureDelay": 500,
+          "doubleDelay": 150,
+          "x": 0,
+          "y": 0,
+          "interval": 20,
+          "yInterval": 20,
+          "xLong": 0,
+          "yLong": 0,
+          "intervalLong": 20,
+          "yIntervalLong": 20,
+          "xDouble": 0,
+          "yDouble": 0,
+          "intervalDouble": 20,
+          "yIntervalDouble": 20,
+          "isHold": false,
+          "isHoldLong": false,
+          "isHoldDouble": false,
+          "holdTime": 0,
+          "holdTimeLong": 0,
+          "holdTimeDouble": 0,
+          "isTurbo": false,
+          "isTurboLong": false,
+          "isTurboDouble": false,
+          "turboInterval": 0,
+          "turboIntervalLong": 0,
+          "turboIntervalDouble": 0,
+          "sequenceTriggerSettings": {
+            "isPingPongLoop": false,
+            "sequenceSteps": []
+          },
+          "analogSettings": {
+            "angle": 0,
+            "lowerLimit": 0,
+            "upperLimit": 0,
+            "sensitivity": 0,
+            "mouseSensitivity": 5,
+            "analogKeys": {
+              "left": {
+                "up": ["KeyW", 0, 0],
+                "right": ["KeyD", 0, 0],
+                "down": ["KeyS", 0, 0],
+                "left": ["KeyA", 0, 0]
+              },
+              "right": {
+                "up": ["ArrowUp", 0, 0],
+                "right": ["ArrowRight", 0, 0],
+                "down": ["ArrowDown", 0, 0],
+                "left": ["ArrowLeft", 0, 0]
+              }
+            },
+            "diagonalKeys": {
+              "left": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              },
+              "right": {
+                "up_right": ["Digit1", 0, 0],
+                "up_left": ["Digit2", 0, 0],
+                "down_left": ["Digit3", 0, 0],
+                "down_right": ["Digit4", 0, 0]
+              }
+            },
+            "analogCones": {
+              "verticalCone": 45,
+              "horizontalCone": 45
+            },
+            "isEightDirectionalTrigger": false,
+            "analogThrottle": 0,
+            "isAnalogSmoothing": false,
+            "triggerMagnitude": 4,
+            "isCombinedAnalog": false,
+            "combinedAnalogMagnitude": 6,
+            "isHoldTrigger": false,
+            "holdMagnitude": 9,
+            "holdType": "1",
+            "holdKeyValues": ["16", "0", "0"],
+            "rotateStickButtonId": 0,
+            "isAngleLock": false,
+            "lockZoneAngle": 70,
+            "lockZoneSize": 30,
+            "isRightAnalog": false,
+            "invertXAxis": false,
+            "invertYAxis": false
+          }
+        }
+      ],
+      "isSoftware": false,
+      "errors": [],
+      "id": "3",
+      "name": "RE all fields",
+      "profileSettings": {
+        "profileSensitivitySettings": {
+          "currentSensitivityIndex": 1,
+          "sensitivityValues": [1000, 4000, 7500, 10000, 15000]
+        },
+        "isSensorOn": true,
+        "mouseSensorAngle": 0,
+        "ledSettings": {
+          "ledState": [
+            {
+              "r": 0,
+              "g": 0,
+              "b": 40
+            },
+            {
+              "r": 43,
+              "g": 55,
+              "b": 64
+            },
+            {
+              "r": 78,
+              "g": 90,
+              "b": 99
+            }
+          ],
+          "isLedsOn": [true, false, true],
+          "ledEffect": 2,
+          "ledBrightness": 37
+        }
+      }
+    }
+  ]
+}

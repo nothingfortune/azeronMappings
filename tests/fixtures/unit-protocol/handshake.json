@@ -1,0 +1,46 @@
+{
+  "05": "020005040101026f08ff0100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+  "request-fw-version": {
+    "renderEvent": "request-fw-version",
+    "version": 111,
+    "keypadType": 8
+  },
+  "35": "0b00350501010b010000000c9c3f9f35d01a000000000000000000000000000000000000000000000000000000000000000000000000000000000000f4019600",
+  "02": "230002060101230132010a00000805d7ffdcff34004500004dc01500ec036a00a7030000000037adad01000000000000000000000000000000000000f4019600",
+  "device-details": {
+    "renderEvent": "device-details",
+    "isGlobalLedBrightness": true,
+    "defaultLedBrightness": 50,
+    "isBounceThrottle": true,
+    "throttleValue": 10,
+    "isRightStick": false,
+    "fwType": 0,
+    "keypadType": 8,
+    "offsetX": -41,
+    "offsetY": -36,
+    "lowDeadzone": 52,
+    "highDeadzone": 69,
+    "hasDefaultProfiles": false,
+    "uniqueDeviceId": 49229,
+    "xMin": 21,
+    "xMax": 1004,
+    "yMin": 106,
+    "yMax": 935,
+    "analogThrottle": 0,
+    "isGlobalAngle": false,
+    "globalAngle": 0,
+    "defaultLedColor": {
+      "r": 123,
+      "g": 229,
+      "b": 224
+    },
+    "isLedSleepEnabled": true
+  },
+  "1f": "01001f070101010632010a00000805d7ffdcff34004500004dc01500ec036a00a7030000000037adad01000000000000000000000000000000000000f4019600",
+  "request-profile-limit": {
+    "renderEvent": "request-profile-limit",
+    "profileLimit": 6
+  },
+  "2e": "1a002e0965001a00000101000c001150524f424520707265737320746573740000030000000037adad01000000000000000000000000000000000000f4019600",
+  "37": "0400370a0101040002ff01000c001150524f424520707265737320746573740000030000000037adad01000000000000000000000000000000000000f4019600"
+}

@@ -546,6 +546,11 @@ function cmdServe(port: number, host: string): number {
       send(200, JSON.stringify(payload()));
       return;
     }
+    if (request.method === "GET" && url === "/api/azeron-app") {
+      // The editor writes to a unit on the channel the Azeron app uses, so it asks first.
+      send(200, JSON.stringify({ ok: true, running: appIsRunning() }));
+      return;
+    }
     if (request.method === "GET" && url.startsWith("/api/units")) {
       const query = new URL(url, "http://localhost").searchParams;
       const slug = query.get("game");

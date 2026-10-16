@@ -282,6 +282,9 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 .check-bar .check-verdict.ok { color: var(--ok); }
 .check-bar .check-verdict.bad { color: var(--error); }
 .check-bar .check-differing { margin: 0 0 0 18px; padding: 0; }
+.write-bar .write-slots { display: grid; gap: 4px; }
+.write-bar .write-slots label { display: flex; gap: 8px; align-items: center; font-size: 13px; }
+.write-bar .field { max-width: 320px; }
 .key.check-next, .dir.check-next { outline: 3px solid var(--accent); outline-offset: 1px;
                                    animation: check-pulse 1s ease-in-out infinite; }
 .key.check-ok, .dir.check-ok { box-shadow: inset 0 0 0 2px var(--ok); }
@@ -291,6 +294,7 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
   .key.check-next, .dir.check-next { animation: none; }
 }
 .hand > .title .check-unit { margin-left: auto; align-self: center; }
+.hand > .title .write-unit { align-self: center; }
 .units-report .unit-behind { margin-top: 8px; }
 .units-report .unit-differences { margin: 4px 0 6px 18px; padding: 0; }
 .units-report .unit-differences li { margin: 2px 0; }
@@ -465,7 +469,7 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 1
 @media print {
   :root:root:root { ${LIGHT} color-scheme: light; }
   @page { size: landscape; margin: 10mm; }
-  header, .save-note, .dock, .menu, .check-bar, .check-unit { display: none !important; }
+  header, .save-note, .dock, .menu, .check-bar, .check-unit, .write-unit { display: none !important; }
   body { background: #fff; }
   .workspace { padding: 0; }
   .print-title { display: block; font-size: 16px; font-weight: 600; margin-bottom: 8px; }

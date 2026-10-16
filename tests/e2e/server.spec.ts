@@ -62,6 +62,16 @@ test.describe("the server's request checks", () => {
     );
   });
 
+  test("says whether the Azeron app is running, which a write to a unit asks first", async () => {
+    const answer = await send("GET", "/api/azeron-app", {});
+    expect(answer.status).toBe(200);
+    expect(typeof answer.json.running).toBe("boolean");
+    const refused = await send("GET", "/api/azeron-app", {
+      host: `rebind.example:${String(PORT)}`,
+    });
+    expect(refused.status).toBe(403);
+  });
+
   test("refuses a Host that is not loopback", async () => {
     const refused = await send("GET", "/api/payload", { host: `rebind.example:${String(PORT)}` });
     expect(refused.status).toBe(403);
