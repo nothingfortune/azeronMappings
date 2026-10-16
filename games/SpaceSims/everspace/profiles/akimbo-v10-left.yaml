@@ -27,93 +27,63 @@ profile:
   output: everspace_akimbo_v10_left.json
   sensor: true
 positions:
-  pinky_1:
-    label: Escape menu
-    tap: escape_menu
-  pinky_2:
-    label: Consumable 4
-    tap: consume_4
-  pinky_3:
-    label: Consumable 1
-    tap: consume_1
-  pinky_4:
-    label: Interact / fling
-    tap: interact
   pinky_side:
     label: Escape menu
     tap: escape_menu
-  ring_1:
-    label: Previous target
-    tap: previous_target
-  ring_2:
-    label: Consumable 3
-    tap: consume_3
-  ring_3:
-    label: Next secondary
-    tap: next_secondary
-  ring_4:
-    label: Equip secondary 3
-    tap: secondary_3
   ring_5:
     label: Missions
     tap: missions
-  middle_1:
-    label: Menu
-    tap: menu_tab
-  middle_2:
-    label: Consumable 2
-    tap: consume_2
-  middle_3:
-    label: Lock nearest target
-    tap: lock_nearest_target
-  middle_4:
-    label: Equip secondary 2
-    tap: secondary_2
   middle_5:
     label: Perks
     tap: perks
-  index_1:
-    label: Next target
-    tap: next_target
-  index_2:
-    label: Consumable 1
-    tap: consume_1
-  index_3:
-    label: Fire secondary
-    tap: fire_secondary
-  index_4:
-    label: Equip secondary 1
-    tap: secondary_1
   index_5:
     label: Ship
     tap: ship_menu
-  index_side:
-    label: Boost
+  stick:
+    directions: { up: throttle_up, down: throttle_down, right: strafe_right, left: strafe_left }
+    mode: keyboard
+  pinky_5:
+    tap: menu_tab
+    label: Menu
+  index_4:
     tap: boost
-  dpad_up:
-    label: Next secondary
-    tap: next_secondary
-  dpad_left:
-    label: Previous primary
-    tap: previous_primary
-  dpad_press:
-    label: Ultimate
-    tap: ultimate
-  dpad_right:
-    label: Next primary
-    tap: next_primary
-  dpad_down:
-    label: Previous secondary
-    tap: previous_secondary
-  thumb_aux_upper:
-    label: Cruise drive
-    tap: cruise
-  thumb_aux_lower:
-    label: Place marker
-    tap: place_marker
-  stick_press:
+    label: Boost
+  middle_4:
     label: Inertia dampeners
     tap: inertia_dampeners
-  stick:
-    mode: keyboard
-    directions: { up: hover_up, right: roll_right, down: hover_down, left: roll_left }
+  ring_4:
+    tap: device_1
+    label: Device 1
+  dpad_up:
+    tap: consume_1
+    label: Consumable 1
+  dpad_right:
+    tap: consume_2
+    label: Consumable 2
+  dpad_down:
+    tap: consume_3
+    label: Consumable 3
+  dpad_left:
+    tap: consume_4
+    label: Consumable 4
+  pinky_4:
+    tap: device_3
+    label: Device 3
+  middle_3:
+    tap: use_consumable_hold
+    label: Consumable wheel (hold)
+  ring_3:
+    tap: device_2
+    label: Device 2
+  pinky_3:
+    tap: device_4
+    label: Device 4
+  index_side:
+    tap: fling
+    label: Fling objects
+  middle_2:
+    tap: cruise
+    label: Cruise drive
+  index_2:
+    tap: supralight
+    label: Jump / supralight drive

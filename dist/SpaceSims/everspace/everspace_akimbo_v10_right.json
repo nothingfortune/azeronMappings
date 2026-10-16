@@ -296,14 +296,14 @@
         {
           "id": 2,
           "types": [
-            "1",
+            "11",
             "11",
             "11"
           ],
           "pinOne": 3,
           "pinTwo": 255,
           "keyValues": [
-            "F1",
+            "0",
             "0",
             "0",
             "0"
@@ -359,7 +359,6 @@
             "steps": [],
             "v": 1
           },
-          "label": "Next primary",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -518,14 +517,14 @@
         {
           "id": 3,
           "types": [
-            "1",
+            "11",
             "11",
             "11"
           ],
           "pinOne": 4,
           "pinTwo": 255,
           "keyValues": [
-            "Digit3",
+            "0",
             "0",
             "0",
             "0"
@@ -581,7 +580,6 @@
             "steps": [],
             "v": 1
           },
-          "label": "Device 3",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -744,14 +742,14 @@
         {
           "id": 4,
           "types": [
-            "1",
+            "11",
             "11",
             "11"
           ],
           "pinOne": 5,
           "pinTwo": 255,
           "keyValues": [
-            "Digit4",
+            "0",
             "0",
             "0",
             "0"
@@ -807,7 +805,6 @@
             "steps": [],
             "v": 1
           },
-          "label": "Device 4",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -970,14 +967,14 @@
         {
           "id": 5,
           "types": [
-            "11",
+            "1",
             "11",
             "11"
           ],
           "pinOne": 8,
           "pinTwo": 255,
           "keyValues": [
-            "0",
+            "KeyG",
             "0",
             "0",
             "0"
@@ -1186,19 +1183,20 @@
           },
           "scrollSpeed": 1,
           "scrollThreshold": 10,
-          "isSmoothScroll": false
+          "isSmoothScroll": false,
+          "label": "Ultimate"
         },
         {
           "id": 6,
           "types": [
-            "1",
+            "11",
             "11",
             "11"
           ],
           "pinOne": 9,
           "pinTwo": 255,
           "keyValues": [
-            "F2",
+            "0",
             "0",
             "0",
             "0"
@@ -1254,7 +1252,6 @@
             "steps": [],
             "v": 1
           },
-          "label": "Previous primary",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -1413,14 +1410,14 @@
         {
           "id": 7,
           "types": [
-            "1",
+            "11",
             "11",
             "11"
           ],
           "pinOne": 10,
           "pinTwo": 255,
           "keyValues": [
-            "Digit2",
+            "0",
             "0",
             "0",
             "0"
@@ -1476,7 +1473,6 @@
             "steps": [],
             "v": 1
           },
-          "label": "Device 2",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -1860,14 +1856,14 @@
         {
           "id": 9,
           "types": [
-            "1",
+            "15",
             "11",
             "11"
           ],
           "pinOne": 14,
           "pinTwo": 255,
           "keyValues": [
-            "KeyW",
+            "3",
             "0",
             "0",
             "0"
@@ -1923,7 +1919,7 @@
             "steps": [],
             "v": 1
           },
-          "label": "Thrust fwd (pulse 100)",
+          "label": "Fire secondary",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -1941,10 +1937,10 @@
           "holdTime": 0,
           "holdTimeLong": 0,
           "holdTimeDouble": 0,
-          "isTurbo": true,
+          "isTurbo": false,
           "isTurboLong": false,
           "isTurboDouble": false,
-          "turboInterval": 100,
+          "turboInterval": 0,
           "turboIntervalLong": 0,
           "turboIntervalDouble": 0,
           "sequenceTriggerSettings": {
@@ -2082,14 +2078,14 @@
         {
           "id": 10,
           "types": [
-            "15",
+            "1",
             "11",
             "11"
           ],
           "pinOne": 15,
           "pinTwo": 255,
           "keyValues": [
-            "1",
+            "Home",
             "0",
             "0",
             "0"
@@ -2145,7 +2141,7 @@
             "steps": [],
             "v": 1
           },
-          "label": "Fire primary",
+          "label": "Device wheel (hold)",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -2311,7 +2307,7 @@
           "pinOne": 16,
           "pinTwo": 255,
           "keyValues": [
-            "Digit1",
+            "KeyR",
             "0",
             "0",
             "0"
@@ -2367,7 +2363,7 @@
             "steps": [],
             "v": 1
           },
-          "label": "Device 1",
+          "label": "Next secondary",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -2535,7 +2531,7 @@
           "pinOne": 17,
           "pinTwo": 255,
           "keyValues": [
-            "KeyW",
+            "KeyX",
             "0",
             "0",
             "0"
@@ -2608,10 +2604,10 @@
           "holdTime": 0,
           "holdTimeLong": 0,
           "holdTimeDouble": 0,
-          "isTurbo": true,
+          "isTurbo": false,
           "isTurboLong": false,
           "isTurboDouble": false,
-          "turboInterval": 40,
+          "turboInterval": 0,
           "turboIntervalLong": 0,
           "turboIntervalDouble": 0,
           "sequenceTriggerSettings": {
@@ -2745,7 +2741,7 @@
           "scrollSpeed": 1,
           "scrollThreshold": 10,
           "isSmoothScroll": false,
-          "label": "Thrust fwd (pulse 40)"
+          "label": "Previous secondary"
         },
         {
           "id": 13,
@@ -2972,14 +2968,14 @@
         {
           "id": 14,
           "types": [
-            "1",
+            "15",
             "11",
             "11"
           ],
           "pinOne": 23,
           "pinTwo": 255,
           "keyValues": [
-            "KeyS",
+            "1",
             "0",
             "0",
             "0"
@@ -3035,7 +3031,7 @@
             "steps": [],
             "v": 1
           },
-          "label": "Thrust backward",
+          "label": "Fire primary",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -3194,14 +3190,14 @@
         {
           "id": 15,
           "types": [
-            "15",
+            "11",
             "11",
             "11"
           ],
           "pinOne": 24,
           "pinTwo": 255,
           "keyValues": [
-            "3",
+            "0",
             "0",
             "0",
             "0"
@@ -3257,7 +3253,6 @@
             "steps": [],
             "v": 1
           },
-          "label": "Fire secondary",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -3423,7 +3418,7 @@
           "pinOne": 25,
           "pinTwo": 255,
           "keyValues": [
-            "KeyW",
+            "F1",
             "0",
             "0",
             "0"
@@ -3479,7 +3474,7 @@
             "steps": [],
             "v": 1
           },
-          "label": "Thrust forward",
+          "label": "Next primary",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -3638,14 +3633,14 @@
         {
           "id": 17,
           "types": [
-            "11",
+            "1",
             "11",
             "11"
           ],
           "pinOne": 26,
           "pinTwo": 255,
           "keyValues": [
-            "0",
+            "F2",
             "0",
             "0",
             "0"
@@ -3701,6 +3696,7 @@
             "steps": [],
             "v": 1
           },
+          "label": "Previous primary",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -4088,13 +4084,13 @@
           "pinOne": 27,
           "pinTwo": 255,
           "keyValues": [
-            "0",
+            "KeyF",
             "0",
             "0",
             "0"
           ],
           "metaValues": [
-            "ShiftLeft",
+            "0",
             "0",
             "0"
           ],
@@ -4144,7 +4140,7 @@
             "steps": [],
             "v": 1
           },
-          "label": "Boost",
+          "label": "Interact / fling",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -4303,14 +4299,14 @@
         {
           "id": 20,
           "types": [
-            "15",
+            "11",
             "11",
             "11"
           ],
           "pinOne": 19,
           "pinTwo": 255,
           "keyValues": [
-            "2",
+            "0",
             "0",
             "0",
             "0"
@@ -4366,7 +4362,6 @@
             "steps": [],
             "v": 1
           },
-          "label": "Lock target",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -4754,14 +4749,14 @@
         {
           "id": 22,
           "types": [
-            "1",
+            "11",
             "11",
             "11"
           ],
           "pinOne": 37,
           "pinTwo": 255,
           "keyValues": [
-            "KeyF",
+            "0",
             "0",
             "0",
             "0"
@@ -4817,7 +4812,6 @@
             "steps": [],
             "v": 1
           },
-          "label": "Interact / fling",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -4976,7 +4970,7 @@
         {
           "id": 23,
           "types": [
-            "1",
+            "11",
             "11",
             "11"
           ],
@@ -4989,7 +4983,7 @@
             "0"
           ],
           "metaValues": [
-            "AltLeft",
+            "0",
             "0",
             "0"
           ],
@@ -5039,7 +5033,6 @@
             "steps": [],
             "v": 1
           },
-          "label": "Inertia dampeners",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -5320,22 +5313,22 @@
               },
               "right": {
                 "up": [
-                  87,
+                  38,
                   0,
                   0
                 ],
                 "right": [
-                  68,
+                  39,
                   0,
                   0
                 ],
                 "down": [
-                  83,
+                  40,
                   0,
                   0
                 ],
                 "left": [
-                  65,
+                  37,
                   0,
                   0
                 ]
@@ -6085,7 +6078,7 @@
           "pinOne": 34,
           "pinTwo": 255,
           "keyValues": [
-            "40",
+            "KeyN",
             "0",
             "0",
             "0"
@@ -6141,7 +6134,7 @@
             "steps": [],
             "v": 1
           },
-          "label": "Pitch down",
+          "label": "Lock nearest target",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -6307,7 +6300,7 @@
           "pinOne": 35,
           "pinTwo": 255,
           "keyValues": [
-            "KeyE",
+            "KeyT",
             "0",
             "0",
             "0"
@@ -6363,7 +6356,7 @@
             "steps": [],
             "v": 1
           },
-          "label": "Roll right",
+          "label": "Next target",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -6522,14 +6515,14 @@
         {
           "id": 30,
           "types": [
-            "1",
+            "15",
             "11",
             "11"
           ],
           "pinOne": 36,
           "pinTwo": 255,
           "keyValues": [
-            "38",
+            "2",
             "0",
             "0",
             "0"
@@ -6585,7 +6578,7 @@
             "steps": [],
             "v": 1
           },
-          "label": "Pitch up",
+          "label": "Lock target",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",
@@ -6751,7 +6744,7 @@
           "pinOne": 33,
           "pinTwo": 255,
           "keyValues": [
-            "KeyQ",
+            "KeyY",
             "0",
             "0",
             "0"
@@ -6807,7 +6800,7 @@
             "steps": [],
             "v": 1
           },
-          "label": "Roll left",
+          "label": "Previous target",
           "featureDelay": 500,
           "doubleDelay": 150,
           "subType": "11",

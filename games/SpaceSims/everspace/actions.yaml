@@ -29,8 +29,13 @@ actions:
   # The arrows. These were called weapon cycling in every profile up to v9, and they have
   # been pitch and yaw in the game the whole time -- the game has no weapon cycling on
   # four keys at all.
-  pitch_up:           {key: ArrowUp,    ingame: Pitch,       ingame_scale: 1}
-  pitch_down:         {key: ArrowDown,  ingame: Pitch,       ingame_scale: -1}
+  #
+  # Pitch is the other way round from the game's own labels, on purpose. Flown 2026-10-02:
+  # the row the game calls "Pitch up" moved the nose the way the owner calls down. So "Pitch
+  # up" here is the game's "Pitch down" row and the reverse, and a control that says pitch up
+  # pitches up. The game is told; the keypads and the layouts are not touched by this.
+  pitch_up:           {key: ArrowUp,    ingame: Pitch,       ingame_scale: -1}
+  pitch_down:         {key: ArrowDown,  ingame: Pitch,       ingame_scale: 1}
   yaw_left:           {key: ArrowLeft,  ingame: Yaw,         ingame_scale: -1}
   yaw_right:          {key: ArrowRight, ingame: Yaw,         ingame_scale: 1}
   roll_left:          {key: KeyQ,       ingame: Roll,        ingame_scale: -1}
@@ -62,12 +67,12 @@ actions:
   device_2:           {key: Digit2,     ingame: Device2}
   device_3:           {key: Digit3,     ingame: Device3}
   device_4:           {key: Digit4,     ingame: Device4}
-  use_device_hold:    {ingame: UseDevice}
+  use_device_hold:    {key: Home, ingame: UseDevice}
   consume_1:          {key: Digit5,     ingame: Consumable1}
   consume_2:          {key: Digit6,     ingame: Consumable2}
   consume_3:          {key: Digit7,     ingame: Consumable3}
   consume_4:          {key: Digit8,     ingame: Consumable4}
-  use_consumable_hold: {ingame: UseConsumable}
+  use_consumable_hold: {key: Insert, ingame: UseConsumable}
   # The game's Interact and FlingObjects share F, and cruise charges on it when held. The
   # label keeps "fling" so decompiling an export picks this action for a key labelled
   # "Interact / Fling" rather than the separate fling action.

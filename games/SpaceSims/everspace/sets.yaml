@@ -24,7 +24,6 @@
 #
 # The set's stick mode is the with-pedals variant of its mode (stick-modes.yaml), which is
 # what hands the stick axis the pedals now carry to something else.
-
 sets:
   akimbo-v10:
     pedals:
@@ -33,7 +32,7 @@ sets:
         # The rudder springs back to centre, which is what a yaw axis wants. This is the
         # proportional, self-centring turn that neither the pointer nor a keyboard-mode
         # stick can give, and it is what takes yaw off the left stick.
-        rudder: {drives: yaw}
+        rudder: {drives: roll, invert: true}
 
         # THE RIGHT TOE IS THE THROTTLE: forward thrust in proportion to the pedal, from
         # nothing with the foot off to full with it down. A toe brake rests at the end of
@@ -44,4 +43,5 @@ sets:
         # `invert: false` is said outright. Not flown -- see playtests.md, 2026-10-01. The
         # stick's thrust keys stay: they are full thrust and the only reverse. The left toe
         # is not assigned.
-        right_toe: {drives: thrust, invert: false}
+        left_toe: {drives: vertical, end: down}
+        right_toe: {drives: vertical, end: up}

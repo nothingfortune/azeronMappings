@@ -30,88 +30,63 @@ profile:
   output: everspace_akimbo_v10_right.json
   sensor: false
 positions:
-  pinky_1:
-    label: Device 4
-    tap: device_4
-  pinky_2:
-    label: Device 3
-    tap: device_3
-  pinky_3:
-    label: Next primary
-    tap: next_primary
   pinky_5:
     label: Map
     tap: map
-  pinky_side:
-    label: Switch camera
-    tap: view_ship
-  ring_2:
-    label: Device 2
-    tap: device_2
-  ring_3:
-    label: Previous primary
-    tap: previous_primary
   ring_5:
     label: Crafting
     tap: crafting
-  middle_2:
-    label: Device 1
-    tap: device_1
-  middle_3:
-    label: Fire primary
-    tap: fire_primary
-  middle_5:
-    label: Inventory
-    tap: inventory
-  index_2:
-    label: Thrust forward
-    tap: throttle_up
-  index_3:
-    label: Fire secondary
-    tap: fire_secondary
-  index_4:
-    label: Thrust backward
-    tap: throttle_down
   index_5:
     label: Data / logs
     tap: data_logs
-  index_side:
-    label: Boost
-    tap: boost
-  dpad_up:
-    label: Pitch up
-    tap: pitch_up
-  dpad_left:
-    label: Roll left
-    tap: roll_left
-  dpad_press:
-    label: Interact / fling
-    tap: interact
-  dpad_right:
-    label: Roll right
-    tap: roll_right
-  dpad_down:
-    label: Pitch down
-    tap: pitch_down
   thumb_aux_upper:
     label: Jump / supralight drive
     tap: supralight
-  thumb_aux_lower:
-    label: Lock target
-    tap: lock_target
-  stick_press:
-    label: Inertia dampeners
-    tap: inertia_dampeners
   stick:
     mode: keyboard
-    directions: { up: throttle_up, right: strafe_right, down: throttle_down, left: strafe_left }
-  middle_1:
-    label: Thrust fwd (pulse 40)
-    tap: throttle_up
-    turbo: true
-    turbo_interval: 40
+    directions: { up: pitch_up, right: yaw_right, down: pitch_down, left: yaw_left }
+  index_4:
+    tap: fire_primary
+    label: Fire primary
   middle_4:
-    label: Thrust fwd (pulse 100)
-    tap: throttle_up
-    turbo: true
-    turbo_interval: 100
+    tap: fire_secondary
+    label: Fire secondary
+  index_2:
+    tap: next_primary
+    label: Next primary
+  middle_2:
+    tap: next_secondary
+    label: Next secondary
+  index_side:
+    tap: interact
+    label: Interact / fling
+  pinky_side:
+    tap: view_ship
+    label: Switch camera
+  dpad_right:
+    tap: next_target
+    label: Next target
+  dpad_left:
+    tap: previous_target
+    label: Previous target
+  index_1:
+    tap: previous_primary
+    label: Previous primary
+  middle_3:
+    tap: use_device_hold
+    label: Device wheel (hold)
+  dpad_down:
+    tap: lock_nearest_target
+    label: Lock nearest target
+  dpad_up:
+    label: Lock target
+    tap: lock_target
+  middle_1:
+    tap: previous_secondary
+    label: Previous secondary
+  middle_5:
+    label: Inventory
+    tap: inventory
+  ring_4:
+    tap: ultimate
+    label: Ultimate
