@@ -533,8 +533,8 @@ the reports, `src/lib/unitsession.ts` runs the exchanges, and the editor's **Wri
 - The Azeron app must be closed during a write: it talks on the same channel. The pedals are
   still never asked anything.
 
-So the editor asks the unit itself: **Check this unit** (`src/lib/checkunit.ts`, the run in
-`app.ts`) asks for each control in board order and reads the keystroke or mouse button that
+What a unit is running can also be asked of the unit itself: **Check this unit**
+(`src/lib/checkunit.ts`, the run in `app.ts`) asks for each control in board order and reads the keystroke or mouse button that
 arrives, on window capture listeners that swallow it, so a key from the unit is never Undo
 or a click on the board. The header and the run's bar stay the page's. One press is one
 reading: a settling window that every key event restarts covers repeats, turbo and a
