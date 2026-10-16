@@ -82,3 +82,8 @@ export function writeText(path: string, text: string): void {
   mkdirSync(dirname(full), { recursive: true });
   writeFileSync(full, text, "utf8");
 }
+
+/** A file the owner points at, read as it is: a capture lives wherever it was saved. */
+export function loadBytes(path: string): Uint8Array {
+  return new Uint8Array(readFileSync(path));
+}

@@ -22,3 +22,7 @@ playwright-report/
 # inside the repo, so anything that walks the tree -- ESLint, Prettier -- has to skip them
 # too, or it lints another checkout's half-finished files as if they were this one's.
 .claude/
+
+# USB captures hold the keys that were pressed while they ran. See docs/guides/hid-capture.md.
+*.pcap
+*.pcapng

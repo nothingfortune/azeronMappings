@@ -20,7 +20,18 @@ import {
   listDeviceIds,
   listStoredProfiles,
 } from "./lib/install.js";
-import { loadDevice, loadTemplate, writeText } from "./lib/io.js";
+import { loadBytes, loadDevice, loadTemplate, writeText } from "./lib/io.js";
+import {
+  diffCaptures,
+  extractEvents,
+  filterEvents,
+  formatDevices,
+  formatDiff,
+  formatEvents,
+  summariseDevices,
+} from "./lib/hidcapture.js";
+import type { HidEvent } from "./lib/hidcapture.js";
+import { readUsbPcap } from "./lib/usbpcap.js";
 import { buildProbeProfile, buildStickCalibrationProfile } from "./lib/probe.js";
 import { checkFileName } from "./lib/scaffold.js";
 import { patchActionBindings } from "./lib/actionfile.js";
@@ -945,6 +956,79 @@ function cmdInstall(selector: string | undefined, flags: InstallFlags): number {
   return 0;
 }
 
+function loadCaptureEvents(path: string): { events: HidEvent[]; note: string | null } {
+  const read = readUsbPcap(loadBytes(path));
+  const notes: string[] = [];
+  if (read.truncated) notes.push("the file ends inside a record (capture stopped mid-write)");
+  if (read.skipped > 0) notes.push(`${String(read.skipped)} record(s) were not USBPcap packets`);
+  return {
+    events: extractEvents(read.packets),
+    note: notes.length > 0 ? `${path}: ${notes.join("; ")}` : null,
+  };
+}
+
+interface HidcapFlags {
+  bus: number | undefined;
+  device: number | undefined;
+  endpoint: number | undefined;
+  full: boolean;
+  json: boolean;
+}
+
+/** Read a USBPcap capture. Never opens a device: it only reads the file it is given. */
+function cmdHidcap(action: string | undefined, files: string[], flags: HidcapFlags): number {
+  const filter = { bus: flags.bus, device: flags.device, endpoint: flags.endpoint };
+  const need = (count: number): void => {
+    if (files.length !== count) {
+      throw new Error(`hidcap ${action ?? ""} needs ${String(count)} capture file(s)`);
+    }
+  };
+  const replacer = (_key: string, value: unknown): unknown =>
+    value instanceof Uint8Array ? [...value] : typeof value === "bigint" ? value.toString() : value;
+
+  if (action === "devices") {
+    need(1);
+    const [path = ""] = files;
+    const read = readUsbPcap(loadBytes(path));
+    const devices = summariseDevices(read.packets, extractEvents(read.packets));
+    if (flags.json) out(JSON.stringify(devices, null, 2));
+    else for (const line of formatDevices(devices)) out(line);
+    return devices.length > 0 ? 0 : 1;
+  }
+  if (action === "decode") {
+    need(1);
+    const [path = ""] = files;
+    const { events, note } = loadCaptureEvents(path);
+    if (note) process.stderr.write(`${note}\n`);
+    const shown = filterEvents(events, filter);
+    if (flags.json) out(JSON.stringify(shown, replacer, 2));
+    else {
+      for (const line of formatEvents(shown, { full: flags.full })) out(line);
+      out(`${String(shown.length)} event(s) of ${String(events.length)} in the capture.`);
+    }
+    return shown.length > 0 ? 0 : 1;
+  }
+  if (action === "diff") {
+    need(2);
+    const [beforePath = "", afterPath = ""] = files;
+    const before = loadCaptureEvents(beforePath);
+    const after = loadCaptureEvents(afterPath);
+    for (const note of [before.note, after.note]) {
+      if (note) process.stderr.write(`${note}\n`);
+    }
+    const diff = diffCaptures(
+      filterEvents(before.events, filter),
+      filterEvents(after.events, filter),
+    );
+    if (flags.json) out(JSON.stringify(diff, replacer, 2));
+    else for (const line of formatDiff(diff)) out(line);
+    return diff.changed.length > 0 || diff.missing.length > 0 ? 1 : 0;
+  }
+  throw new Error(
+    "hidcap needs 'devices <capture>', 'decode <capture>' or 'diff <before> <after>'",
+  );
+}
+
 function usage(): void {
   out(`azeron <command>
 
@@ -976,6 +1060,13 @@ function usage(): void {
   install [game] [--store PATH] [--yes] [--dry-run] [--device-id ID]
                                   each unit's id comes from its device map; --device-id
                                   overrides it, and only for a single unit
+  hidcap devices <capture>        the USB devices in a USBPcap capture, by bus and address
+  hidcap decode <capture> [--usb-device N] [--bus N] [--endpoint 0x84] [--full] [--json]
+                                  the HID conversation: reports set, asked for and sent
+  hidcap diff <before> <after> [--usb-device N] [--bus N] [--endpoint 0x84] [--json]
+                                  what the second capture sent that the first did not;
+                                  non-zero when they differ. Reads files only: it never
+                                  opens or writes to a unit. See docs/guides/hid-capture.md
 `);
 }
 
@@ -1025,6 +1116,11 @@ export function main(argv: string[]): number {
       config: { type: "string" },
       port: { type: "string" },
       host: { type: "string" },
+      "usb-device": { type: "string" },
+      bus: { type: "string" },
+      endpoint: { type: "string" },
+      full: { type: "boolean", default: false },
+      json: { type: "boolean", default: false },
       out: { type: "string", short: "o" },
     },
   });
@@ -1089,6 +1185,20 @@ export function main(argv: string[]): number {
         device: values.device ?? DEFAULT_DEVICE,
         set: values.set,
         exportTo: values["export-to"],
+      });
+    }
+    case "hidcap": {
+      const [action, ...files] = positionals;
+      return cmdHidcap(action, files, {
+        bus: values.bus === undefined ? undefined : wholeNumber("--bus", values.bus),
+        device:
+          values["usb-device"] === undefined
+            ? undefined
+            : wholeNumber("--usb-device", values["usb-device"]),
+        endpoint:
+          values.endpoint === undefined ? undefined : wholeNumber("--endpoint", values.endpoint),
+        full: values.full,
+        json: values.json,
       });
     }
     case "install":

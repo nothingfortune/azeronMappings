@@ -6,6 +6,15 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Added
 
+- **`azeron hidcap`**, for reading what the Azeron app says to a unit. It reads a USBPcap
+  capture (pcap or pcapng) and prints the HID conversation -- reports set and asked for,
+  reports the unit sent, the descriptors it was asked for -- and `diff` names the byte
+  offsets that moved between two captures made with one setting changed. The units'
+  configuration protocol is in the app's compiled main process, so a capture is the only
+  way to read it without sending a unit a guess. It only reads files; nothing in it can
+  talk to a device. `docs/guides/hid-capture.md` is the procedure. The reader is tested
+  against files built to USBPcap's documented layout, not yet against a real capture.
+
 - **Check this unit**, on each unit on the board: the page lights up one control at a time,
   reads the key or mouse button the unit sends when it is pressed, marks each key, and says
   whether the unit is running the layout, which controls are not, and what to do. What a

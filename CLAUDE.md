@@ -56,6 +56,7 @@ output, so `npm run build` first:
 | `azeron import <export.json> --genre G --game SLUG` | start a game folder from an export                                              |
 | `azeron decompile <export.json> [-o ...]`           | an app export back into profile YAML                                            |
 | `azeron install [game] --device-id ID`              | write straight into the Azeron app's profile store                              |
+| `azeron hidcap devices\|decode\|diff <capture>`     | read a USBPcap capture of the app talking to a unit; reads files only           |
 
 ## Layout
 
