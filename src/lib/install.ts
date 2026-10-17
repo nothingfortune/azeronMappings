@@ -16,7 +16,7 @@
  * refuses to run rather than guess.
  */
 
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import {
   copyFileSync,
   existsSync,
@@ -134,6 +134,22 @@ export function findStoredProfiles(store: string, name: string): StoredProfile[]
     }
   }
   return found.sort((a, b) => b.modified.getTime() - a.modified.getTime());
+}
+
+/**
+ * Whether the Azeron app is running: true, false, or null when the check itself could not
+ * be made. A write to the units asks this, and must not take "could not tell" for "closed".
+ */
+export function appRunningState(): boolean | null {
+  const isWindowsish = platform() === "win32" || wslWindowsHome() !== null;
+  const run = isWindowsish
+    ? spawnSync("tasklist.exe", ["/FI", "IMAGENAME eq Azeron Software.exe"], { encoding: "utf8" })
+    : spawnSync("pgrep", ["-f", "Azeron Software"], { encoding: "utf8" });
+  if (run.error !== undefined) return null;
+  if (isWindowsish) return run.status === 0 ? run.stdout.includes("Azeron Software.exe") : null;
+  // pgrep: 0 found, 1 none, anything else a failure to look.
+  if (run.status === 0) return true;
+  return run.status === 1 ? false : null;
 }
 
 /** True when the Azeron app looks like it is running. */

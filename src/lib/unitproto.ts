@@ -926,9 +926,16 @@ export class ProfileStream {
     return this.finished;
   }
 
+  /**
+   * Whether this piece finishes its item. A name or a settings piece is one report; a
+   * record ends with its second page, which always fits one. The last item of a stream is
+   * usually a record's, but a slot with no records yet (added, then a write that stopped)
+   * ends with its name or settings -- and a stream that waited for a record there would
+   * never end, and the unit could not be read again.
+   */
   private isLastPageDone(p: Uint8Array): boolean {
-    // The last item is a record's final page, which always fits one report.
-    return (p[1] ?? 0) === 2 && (p[2] ?? 0) === 1;
+    const nameOrSettings = p[0] === 0 && (p[1] === 0 || p[1] === 1);
+    return nameOrSettings || ((p[1] ?? 0) === 2 && (p[2] ?? 0) === 1);
   }
 
   private close(): void {

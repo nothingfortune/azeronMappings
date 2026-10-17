@@ -51,6 +51,8 @@ const REPLY_TIMEOUT_MS = 1000;
 const STREAM_TIMEOUT_MS = 10_000;
 /** How long the line must be quiet before an operation starts. */
 const DRAIN_MS = 30;
+/** And the longest a drain may take, however much the unit is saying. */
+const DRAIN_LIMIT_MS = 300;
 
 /** What kind of thing went wrong, so the page can say what to do about it. */
 export type UnitErrorKind =
@@ -125,10 +127,15 @@ export class UnitSession {
     );
   }
 
-  /** Reports left over from before -- input, a late answer -- are read and dropped. */
+  /**
+   * Reports left over from before -- input, a late answer -- are read and dropped. Bounded:
+   * a unit that keeps talking (a thumb resting on the stick sends its position) must not
+   * keep an operation from starting.
+   */
   private async drain(): Promise<void> {
     let dropped = 0;
-    while ((await this.transport.receive(DRAIN_MS)) !== null) dropped++;
+    const until = Date.now() + DRAIN_LIMIT_MS;
+    while (Date.now() < until && (await this.transport.receive(DRAIN_MS)) !== null) dropped++;
     if (dropped > 0) this.trace(`dropped ${String(dropped)} report(s) left over from before`);
   }
 
@@ -147,12 +154,21 @@ export class UnitSession {
           error,
         );
       }
-      if (reports.length > 1) await this.reply(command);
+      // The unit answers each part of a record with the part's own sequence number, so a
+      // late answer to an earlier part is told apart rather than taken for this one's.
+      if (reports.length > 1) await this.reply(command, REPLY_TIMEOUT_MS, report[3]);
     }
   }
 
-  /** Waits for the unit's answer to `command`, passing over everything else it says. */
-  private async reply(command: number, timeoutMs = REPLY_TIMEOUT_MS): Promise<DeviceReport> {
+  /**
+   * Waits for the unit's answer to `command` -- and, when given, to that sequence number --
+   * passing over everything else it says.
+   */
+  private async reply(
+    command: number,
+    timeoutMs = REPLY_TIMEOUT_MS,
+    seq?: number,
+  ): Promise<DeviceReport> {
     const deadline = Date.now() + timeoutMs;
     for (;;) {
       const left = deadline - Date.now();
@@ -169,17 +185,18 @@ export class UnitSession {
       try {
         report = parseDeviceReport(raw);
       } catch (error) {
-        throw this.fail(
-          "protocol",
-          `a report from the unit made no sense: ${messageOf(error)}`,
-          0,
-          error,
-        );
+        // Not a report this code can read. If it was the answer, the wait runs out and says
+        // so; one stray report must not end the whole operation.
+        this.trace(`← (unreadable, passed over: ${messageOf(error)}) ${hex(raw, 16)}`);
+        continue;
       }
       this.trace(
         `← ${commandName(report.command)} ${hex(raw, 7 + Math.min(report.payload.length, 16))}`,
       );
-      if (report.command === command) return report;
+      if (report.command === command && (seq === undefined || report.seq === seq)) return report;
+      if (report.command === command) {
+        this.trace(`  a late answer, to sequence ${String(report.seq)}; passed over`);
+      }
       // Button positions, diagnostics, released-all-buttons and input arrive unasked.
     }
   }
@@ -396,7 +413,23 @@ export class UnitSession {
       }
       return count;
     });
-    const stored = await this.readSlot(slot);
+    let stored: StoredProfile;
+    try {
+      stored = await this.readSlot(slot);
+    } catch (error) {
+      // Everything went in; only the check did not happen. Say so, rather than imply nothing
+      // was written.
+      if (error instanceof UnitError) {
+        throw new UnitError(
+          error.kind,
+          `all ${String(written)} inputs were written, but reading the slot back failed: ${error.message}`,
+          "reading the slot back",
+          written,
+          { cause: error },
+        );
+      }
+      throw error;
+    }
     const differences = compareStored(inputs, stored);
     const problems = differences.map(describeDifference);
     if (stored.name !== name) problems.push(`the slot is named "${stored.name}", not "${name}"`);
@@ -602,6 +635,16 @@ function compareStick(
   for (const [field, expected, actual] of plain) {
     if (expected !== actual) differ(field, actual, expected);
   }
+  // The hold trigger's type and keys go to the unit as the numbers they are written as
+  // ("16" is 0x0010, as the app's own OBM_COPY sends it); a slot the app wrote another way
+  // shows here rather than being written over unseen.
+  const holdType = Number(analog.holdType ?? 1);
+  if (holdType !== stick.holdType) differ("holdType", stick.holdType, holdType);
+  const holdKeys = Array.isArray(analog.holdKeyValues) ? (analog.holdKeyValues as unknown[]) : [];
+  stick.holdKeyValues.forEach((held, index) => {
+    const wanted = Number(holdKeys[index] ?? 0);
+    if (wanted !== held) differ(`holdKeyValues[${String(index)}]`, held, wanted);
+  });
   for (const field of [
     "isEightDirectionalTrigger",
     "isAnalogSmoothing",

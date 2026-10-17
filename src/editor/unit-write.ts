@@ -70,21 +70,23 @@ export function isConfigInterface(device: ConfigDevice): boolean {
   );
 }
 
-/** Reports from the unit queue here until the session asks for the next one. */
+/**
+ * Reports from the unit queue here until the session asks for the next one. Each waiting
+ * receive gets the next report in turn, and one that times out takes only itself out of
+ * the line, so overlapping waits cannot lose a report between them.
+ */
 export class WebHidTransport implements UnitTransport {
   private readonly queue: Uint8Array[] = [];
-  private waiting: ((report: Uint8Array | null) => void) | null = null;
+  private readonly waiting: ((report: Uint8Array) => void)[] = [];
   private readonly onReport = (event: InputReportLike): void => {
+    // The configuration interface has no numbered reports; anything else is not for us.
+    if (event.reportId !== 0) return;
     const report = new Uint8Array(
       event.data.buffer.slice(event.data.byteOffset, event.data.byteOffset + event.data.byteLength),
     );
-    const waiting = this.waiting;
-    if (waiting !== null) {
-      this.waiting = null;
-      waiting(report);
-    } else {
-      this.queue.push(report);
-    }
+    const next = this.waiting.shift();
+    if (next !== undefined) next(report);
+    else this.queue.push(report);
   };
 
   constructor(readonly device: ConfigDevice) {
@@ -102,14 +104,16 @@ export class WebHidTransport implements UnitTransport {
     const queued = this.queue.shift();
     if (queued !== undefined) return Promise.resolve(queued);
     return new Promise((resolve) => {
-      const timer = setTimeout(() => {
-        this.waiting = null;
-        resolve(null);
-      }, timeoutMs);
-      this.waiting = (report) => {
+      const take = (report: Uint8Array): void => {
         clearTimeout(timer);
         resolve(report);
       };
+      const timer = setTimeout(() => {
+        const at = this.waiting.indexOf(take);
+        if (at >= 0) this.waiting.splice(at, 1);
+        resolve(null);
+      }, timeoutMs);
+      this.waiting.push(take);
     });
   }
 

@@ -6,6 +6,25 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Added
 
+- **Writing to the units, hardened after a review:**
+  - A write checks the layout is still the one it planned for when Write is pressed, and
+    plans again if it changed. Before, an edit while the bar waited could have put an old
+    copy on the units and called it read back as written. Choosing another layout ends a
+    write that has not started.
+  - When the page cannot tell whether the Azeron app is running, it asks instead of
+    taking that for closed.
+  - Cancel while the units are being found lets go of them once they answer.
+  - A unit's answer to an input record is matched by the sequence number it echoes, so a
+    late answer is not taken for the next one.
+  - A report the page cannot read is passed over rather than ending the write.
+  - A slot added and then left empty by a write that stopped no longer makes the unit
+    unreadable.
+  - The stick's hold type and hold keys are part of the read-back.
+  - A read-back that fails after every input went in says so.
+  - Two overlapping waits for the unit can no longer lose a report.
+  - The key tester's Stop answers Enter, and a key let go of while the window was
+    elsewhere is forgotten.
+
 - **Test keys**, in the header: press anything on a unit and the control that sends it
   lights up on the board while it is held, with a strip of what arrived and which action it
   is. Free-form, unlike Check this unit; the page's own shortcuts are off while it runs.

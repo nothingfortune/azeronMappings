@@ -58,7 +58,6 @@ The app's enum has 60. The repo sends ten, and `hostReports` refuses any other:
 | `PROFILE_LIMIT`          | `0x1f` | slots the unit has room for (6)                                              |
 | `HARDWARE_PROFILE_INDEX` | `0x0e` | the slot it is running                                                       |
 | `PROFILE_PAYLOAD_V2`     | `0x2e` | stream every slot                                                            |
-| `REQUEST_PROFILE`        | `0x1e` | stream one slot                                                              |
 | `PROFILE_INPUT_PIECE`    | `0x2b` | acknowledge each streamed piece, the last one too                            |
 | `CHECK_PROFILE`          | `0x1d` | the first thing the app sends before writing a slot                          |
 | `PROFILE_NAME`           | `0x10` | `[slot][length][name]`, ASCII, at most 19 characters                         |
@@ -131,6 +130,10 @@ running Azeron app (which it can close).
 - **The cones.** The app wrote vertical 41 and horizontal 49 and read back 49 and 45. Its
   own round trip disagrees with itself; the layouts here use 45 and 45, where it does not
   matter.
-- **`DELETE_PROFILE`, `ADD_PROFILE`.** Not sent: deleting a slot still needs the Azeron app.
+- **`DELETE_PROFILE`, `ADD_PROFILE`, `REQUEST_PROFILE`.** Not sent: deleting a slot still needs
+  the Azeron app, and `REQUEST_PROFILE` only ever returns the running slot.
+- **A slot added and then left empty** (a write that stopped after `CHECK_PROFILE`) streams
+  as its name and settings with no records; the reader ends a stream on those as well, so
+  the unit stays readable. How the real unit streams such a slot has not been seen.
 - **Which unit is which hand.** `KEYPAD_DETAILS` byte 4 reads 0 on both units, so it is not
   the hand; the unit's id is what tells them apart.

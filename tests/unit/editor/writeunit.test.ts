@@ -9,6 +9,7 @@ import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { start } from "../../../src/editor/app.js";
+import { WebHidTransport } from "../../../src/editor/unit-write.js";
 import type { ConfigDevice, InputReportLike } from "../../../src/editor/unit-write.js";
 import { repoPath } from "../../../src/config/paths.js";
 import { buildPayload } from "../../../src/lib/editor/payload.js";
@@ -37,7 +38,7 @@ class FakeHidDevice implements ConfigDevice {
   readonly productId = 0x12f7;
   readonly collections = [{ usagePage: 0xff01 }];
   failOpen = false;
-  private readonly listeners = new Set<(event: InputReportLike) => void>();
+  readonly listeners = new Set<(event: InputReportLike) => void>();
   constructor(readonly unit: FakeUnit) {}
   open(): Promise<void> {
     if (this.failOpen) {
@@ -131,10 +132,18 @@ function barButton(label: string | RegExp): HTMLButtonElement {
   return found;
 }
 
-function writeToUnits(): void {
+async function writeToUnits(): Promise<void> {
   const button = document.querySelector<HTMLButtonElement>("header .write-units");
   if (!button) throw new Error("no Write to units button");
   button.click();
+  // Unserved, the page cannot ask whether the Azeron app is running, so it asks the owner.
+  await vi.waitFor(() => {
+    if (/Getting ready|Checking the Azeron app/.test(bar())) throw new Error("still getting ready");
+  });
+  const carry = [...document.querySelectorAll<HTMLButtonElement>(".write-bar button")].find(
+    (node) => node.textContent === "It is closed: carry on",
+  );
+  carry?.click();
 }
 
 beforeEach(() => {
@@ -160,7 +169,7 @@ describe("writing the layout into the units", () => {
     const right = makeUnit("right");
     // Given in the other order: the page goes by what each unit says, not the order.
     plugIn([right, left]);
-    writeToUnits();
+    await writeToUnits();
     await vi.waitFor(() => {
       expect(bar()).toContain("Left unit (49229) →");
     }, WAIT);
@@ -176,7 +185,7 @@ describe("writing the layout into the units", () => {
     const left = makeUnit("left");
     const right = makeUnit("right");
     plugIn([left, right]);
-    writeToUnits();
+    await writeToUnits();
     await vi.waitFor(() => {
       expect(bar()).toContain("Right unit (29993) →");
     }, WAIT);
@@ -195,7 +204,7 @@ describe("writing the layout into the units", () => {
     const left = makeUnit("left", { activeSlot: 0 });
     const right = makeUnit("right", { activeSlot: 0 });
     plugIn([left, right]);
-    writeToUnits();
+    await writeToUnits();
     await vi.waitFor(() => {
       expect(bar()).toContain("Right unit (29993) →");
     }, WAIT);
@@ -209,7 +218,7 @@ describe("writing the layout into the units", () => {
 
   it("says a slot that already holds the layout has nothing to write", async () => {
     plugIn([makeUnit("left", {}, compiled("left")), makeUnit("right", {}, compiled("right"))]);
-    writeToUnits();
+    await writeToUnits();
     await vi.waitFor(() => {
       expect(bar()).toContain("already holds this layout; nothing to write");
     }, WAIT);
@@ -221,7 +230,7 @@ describe("writing the layout into the units", () => {
   it("asks once for a unit it has not been given, and works out which one it got", async () => {
     const right = makeUnit("right");
     plugIn([makeUnit("left")], [right]);
-    writeToUnits();
+    await writeToUnits();
     await vi.waitFor(() => {
       expect(bar()).toContain("Right unit (29993): not found");
     }, WAIT);
@@ -236,7 +245,7 @@ describe("writing the layout into the units", () => {
     const left = makeUnit("left");
     left.failOpen = true;
     plugIn([left, makeUnit("right")]);
-    writeToUnits();
+    await writeToUnits();
     await vi.waitFor(() => {
       expect(bar()).toContain("could not be opened");
     }, WAIT);
@@ -248,7 +257,7 @@ describe("writing the layout into the units", () => {
   it("says plainly when a unit stops answering in the middle of a write", async () => {
     const left = makeUnit("left");
     plugIn([left, makeUnit("right")]);
-    writeToUnits();
+    await writeToUnits();
     await vi.waitFor(() => {
       expect(bar()).toContain("Right unit (29993) →");
     }, WAIT);
@@ -284,7 +293,7 @@ describe("writing the layout into the units", () => {
         : input,
     );
     plugIn([makeUnit("left"), makeUnit("right", {}, appWritten as InputRecord[])]);
-    writeToUnits();
+    await writeToUnits();
     await vi.waitFor(() => {
       expect(bar()).toContain("This changes how the right unit's stick is inverted");
     }, WAIT);
@@ -294,10 +303,100 @@ describe("writing the layout into the units", () => {
 
   it("says when the browser has no WebHID", async () => {
     Object.defineProperty(navigator, "hid", { configurable: true, value: undefined });
-    writeToUnits();
+    await writeToUnits();
     await vi.waitFor(() => {
       expect(bar()).toContain("This browser has no WebHID");
     }, WAIT);
     expect(barButton("Try again")).toBeTruthy();
+  });
+});
+
+describe("the WebHID transport", () => {
+  it("hands each report to the next wait in turn, and loses none when waits overlap", async () => {
+    const device = new FakeHidDevice(new FakeUnit());
+    const transport = new WebHidTransport(device);
+    const send = (byte: number): void => {
+      const report = new Uint8Array(64);
+      report[0] = byte;
+      device.listeners.forEach((listener) => {
+        listener({ reportId: 0, data: new DataView(report.buffer) });
+      });
+    };
+    const short = transport.receive(20);
+    const long = transport.receive(500);
+    expect(await short).toBeNull();
+    send(7);
+    expect((await long)?.[0]).toBe(7);
+    // A report with another id is not the configuration interface's.
+    const other = new Uint8Array(64);
+    device.listeners.forEach((listener) => {
+      listener({ reportId: 3, data: new DataView(other.buffer) });
+    });
+    expect(await transport.receive(20)).toBeNull();
+  });
+});
+
+describe("a write that is changed or stopped part way", () => {
+  it("asks whether the Azeron app is closed when it cannot tell, rather than assuming so", async () => {
+    plugIn([makeUnit("left"), makeUnit("right")]);
+    document.querySelector<HTMLButtonElement>("header .write-units")?.click();
+    await vi.waitFor(() => {
+      expect(bar()).toContain("cannot tell whether the Azeron app is running");
+    }, WAIT);
+    expect(document.querySelector(".write-plan")).toBeNull();
+    barButton("It is closed: carry on").click();
+    await vi.waitFor(() => {
+      expect(bar()).toContain("Right unit (29993) →");
+    }, WAIT);
+  });
+
+  it("lets go of the units when cancelled while it is still finding them", async () => {
+    const left = makeUnit("left");
+    const right = makeUnit("right");
+    plugIn([left, right]);
+    await writeToUnits();
+    barButton("Cancel").click();
+    expect(document.querySelector(".write-bar")).toBeNull();
+    // Whatever was still being asked when it was cancelled is let go of once it answers.
+    await vi.waitFor(() => {
+      expect(left.opened).toBe(false);
+      expect(right.opened).toBe(false);
+    }, WAIT);
+    expect(document.querySelector(".write-bar")).toBeNull();
+  });
+
+  it("looks again rather than write a layout that changed while the bar waited", async () => {
+    const left = makeUnit("left");
+    plugIn([left, makeUnit("right")]);
+    await writeToUnits();
+    await vi.waitFor(() => {
+      expect(bar()).toContain("Right unit (29993) →");
+    }, WAIT);
+    // One click on a stick mode changes both sticks: the plan on screen is now out of date.
+    document.querySelector<HTMLButtonElement>('[data-dock-tab="pedals"]')?.click();
+    [...document.querySelectorAll<HTMLButtonElement>(".mode-row")]
+      .find((row) => row.textContent.startsWith("Mode 1"))
+      ?.click();
+    left.unit.received.length = 0;
+    barButton("Write").click();
+    await vi.waitFor(() => {
+      expect(bar()).toContain("The layout changed since this was worked out");
+    }, WAIT);
+    expect(left.unit.received.some((report) => report[2] === Command.OBM_COPY)).toBe(false);
+  });
+
+  it("ends when another layout is chosen", async () => {
+    plugIn([makeUnit("left"), makeUnit("right")]);
+    await writeToUnits();
+    await vi.waitFor(() => {
+      expect(bar()).toContain("Right unit (29993) →");
+    }, WAIT);
+    const layout = document.querySelectorAll<HTMLSelectElement>("header select")[1];
+    const other = [...(layout?.options ?? [])].find((option) => option.value !== LIVE_SET);
+    if (!layout || !other) throw new Error("no second layout");
+    vi.stubGlobal("confirm", () => true);
+    layout.value = other.value;
+    layout.dispatchEvent(new Event("change"));
+    expect(document.querySelector(".write-bar")).toBeNull();
   });
 });

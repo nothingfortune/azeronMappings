@@ -3091,6 +3091,9 @@ function bindTester(): void {
     (event) => {
       const tester = liveTester;
       if (tester === null) return;
+      // Enter, Space and Tab on the strip's own buttons work, so Stop is reachable by key.
+      if (["Enter", "Space", "NumpadEnter", "Tab"].includes(event.code) && onTesterBar(event))
+        return;
       swallow(event);
       if (event.repeat) return;
       if (isModifier(event.code)) {
@@ -3141,6 +3144,16 @@ function bindTester(): void {
       true,
     );
   }
+  // A key let go of while the window was not looking never sends its keyup: forget what
+  // was held, or every later press would read as made with it.
+  window.addEventListener("blur", () => {
+    const tester = liveTester;
+    if (tester === null) return;
+    tester.held.clear();
+    tester.pendingModifier = null;
+    for (const [id, holder] of tester.lit) if (typeof holder === "string") tester.lit.delete(id);
+    render();
+  });
 }
 
 function renderTesterBar(tester: LiveTester): HTMLElement {
@@ -3173,7 +3186,19 @@ function renderTesterBar(tester: LiveTester): HTMLElement {
  * finding the units), the plan for each unit, writing, and what each slot held afterwards.
  */
 interface WriteRun {
-  stage: "preparing" | "app-running" | "needs-access" | "ready" | "writing" | "done" | "failed";
+  stage:
+    | "preparing"
+    | "app-running"
+    | "app-unknown"
+    | "needs-access"
+    | "ready"
+    | "writing"
+    | "done"
+    | "failed";
+  /** The layout the run is for; another layout chosen ends it. */
+  setName: string;
+  /** The owner said the Azeron app is closed when the page could not tell. */
+  appClosedSaid: boolean;
   /** What the bar says it is doing while it does it. */
   status: string;
   note: string | null;
@@ -3298,6 +3323,8 @@ function startWrite(): void {
   state.selected = null;
   const run: WriteRun = {
     stage: "preparing",
+    setName: state.setName,
+    appClosedSaid: false,
     status: "Getting ready…",
     note: null,
     units: [],
@@ -3311,17 +3338,21 @@ function startWrite(): void {
   void prepareWrite(run);
 }
 
-async function azeronAppRunning(): Promise<boolean> {
+/** Whether the Azeron app is running: true, false, or null when that could not be told. */
+async function azeronAppRunning(): Promise<boolean | null> {
+  if (!canSave()) return null;
   try {
     const body = (await (await fetch("/api/azeron-app")).json()) as { running?: unknown };
-    return body.running === true;
+    return typeof body.running === "boolean" ? body.running : null;
   } catch {
-    return false;
+    return null;
   }
 }
 
 /** Save, check the Azeron app, find and identify the units, and plan each unit's write. */
 async function prepareWrite(run: WriteRun): Promise<void> {
+  const alive = (): boolean => writeRun === run;
+  if (!alive()) return;
   const step = (status: string): void => {
     run.stage = "preparing";
     run.status = status;
@@ -3337,23 +3368,37 @@ async function prepareWrite(run: WriteRun): Promise<void> {
     if (canSave() && isDirty()) {
       step("Saving the layout first…");
       await saveScheme(true);
+      if (!alive()) return;
       if (isDirty())
         throw new Error(
           "The layout could not be saved, so nothing was written. The header says why.",
         );
     }
-    if (canSave()) {
-      step("Checking the Azeron app is closed…");
-      if (await azeronAppRunning()) {
-        run.stage = "app-running";
-        if (writeRun === run) render();
-        return;
-      }
+    if (!alive()) return;
+    step("Checking the Azeron app is closed…");
+    const running = await azeronAppRunning();
+    if (!alive()) return;
+    if (running === true) {
+      run.stage = "app-running";
+      render();
+      return;
+    }
+    // Not knowing is not the same as closed: the owner is asked, once a run.
+    if (running === null && !run.appClosedSaid) {
+      run.stage = "app-unknown";
+      render();
+      return;
     }
     step("Finding the units…");
     await closeUnits(run.units);
+    run.units = [];
     watchUnplugging(hid);
     const { units, problems } = await findUnits(hid, { log: unitProgress, trace: traceFor(run) });
+    if (!alive()) {
+      // Cancelled while the units were being asked: let go of them, and say nothing more.
+      await closeUnits(units);
+      return;
+    }
     run.units = units;
     run.problems = problems;
     run.plans = writeTargets().map((target) => planFor(target, units));
@@ -3418,7 +3463,35 @@ function grantUnit(run: WriteRun): void {
     });
 }
 
+/**
+ * Whether the plans were worked out from the layout as it is now. An edit, an autosave or
+ * another layout chosen while the bar waited would otherwise put an old copy on the units
+ * -- and the read-back, compared with that same copy, would call it a success.
+ */
+function plansCurrent(run: WriteRun): boolean {
+  if (run.setName !== state.setName) return false;
+  try {
+    const now = writeTargets();
+    return (
+      now.length === run.plans.length &&
+      now.every(
+        (target, index) =>
+          JSON.stringify(target.profile) === JSON.stringify(run.plans[index]?.target.profile),
+      )
+    );
+  } catch {
+    return false;
+  }
+}
+
 function writeAll(run: WriteRun): void {
+  if (!plansCurrent(run)) {
+    run.note = "The layout changed since this was worked out, so the units were looked at again.";
+    run.setName = state.setName;
+    unitLog("the layout changed while the write waited; planning again");
+    void prepareWrite(run);
+    return;
+  }
   const plans = run.plans.filter(
     (plan) => plan.found !== null && plan.slot !== null && !upToDate(plan),
   );
@@ -3514,7 +3587,13 @@ const CHANGE_WORDS: [RegExp, string][] = [
 
 /** A difference between a slot and the layout, said the way the board says it. */
 function describeChange(slug: string, change: SlotDifference): string {
-  const position = profileFor(slug).device.positionByPin[change.pin];
+  // The layout may be gone from the page (another game chosen during the write): say the pin.
+  let position: string | undefined;
+  try {
+    position = profileFor(slug).device.positionByPin[change.pin];
+  } catch {
+    position = undefined;
+  }
   const where =
     (position === undefined ? `pin ${String(change.pin)}` : positionLabel(position)) +
     (change.label === null ? "" : ` (${change.label})`);
@@ -3577,6 +3656,29 @@ function renderWriteBar(run: WriteRun): HTMLElement {
           "Close the Azeron app",
           () => {
             closeAzeronApp(run);
+          },
+          true,
+        ),
+        close,
+      ]),
+    );
+    return bar;
+  }
+
+  if (run.stage === "app-unknown") {
+    bar.append(
+      el("div", { class: "check-verdict bad" }, [
+        canSave()
+          ? "The page could not tell whether the Azeron app is running."
+          : "Opened as a file, the page cannot tell whether the Azeron app is running.",
+        " It talks to the units on the same channel: close it if it is open, then carry on.",
+      ]),
+      el("div", { class: "check-buttons" }, [
+        button(
+          "It is closed: carry on",
+          () => {
+            run.appClosedSaid = true;
+            void prepareWrite(run);
           },
           true,
         ),
@@ -3970,6 +4072,8 @@ function renderHeader(): HTMLElement {
   }
   setSelect.addEventListener("change", () => {
     pedalsNote = null;
+    // A write belongs to the layout it was worked out for; one not under way ends.
+    if (writeRun !== null && writeRun.stage !== "writing") endWrite(false);
     state.setName = setSelect.value;
     state.selected = null;
     render();

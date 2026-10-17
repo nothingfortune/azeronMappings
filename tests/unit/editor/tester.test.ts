@@ -118,3 +118,25 @@ describe("the Edit dock's tabs", () => {
     expect(document.querySelector(".dock-tab.active")?.textContent).toBe("Sticks & pedals");
   });
 });
+
+describe("the key tester's own keys", () => {
+  it("stops from the keyboard: Enter on its Stop button is the page's", () => {
+    header(/^Test keys$/).click();
+    const stop = [...document.querySelectorAll<HTMLButtonElement>(".tester-bar button")].find(
+      (button) => button.textContent === "Stop",
+    );
+    if (!stop) throw new Error("no Stop");
+    const enter = new KeyboardEvent("keydown", { code: "Enter", bubbles: true, cancelable: true });
+    stop.dispatchEvent(enter);
+    expect(enter.defaultPrevented).toBe(false);
+  });
+
+  it("forgets a modifier held when the window lost sight of its release", () => {
+    const { code } = plainKey();
+    header(/^Test keys$/).click();
+    key("ShiftLeft", "keydown");
+    window.dispatchEvent(new Event("blur"));
+    key(code, "keydown");
+    expect(document.querySelector(".tester-recent li")?.textContent ?? "").not.toMatch(/Shift/);
+  });
+});

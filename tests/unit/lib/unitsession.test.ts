@@ -275,3 +275,84 @@ describe("switching the slot the unit runs", () => {
     expect((await session.identify()).activeSlot).toBe(0);
   });
 });
+
+describe("a unit that is less tidy than the fake usually is", () => {
+  const plan = (slot: number, side: "left" | "right" = "left") => ({
+    slot,
+    name: "ES2 akimbo",
+    profile: compiled(side),
+    unknownPins: UNKNOWN_PINS,
+  });
+
+  it("passes over what the unit says unasked, mixed into every answer", async () => {
+    const fake = unit("left", { chatter: true });
+    const session = new UnitSession(fake);
+    expect((await session.identify()).deviceId).toBe(49229);
+    expect(await session.readAll()).toHaveLength(3);
+    expect((await session.writeProfile(plan(2))).problems).toEqual([]);
+  });
+
+  it("tells a late answer to an earlier part from the answer it is waiting for", async () => {
+    const trace: string[] = [];
+    const fake = unit("left", { lateFirstRecord: true });
+    const session = new UnitSession(fake, { trace: (line) => trace.push(line) });
+    await session.identify();
+    await session.readAll();
+    const report = await session.writeProfile(plan(2));
+    expect(report.problems).toEqual([]);
+    expect(trace.some((line) => line.includes("a late answer"))).toBe(true);
+  });
+
+  it("can still read and write a unit after a new slot was added and the write stopped", async () => {
+    const fake = unit();
+    const session = await ready(fake);
+    // The unit adds slot 3, then the next report never gets there.
+    const send = fake.send.bind(fake);
+    fake.send = (report: Uint8Array) =>
+      report[2] === Command.PROFILE_NAME
+        ? Promise.reject(new Error("The device was disconnected."))
+        : send(report);
+    await expect(session.writeProfile(plan(3))).rejects.toThrow(UnitError);
+    fake.send = send;
+    const slots = await session.readAll();
+    expect(slots.map((slot) => [slot.slot, slot.inputs.length])).toEqual([
+      [0, 31],
+      [1, 31],
+      [2, 31],
+      [3, 0],
+    ]);
+    expect((await session.writeProfile(plan(3))).problems).toEqual([]);
+  });
+
+  it("says everything went in when only the reading back failed", async () => {
+    const fake = unit();
+    const session = await ready(fake);
+    const send = fake.send.bind(fake);
+    fake.send = (report: Uint8Array) =>
+      report[2] === Command.PROFILE_PAYLOAD_V2
+        ? Promise.reject(new Error("The device was disconnected."))
+        : send(report);
+    const failure = (await session
+      .writeProfile(plan(2))
+      .catch((error: unknown) => error)) as UnitError;
+    expect(failure.step).toBe("reading the slot back");
+    expect(failure.written).toBe(31);
+    expect(failure.message).toMatch(/^all 31 inputs were written/);
+  });
+
+  it("sees a stick's hold key that differs from the layout's", async () => {
+    // As the app's older write left the real slots: the hold key stored as ShiftLeft's code.
+    const fake = unit("left", {
+      corrupt: (_id, stored) => {
+        if (stored[4] !== 4) return;
+        const at = stored.length - 12;
+        stored[at] = 0x02;
+        stored[at + 1] = 0xe0;
+      },
+    });
+    const report = await (await ready(fake)).writeProfile(plan(2));
+    expect(
+      report.problems.some((problem) => problem.includes("holdKeyValues[0] is 57346, not 16")),
+    ).toBe(true);
+  });
+});

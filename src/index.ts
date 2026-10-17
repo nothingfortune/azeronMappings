@@ -15,6 +15,7 @@ import { buildPayload } from "./lib/editor/payload.js";
 import { renderEditorHtml } from "./lib/editor/html.js";
 import {
   appIsRunning,
+  appRunningState,
   closeApp,
   findStore,
   installProfile,
@@ -549,7 +550,7 @@ function cmdServe(port: number, host: string): number {
     }
     if (request.method === "GET" && url === "/api/azeron-app") {
       // The editor writes to a unit on the channel the Azeron app uses, so it asks first.
-      send(200, JSON.stringify({ ok: true, running: appIsRunning() }));
+      send(200, JSON.stringify({ ok: true, running: appRunningState() }));
       return;
     }
     if (request.method === "POST" && url === "/api/azeron-app/close") {

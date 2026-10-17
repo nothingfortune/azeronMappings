@@ -32,6 +32,12 @@ export interface FakeUnitOptions {
   goSilentAfter?: number;
   /** Commands whose next answer goes missing once, as a lost report would. */
   loseOnce?: number[];
+  /** Say things nobody asked for -- the stick's position -- before every answer, as a unit
+   *  with a thumb on its stick does. */
+  chatter?: boolean;
+  /** Hold the answer to the first input record back until the host says something else, as
+   *  an answer that arrives after its wait has given up. */
+  lateFirstRecord?: boolean;
 }
 
 /** The settings piece the left unit sent for its akimbo slot; the fake does not model it. */
@@ -140,11 +146,15 @@ export class FakeUnit implements UnitTransport {
   private incoming: { command: number; seq: number; parts: number; chunks: Uint8Array[] } | null =
     null;
   private streaming: Uint8Array[] | null = null;
-  private options: Required<Omit<FakeUnitOptions, "corrupt" | "goSilentAfter" | "loseOnce">> & {
+  private options: Required<
+    Omit<FakeUnitOptions, "corrupt" | "goSilentAfter" | "loseOnce" | "chatter" | "lateFirstRecord">
+  > & {
     corrupt: FakeUnitOptions["corrupt"] | undefined;
     goSilentAfter: number | undefined;
   };
   private readonly losing = new Set<number>();
+  private readonly chatter: boolean;
+  private lateRecord: "waiting" | Uint8Array | "done";
 
   constructor(options: FakeUnitOptions = {}) {
     this.options = {
@@ -156,6 +166,8 @@ export class FakeUnit implements UnitTransport {
       goSilentAfter: options.goSilentAfter,
     };
     for (const command of options.loseOnce ?? []) this.losing.add(command);
+    this.chatter = options.chatter === true;
+    this.lateRecord = options.lateFirstRecord === true ? "waiting" : "done";
   }
 
   private reply(
@@ -166,6 +178,9 @@ export class FakeUnit implements UnitTransport {
     part = 1,
   ): void {
     if (this.losing.delete(command)) return;
+    if (this.chatter && command !== Command.JOYSTICK_POSITION) {
+      this.reply(Command.JOYSTICK_POSITION, [0x02, 0xff, 0x01, 0x00]);
+    }
     const bytes = Uint8Array.from(payload);
     const report = new Uint8Array(REPORT_LENGTH);
     report[0] = bytes.length & 0xff;
@@ -196,6 +211,11 @@ export class FakeUnit implements UnitTransport {
 
   send(report: Uint8Array): Promise<void> {
     this.received.push(Uint8Array.from(report));
+    // The held-back answer turns up now, before whatever answers this report.
+    if (this.lateRecord instanceof Uint8Array) {
+      this.outbox.push(this.lateRecord);
+      this.lateRecord = "done";
+    }
     const silent =
       this.options.goSilentAfter !== undefined && this.received.length > this.options.goSilentAfter;
     if (!silent) this.handle(report);
@@ -212,7 +232,15 @@ export class FakeUnit implements UnitTransport {
     if (part === 1) this.incoming = { command, seq, parts, chunks: [] };
     if (this.incoming?.command !== command) return;
     this.incoming.chunks.push(chunk);
-    if (command === Command.OBM_COPY) this.reply(Command.OBM_COPY, [], seq);
+    if (command === Command.OBM_COPY) {
+      if (this.lateRecord === "waiting") {
+        this.reply(Command.OBM_COPY, [], seq);
+        const held = this.outbox.pop();
+        this.lateRecord = held ?? "done";
+      } else {
+        this.reply(Command.OBM_COPY, [], seq);
+      }
+    }
     if (part < parts) return;
     const payload = Uint8Array.from(this.incoming.chunks.flatMap((c) => [...c]));
     this.incoming = null;
