@@ -95,6 +95,25 @@ bytes. Stored values are little-endian, the hold switches are packed into one by
 record is 53 + 15 bytes (the stick 106 + 28). The stream's `parts` byte is the index of its
 last item.
 
+### A slot's settings
+
+The piece after the name, 32 bytes after its prefix. Decoded, each against the app's own
+reading of the same bytes:
+
+| Bytes | Field                                                    |
+| ----- | -------------------------------------------------------- |
+| 3–12  | the five DPI steps, LE16 in units of 50 (20 is 1000 DPI) |
+| 25–27 | each light on or off                                     |
+| 28    | the light effect                                         |
+| 29    | the light brightness                                     |
+
+Not decoded: the current DPI step, whether the sensor is on and the sensor's angle. Every
+slot seen holds 1, true and 0, and the bytes they could be in (`01 01 00` at 0–2 and
+`01 00 00` at 13–15) hold those values too, so which is which cannot be told. The colours
+(16–24) are stored transformed. All 32 bytes are kept as read. The write bar says what the
+layout wants for the sensor and DPI step, since neither is written, and which DPI steps the
+slot holds when they are not the layout's.
+
 ## A write
 
 The slots are read first (a write needs to know how many there are). For a new slot after
@@ -116,7 +135,8 @@ running Azeron app (which it can close).
 
 ## Not known yet
 
-- **The sensor and DPI** (`sensor:`, `dpi:`). The import path did not write them, so the
+- **Writing the sensor and DPI** (`sensor:`, `dpi:`), and reading the current step and the
+  sensor's state back (see A slot's settings). The import path did not write them, so the
   editor leaves them as the slot has them. Capturing the app toggling them would add them.
 - **LEDs.** `RGB_LED_STATE` (`0x2f`) carries the colours transformed in a way not yet worked
   out, and they read back changed again. Not written.

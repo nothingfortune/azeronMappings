@@ -38,9 +38,14 @@ export interface FakeUnitOptions {
   /** Hold the answer to the first input record back until the host says something else, as
    *  an answer that arrives after its wait has given up. */
   lateFirstRecord?: boolean;
+  /** The DPI steps every slot's settings piece holds; the akimbo slot's when not given. */
+  sensitivityValues?: number[];
 }
 
-/** The settings piece the left unit sent for its akimbo slot; the fake does not model it. */
+/**
+ * The settings piece the left unit sent for its akimbo slot. The fake models only the DPI
+ * steps in it (`sensitivityValues`); the rest is as the unit sent it.
+ */
 const SETTINGS_PIECE = Uint8Array.from(
   Buffer.from(
     "000101000101001400500096 00c8002c010100000a3f500a3f500a3f5001010101320000".replace(/ /g, ""),
@@ -147,7 +152,10 @@ export class FakeUnit implements UnitTransport {
     null;
   private streaming: Uint8Array[] | null = null;
   private options: Required<
-    Omit<FakeUnitOptions, "corrupt" | "goSilentAfter" | "loseOnce" | "chatter" | "lateFirstRecord">
+    Omit<
+      FakeUnitOptions,
+      "corrupt" | "goSilentAfter" | "loseOnce" | "chatter" | "lateFirstRecord" | "sensitivityValues"
+    >
   > & {
     corrupt: FakeUnitOptions["corrupt"] | undefined;
     goSilentAfter: number | undefined;
@@ -155,6 +163,7 @@ export class FakeUnit implements UnitTransport {
   private readonly losing = new Set<number>();
   private readonly chatter: boolean;
   private lateRecord: "waiting" | Uint8Array | "done";
+  private readonly sensitivityValues: number[] | undefined;
 
   constructor(options: FakeUnitOptions = {}) {
     this.options = {
@@ -168,6 +177,7 @@ export class FakeUnit implements UnitTransport {
     for (const command of options.loseOnce ?? []) this.losing.add(command);
     this.chatter = options.chatter === true;
     this.lateRecord = options.lateFirstRecord === true ? "waiting" : "done";
+    this.sensitivityValues = options.sensitivityValues;
   }
 
   private reply(
@@ -343,6 +353,16 @@ export class FakeUnit implements UnitTransport {
     }
   }
 
+  private settingsPiece(): Uint8Array {
+    const piece = Uint8Array.from(SETTINGS_PIECE);
+    (this.sensitivityValues ?? []).forEach((dpi, index) => {
+      const units = dpi / 50;
+      piece[7 + index * 2] = units & 0xff;
+      piece[8 + index * 2] = units >> 8;
+    });
+    return piece;
+  }
+
   /** The slots as the unit streams them: name, settings, then each record's pages. */
   private beginStream(slots: number[]): void {
     const items: Uint8Array[][] = [];
@@ -351,7 +371,7 @@ export class FakeUnit implements UnitTransport {
       if (!slot) continue;
       const name = Array.from({ length: slot.name.length }, (_, i) => slot.name.charCodeAt(i));
       items.push([Uint8Array.from([0, 0, 1, 1, 0, 0x0c, index, name.length + 1, ...name, 0, 0])]);
-      items.push([SETTINGS_PIECE]);
+      items.push([this.settingsPiece()]);
       for (const [id, record] of [...slot.records].sort(([a], [b]) => a - b)) {
         const split = record.length === 134 ? 106 : 53;
         const pieces: Uint8Array[] = [];

@@ -638,6 +638,48 @@ export interface StoredProfile {
   slot: number;
   name: string;
   inputs: StoredInput[];
+  /** The slot's own settings piece, or null when the stream carried none. */
+  settings: StoredSettings | null;
+}
+
+/**
+ * A slot's settings piece, as far as it is known. Each field was told apart against the
+ * app's own decoding of the same bytes (tests/fixtures/unit-protocol): the sensitivity steps
+ * by their distinct values, the lights by a slot whose lights were set apart from the rest.
+ *
+ * Not decoded, because every slot seen holds the same value and the bytes it could be in
+ * hold that value too: the current sensitivity step (1), whether the sensor is on (true)
+ * and the sensor's angle (0) are among `01 01 00` before the steps and `01 00 00` after
+ * them. The LED colours are stored transformed in a way not yet worked out. All of it is
+ * kept in `raw`.
+ */
+export interface StoredSettings {
+  /** The five DPI steps, stored in units of 50. */
+  sensitivityValues: number[];
+  isLedsOn: boolean[];
+  ledEffect: number;
+  ledBrightness: number;
+  /** The 32 bytes after the piece's prefix, as stored. */
+  raw: Uint8Array;
+}
+
+/** Bytes of the settings piece, after its four-byte prefix. */
+const SETTINGS_LENGTH = 32;
+
+export function decodeSettings(data: Uint8Array): StoredSettings {
+  if (data.length < SETTINGS_LENGTH) {
+    throw new ProtocolError(
+      `a slot's settings were ${String(data.length)} bytes, not ${String(SETTINGS_LENGTH)}`,
+    );
+  }
+  const u16 = (at: number): number => (data[at] ?? 0) | ((data[at + 1] ?? 0) << 8);
+  return {
+    sensitivityValues: [3, 5, 7, 9, 11].map((at) => u16(at) * 50),
+    isLedsOn: [25, 26, 27].map((at) => data[at] === 1),
+    ledEffect: data[28] ?? 0,
+    ledBrightness: data[29] ?? 0,
+    raw: data.slice(0, SETTINGS_LENGTH),
+  };
 }
 
 export interface StoredInput {
@@ -887,7 +929,12 @@ function decodeStick(
  */
 export class ProfileStream {
   private readonly profiles: StoredProfile[] = [];
-  private current: { slot: number; name: string; pages: Map<string, Uint8Array> } | null = null;
+  private current: {
+    slot: number;
+    name: string;
+    settings: StoredSettings | null;
+    pages: Map<string, Uint8Array>;
+  } | null = null;
   private lastItem = -1;
   private finished = false;
 
@@ -908,9 +955,10 @@ export class ProfileStream {
       const length = p[7] ?? 0;
       // The app shows the name trimmed; one slot holds "Everspace 2 akimbo " with the space.
       const name = String.fromCharCode(...p.slice(8, 8 + Math.max(0, length - 1))).trimEnd();
-      this.current = { slot, name, pages: new Map() };
+      this.current = { slot, name, settings: null, pages: new Map() };
     } else if (p[0] === 0 && p[1] === 1) {
-      // The profile's settings: sensor, sensitivity steps, LEDs. Not decoded yet.
+      // The profile's settings: sensitivity steps, lights, and what is not decoded yet.
+      if (this.current !== null) this.current.settings = decodeSettings(p.subarray(4));
     } else if (this.current !== null) {
       const key = `${String(p[0])}:${String(p[2])}`;
       const before = this.current.pages.get(key) ?? new Uint8Array(0);
@@ -951,7 +999,12 @@ export class ProfileStream {
       record.set(page1, page0.length);
       inputs.push(decodeRecord(record));
     }
-    this.profiles.push({ slot: this.current.slot, name: this.current.name, inputs });
+    this.profiles.push({
+      slot: this.current.slot,
+      name: this.current.name,
+      inputs,
+      settings: this.current.settings,
+    });
     this.current = null;
   }
 

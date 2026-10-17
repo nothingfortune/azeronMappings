@@ -25,6 +25,11 @@ Every profile change, and why. `playtests.md` records what each layout felt like
   - The key tester's Stop answers Enter, and a key let go of while the window was
     elsewhere is forgotten.
 
+- **The write bar says what it leaves alone.** Each unit's row says the sensor state and DPI
+  step the layout wants, which are not written yet, and -- read from the slot's own
+  settings, now decoded as far as the evidence goes -- the DPI steps the slot holds when
+  they are not the layout's. The slot's current step and sensor state are not decoded: every
+  slot seen holds the same values in bytes that cannot be told apart.
 - **Test keys**, in the header: press anything on a unit and the control that sends it
   lights up on the board while it is held, with a strip of what arrived and which action it
   is. Free-form, unlike Check this unit; the page's own shortcuts are off while it runs.

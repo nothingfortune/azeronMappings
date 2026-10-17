@@ -38,7 +38,15 @@ interface WriteCapture {
 }
 interface ReadCapture {
   frames: string[];
-  decoded: { id: string; name: string; inputs: Record<string, unknown>[] }[];
+  decoded: {
+    id: string;
+    name: string;
+    inputs: Record<string, unknown>[];
+    profileSettings: {
+      profileSensitivitySettings: { sensitivityValues: number[] };
+      ledSettings: { isLedsOn: boolean[]; ledEffect: number; ledBrightness: number };
+    };
+  }[];
 }
 
 const write = fixture("write-slot3.json") as WriteCapture;
@@ -183,6 +191,25 @@ describe("reading profiles, against the app's own decoding", () => {
           .filter((input) => (input.types as string[])[0] !== "4")
           .map(keyFields);
         expect(ours).toEqual(theirs);
+      });
+    });
+  }
+
+  for (const name of ["read-all.json", "read-slot3.json"]) {
+    it(`decodes each slot's settings in ${name} as the app does, as far as they are known`, () => {
+      const capture = fixture(name) as ReadCapture;
+      const profiles = readStream(capture);
+      expect(profiles).toHaveLength(capture.decoded.length);
+      profiles.forEach((profile, index) => {
+        const app = capture.decoded[index]?.profileSettings;
+        if (!app || !profile.settings) throw new Error(`no settings for ${profile.name}`);
+        expect(profile.settings.sensitivityValues).toEqual(
+          app.profileSensitivitySettings.sensitivityValues,
+        );
+        expect(profile.settings.isLedsOn).toEqual(app.ledSettings.isLedsOn);
+        expect(profile.settings.ledEffect).toBe(app.ledSettings.ledEffect);
+        expect(profile.settings.ledBrightness).toBe(app.ledSettings.ledBrightness);
+        expect(profile.settings.raw).toHaveLength(32);
       });
     });
   }

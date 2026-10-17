@@ -216,6 +216,28 @@ describe("writing the layout into the units", () => {
     expect(left.unit.received.some((report) => report[2] === Command.SWITCH_PROFILE)).toBe(true);
   });
 
+  it("says the sensor and DPI step are not written, and which DPI steps the slot holds", async () => {
+    // The left unit's slots hold steps of their own; the right unit's are the layout's.
+    plugIn([
+      makeUnit("left", { sensitivityValues: [800, 1600, 3200, 6400, 12800] }),
+      makeUnit("right"),
+    ]);
+    writeToUnits();
+    await vi.waitFor(() => {
+      expect(bar()).toContain("Right unit (29993) →");
+    }, WAIT);
+    const notes = [...document.querySelectorAll(".write-settings")].map((note) => note.textContent);
+    expect(notes).toHaveLength(2);
+    expect(notes[0]).toContain(
+      "Not written yet: the layout wants the sensor on and DPI step 2 (4000 DPI)",
+    );
+    expect(notes[0]).toContain(
+      "The slot's DPI steps are 800, 1600, 3200, 6400, 12800; the layout's are 1000, 4000, 7500, 10000, 15000.",
+    );
+    expect(notes[1]).toContain("the layout wants the sensor off");
+    expect(notes[1]).not.toContain("The slot's DPI steps");
+  });
+
   it("says a slot that already holds the layout has nothing to write", async () => {
     plugIn([makeUnit("left", {}, compiled("left")), makeUnit("right", {}, compiled("right"))]);
     await writeToUnits();

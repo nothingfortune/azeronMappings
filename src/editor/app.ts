@@ -71,6 +71,7 @@ import {
   explain,
   findUnits,
   planFor,
+  settingsNote,
   slotName,
   upToDate,
   withSlot,
@@ -3819,6 +3820,9 @@ function renderWriteBar(run: WriteRun): HTMLElement {
       ` ${summary}`,
     );
     list.append(row);
+    const settings = settingsNote(plan);
+    if (settings !== null)
+      list.append(el("div", { class: "check-note write-settings" }, [settings]));
     if (plan.changes.some((change) => /invert|isRightAnalog/.test(change.field))) {
       list.append(
         el("div", { class: "check-verdict bad" }, [

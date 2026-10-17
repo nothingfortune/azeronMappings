@@ -239,6 +239,40 @@ export function upToDate(plan: UnitPlan): boolean {
   );
 }
 
+/**
+ * What the write leaves alone that the layout has an opinion on: the sensor and the DPI
+ * step. Neither is written yet, and a slot's own sensor state and current step are not
+ * decoded (unitproto.ts says why), so the page can only say what the layout wants -- and,
+ * where they differ, the DPI steps the slot holds, which it can read.
+ */
+export function settingsNote(plan: UnitPlan): string | null {
+  const settings = plan.target.profile.profileSettings;
+  if (settings === undefined) return null;
+  const wants: string[] = [];
+  if (typeof settings.isSensorOn === "boolean") {
+    wants.push(`the sensor ${settings.isSensorOn ? "on" : "off"}`);
+  }
+  const steps = settings.profileSensitivitySettings;
+  if (steps !== undefined) {
+    const dpi = steps.sensitivityValues[steps.currentSensitivityIndex];
+    wants.push(
+      `DPI step ${String(steps.currentSensitivityIndex + 1)}` +
+        (dpi === undefined ? "" : ` (${String(dpi)} DPI)`),
+    );
+  }
+  if (wants.length === 0) return null;
+  let note =
+    `Not written yet: the layout wants ${wants.join(" and ")}. The slot keeps its own, ` +
+    "which the page cannot read yet; set them in the Azeron app if they differ.";
+  const held = plan.replaces?.settings?.sensitivityValues;
+  if (held !== undefined && steps !== undefined && held.join() !== steps.sensitivityValues.join()) {
+    note +=
+      ` The slot's DPI steps are ${held.join(", ")}; the layout's are ` +
+      `${steps.sensitivityValues.join(", ")}.`;
+  }
+  return note;
+}
+
 /** Plain words for what went wrong, and what to do about it. */
 export function explain(error: unknown, doing: string): string {
   const name = error instanceof Error ? error.name : "";
