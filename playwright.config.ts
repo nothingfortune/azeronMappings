@@ -56,7 +56,12 @@ export default defineConfig({
     // The built CLI, so the spec exercises what ships rather than a dev shim.
     command: `node build/index.js serve --port ${String(PORT)}`,
     // No Azeron app: the page must not read the owner's real profiles, or differ by machine.
-    env: { AZERON_DATA: DATA, AZERON_STORE: join(DATA, "no-azeron-app") },
+    env: {
+      AZERON_DATA: DATA,
+      AZERON_STORE: join(DATA, "no-azeron-app"),
+      // The unit log goes with the throwaway data, not into the owner's logs/.
+      AZERON_LOGS: join(DATA, "logs"),
+    },
     url: `http://127.0.0.1:${String(PORT)}`,
     reuseExistingServer: false,
     timeout: 60_000,

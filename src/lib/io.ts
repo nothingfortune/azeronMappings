@@ -97,11 +97,14 @@ export function loadBytes(path: string): Uint8Array {
 }
 
 /**
- * One line onto a log under `logs/`, kept to about a megabyte: past that the file moves to
+ * One line onto a log under `logs/` (or `AZERON_LOGS`), kept to about a megabyte: past that the file moves to
  * `.1`, replacing the one before. The logs are the owner's, not the repo's, and not committed.
  */
 export function appendLog(name: string, text: string): void {
-  const full = repoPath(posixJoin("logs", name));
+  // AZERON_LOGS names another folder, so a test server writes into its own.
+  const folder = process.env.AZERON_LOGS;
+  const full =
+    folder !== undefined && folder !== "" ? join(folder, name) : repoPath(posixJoin("logs", name));
   mkdirSync(dirname(full), { recursive: true });
   try {
     if (statSync(full).size > 1_000_000) renameSync(full, `${full}.1`);
