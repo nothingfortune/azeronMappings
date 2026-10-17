@@ -222,7 +222,7 @@ describe("writing the layout into the units", () => {
       makeUnit("left", { sensitivityValues: [800, 1600, 3200, 6400, 12800] }),
       makeUnit("right"),
     ]);
-    writeToUnits();
+    await writeToUnits();
     await vi.waitFor(() => {
       expect(bar()).toContain("Right unit (29993) →");
     }, WAIT);
