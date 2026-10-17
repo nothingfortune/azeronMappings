@@ -49,7 +49,7 @@ session passes over.
 
 ## Commands
 
-The app's enum has 60. The repo sends ten, and `hostReports` refuses any other:
+The app's enum has 60. The repo sends eleven, and `hostReports` refuses any other:
 
 | Command                  | Code   | Used for                                                                     |
 | ------------------------ | ------ | ---------------------------------------------------------------------------- |
@@ -62,6 +62,8 @@ The app's enum has 60. The repo sends ten, and `hostReports` refuses any other:
 | `CHECK_PROFILE`          | `0x1d` | the first thing the app sends before writing a slot                          |
 | `PROFILE_NAME`           | `0x10` | `[slot][length][name]`, ASCII, at most 19 characters                         |
 | `OBM_COPY`               | `0x0b` | one input record into a slot                                                 |
+| `SWITCH_PROFILE`         | `0x1a` | `[slot]`: run that slot, after a write reads back clean                      |
+| `DELETE_PROFILE`         | `0x1c` | `[slot]`: remove a slot the unit is not running; the unit answers empty      |
 
 Never sent: `RESET` (12), `DFU` (13), `UPDATE_DEVICE_ID` (41), `KEYPAD_DETAILS_SAVE` (3) and
 everything else not seen with a payload this code builds.
@@ -87,6 +89,10 @@ angle as signed 16-bit, sensitivity, cones, magnitudes, hold, rotation, angle lo
 `isRightAnalog` / `invertXAxis` / `invertYAxis` switches), then 16 directions as
 key/modifier/modifier: the left block, the right block, then both blocks' diagonals.
 
+The stick's hold key is not encoded like a direction key. The app writes the export's
+`"16"` (Shift) as `0xE002`, the left-Shift modifier, and `"17"` as `0x0011`: the number as
+it stands. `holdKeyCode` does the same, and anything that is not a number is refused.
+
 ## A slot, as read
 
 The stream is pieces: a name, the settings, then each record in two pages. A piece starts
@@ -107,17 +113,22 @@ reading of the same bytes:
 | 28    | the light effect                                         |
 | 29    | the light brightness                                     |
 
-Not decoded: the current DPI step, whether the sensor is on and the sensor's angle. Every
+The Cyborg II has no optical sensor; the settings carry the fields all the same, for the
+app's other keypads. Not decoded: the current DPI step, whether the sensor is on and the
+sensor's angle. Every
 slot seen holds 1, true and 0, and the bytes they could be in (`01 01 00` at 0–2 and
 `01 00 00` at 13–15) hold those values too, so which is which cannot be told. The colours
-(16–24) are stored transformed. All 32 bytes are kept as read. The write bar says what the
-layout wants for the sensor and DPI step, since neither is written, and which DPI steps the
-slot holds when they are not the layout's.
+(16–24) are stored transformed. All 32 bytes are kept as read. For a unit with a sensor
+the write bar says what the layout wants for the sensor and DPI step, since neither is
+written, and which DPI steps the slot holds when they are not the layout's; for the Cyborg
+II (`sensor: false` in its device map) it says nothing of either.
 
 ## A write
 
-The slots are read first (a write needs to know how many there are). For a new slot after
-the last one, `CHECK_PROFILE` adds it; an existing slot is written over without it. Then
+The slots are read first (a write needs to know which there are). `CHECK_PROFILE` adds a
+slot, and the unit answers it only for the lowest number not in use -- after a deletion
+that is the gap, not the end -- so a new slot always goes there; an existing slot is
+written over without it. Then
 `PROFILE_NAME`, then `OBM_COPY` for every input the app would write, each part
 acknowledged -- then every slot is read again and the written one compared with what was
 meant, input by input. `REQUEST_PROFILE` is not used for that: whatever slot it is asked
@@ -133,11 +144,24 @@ It says, before writing, how many controls each slot will change, and warns when
 inversion changes. It refuses a unit no device map names, firmware other than 111, and a
 running Azeron app (which it can close).
 
+## Deleting a slot
+
+Seen 2026-10-17, when a slot was deleted in the app: `DELETE_PROFILE [slot]`, answered
+with an empty report. The other slots keep their numbers, so the unit is left with a gap,
+and the next slot added fills it. The editor's write bar lists each unit's other slots
+with a Delete beside each; it will not delete the slot the unit is running, a slot it does
+not have, or the last one, and reads the slots back to see it gone. It is not retried.
+
+## What a unit reports while it is used
+
+With the app's live view open, a unit sends `BTN_POS` (`0x39`), `[input id][1 pressed, 0
+released]`, and `JOYSTICK_POSITION` (`0x37`), x and y as LE16 from 0 to about 1023, centred
+near 512. The repo does not ask for either; Test keys reads the keystrokes instead.
+
 ## Not known yet
 
-- **Writing the sensor and DPI** (`sensor:`, `dpi:`), and reading the current step and the
-  sensor's state back (see A slot's settings). The import path did not write them, so the
-  editor leaves them as the slot has them. Capturing the app toggling them would add them.
+- **Writing the sensor and DPI** (`sensor:`, `dpi:`), for a keypad that has a sensor. The
+  Cyborg II has none, so for these units there is nothing to capture.
 - **LEDs.** `RGB_LED_STATE` (`0x2f`) carries the colours transformed in a way not yet worked
   out, and they read back changed again. Not written.
 - **Three of the stick's switches.** Combined, hold trigger and angle lock are three bits
@@ -150,8 +174,8 @@ running Azeron app (which it can close).
 - **The cones.** The app wrote vertical 41 and horizontal 49 and read back 49 and 45. Its
   own round trip disagrees with itself; the layouts here use 45 and 45, where it does not
   matter.
-- **`DELETE_PROFILE`, `ADD_PROFILE`, `REQUEST_PROFILE`.** Not sent: deleting a slot still needs
-  the Azeron app, and `REQUEST_PROFILE` only ever returns the running slot.
+- **`ADD_PROFILE`, `REQUEST_PROFILE`.** Not sent: `CHECK_PROFILE` is how the app adds a
+  slot, and `REQUEST_PROFILE` only ever returns the running slot.
 - **A slot added and then left empty** (a write that stopped after `CHECK_PROFILE`) streams
   as its name and settings with no records; the reader ends a stream on those as well, so
   the unit stays readable. How the real unit streams such a slot has not been seen.

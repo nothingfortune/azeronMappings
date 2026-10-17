@@ -193,8 +193,9 @@ export function compileProfile(profile: Profile, options: CompileOptions = {}): 
   if (profile.id) target.id = profile.id;
   if (profile.name) target.name = profile.name;
 
-  // Two units both running their sensors drive the same pointer, so a pair normally
-  // wants one on. Left alone unless the profile says.
+  // For a unit with an optical sensor: two running theirs drive the same pointer, so a
+  // pair normally wants one on. Left alone unless the profile says. The Cyborg II has no
+  // sensor; its exports carry the field all the same, and it does nothing there.
   const settings = target.profileSettings;
   if (settings !== undefined) {
     if (profile.meta.sensor !== undefined) settings.isSensorOn = profile.meta.sensor;

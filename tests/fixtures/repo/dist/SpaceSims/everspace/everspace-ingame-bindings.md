@@ -33,14 +33,14 @@ If a key here does not match the game, fix `actions.yaml` -- not the profile.
 | Inertia dampeners | `AltLeft` | left:stick_press, right:stick_press | movement, required |
 | Pitch down | `ArrowDown` | right:dpad_down, left:dpad_down | movement |
 | Pitch up | `ArrowUp` | right:dpad_up, left:dpad_up | movement |
-| Roll left | `KeyQ` | right:dpad_left, left:pinky_side | movement, required |
-| Roll right | `KeyE` | right:dpad_right, left:index_side | movement, required |
+| Roll left | `KeyQ` | left:stick.left, right:dpad_left, left:pinky_side | movement, required |
+| Roll right | `KeyE` | left:stick.right, right:dpad_right, left:index_side | movement, required |
 | Strafe left | `KeyA` | right:stick.left, left:stick.left | movement, required |
 | Strafe right | `KeyD` | right:stick.right, left:stick.right | movement, required |
 | Thrust backward | `KeyS` | right:index_4, right:stick.down, left:stick.down | movement, required |
 | Thrust forward | `KeyW` | right:index_2, right:stick.up, right:middle_1, right:middle_4, left:stick.up | movement, required |
-| Yaw left | `ArrowLeft` | left:stick.left, left:dpad_left | movement |
-| Yaw right | `ArrowRight` | left:stick.right, left:dpad_right | movement |
+| Yaw left | `ArrowLeft` | left:dpad_left | movement |
+| Yaw right | `ArrowRight` | left:dpad_right | movement |
 | Cruise drive | `KeyF` | left:thumb_aux_upper | travel, required |
 | Jump / supralight drive | `KeyC` | right:thumb_aux_upper, left:thumb_aux_lower | travel, required |
 | Crafting | `KeyU` | right:ring_5, left:dpad_up | menu |
@@ -63,8 +63,8 @@ If a key here does not match the game, fix `actions.yaml` -- not the profile.
 - Equip primary 1 (`Digit9`)
 - Equip primary 2 (`Digit0`)
 - Equip primary 3 (`F3`)
-- Pointer left/right (`(sensor)`)
-- Pointer up/down (`(sensor)`)
+- Pointer left/right (`(mouse)`)
+- Pointer up/down (`(mouse)`)
 - Load most recent save (`F8`)
 - Pause (`KeyP`)
 - Photo mode (`KeyZ`)

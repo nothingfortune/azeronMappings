@@ -124,6 +124,8 @@ export const SENDABLE_COMMANDS: ReadonlySet<number> = new Set([
   Command.OBM_COPY,
   // Seen 2026-10-14 when a slot was picked in the app: [slot]; the unit answers with it.
   Command.SWITCH_PROFILE,
+  // Seen 2026-10-17 when a slot was deleted in the app: [slot]; the unit answers empty.
+  Command.DELETE_PROFILE,
 ]);
 
 export class ProtocolError extends Error {}
@@ -572,7 +574,8 @@ export function encodeStickRecord(slot: number, input: InputRecord): Uint8Array 
   w.flag(a.isHoldTrigger);
   w.u8(num(a.holdMagnitude, 9), `${where} holdMagnitude`);
   w.u8(Number(a.holdType ?? 1), `${where} holdType`);
-  for (const token of tokens(a.holdKeyValues, 3)) w.u16(Number(token), `${where} holdKeyValues`);
+  for (const token of tokens(a.holdKeyValues, 3))
+    w.u16(holdKeyCode(token), `${where} holdKeyValues`);
   w.u8(num(a.rotateStickButtonId, 0), `${where} rotateStickButtonId`);
   w.flag(a.isAngleLock);
   w.u8(num(a.lockZoneAngle, 70), `${where} lockZoneAngle`);
@@ -588,6 +591,20 @@ export function encodeStickRecord(slot: number, input: InputRecord): Uint8Array 
   }
   if (w.length !== STICK_RECORD_LENGTH) throw new ProtocolError("stick record length drifted");
   return w.bytes;
+}
+
+/**
+ * A hold-trigger key as the app sends it. "16", the app's own default, goes as Shift's code
+ * (0xE002) -- every slot the app wrote from a layout holds that -- while any other number
+ * goes as itself ("17" was sent as 0x0011, 2026-10-14). Seen both ways; nothing else is.
+ */
+export function holdKeyCode(token: unknown): number {
+  const text = typeof token === "string" || typeof token === "number" ? String(token) : "0";
+  if (text === "16") return DEVICE_KEY_CODES.ShiftLeft ?? 0xe002;
+  const value = Number(text);
+  if (!Number.isInteger(value))
+    throw new ProtocolError(`the hold key "${text}" is not one the app was seen to send`);
+  return value;
 }
 
 /**

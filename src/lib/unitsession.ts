@@ -21,6 +21,7 @@ import {
   isWritableInput,
   parseDeviceReport,
   profileNamePayload,
+  holdKeyCode,
   stickKeyCode,
   storedKeyCode,
 } from "./unitproto.js";
@@ -93,7 +94,12 @@ const hex = (bytes: Uint8Array, length: number): string =>
 export class UnitSession {
   private seq = 0;
   /** How many slots the unit holds, once they have been read; a write needs to know. */
-  private slotCount: number | null = null;
+  /**
+   * The slot numbers the unit holds, once read. Not 0..n-1: deleting a slot leaves its
+   * number empty (seen 2026-10-17, the right unit holding 0, 1 and 3).
+   */
+  private slotNumbers: Set<number> | null = null;
+  private activeSlot: number | null = null;
   private profileLimit: number | null = null;
   /** One operation at a time: a second one waits for the first rather than interleaving. */
   private queue: Promise<unknown> = Promise.resolve();
@@ -261,6 +267,7 @@ export class UnitSession {
         activeSlot: active[0] ?? 0,
       };
       this.profileLimit = identity.profileLimit;
+      this.activeSlot = identity.activeSlot;
       this.log(
         `unit ${String(identity.deviceId)}, firmware ${String(firmware)}, ` +
           `slot ${String(identity.activeSlot)} active of ${String(identity.profileLimit)}`,
@@ -309,7 +316,7 @@ export class UnitSession {
             : again;
         }
       }
-      this.slotCount = slots.length;
+      this.slotNumbers = new Set(slots.map((slot) => slot.slot));
       this.log(
         `read ${String(slots.length)} slot(s): ${slots.map((slot) => `${String(slot.slot)} "${slot.name}"`).join(", ")}`,
       );
@@ -350,6 +357,49 @@ export class UnitSession {
   }
 
   /**
+   * Deletes a slot, as the app does (DELETE_PROFILE with the slot, seen 2026-10-17), and
+   * reads the slots again to see it gone. The others keep their numbers. The slot the unit
+   * is running and its last slot are refused: the app switched away before it deleted, and
+   * a unit with no slot is not something anyone has seen.
+   */
+  deleteSlot(slot: number): Promise<StoredProfile[]> {
+    return this.exclusive(async () => {
+      if (this.slotNumbers === null || this.activeSlot === null) {
+        throw new ProtocolError("read the unit's slots before deleting one");
+      }
+      if (!this.slotNumbers.has(slot))
+        throw new ProtocolError(`the unit has no slot ${String(slot)}`);
+      if (slot === this.activeSlot) {
+        throw new ProtocolError(
+          `slot ${String(slot)} is the one the unit is running: switch away from it first`,
+        );
+      }
+      if (this.slotNumbers.size <= 1) throw new ProtocolError("that is the unit's only slot");
+      this.step = `deleting slot ${String(slot)}`;
+      await this.drain();
+      // Not repeated: a lost answer may mean it was deleted, which the read below shows.
+      try {
+        await this.ask(Command.DELETE_PROFILE, Uint8Array.of(slot), false);
+      } catch (error) {
+        if (!(error instanceof UnitError) || error.kind !== "no-answer") throw error;
+        this.log(`no answer to deleting slot ${String(slot)}; reading the slots to see`);
+      }
+      return undefined;
+    }).then(async () => {
+      const slots = await this.readAll();
+      if (slots.some((entry) => entry.slot === slot)) {
+        throw new UnitError(
+          "protocol",
+          `slot ${String(slot)} is still there after deleting it`,
+          "deleting a slot",
+        );
+      }
+      this.log(`slot ${String(slot)} deleted`);
+      return slots;
+    });
+  }
+
+  /**
    * Writes a compiled profile into `slot`, then reads the slot back and compares.
    *
    * Only the inputs the app would write go out (`isWritableInput`); the slot's LED and
@@ -364,13 +414,16 @@ export class UnitSession {
     const namePayload = profileNamePayload(slot, name);
 
     const written = await this.exclusive(async () => {
-      if (this.slotCount === null || this.profileLimit === null) {
+      if (this.slotNumbers === null || this.profileLimit === null) {
         throw new ProtocolError("read the unit's slots before writing one");
       }
-      if (slot > this.slotCount || slot >= this.profileLimit) {
+      const adding = !this.slotNumbers.has(slot);
+      const free = nextFreeSlot(this.slotNumbers, this.profileLimit);
+      if (adding && slot !== free) {
         throw new ProtocolError(
-          `slot ${String(slot)} is past the end: the unit has ${String(this.slotCount)} of ` +
-            `${String(this.profileLimit)}, and a new one goes at ${String(this.slotCount)}`,
+          free === null
+            ? `the unit's ${String(this.profileLimit)} slots are all in use: pick one to replace`
+            : `slot ${String(slot)} is not one the unit has, and a new one goes at ${String(free)}`,
         );
       }
       this.log(`writing "${name}" into slot ${String(slot)}: ${String(records.length)} inputs`);
@@ -378,7 +431,7 @@ export class UnitSession {
       // CHECK_PROFILE is how the app adds a slot: the unit answers it for the next free one
       // and ignores it for one that exists (seen 2026-10-15). An existing slot is renamed
       // and written over without it. It is not repeated: a lost answer may mean it worked.
-      if (slot === this.slotCount) {
+      if (adding) {
         this.step = `adding slot ${String(slot)}`;
         try {
           await this.ask(Command.CHECK_PROFILE, Uint8Array.of(slot), false);
@@ -391,7 +444,7 @@ export class UnitSession {
             error,
           );
         }
-        this.slotCount++;
+        this.slotNumbers.add(slot);
       }
       this.step = `naming slot ${String(slot)}`;
       await this.ask(Command.PROFILE_NAME, namePayload);
@@ -455,6 +508,12 @@ export class UnitSession {
       }
     }
   }
+}
+
+/** Where a new slot goes: the lowest number the unit does not hold, or null when it is full. */
+export function nextFreeSlot(held: ReadonlySet<number>, limit: number): number | null {
+  for (let slot = 0; slot < limit; slot++) if (!held.has(slot)) return slot;
+  return null;
 }
 
 export interface WritePlan {
@@ -642,7 +701,7 @@ function compareStick(
   if (holdType !== stick.holdType) differ("holdType", stick.holdType, holdType);
   const holdKeys = Array.isArray(analog.holdKeyValues) ? (analog.holdKeyValues as unknown[]) : [];
   stick.holdKeyValues.forEach((held, index) => {
-    const wanted = Number(holdKeys[index] ?? 0);
+    const wanted = holdKeyCode(holdKeys[index] ?? 0);
     if (wanted !== held) differ(`holdKeyValues[${String(index)}]`, held, wanted);
   });
   for (const field of [

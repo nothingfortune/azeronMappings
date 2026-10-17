@@ -19,7 +19,7 @@ import {
   isWritableInput,
 } from "../lib/unitproto.js";
 import type { StoredProfile } from "../lib/unitproto.js";
-import { UnitError, UnitSession, compareStored } from "../lib/unitsession.js";
+import { UnitError, UnitSession, compareStored, nextFreeSlot } from "../lib/unitsession.js";
 import type {
   SessionHooks,
   SlotDifference,
@@ -212,9 +212,13 @@ export function planFor(target: WriteTarget, units: readonly FoundUnit[]): UnitP
     units.find((unit) => String(unit.identity.deviceId) === target.softwareDeviceId) ?? null;
   if (found === null) return { target, found, slot: null, replaces: null, changes: [] };
   const same = found.slots.find((slot) => slot.name === target.name);
-  const slot =
-    same?.slot ?? (found.slots.length < found.identity.profileLimit ? found.slots.length : null);
+  const slot = same?.slot ?? newSlotOf(found);
   return withSlot({ target, found, slot, replaces: null, changes: [] }, slot);
+}
+
+/** Where a new slot would go on this unit: the lowest free number, or null when it is full. */
+export function newSlotOf(unit: FoundUnit): number | null {
+  return nextFreeSlot(new Set(unit.slots.map((slot) => slot.slot)), unit.identity.profileLimit);
 }
 
 /** The plan with another slot chosen. */

@@ -6,6 +6,12 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Added
 
+- **Deleting a unit's slots from the write bar.** Each unit's other slots are listed with a
+  Delete beside each, which sends `DELETE_PROFILE` -- seen on 2026-10-17 when a slot was
+  deleted in the app -- and reads the slots back to see it gone. It will not delete the slot
+  the unit is running, one it does not have, or the last one. The other slots keep their
+  numbers, so a deletion leaves a gap; the unit adds a new slot only at the lowest free
+  number, so a new slot now goes there instead of after the last, which the unit ignored.
 - **Writing to the units, hardened after a review:**
   - A write checks the layout is still the one it planned for when Write is pressed, and
     plans again if it changed. Before, an edit while the bar waited could have put an old
@@ -260,6 +266,11 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Changed
 
+- **No sensor on the Cyborg II.** It has no optical sensor, so its device maps say
+  `sensor: false`, the editor's Key panel no longer offers a sensor checkbox, a DPI step or
+  the "both sensors are on" warning for it, and the write bar says nothing of a sensor or
+  DPI. The pointer actions (`pointer_x`/`_y`, FPS `look`) are `provided_by: mouse` now. The
+  compiled layouts are unchanged: the app's own exports carry `isSensorOn` either way.
 - **`required` means you cannot play without it.** It had come to mean whatever one layout
   happened to have: every device and consumable slot, both weapon cycles and roll were
   required, in space sims; 25 actions in a shooter. It is now moving, boost, the two drives
@@ -305,6 +316,9 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Fixed
 
+- **The stick's hold key is encoded as the app encodes it.** The app writes the export's
+  `"16"` as `0xE002` (left Shift) and `"17"` as `0x0011`; the page wrote `0x0010`, so a
+  slot the app had written read back as different and one the page wrote held another key.
 - Undo all unsaved edits left the in-game keys edited, and switching game carried them
   to the next game.
 - **The right unit's stick never did what its profile said.** A right-hand unit reads

@@ -10,7 +10,7 @@ import { describe, expect, it } from "vitest";
 import { repoPath } from "../../../src/config/paths.js";
 import { Command, isWritableInput } from "../../../src/lib/unitproto.js";
 import { UnitError, UnitSession } from "../../../src/lib/unitsession.js";
-import { hostReports } from "../../../src/lib/unitproto.js";
+import { holdKeyCode, hostReports } from "../../../src/lib/unitproto.js";
 import type { ExportDocument, ExportProfile } from "../../../src/types/azeron.js";
 import { FakeUnit } from "../../helpers/fakeunit.js";
 
@@ -102,11 +102,11 @@ describe("writing a layout into a slot", () => {
     expect(fake.slots.size).toBe(4);
   });
 
-  it("refuses a slot past the end, before sending anything", async () => {
+  it("refuses a slot that is neither held nor the next free one, before sending anything", async () => {
     const fake = unit();
     const session = await ready(fake);
-    await expect(session.writeProfile(plan(4))).rejects.toThrow(/past the end/);
-    await expect(session.writeProfile(plan(6))).rejects.toThrow(/past the end/);
+    await expect(session.writeProfile(plan(4))).rejects.toThrow(/a new one goes at 3/);
+    await expect(session.writeProfile(plan(6))).rejects.toThrow(/a new one goes at 3/);
     expect(fake.received).toEqual([]);
   });
 
@@ -341,18 +341,69 @@ describe("a unit that is less tidy than the fake usually is", () => {
   });
 
   it("sees a stick's hold key that differs from the layout's", async () => {
-    // As the app's older write left the real slots: the hold key stored as ShiftLeft's code.
+    // As this code wrote it before 2026-10-17: the default 16 stored as 0x0010, where the
+    // app stores Shift's code.
     const fake = unit("left", {
       corrupt: (_id, stored) => {
         if (stored[4] !== 4) return;
         const at = stored.length - 12;
-        stored[at] = 0x02;
-        stored[at + 1] = 0xe0;
+        stored[at] = 0x10;
+        stored[at + 1] = 0x00;
       },
     });
     const report = await (await ready(fake)).writeProfile(plan(2));
     expect(
-      report.problems.some((problem) => problem.includes("holdKeyValues[0] is 57346, not 16")),
+      report.problems.some((problem) => problem.includes("holdKeyValues[0] is 16, not 57346")),
     ).toBe(true);
+  });
+});
+
+describe("deleting a slot, and the gap it leaves", () => {
+  const session2 = JSON.parse(
+    readFileSync("tests/fixtures/unit-protocol/session2.json", "utf8"),
+  ) as { deleteProfile: { host: string[] } };
+
+  it("sends DELETE_PROFILE as the app did", () => {
+    const app = Uint8Array.from(Buffer.from(session2.deleteProfile.host[0] ?? "", "hex"));
+    expect(hostReports(Command.DELETE_PROFILE, app[3] ?? 0, Uint8Array.of(2))[0]).toEqual(app);
+  });
+
+  it("deletes a slot and leaves the others their numbers", async () => {
+    const fake = unit();
+    fake.seed("Spare", compiled("left").inputs);
+    const session = await ready(fake);
+    const slots = await session.deleteSlot(1);
+    expect(slots.map((slot) => [slot.slot, slot.name])).toEqual([
+      [0, "Basic"],
+      [2, "Everspace 2 akimbo"],
+      [3, "Spare"],
+    ]);
+  });
+
+  it("will not delete the slot the unit is running, or one it does not have", async () => {
+    const session = await ready(unit());
+    await expect(session.deleteSlot(2)).rejects.toThrow(/running/);
+    await expect(session.deleteSlot(5)).rejects.toThrow(/no slot 5/);
+  });
+
+  it("puts a new slot in the gap a deleted one left, and nowhere else", async () => {
+    const fake = unit();
+    fake.seed("Spare", compiled("left").inputs);
+    const session = await ready(fake);
+    await session.deleteSlot(1);
+    const plan = { name: "ES2 akimbo", profile: compiled("left"), unknownPins: UNKNOWN_PINS };
+    await expect(session.writeProfile({ ...plan, slot: 4 })).rejects.toThrow(/a new one goes at 1/);
+    const report = await session.writeProfile({ ...plan, slot: 1 });
+    expect(report.problems).toEqual([]);
+    expect(fake.received.some((report) => report[2] === Command.CHECK_PROFILE)).toBe(true);
+  });
+});
+
+describe("the stick's hold key", () => {
+  it("goes as Shift's code for the app's default 16, and as itself otherwise", () => {
+    expect(holdKeyCode("16")).toBe(0xe002);
+    expect(holdKeyCode("17")).toBe(0x11);
+    expect(holdKeyCode("0")).toBe(0);
+    expect(() => holdKeyCode("ShiftLeft")).toThrow(/not one the app was seen to send/);
   });
 });

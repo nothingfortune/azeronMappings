@@ -209,8 +209,9 @@ export class FakeUnit implements UnitTransport {
     name: string,
     inputs: readonly InputRecord[],
     unknownPins: readonly number[] = [0, 28, 29],
+    at?: number,
   ): this {
-    const slot = this.slots.size;
+    const slot = at ?? this.slots.size;
     const records = new Map<number, Uint8Array>();
     for (const input of inputs.filter((entry) => isWritableInput(entry, unknownPins))) {
       records.set(input.id, store(encodeInputRecord(slot, input)));
@@ -300,8 +301,11 @@ export class FakeUnit implements UnitTransport {
       }
       case Command.CHECK_PROFILE: {
         // Answered only for the next free slot, which it adds; a slot that exists is ignored.
+        // Answered only for the lowest number the unit does not hold.
         const slot = payload[0] ?? 0;
-        if (slot !== this.slots.size || slot >= o.profileLimit) return;
+        let free = 0;
+        while (this.slots.has(free)) free++;
+        if (slot !== free || slot >= o.profileLimit) return;
         this.slots.set(slot, { name: "", records: new Map<number, Uint8Array>() });
         this.reply(Command.RELEASED_ALL_BUTTONS);
         this.reply(command);
@@ -323,6 +327,14 @@ export class FakeUnit implements UnitTransport {
         o.corrupt?.(payload[1] ?? 0, stored);
         slot.records.set(payload[1] ?? 0, stored);
         this.reply(Command.BUTTON_POSITION, [payload[1] ?? 0, 0]);
+        return;
+      }
+      case Command.DELETE_PROFILE: {
+        // The slot goes; the others keep their numbers, as on the real unit.
+        const slot = payload[0] ?? 0;
+        if (!this.slots.has(slot) || slot === o.activeSlot) return;
+        this.slots.delete(slot);
+        this.reply(command);
         return;
       }
       case Command.SWITCH_PROFILE: {

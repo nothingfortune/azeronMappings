@@ -111,7 +111,6 @@ describe("refusals", () => {
       Command.DFU,
       Command.UPDATE_DEVICE_ID,
       Command.KEYPAD_DETAILS_SAVE,
-      Command.DELETE_PROFILE,
       Command.BUTTON_BIND,
     ]) {
       expect(() => hostReports(command, 0, new Uint8Array())).toThrow(ProtocolError);

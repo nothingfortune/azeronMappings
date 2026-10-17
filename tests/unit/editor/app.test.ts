@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { start } from "../../../src/editor/app.js";
 import { buildPayload } from "../../../src/lib/editor/payload.js";
+import { removeKey } from "../../../src/lib/object.js";
 import { LIVE_SET } from "../../helpers/fixtures.js";
 import { showDockTab, showWiring } from "../../helpers/editor.js";
 
@@ -832,7 +833,16 @@ describe("unit settings", () => {
     mount();
   });
 
+  it("offers no sensor or DPI for the Cyborg II, which has no sensor", () => {
+    expect(document.querySelector(".unit-settings")).toBeNull();
+  });
+
   it("lets the sensor be chosen per unit, and warns when both would aim", () => {
+    // A unit with a sensor: the Cyborg II's maps say it has none.
+    const sensored = structuredClone(PAYLOAD);
+    for (const device of Object.values(sensored.devices)) removeKey(device, "sensor");
+    document.body.innerHTML = '<div id="app"></div>';
+    start(sensored);
     const boxes = [...document.querySelectorAll<HTMLElement>(".unit-settings .field")]
       .filter((field) => field.querySelector("label")?.textContent.endsWith("sensor aims"))
       .map((field) => field.querySelector<HTMLInputElement>("input"));

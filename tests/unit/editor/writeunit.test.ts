@@ -13,6 +13,7 @@ import { WebHidTransport } from "../../../src/editor/unit-write.js";
 import type { ConfigDevice, InputReportLike } from "../../../src/editor/unit-write.js";
 import { repoPath } from "../../../src/config/paths.js";
 import { buildPayload } from "../../../src/lib/editor/payload.js";
+import { removeKey } from "../../../src/lib/object.js";
 import { Command } from "../../../src/lib/unitproto.js";
 import type { ExportDocument, InputRecord } from "../../../src/types/azeron.js";
 import { FakeUnit } from "../../helpers/fakeunit.js";
@@ -111,9 +112,9 @@ function plugIn(given: FakeHidDevice[], toPick: FakeHidDevice[] = []): void {
   });
 }
 
-function mount(): void {
+function mount(payload = PAYLOAD): void {
   document.body.innerHTML = '<div id="app"></div>';
-  start(structuredClone(PAYLOAD));
+  start(structuredClone(payload));
   const select = document.querySelectorAll<HTMLSelectElement>("header select")[1];
   if (select && select.value !== LIVE_SET) {
     select.value = LIVE_SET;
@@ -216,7 +217,22 @@ describe("writing the layout into the units", () => {
     expect(left.unit.received.some((report) => report[2] === Command.SWITCH_PROFILE)).toBe(true);
   });
 
+  it("says nothing of a sensor or DPI for the Cyborg II, which has neither", async () => {
+    plugIn([makeUnit("left"), makeUnit("right")]);
+    await writeToUnits();
+    await vi.waitFor(() => {
+      expect(bar()).toContain("Right unit (29993) →");
+    }, WAIT);
+    expect(document.querySelectorAll(".write-settings")).toHaveLength(0);
+    expect(bar()).toContain("The slot's lights stay as they are.");
+    expect(bar()).not.toMatch(/sensor|DPI/);
+  });
+
   it("says the sensor and DPI step are not written, and which DPI steps the slot holds", async () => {
+    // A unit with a sensor: the Cyborg II's maps say it has none.
+    const sensored = structuredClone(PAYLOAD);
+    for (const device of Object.values(sensored.devices)) removeKey(device, "sensor");
+    mount(sensored);
     // The left unit's slots hold steps of their own; the right unit's are the layout's.
     plugIn([
       makeUnit("left", { sensitivityValues: [800, 1600, 3200, 6400, 12800] }),
@@ -498,5 +514,31 @@ describe("what the page says is on the units, after a direct write", () => {
     await vi.waitFor(() => {
       expect(document.querySelector('header [data-todo="import"]')).toBeNull();
     }, WAIT);
+  });
+});
+
+describe("clearing out a unit's other slots", () => {
+  it("deletes one after asking, and offers its number for a new slot", async () => {
+    const left = makeUnit("left");
+    plugIn([left, makeUnit("right")]);
+    vi.stubGlobal("confirm", () => true);
+    await writeToUnits();
+    await vi.waitFor(() => {
+      expect(bar()).toContain("Right unit (29993) →");
+    }, WAIT);
+    const remove = document.querySelector<HTMLButtonElement>('.write-bar [data-delete-slot="1"]');
+    expect(remove?.textContent).toBe("Delete 1: Joystick");
+    remove?.click();
+    await vi.waitFor(() => {
+      expect(bar()).toContain('Slot 1, "Joystick", is gone from the left unit.');
+    }, WAIT);
+    expect([...left.unit.slots.keys()]).toEqual([0, 2]);
+    // The gap is where a new slot would go.
+    const options = [
+      ...(document.querySelector(".write-plan select")?.querySelectorAll("option") ?? []),
+    ].map((option) => option.textContent);
+    expect(options).toContain("a new slot (1)");
+    // The slot being written and the one the unit runs are not offered for deleting.
+    expect(document.querySelector('.write-bar [data-delete-slot="2"]')).toBeNull();
   });
 });

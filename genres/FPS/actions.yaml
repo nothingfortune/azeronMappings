@@ -3,7 +3,7 @@
 # No keys here: a genre says which ROLES a game has, a game says which keys they are
 # bound to. Start a game's actions.yaml with `extends: genres/FPS/actions.yaml`.
 #
-# Aiming and firing stay on the mouse (or on a second unit's sensor), so they are marked
+# Aiming and firing stay on the mouse, so they are marked
 # `provided_by` and excluded from the coverage check.
 genre: FPS
 
@@ -21,7 +21,7 @@ actions:
   prone:          {label: Prone,         tags: [movement]}
   dive:           {label: Dive / dodge,  tags: [movement]}
   aim:            {label: Aim,   provided_by: mouse, tags: [combat]}
-  look:           {label: Look,  provided_by: sensor, axis: mouse_xy, tags: [movement]}
+  look:           {label: Look,  provided_by: mouse,  axis: mouse_xy, tags: [movement]}
 
   # --- weapons ------------------------------------------------------------------
   fire_primary:   {label: Fire,          provided_by: mouse, tags: [combat, required]}

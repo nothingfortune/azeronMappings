@@ -37,6 +37,9 @@ mirrored: true
 # Press-tested: all 30 pressable positions confirmed; see the header for the four
 # thumb-pad pins that differ from the left unit.
 verified: true
+# The Cyborg II has no optical sensor: the pointer is a mouse's, never the unit's, so the
+# editor offers no sensor or DPI setting for it.
+sensor: false
 
 
 # Pins that exist in exports but whose physical key is unidentified. The compiler

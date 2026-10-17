@@ -126,6 +126,11 @@ export interface DeviceData {
   /** The id the Azeron software files this unit under in DevicesStorage. */
   software_device_id?: string;
   /**
+   * False for a unit with no optical sensor (the Cyborg II): it has no sensor or DPI to set,
+   * so the editor offers neither. Absent means the unit may have one.
+   */
+  sensor?: boolean;
+  /**
    * Physical stick direction -> the direction field it drives in the export.
    *
    * The Azeron software is built for a left-handed unit; a mirrored unit does not

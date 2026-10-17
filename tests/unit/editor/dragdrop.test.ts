@@ -106,7 +106,7 @@ describe("dragging an action", () => {
     expect(action("Headlight").getAttribute("draggable")).toBe("true");
   });
 
-  it("cannot pick up what the sensor supplies, since no key can send it", () => {
+  it("cannot pick up what a mouse supplies, since no key can send it", () => {
     expect(action("Pointer left/right").getAttribute("draggable")).toBeNull();
   });
 });

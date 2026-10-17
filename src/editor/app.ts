@@ -70,6 +70,7 @@ import {
   closeUnits,
   explain,
   findUnits,
+  newSlotOf,
   planFor,
   settingsNote,
   slotName,
@@ -1135,15 +1136,17 @@ function sensitivitySteps(game: EditorGame, slug: string): number[] {
 }
 
 /**
- * Per-unit settings that are not on any key: the sensor and its DPI.
+ * Per-unit settings that are not on any key: the sensor and its DPI, for a unit that has one.
  *
- * Both units have a sensor, and two sensors on at once drive the same pointer against
- * each other -- so which one aims is a decision about the pair, made here.
+ * Two sensors on at once drive the same pointer against each other -- so which one aims is
+ * a decision about the pair, made here. The Cyborg II has no sensor (`sensor: false` in its
+ * device map), so for a pair of those there is nothing to show.
  */
-function renderUnitSettings(): HTMLElement {
-  const box = el("div", { class: "unit-settings" });
+function renderUnitSettings(): HTMLElement | null {
   const game = currentGame();
-  const slugs = slugsInSet();
+  const slugs = slugsInSet().filter((slug) => profileFor(slug).device.hasSensor);
+  if (slugs.length === 0) return null;
+  const box = el("div", { class: "unit-settings" });
   const on = slugs.filter((slug) => workingData(slug).profile.sensor === true).length;
 
   for (const slug of slugs) {
@@ -1197,7 +1200,8 @@ function renderInspector(): HTMLElement {
   const selection = state.selected;
   if (!selection) {
     panel.append(el("div", { class: "empty-state" }, ["Pick a key to edit it."]));
-    panel.append(renderUnitSettings());
+    const settings = renderUnitSettings();
+    if (settings !== null) panel.append(settings);
     return panel;
   }
 
@@ -3658,6 +3662,42 @@ function describeChange(slug: string, change: SlotDifference): string {
   return `${where}: ${words} is ${change.held} on the unit, ${change.wanted} in the layout`;
 }
 
+/** Deletes one of a unit's other slots, after asking, and plans that unit again. */
+function deleteSlotNow(run: WriteRun, index: number, slot: StoredProfile): void {
+  const plan = run.plans[index];
+  const found = plan?.found;
+  if (!plan || !found) return;
+  const unit = `${unitLabel(plan.target.unit).toLowerCase()} unit`;
+  if (
+    !window.confirm(
+      `Delete slot ${String(slot.slot)}, "${slot.name}", from the ${unit}? It cannot be undone here.`,
+    )
+  ) {
+    return;
+  }
+  run.stage = "preparing";
+  run.status = `Deleting slot ${String(slot.slot)} from the ${unit}…`;
+  render();
+  void found.session
+    .deleteSlot(slot.slot)
+    .then((slots) => {
+      found.slots = slots;
+      unitLog(`${unit}: slot ${String(slot.slot)} "${slot.name}" deleted`);
+      run.note = `Slot ${String(slot.slot)}, "${slot.name}", is gone from the ${unit}.`;
+    })
+    .catch((error: unknown) => {
+      const message = explain(error, `deleting slot ${String(slot.slot)}`);
+      run.note = message;
+      logFailure(run, `${unit}: ${message}`);
+    })
+    .finally(() => {
+      if (writeRun !== run) return;
+      run.plans[index] = planFor(plan.target, run.units);
+      run.stage = run.plans.some((entry) => entry.found === null) ? "needs-access" : "ready";
+      render();
+    });
+}
+
 function renderWriteBar(run: WriteRun): HTMLElement {
   const bar = el("div", { class: "check-bar write-bar" });
   const button = (label: string, act: () => void, primary = false): HTMLButtonElement => {
@@ -3838,11 +3878,10 @@ function renderWriteBar(run: WriteRun): HTMLElement {
       if (slot.slot === plan.slot) option.setAttribute("selected", "selected");
       select.append(option);
     }
-    if (slots.length < identity.profileLimit) {
-      const option = el("option", { value: String(slots.length) }, [
-        `a new slot (${String(slots.length)})`,
-      ]);
-      if (plan.slot === slots.length) option.setAttribute("selected", "selected");
+    const fresh = newSlotOf(plan.found);
+    if (fresh !== null) {
+      const option = el("option", { value: String(fresh) }, [`a new slot (${String(fresh)})`]);
+      if (plan.slot === fresh) option.setAttribute("selected", "selected");
       select.append(option);
     }
     if (plan.slot === null) {
@@ -3870,7 +3909,7 @@ function renderWriteBar(run: WriteRun): HTMLElement {
       ` ${summary}`,
     );
     list.append(row);
-    const settings = settingsNote(plan);
+    const settings = profileFor(plan.target.slug).device.hasSensor ? settingsNote(plan) : null;
     if (settings !== null)
       list.append(el("div", { class: "check-note write-settings" }, [settings]));
     if (plan.changes.some((change) => /invert|isRightAnalog/.test(change.field))) {
@@ -3884,6 +3923,28 @@ function renderWriteBar(run: WriteRun): HTMLElement {
             ".",
         ]),
       );
+    }
+    // The unit's other slots, for clearing out: not the one being written, nor the one it
+    // is running.
+    const others = slots.filter(
+      (slot) => slot.slot !== plan.slot && slot.slot !== identity.activeSlot,
+    );
+    if (others.length > 0) {
+      const tidy = el("div", { class: "write-others" }, [
+        el("span", { class: "muted" }, ["Other slots: "]),
+      ]);
+      for (const slot of others) {
+        const remove = el(
+          "button",
+          { class: "btn small", type: "button", "data-delete-slot": String(slot.slot) },
+          [`Delete ${String(slot.slot)}: ${slot.name}`],
+        );
+        remove.addEventListener("click", () => {
+          deleteSlotNow(run, index, slot);
+        });
+        tidy.append(remove);
+      }
+      list.append(tidy);
     }
     if (plan.changes.length > 0) {
       const details = el("details", {}, [el("summary", {}, ["What changes"])]);
@@ -3933,7 +3994,9 @@ function renderWriteBar(run: WriteRun): HTMLElement {
   buttons.append(close);
   bar.append(
     el("div", { class: "check-note" }, [
-      "Every key, the stick and the timings are written. The slot's lights, sensor and DPI stay as they are.",
+      run.plans.some((plan) => profileFor(plan.target.slug).device.hasSensor)
+        ? "Every key, the stick and the timings are written. The slot's lights, sensor and DPI stay as they are."
+        : "Every key, the stick and the timings are written. The slot's lights stay as they are.",
     ]),
     buttons,
   );

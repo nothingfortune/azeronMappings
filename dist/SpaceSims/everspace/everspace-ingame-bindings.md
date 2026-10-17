@@ -5,72 +5,72 @@ If a key here does not match the game, fix `actions.yaml` -- not the profile.
 
 | Action | Key in game | Sent from | Tags |
 | --- | --- | --- | --- |
-| Consumable 1 | `Digit5` | left:pinky_3, left:index_2, left:pinky_1 | combat, required |
-| Consumable 2 | `Digit6` | left:middle_2, left:pinky_2 | combat, required |
-| Consumable 3 | `Digit7` | left:ring_2, left:pinky_3 | combat, required |
-| Consumable 4 | `Digit8` | left:pinky_2, left:pinky_4 | combat, required |
-| Device 1 | `Digit1` | right:middle_2, left:ring_1 | combat, required |
-| Device 2 | `Digit2` | right:ring_2, left:ring_2 | combat, required |
-| Device 3 | `Digit3` | right:pinky_2, left:ring_3 | combat, required |
-| Device 4 | `Digit4` | right:pinky_1, left:ring_4 | combat, required |
-| Equip secondary 1 | `F4` | left:index_4, left:middle_4 | combat |
-| Equip secondary 2 | `F5` | left:middle_4 | combat |
-| Equip secondary 3 | `F6` | left:ring_4 | combat |
-| Fire primary | `mouse left` | right:middle_3 | combat |
-| Fire secondary | `mouse right` | left:index_3, right:index_3 | combat |
-| Lock nearest target | `KeyN` | left:middle_3 | combat |
-| Lock target | `mouse middle` | right:thumb_aux_lower, left:index_2 | combat, required |
-| Next primary | `F1` | left:dpad_right, right:pinky_3, left:middle_1 | combat, required |
-| Next secondary | `KeyR` | left:ring_3, left:dpad_up | combat |
-| Next target | `KeyT` | left:index_1 | combat |
-| Previous primary | `F2` | left:dpad_left, right:ring_3, left:middle_2 | combat, required |
-| Previous secondary | `KeyX` | left:dpad_down | combat |
-| Previous target | `KeyY` | left:ring_1 | combat |
-| Ultimate | `KeyG` | left:dpad_press | combat, required |
-| Boost | `ShiftLeft` | left:index_side, right:index_side, left:index_3 | movement, required |
-| Hover down | `F10` | left:stick.down, left:index_4 | movement, required |
-| Hover up | `F9` | left:stick.up, left:index_1 | movement, required |
-| Inertia dampeners | `AltLeft` | left:stick_press, right:stick_press | movement, required |
-| Pitch down | `ArrowDown` | right:dpad_down, left:dpad_down | movement |
-| Pitch up | `ArrowUp` | right:dpad_up, left:dpad_up | movement |
-| Roll left | `KeyQ` | right:dpad_left, left:pinky_side | movement, required |
-| Roll right | `KeyE` | right:dpad_right, left:index_side | movement, required |
-| Strafe left | `KeyA` | right:stick.left, left:stick.left | movement, required |
-| Strafe right | `KeyD` | right:stick.right, left:stick.right | movement, required |
-| Thrust backward | `KeyS` | right:index_4, right:stick.down, left:stick.down | movement, required |
-| Thrust forward | `KeyW` | right:index_2, right:stick.up, right:middle_1, right:middle_4, left:stick.up | movement, required |
-| Yaw left | `ArrowLeft` | left:stick.left, left:dpad_left | movement |
-| Yaw right | `ArrowRight` | left:stick.right, left:dpad_right | movement |
-| Cruise drive | `KeyF` | left:thumb_aux_upper | travel, required |
-| Jump / supralight drive | `KeyC` | right:thumb_aux_upper, left:thumb_aux_lower | travel, required |
+| Consumable 1 | `Digit5` | left:dpad_up, left:pinky_1 | combat |
+| Consumable 2 | `Digit6` | left:dpad_right, left:pinky_2 | combat |
+| Consumable 3 | `Digit7` | left:dpad_down, left:pinky_3 | combat |
+| Consumable 4 | `Digit8` | left:dpad_left, left:pinky_4 | combat |
+| Consumable wheel (hold) | `Insert` | left:middle_3 | combat |
+| Device 1 | `Digit1` | left:ring_4, left:ring_1 | combat |
+| Device 2 | `Digit2` | left:ring_3, left:ring_2 | combat |
+| Device 3 | `Digit3` | left:pinky_4, left:ring_3 | combat |
+| Device 4 | `Digit4` | left:pinky_3, left:ring_4 | combat |
+| Device wheel (hold) | `Home` | right:middle_3 | combat |
+| Equip secondary 1 | `F4` | left:middle_4 | combat |
+| Fire primary | `mouse left` | right:index_4 | combat |
+| Fire secondary | `mouse right` | right:middle_4 | combat |
+| Lock nearest target | `KeyN` | right:dpad_down | combat |
+| Lock target | `mouse middle` | right:dpad_up, left:index_2 | combat |
+| Next primary | `F1` | right:index_2, left:middle_1 | combat |
+| Next secondary | `KeyR` | right:middle_2 | combat |
+| Next target | `KeyT` | right:dpad_right | combat |
+| Previous primary | `F2` | right:index_1, left:middle_2 | combat |
+| Previous secondary | `KeyX` | right:middle_1 | combat |
+| Previous target | `KeyY` | right:dpad_left | combat |
+| Ultimate | `KeyG` | right:ring_4, left:dpad_press | combat |
+| Boost | `ShiftLeft` | left:index_4, left:index_3 | movement, required |
+| Hover down | `F10` | left:index_4 | movement |
+| Hover up | `F9` | left:index_1 | movement |
+| Inertia dampeners | `AltLeft` | left:middle_4, left:stick_press | movement |
+| Pitch down | `ArrowDown` | right:stick.down, left:dpad_down | movement |
+| Pitch up | `ArrowUp` | right:stick.up, left:dpad_up | movement |
+| Roll left | `KeyQ` | left:pinky_side | movement |
+| Roll right | `KeyE` | left:index_side | movement |
+| Strafe left | `KeyA` | left:stick.left | movement, required |
+| Strafe right | `KeyD` | left:stick.right | movement, required |
+| Thrust backward | `KeyS` | left:stick.down | movement, required |
+| Thrust forward | `KeyW` | left:stick.up | movement, required |
+| Yaw left | `ArrowLeft` | right:stick.left, left:dpad_left | movement |
+| Yaw right | `ArrowRight` | right:stick.right, left:dpad_right | movement |
+| Cruise drive | `KeyF` | left:middle_2, left:thumb_aux_upper | travel, required |
+| Jump / supralight drive | `KeyC` | left:index_2, right:thumb_aux_upper, left:thumb_aux_lower | travel, required |
 | Crafting | `KeyU` | right:ring_5, left:dpad_up | menu |
 | Data / logs | `KeyL` | right:index_5, left:dpad_right | menu |
-| Escape menu | `Escape` | left:pinky_1, left:pinky_side, left:index_5 | menu |
+| Escape menu | `Escape` | left:pinky_side, left:index_5 | menu |
 | Inventory | `KeyI` | right:middle_5, left:middle_5, left:dpad_down | menu |
 | Map | `KeyM` | right:pinky_5, left:dpad_left | menu |
-| Menu | `Tab` | left:middle_1, left:ring_5, left:dpad_press | menu |
+| Menu | `Tab` | left:pinky_5, left:ring_5, left:dpad_press | menu |
 | Missions | `KeyK` | left:ring_5, left:index_5 | menu |
 | Perks | `KeyJ` | left:middle_5, left:ring_5 | menu |
 | Ship | `KeyO` | left:index_5, left:middle_5 | menu |
-| Interact / fling | `KeyF` | left:pinky_4, right:dpad_press, left:middle_3 | utility, required |
-| Place marker | `Equal` | left:thumb_aux_lower, left:pinky_5 | utility |
+| Fling objects | `KeyF` | left:index_side | utility |
+| Interact / fling | `KeyF` | right:index_side, left:middle_3 | utility, required |
+| Place marker | `Equal` | left:pinky_5 | utility |
 | Switch camera | `KeyV` | right:pinky_side, left:pinky_5 | utility |
 
 ## Declared but not sent by any unit
 
-- Consumable wheel (hold) (`(unbound in game)`)
-- Device wheel (hold) (`(unbound in game)`)
 - Equip primary 1 (`Digit9`)
 - Equip primary 2 (`Digit0`)
 - Equip primary 3 (`F3`)
-- Pointer left/right (`(sensor)`)
-- Pointer up/down (`(sensor)`)
+- Equip secondary 2 (`F5`)
+- Equip secondary 3 (`F6`)
+- Pointer left/right (`(mouse)`)
+- Pointer up/down (`(mouse)`)
 - Load most recent save (`F8`)
 - Pause (`KeyP`)
 - Photo mode (`KeyZ`)
 - Quick load (`F11`)
 - Quick save (`F7`)
-- Fling objects (`KeyF`)
 - Free look (toggle) (`(unbound in game)`)
 - Headlight (`KeyB`)
 - Toggle HUD (`KeyH`)

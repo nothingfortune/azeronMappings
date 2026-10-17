@@ -7,16 +7,17 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { start } from "../../../src/editor/app.js";
 import { buildPayload } from "../../../src/lib/editor/payload.js";
+import { removeKey } from "../../../src/lib/object.js";
 import { LIVE_SET } from "../../helpers/fixtures.js";
 
 import { showDockTab } from "../../helpers/editor.js";
 const PAYLOAD = buildPayload();
 const SERVED = window as unknown as { AZERON_SERVED?: boolean };
 
-function mount(): void {
+function mount(payload = PAYLOAD): void {
   SERVED.AZERON_SERVED = true;
   document.body.innerHTML = '<div id="app"></div>';
-  start(structuredClone(PAYLOAD));
+  start(structuredClone(payload));
   const select = document.querySelectorAll<HTMLSelectElement>("header select")[1];
   if (select && select.value !== LIVE_SET) {
     select.value = LIVE_SET;
@@ -84,10 +85,14 @@ describe("clearing every key", () => {
   });
 
   it("leaves what a unit is: its stick's mode, its sensor, and the layout's pedals", () => {
-    mount();
+    // A unit with a sensor, so there is one to keep: the Cyborg II's maps say it has none.
+    const sensored = structuredClone(PAYLOAD);
+    for (const device of Object.values(sensored.devices)) removeKey(device, "sensor");
+    mount(sensored);
     const sensor = (): boolean | undefined =>
-      document.querySelector<HTMLInputElement>('.panel input[type="checkbox"]')?.checked;
+      document.querySelector<HTMLInputElement>('.unit-settings input[type="checkbox"]')?.checked;
     const before = sensor();
+    expect(before).toBeDefined();
     clearAll(true);
     expect(sensor()).toBe(before);
     showDockTab("pedals");

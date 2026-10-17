@@ -75,11 +75,11 @@ describe("the in-game bindings editor", () => {
   });
 
   it("says which actions do not come from a keypad key at all", () => {
-    // The pointer is the unit's own sensor, so it has no key to edit.
+    // The pointer is a mouse's (the Cyborg II has no sensor), so it has no key to edit.
     const pointer = row("Pointer up/down");
     expect(pointer.classList.contains("unbound")).toBe(true);
     expect(pointer.querySelector(".key-chip")).toBeNull();
-    expect(pointer.textContent).toContain("sensor");
+    expect(pointer.textContent).toContain("mouse");
   });
 
   it("re-runs the checks when an in-game key is changed into a collision", () => {

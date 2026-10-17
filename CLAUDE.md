@@ -337,8 +337,11 @@ array of per-key records.
   overwritten when a device sets `stick_angle`, which no device currently does — the
   templates already carry the right value.
 - `profileSettings` passes through from the template, except `isSensorOn` and the
-  sensitivity step, which a profile sets with `sensor:` and `dpi:`. Two units both
-  running their sensors drive the same pointer, so a pair wants one of them on.
+  sensitivity step, which a profile sets with `sensor:` and `dpi:`. **The Cyborg II has no
+  optical sensor**: its device maps say `sensor: false`, and the editor then offers no
+  sensor or DPI setting and the write bar says nothing of them. Its exports carry
+  `isSensorOn` all the same, so the fields still pass through. For a keypad with a sensor,
+  two units running theirs drive the same pointer, so a pair wants one on.
 - Keep profile `id` (UUID) **stable in YAML**. Note that the app assigns a fresh UUID on
   import, so an id only survives when a profile is written into the store by
   `azeron install`.
@@ -539,14 +542,18 @@ the reports, `src/lib/unitsession.ts` runs the exchanges, and the header's **Wri
 It finds the units the page has been given, and knows which is which by the id each one
 reports; each hand goes into the slot that already has the layout's name.
 
-- `hostReports` sends only the ten commands the app was seen to send, in the shapes it sent
+- `hostReports` sends only the eleven commands the app was seen to send, in the shapes it sent
   them. Reset, DFU, the device id and the details save cannot be built. Do not add a command
   to `SENDABLE_COMMANDS` without a capture of the app sending it.
 - A unit says who it is (`KEYPAD_DETAILS` carries the id in `software_device_id`), and
   nothing is written to a unit its device map does not name, or on firmware other than 111.
 - A write is checked by reading the slots back; a difference is reported, never assumed
   away. `REQUEST_PROFILE` answers with the running slot whatever it is asked, so it cannot
-  read another; `CHECK_PROFILE` adds a slot and is ignored for one that exists.
+  read another; `CHECK_PROFILE` adds a slot and is ignored for one that exists, and is
+  answered only for the lowest free number, so a new slot goes in the gap a deletion left.
+- `deleteSlot` sends `DELETE_PROFILE` (the write bar's Delete beside each other slot). It
+  refuses the running slot, a missing one and the last one, is never retried, and reads the
+  slots back to see it gone. The other slots keep their numbers.
 - The fake unit (`tests/helpers/fakeunit.ts`) behaves as the real ones did, those two quirks
   included. A test that passes against a fake that is kinder than the hardware proves
   nothing: the first version did, and its every overwrite stalled on the real unit.

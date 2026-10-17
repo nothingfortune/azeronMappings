@@ -5,8 +5,8 @@
 # and supplies only `key:` / `meta:` / `mouse:` per action.
 #
 # `required` means "must be bound on some unit, or you will reach for the gamepad".
-# `provided_by: sensor` means the unit's own sensor supplies it by moving the pointer, so
-# it is excluded from the coverage check.
+# `provided_by: mouse` means a mouse supplies it by moving the pointer (the Cyborg II has no
+# sensor of its own), so it is excluded from the coverage check.
 genre: SpaceSims
 
 actions:
@@ -32,10 +32,10 @@ actions:
   inertia_dampeners:  {label: Inertia dampeners,  tags: [movement, required],
                        note: "A toggle, and it decides whether thrust holds a speed or coasts."}
 
-  # The unit's sensor moves the pointer. Not keys -- listed so the coverage check knows
+  # A mouse moves the pointer. Not keys -- listed so the coverage check knows
   # the pointer exists, and so nothing mistakes it for the ship's pitch and yaw above.
-  pointer_x:          {label: Pointer left/right, provided_by: sensor, axis: mouse_x, tags: [movement]}
-  pointer_y:          {label: Pointer up/down,    provided_by: sensor, axis: mouse_y, tags: [movement]}
+  pointer_x:          {label: Pointer left/right, provided_by: mouse,  axis: mouse_x, tags: [movement]}
+  pointer_y:          {label: Pointer up/down,    provided_by: mouse,  axis: mouse_y, tags: [movement]}
 
   # --- travel -------------------------------------------------------------------
   cruise:             {label: Travel drive,      tags: [travel, required]}

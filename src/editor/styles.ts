@@ -296,6 +296,7 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 .write-bar .write-slots { display: grid; gap: 4px; }
 .write-bar .write-slots label { display: flex; gap: 8px; align-items: center; font-size: 13px; }
 .write-bar .field { max-width: 320px; }
+.write-bar .write-others { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 12px; }
 .key.check-next, .dir.check-next { outline: 3px solid var(--accent); outline-offset: 1px;
                                    animation: check-pulse 1s ease-in-out infinite; }
 .key.check-ok, .dir.check-ok { box-shadow: inset 0 0 0 2px var(--ok); }
