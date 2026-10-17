@@ -1,9 +1,17 @@
 /** Every filesystem touch the toolchain makes, in one place. */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join, sep } from "node:path";
 
-import { dataDirs, repoPath } from "../config/paths.js";
+import { dataDirs, posixJoin, repoPath } from "../config/paths.js";
 import type { ExportDocument } from "../types/azeron.js";
 import type { PedalsDeviceData, SetsData } from "../types/pedals.js";
 import type { DeviceData, ProfileData } from "../types/profile.js";
@@ -86,4 +94,19 @@ export function writeText(path: string, text: string): void {
 /** A file the owner points at, read as it is: a capture lives wherever it was saved. */
 export function loadBytes(path: string): Uint8Array {
   return new Uint8Array(readFileSync(path));
+}
+
+/**
+ * One line onto a log under `logs/`, kept to about a megabyte: past that the file moves to
+ * `.1`, replacing the one before. The logs are the owner's, not the repo's, and not committed.
+ */
+export function appendLog(name: string, text: string): void {
+  const full = repoPath(posixJoin("logs", name));
+  mkdirSync(dirname(full), { recursive: true });
+  try {
+    if (statSync(full).size > 1_000_000) renameSync(full, `${full}.1`);
+  } catch {
+    // No log yet.
+  }
+  appendFileSync(full, text, "utf8");
 }

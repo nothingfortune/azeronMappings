@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { start } from "../../../src/editor/app.js";
 import { buildPayload } from "../../../src/lib/editor/payload.js";
+import { showDockTab } from "../../helpers/editor.js";
 import { LIVE_SET } from "../../helpers/fixtures.js";
 
 const PAYLOAD = buildPayload();
@@ -30,9 +31,11 @@ function mount(set = LIVE_SET, payload = PAYLOAD): void {
     select.value = set;
     select.dispatchEvent(new Event("change"));
   }
+  showDockTab("pedals");
 }
 
 function axis(id: string): HTMLElement {
+  showDockTab("pedals");
   const found = document.querySelector<HTMLElement>(`.pedal-axis[data-axis="${id}"]`);
   if (!found) throw new Error(`no pedal axis ${id}`);
   return found;
@@ -52,7 +55,10 @@ function saveButton(): HTMLButtonElement | undefined {
   );
 }
 
-const reading = (): string => document.querySelector("[data-reading]")?.textContent ?? "";
+const reading = (): string => {
+  showDockTab("pedals");
+  return document.querySelector("[data-reading]")?.textContent ?? "";
+};
 
 function stickDirections(unit: 0 | 1): string[] {
   return [
@@ -221,6 +227,7 @@ describe("the checks", () => {
 
   it("raise nothing for a calibrated toe on one direction, which has no invert to set", () => {
     choose("left_toe", "vertical:down");
+    showDockTab("checks");
     const rules = [...document.querySelectorAll(".checks .rule")].map((node) => node.textContent);
     expect(rules).not.toContain("pedal-rest-on-centred");
     expect(rules).not.toContain("pedal-axis-assigned-twice");
@@ -260,6 +267,7 @@ describe("the checks", () => {
     mount(LIVE_SET, uncalibrated());
     expect(axis("left_toe").querySelector(".pedal-warn")).toBeNull();
     choose("left_toe", "vertical:up");
+    showDockTab("checks");
     const rules = [...document.querySelectorAll(".checks .rule")].map((node) => node.textContent);
     expect(rules).toContain("pedal-rest-on-centred");
     const named = [...document.querySelectorAll(".checks .finding")]
@@ -271,6 +279,7 @@ describe("the checks", () => {
   });
 
   it("flag a stick that still sends what a pedal carries", () => {
+    showDockTab("checks");
     const rules = [...document.querySelectorAll(".checks .rule")].map((node) => node.textContent);
     expect(rules).not.toContain("pedal-duplicates-stick");
     // Plain Mode 2 puts yaw on the left stick; the rudder is then put back on yaw.
@@ -280,6 +289,7 @@ describe("the checks", () => {
       ?.click();
     expect(reading()).toBe("Mode 2 (RC default)");
     choose("rudder", "yaw");
+    showDockTab("checks");
     const after = [...document.querySelectorAll(".checks .rule")].map((node) => node.textContent);
     expect(after).toContain("pedal-duplicates-stick");
   });

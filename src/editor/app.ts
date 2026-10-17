@@ -34,6 +34,8 @@ import { needsWire, wireAction } from "../lib/wiring.js";
 import { eliteKeyFor } from "../lib/elite.js";
 import type { UnitCheck, UnitDifference, UnitsReport } from "../lib/units.js";
 import { describeSent, expectedPresses, verdict } from "../lib/checkunit.js";
+import { hitName, matchSent } from "../lib/keytester.js";
+import type { UnitPresses } from "../lib/keytester.js";
 import type { ExpectedPress, Sent } from "../lib/checkunit.js";
 import { layoutModes, liveTogether, playsAction } from "../lib/modes.js";
 import { bindingLabel, isModifier, keyLabel } from "../lib/keys.js";
@@ -1447,9 +1449,90 @@ function renderLintChip(): HTMLElement {
       state.mode = "edit";
       render();
     }
+    if (dockTab !== "checks") {
+      chooseDockTab("checks");
+      render();
+    }
     document.querySelector(".checks")?.scrollIntoView({ behavior: "smooth", block: "center" });
   });
   return chip;
+}
+
+/**
+ * The Edit dock's third column is two tabs, so the page is not one long scroll: the checks,
+ * and the sticks and pedals together -- a pedal edit changes how the sticks read, so those
+ * two stay side by side.
+ */
+type DockTab = "checks" | "pedals";
+const DOCK_TAB_KEY = "azeron-editor-dock-tab";
+
+function storedDockTab(): DockTab {
+  try {
+    if (window.localStorage.getItem(DOCK_TAB_KEY) === "pedals") return "pedals";
+  } catch {
+    // Storage refused: the default it is.
+  }
+  return "checks";
+}
+
+let dockTab: DockTab = storedDockTab();
+
+function chooseDockTab(tab: DockTab): void {
+  dockTab = tab;
+  try {
+    window.localStorage.setItem(DOCK_TAB_KEY, tab);
+  } catch {
+    // Not kept across reloads, which is all that is lost.
+  }
+}
+
+/** The checks' tab says how many there are, so a finding is not hidden behind a tab. */
+function checksTabLabel(): { text: string; tone: string } {
+  const result = currentLint();
+  if ("error" in result) return { text: "Checks !", tone: "bad" };
+  const problems = result.live.filter(
+    (finding) => finding.level === "error" || finding.level === "warning",
+  );
+  const entries = shownFindings(problems).length;
+  if (entries === 0) return { text: "Checks ✓", tone: "ok" };
+  const errors = problems.some((finding) => finding.level === "error");
+  return { text: `Checks (${String(entries)})`, tone: errors ? "bad" : "warn" };
+}
+
+function renderDockTabs(): HTMLElement {
+  const checks = checksTabLabel();
+  const tabs: { id: DockTab; label: string; tone: string }[] = [
+    { id: "checks", label: checks.text, tone: checks.tone },
+    { id: "pedals", label: "Sticks & pedals", tone: "" },
+  ];
+  const strip = el("div", { class: "dock-tabs", role: "tablist" });
+  for (const tab of tabs) {
+    const button = el(
+      "button",
+      {
+        class: `dock-tab ${tab.tone}${tab.id === dockTab ? " active" : ""}`,
+        type: "button",
+        role: "tab",
+        "aria-selected": tab.id === dockTab ? "true" : "false",
+        "data-dock-tab": tab.id,
+      },
+      [tab.label],
+    );
+    button.addEventListener("click", () => {
+      chooseDockTab(tab.id);
+      render();
+    });
+    strip.append(button);
+  }
+  const column = el("div", { class: "dock-col tabbed" }, [strip]);
+  if (dockTab === "checks") {
+    column.append(renderChecks());
+  } else {
+    column.append(renderPedals());
+    const modes = renderStickModes();
+    if (modes) column.append(modes);
+  }
+  return column;
 }
 
 /** Whose tuning is unfolded, by pedal axis; kept across renders. */
@@ -2612,6 +2695,7 @@ const onCheckBar = (event: Event): boolean =>
   event.target instanceof Element && event.target.closest(".check-bar, header") !== null;
 
 function startCheck(slug: string): void {
+  stopTester(false);
   const presses = expectedPresses(
     workingData(slug),
     profileFor(slug).device,
@@ -2884,6 +2968,204 @@ function renderCheckBar(run: CheckRun): HTMLElement {
 }
 
 // ---------------------------------------------------------------------------------------
+// The live key tester
+
+/**
+ * While it is on, anything a unit sends lights the control that sends it, for as long as it
+ * is held, and the strip says what arrived and what it is. Nothing is recorded or saved.
+ */
+interface LiveTester {
+  /** Modifiers down now, and one pressed with no key after it yet. */
+  held: Set<string>;
+  pendingModifier: string | null;
+  /** Lit controls, "slug|id" to the key holding them lit, or a time for a flash. */
+  lit: Map<string, string | number>;
+  recent: { text: string; matched: boolean }[];
+}
+
+let liveTester: LiveTester | null = null;
+let testerBound = false;
+const TESTER_FLASH_MS = 450;
+const TESTER_RECENT = 8;
+
+function startTester(): void {
+  if (checkRun !== null || writeRun !== null) return;
+  capturing = null;
+  state.selected = null;
+  liveTester = { held: new Set(), pendingModifier: null, lit: new Map(), recent: [] };
+  bindTester();
+  render();
+}
+
+function stopTester(redraw = true): void {
+  liveTester = null;
+  if (redraw) render();
+}
+
+function testerUnits(): UnitPresses[] {
+  const actions = actionSetFor(currentGame());
+  return slugsInSet().map((slug) => ({
+    slug,
+    unit: workingData(slug).profile.unit ?? slug,
+    presses: expectedPresses(workingData(slug), profileFor(slug).device, actions),
+  }));
+}
+
+/** One press from a unit: light what sends it, and say so. */
+function testerPress(sent: Sent, holdKey: string | null): void {
+  const tester = liveTester;
+  if (tester === null) return;
+  const hits = matchSent(sent, testerUnits());
+  const what = describeSent(sent, actionSetFor(currentGame()));
+  const where = hits
+    .map(
+      (hit) =>
+        `${unitLabel(hit.unit).toLowerCase()} ${hitName(hit)}${hit.loose ? " (with a modifier held)" : ""}`,
+    )
+    .join(", ");
+  tester.recent.unshift({
+    text: hits.length === 0 ? `${what}: no control of this layout sends it` : `${what} ← ${where}`,
+    matched: hits.length > 0,
+  });
+  tester.recent.length = Math.min(tester.recent.length, TESTER_RECENT);
+  const until = Date.now() + TESTER_FLASH_MS;
+  for (const hit of hits) tester.lit.set(`${hit.slug}|${hit.press.id}`, holdKey ?? until);
+  if (holdKey === null) {
+    setTimeout(() => {
+      if (liveTester === tester) render();
+    }, TESTER_FLASH_MS + 20);
+  }
+  render();
+}
+
+/** Let go of a key: what it held lit goes dark. */
+function testerRelease(code: string): void {
+  const tester = liveTester;
+  if (tester === null) return;
+  let changed = false;
+  for (const [id, holder] of tester.lit) {
+    if (holder === code) {
+      tester.lit.delete(id);
+      changed = true;
+    }
+  }
+  if (changed) render();
+}
+
+/** Marks the lit controls on the board, after it is drawn. */
+function lightTester(): void {
+  const tester = liveTester;
+  if (tester === null) return;
+  const now = Date.now();
+  const slugs = slugsInSet();
+  const hands = document.querySelectorAll(".hand");
+  for (const [id, holder] of tester.lit) {
+    if (typeof holder === "number" && holder < now) {
+      tester.lit.delete(id);
+      continue;
+    }
+    const [slug = "", control = ""] = id.split("|");
+    const hand = hands[slugs.indexOf(slug)];
+    if (hand === undefined) continue;
+    const [position = "", direction] = control.split(":");
+    const node =
+      direction === undefined
+        ? hand.querySelector(`.key[data-position="${position}"]`)
+        : hand.querySelector(`.stick-dial .dir.${direction}`);
+    node?.classList.add("live-hit");
+  }
+}
+
+const onTesterBar = (event: Event): boolean =>
+  event.target instanceof Element && event.target.closest(".tester-bar, header") !== null;
+
+function bindTester(): void {
+  if (testerBound) return;
+  testerBound = true;
+  const swallow = (event: Event): void => {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  };
+  window.addEventListener(
+    "keydown",
+    (event) => {
+      const tester = liveTester;
+      if (tester === null) return;
+      swallow(event);
+      if (event.repeat) return;
+      if (isModifier(event.code)) {
+        tester.held.add(event.code);
+        tester.pendingModifier ??= event.code;
+        return;
+      }
+      tester.pendingModifier = null;
+      testerPress({ kind: "key", code: event.code, modifiers: [...tester.held] }, event.code);
+    },
+    true,
+  );
+  window.addEventListener(
+    "keyup",
+    (event) => {
+      const tester = liveTester;
+      if (tester === null) return;
+      swallow(event);
+      if (isModifier(event.code)) {
+        tester.held.delete(event.code);
+        // A modifier pressed and let go with nothing after it is a press of its own.
+        if (tester.pendingModifier === event.code) {
+          tester.pendingModifier = null;
+          testerPress({ kind: "key", code: event.code, modifiers: [] }, null);
+        }
+        return;
+      }
+      testerRelease(event.code);
+    },
+    true,
+  );
+  window.addEventListener(
+    "mousedown",
+    (event) => {
+      if (liveTester === null || onTesterBar(event)) return;
+      swallow(event);
+      const button = MOUSE_NAMES[event.button];
+      if (button !== undefined) testerPress({ kind: "mouse", button }, null);
+    },
+    true,
+  );
+  for (const type of ["click", "auxclick", "contextmenu", "mouseup"]) {
+    window.addEventListener(
+      type,
+      (event) => {
+        if (liveTester !== null && !onTesterBar(event)) swallow(event);
+      },
+      true,
+    );
+  }
+}
+
+function renderTesterBar(tester: LiveTester): HTMLElement {
+  const stop = el("button", { class: "btn small", type: "button" }, ["Stop"]);
+  stop.addEventListener("click", () => {
+    stopTester();
+  });
+  const bar = el("div", { class: "check-bar tester-bar" }, [
+    el("div", { class: "check-ask" }, [
+      "Key tester: press anything on a unit, and the control that sends it lights up. ",
+      "The page's own keys and clicks are off until you stop it.",
+    ]),
+  ]);
+  const list = el("ol", { class: "tester-recent" });
+  if (tester.recent.length === 0) {
+    list.append(el("li", { class: "muted" }, ["Nothing yet."]));
+  }
+  for (const entry of tester.recent) {
+    list.append(el("li", { class: entry.matched ? "" : "unmatched" }, [entry.text]));
+  }
+  bar.append(list, el("div", { class: "check-buttons" }, [stop]));
+  return bar;
+}
+
+// ---------------------------------------------------------------------------------------
 // Writing the layout into the units
 
 /**
@@ -2899,22 +3181,43 @@ interface WriteRun {
   plans: UnitPlan[];
   /** Units the page has been given that could not be opened or asked. */
   problems: string[];
-  results: { plan: UnitPlan; report: WriteReport | null; error: string | null }[];
+  results: {
+    plan: UnitPlan;
+    report: WriteReport | null;
+    error: string | null;
+    /** The slot the unit was left running, when it could be switched to the one written. */
+    running: number | null;
+  }[];
+  /** The last reports out and in, sent to the server's log only when something fails. */
+  trace: string[];
 }
 
 let writeRun: WriteRun | null = null;
+const TRACE_KEPT = 400;
+
+function traceFor(run: WriteRun): (line: string) => void {
+  return (line) => {
+    run.trace.push(`${new Date().toISOString().slice(11, 23)} ${line}`);
+    if (run.trace.length > TRACE_KEPT) run.trace.splice(0, run.trace.length - TRACE_KEPT);
+  };
+}
+
+/** A failure, with the reports that led up to it, into the server's log. */
+function logFailure(run: WriteRun, what: string): void {
+  unitLog(`FAILED: ${what}`, run.trace.slice(-120));
+}
 
 function unitsApi(): ConfigHid | undefined {
   return (navigator as unknown as { hid?: ConfigHid }).hid;
 }
 
 /** What happened, in the server's output, so a failure on the owner's screen can be read later. */
-function unitLog(line: string): void {
+function unitLog(line: string, trace?: string[]): void {
   if (!canSave() || /^input \d+ written/.test(line)) return;
   void fetch("/api/unit-log", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ line }),
+    body: JSON.stringify(trace === undefined ? { line } : { line, trace }),
   }).catch(() => undefined);
 }
 
@@ -2955,8 +3258,42 @@ function writeTargets(): WriteTarget[] {
   });
 }
 
+let unplugBound = false;
+
+/** A unit pulled out during a run is said, not left for the next step to time out on. */
+function watchUnplugging(hid: ConfigHid): void {
+  if (unplugBound || hid.addEventListener === undefined) return;
+  unplugBound = true;
+  hid.addEventListener("disconnect", (event) => {
+    const run = writeRun;
+    const gone = run?.units.find((unit) => unit.transport.device === event.device);
+    if (run === null || gone === undefined) return;
+    const which = deviceNameFor(gone.identity.deviceId) ?? `unit ${String(gone.identity.deviceId)}`;
+    unitLog(`${which} was unplugged (stage ${run.stage})`);
+    if (run.stage !== "writing") {
+      run.units = run.units.filter((unit) => unit !== gone);
+      run.plans = run.plans.map((plan) =>
+        plan.found === gone ? { ...plan, found: null, slot: null } : plan,
+      );
+      run.note = `The ${which} was unplugged. Plug it back in and press Try again.`;
+      run.stage = "failed";
+      render();
+    }
+  });
+}
+
+function deviceNameFor(deviceId: number): string | null {
+  const device = Object.values(state.payload.devices).find(
+    (entry) => entry.software_device_id === String(deviceId),
+  );
+  return device === undefined
+    ? null
+    : `${unitLabel(device.hand ?? device.device).toLowerCase()} unit`;
+}
+
 function startWrite(): void {
   if (writeRun !== null) return;
+  stopTester(false);
   capturing = null;
   state.selected = null;
   const run: WriteRun = {
@@ -2967,6 +3304,7 @@ function startWrite(): void {
     plans: [],
     problems: [],
     results: [],
+    trace: [],
   };
   writeRun = run;
   render();
@@ -3014,7 +3352,8 @@ async function prepareWrite(run: WriteRun): Promise<void> {
     }
     step("Finding the units…");
     await closeUnits(run.units);
-    const { units, problems } = await findUnits(hid, unitProgress);
+    watchUnplugging(hid);
+    const { units, problems } = await findUnits(hid, { log: unitProgress, trace: traceFor(run) });
     run.units = units;
     run.problems = problems;
     run.plans = writeTargets().map((target) => planFor(target, units));
@@ -3026,7 +3365,7 @@ async function prepareWrite(run: WriteRun): Promise<void> {
   } catch (error) {
     run.stage = "failed";
     run.note = messageOf(error);
-    unitLog(`not ready: ${run.note}`);
+    logFailure(run, `not ready: ${run.note}`);
   }
   if (writeRun === run) render();
 }
@@ -3101,14 +3440,28 @@ function writeAll(run: WriteRun): void {
           profile: plan.target.profile,
           unknownPins: plan.target.unknownPins,
         });
-        run.results.push({ plan, report, error: null });
         unitLog(
           `${unit}: slot ${String(slot)} written, ${String(report.problems.length)} difference(s) on reading back`,
         );
+        // As the app does after a write: the unit runs the slot it was just given. Only
+        // when the slot read back as written; a slot that did not is not one to play on.
+        let running: number | null = null;
+        if (report.problems.length === 0 && found.identity.activeSlot !== slot) {
+          try {
+            running = await found.session.switchTo(slot);
+          } catch (error) {
+            logFailure(run, `${unit}: switching to slot ${String(slot)}: ${messageOf(error)}`);
+          }
+        } else if (report.problems.length === 0) {
+          running = slot;
+        } else {
+          logFailure(run, `${unit}: ${report.problems.slice(0, 10).join("; ")}`);
+        }
+        run.results.push({ plan, report, error: null, running });
       } catch (error) {
         const message = explain(error, `writing the ${unit}`);
-        run.results.push({ plan, report: null, error: message });
-        unitLog(`${unit}: ${message}`);
+        run.results.push({ plan, report: null, error: message, running: null });
+        logFailure(run, `${unit}: ${message}`);
       }
     }
     run.stage = "done";
@@ -3251,7 +3604,8 @@ function renderWriteBar(run: WriteRun): HTMLElement {
   }
 
   if (run.stage === "done") {
-    for (const { plan, report, error } of run.results) {
+    for (const result of run.results) {
+      const { plan, report, error } = result;
       const unit = `${unitLabel(plan.target.unit)} unit`;
       if (error !== null) {
         bar.append(el("div", { class: "check-verdict bad" }, [`${unit}: ${error}`]));
@@ -3275,12 +3629,15 @@ function renderWriteBar(run: WriteRun): HTMLElement {
         }
         bar.append(list);
       }
-      const running = plan.found?.identity.activeSlot;
-      if (report !== null && running !== undefined && running !== report.slot) {
+      if (report !== null && result.running === report.slot) {
+        bar.append(
+          el("div", { class: "check-note" }, [`The ${unit.toLowerCase()} is running it now.`]),
+        );
+      } else if (report !== null) {
         bar.append(
           el("div", { class: "check-note" }, [
-            `The ${unit.toLowerCase()} is running slot ${String(running)}: press its profile ` +
-              `button to get to slot ${String(report.slot)}.`,
+            `The ${unit.toLowerCase()} is not running slot ${String(report.slot)}: press its ` +
+              "profile button to get to it.",
           ]),
         );
       }
@@ -3702,6 +4059,20 @@ function renderHeader(): HTMLElement {
   if (writeRun !== null) write.setAttribute("disabled", "disabled");
   write.addEventListener("click", startWrite);
   header.append(write);
+  if (state.mode === "edit" || state.mode === "in-game") {
+    const tester = el(
+      "button",
+      { class: `btn test-keys${liveTester === null ? "" : " primary"}`, type: "button" },
+      [liveTester === null ? "Test keys" : "Testing keys"],
+    );
+    tester.title = "Press keys on a unit and see which control sends what, live.";
+    if (checkRun !== null || writeRun !== null) tester.setAttribute("disabled", "disabled");
+    tester.addEventListener("click", () => {
+      if (liveTester === null) startTester();
+      else stopTester();
+    });
+    header.append(tester);
+  }
 
   // Everything else is occasional, and lives behind one button.
   const items = el("div", { class: "menu-items" });
@@ -4979,6 +5350,7 @@ function adoptPendingSpec(): void {
  */
 function resetSession(): void {
   capturing = null;
+  liveTester = null;
   checkRun = null;
   if (writeRun !== null && writeRun.stage !== "writing") endWrite(false);
   captureProblem = null;
@@ -5005,6 +5377,7 @@ function render(): void {
   adoptPendingSpec();
   trackHistory();
   draw();
+  lightTester();
   if (typing) {
     const filter = document.querySelector<HTMLInputElement>(".panel .filter");
     filter?.focus();
@@ -5043,6 +5416,7 @@ function draw(): void {
   root.replaceChildren();
   root.append(renderHeader());
   if (writeRun !== null) root.append(renderWriteBar(writeRun));
+  if (liveTester !== null) root.append(renderTesterBar(liveTester));
   if (saveNote !== null) {
     root.append(el("div", { class: "save-note" }, [saveNote]));
   }
@@ -5106,10 +5480,9 @@ function draw(): void {
   const stageWrap = el("div", { class: "stage-wrap" }, [stage]);
   workspace.append(stageWrap);
 
-  const side = el("div", { class: "dock-col" }, [renderChecks(), renderPedals()]);
-  const modes = renderStickModes();
-  if (modes) side.append(modes);
-  workspace.append(el("div", { class: "dock" }, [renderInspector(), renderPalette(), side]));
+  workspace.append(
+    el("div", { class: "dock" }, [renderInspector(), renderPalette(), renderDockTabs()]),
+  );
   root.append(workspace);
 
   requestAnimationFrame(() => {
@@ -5132,10 +5505,19 @@ function draw(): void {
   }
   if (!unloadBound) {
     unloadBound = true;
+    // An error the page did not catch is written into the server's log, not just a console
+    // nobody has open.
+    window.addEventListener("error", (event) => {
+      unitLog(`page error: ${event.message} at ${event.filename}:${String(event.lineno)}`);
+    });
+    window.addEventListener("unhandledrejection", (event) => {
+      unitLog(`page error: unhandled ${messageOf(event.reason)}`);
+    });
     // Edits live in the page until they are saved, and a reload used to take them with it
     // without asking. The browser shows its own wording; what matters is that it asks.
     window.addEventListener("beforeunload", (event) => {
-      if (!isDirty()) return;
+      // A write cut off part way leaves a slot holding part of a layout.
+      if (!isDirty() && writeRun?.stage !== "writing") return;
       // preventDefault is the current way to ask; some browsers still want a truthy
       // returnValue, which is deprecated and set through the index signature.
       event.preventDefault();
@@ -5168,6 +5550,7 @@ export function start(payload = window.AZERON_PAYLOAD): void {
   // which axes had their details open.
   pedalsNote = null;
   tuningOpen.clear();
+  dockTab = storedDockTab();
   // The exports chosen for a layout were chosen against the data being replaced.
   addLayout.name = "";
   addLayout.files = {};

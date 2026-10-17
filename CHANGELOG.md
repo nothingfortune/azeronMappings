@@ -6,6 +6,18 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Added
 
+- **Test keys**, in the header: press anything on a unit and the control that sends it
+  lights up on the board while it is held, with a strip of what arrived and which action it
+  is. Free-form, unlike Check this unit; the page's own shortcuts are off while it runs.
+- **The Edit screen's checks have a tab of their own**, beside one for the sticks and
+  pedals, so the page is not one long scroll. The tab says how many checks there are.
+- **Writing to the units says more and gives up less.** A lost answer to a read, a rename or
+  an input record is asked again once; adding a slot never is. A failure says the step it
+  was on and how many inputs had gone in, a unit pulled out mid-run is said at once, and the
+  page asks before it is closed during a write. Each unit is left running the slot it was
+  just given. Every step and, on a failure, the reports that led to it go into
+  `logs/units.log`, with page errors.
+
 - **Write to units**, in the header: the editor writes the layout straight into the units'
   onboard slots over WebHID, then reads each slot back and says whether it holds what was
   written. No Azeron app, no export, no import. It finds the units the page has been given,

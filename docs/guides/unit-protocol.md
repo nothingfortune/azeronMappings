@@ -49,7 +49,7 @@ session passes over.
 
 ## Commands
 
-The app's enum has 60. The repo sends nine, and `hostReports` refuses any other:
+The app's enum has 60. The repo sends ten, and `hostReports` refuses any other:
 
 | Command                  | Code   | Used for                                                                     |
 | ------------------------ | ------ | ---------------------------------------------------------------------------- |
@@ -131,6 +131,6 @@ running Azeron app (which it can close).
 - **The cones.** The app wrote vertical 41 and horizontal 49 and read back 49 and 45. Its
   own round trip disagrees with itself; the layouts here use 45 and 45, where it does not
   matter.
-- **`DELETE_PROFILE`, `ADD_PROFILE`, `SWITCH_PROFILE`.** Not sent.
+- **`DELETE_PROFILE`, `ADD_PROFILE`.** Not sent: deleting a slot still needs the Azeron app.
 - **Which unit is which hand.** `KEYPAD_DETAILS` byte 4 reads 0 on both units, so it is not
   the hand; the unit's id is what tells them apart.

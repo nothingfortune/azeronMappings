@@ -9,6 +9,7 @@ import { start } from "../../../src/editor/app.js";
 import { buildPayload } from "../../../src/lib/editor/payload.js";
 import { LIVE_SET } from "../../helpers/fixtures.js";
 
+import { showDockTab } from "../../helpers/editor.js";
 const PAYLOAD = buildPayload();
 const SERVED = window as unknown as { AZERON_SERVED?: boolean };
 
@@ -89,11 +90,13 @@ describe("clearing every key", () => {
     const before = sensor();
     clearAll(true);
     expect(sensor()).toBe(before);
+    showDockTab("pedals");
     expect(document.querySelector('.pedal-axis[data-axis="rudder"] select')).not.toBeNull();
     expect(
       document.querySelector<HTMLSelectElement>('.pedal-axis[data-axis="rudder"] select')?.value,
     ).toBe("yaw");
     // A stick with nothing on it is still a keyboard stick, which is all the game allows.
+    showDockTab("checks");
     const rules = [...document.querySelectorAll(".checks .rule")].map((node) => node.textContent);
     expect(rules).not.toContain("stick-not-keyboard");
   });

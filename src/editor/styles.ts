@@ -178,6 +178,17 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
         margin-top: 12px; align-items: start; }
 .dock.ingame { grid-template-columns: minmax(0, 1fr) 300px; }
 .dock-col { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); }
+/* The third column is tabs: one of checks, pedals and stick modes at a time. */
+.dock-col.tabbed { align-content: start; }
+.dock-col.tabbed > * { grid-column: 1 / -1 !important; grid-row: auto !important; }
+.dock-tabs { display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid var(--line); }
+.dock-tab { background: none; border: 1px solid transparent; border-bottom: none;
+            border-radius: 6px 6px 0 0; padding: 5px 10px; color: var(--muted); cursor: pointer;
+            font: inherit; font-size: 13px; }
+.dock-tab.active { background: var(--panel); border-color: var(--line); color: var(--fg); font-weight: 600; }
+.dock-tab.bad { color: var(--error); }
+.dock-tab.warn { color: var(--warn, var(--muted)); }
+.dock-tab.ok { color: var(--ok); }
 /* Narrow, or tall and narrow: the checks drop to a row of their own under the other two. */
 @media (max-width: 1150px), (orientation: portrait) {
   .dock { grid-template-columns: 300px minmax(0, 1fr); }
@@ -288,6 +299,12 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 .key.check-next, .dir.check-next { outline: 3px solid var(--accent); outline-offset: 1px;
                                    animation: check-pulse 1s ease-in-out infinite; }
 .key.check-ok, .dir.check-ok { box-shadow: inset 0 0 0 2px var(--ok); }
+/* The key tester: what a unit just sent, lit on the board while it is held. */
+.key.live-hit, .dir.live-hit { outline: 3px solid var(--accent); outline-offset: 1px;
+                               background: color-mix(in srgb, var(--accent) 22%, var(--panel)); }
+.tester-bar .tester-recent { margin: 0 0 0 18px; padding: 0; font-size: 13px; }
+.tester-bar .tester-recent li.unmatched { color: var(--warn); }
+.test-keys.primary { outline: 2px solid var(--accent); }
 .key.check-bad, .dir.check-bad { box-shadow: inset 0 0 0 2px var(--error); }
 @keyframes check-pulse { 50% { outline-color: color-mix(in srgb, var(--accent) 35%, transparent); } }
 @media (prefers-reduced-motion: reduce) {
@@ -469,7 +486,7 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 1
 @media print {
   :root:root:root { ${LIGHT} color-scheme: light; }
   @page { size: landscape; margin: 10mm; }
-  header, .save-note, .dock, .menu, .check-bar, .check-unit, .write-unit { display: none !important; }
+  header, .save-note, .dock, .menu, .check-bar, .check-unit, .write-unit, .tester-bar { display: none !important; }
   body { background: #fff; }
   .workspace { padding: 0; }
   .print-title { display: block; font-size: 16px; font-weight: 600; margin-bottom: 8px; }

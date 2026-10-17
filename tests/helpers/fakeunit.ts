@@ -30,6 +30,8 @@ export interface FakeUnitOptions {
   corrupt?: (id: number, stored: Uint8Array) => void;
   /** Stop answering after this many host reports. */
   goSilentAfter?: number;
+  /** Commands whose next answer goes missing once, as a lost report would. */
+  loseOnce?: number[];
 }
 
 /** The settings piece the left unit sent for its akimbo slot; the fake does not model it. */
@@ -138,10 +140,11 @@ export class FakeUnit implements UnitTransport {
   private incoming: { command: number; seq: number; parts: number; chunks: Uint8Array[] } | null =
     null;
   private streaming: Uint8Array[] | null = null;
-  private readonly options: Required<Omit<FakeUnitOptions, "corrupt" | "goSilentAfter">> & {
+  private options: Required<Omit<FakeUnitOptions, "corrupt" | "goSilentAfter" | "loseOnce">> & {
     corrupt: FakeUnitOptions["corrupt"] | undefined;
     goSilentAfter: number | undefined;
   };
+  private readonly losing = new Set<number>();
 
   constructor(options: FakeUnitOptions = {}) {
     this.options = {
@@ -152,6 +155,7 @@ export class FakeUnit implements UnitTransport {
       corrupt: options.corrupt,
       goSilentAfter: options.goSilentAfter,
     };
+    for (const command of options.loseOnce ?? []) this.losing.add(command);
   }
 
   private reply(
@@ -161,6 +165,7 @@ export class FakeUnit implements UnitTransport {
     parts = 1,
     part = 1,
   ): void {
+    if (this.losing.delete(command)) return;
     const bytes = Uint8Array.from(payload);
     const report = new Uint8Array(REPORT_LENGTH);
     report[0] = bytes.length & 0xff;
@@ -280,6 +285,14 @@ export class FakeUnit implements UnitTransport {
         o.corrupt?.(payload[1] ?? 0, stored);
         slot.records.set(payload[1] ?? 0, stored);
         this.reply(Command.BUTTON_POSITION, [payload[1] ?? 0, 0]);
+        return;
+      }
+      case Command.SWITCH_PROFILE: {
+        const slot = payload[0] ?? 0;
+        if (!this.slots.has(slot)) return;
+        this.options.activeSlot = slot;
+        this.reply(Command.RELEASED_ALL_BUTTONS);
+        this.reply(command, [slot]);
         return;
       }
       case Command.REQUEST_PROFILE: {

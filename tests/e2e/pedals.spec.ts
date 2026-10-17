@@ -29,6 +29,11 @@ function restore(files: Map<string, string>): void {
 
 const pedalAxis = (page: Page, id: string) => page.locator(`.pedal-axis[data-axis="${id}"]`);
 
+/** The pedals and the stick modes share the Edit dock's second tab. */
+async function openPedals(page: Page): Promise<void> {
+  await page.locator('[data-dock-tab="pedals"]').click();
+}
+
 const WINDOWS = [
   { width: 1920, height: 1080 },
   { width: 1440, height: 900 },
@@ -43,6 +48,7 @@ for (const { width, height } of WINDOWS) {
 
     test("are drawn on the Edit tab, whole, inside the window", async ({ page }) => {
       await page.goto("/");
+      await openPedals(page);
       await expect(page.locator(".pedal-axis")).toHaveCount(3);
       const box = await page.locator(".panel.pedals").boundingBox();
       expect(box).not.toBeNull();
@@ -66,6 +72,7 @@ test.describe("the pedals at 1920x1080", () => {
 
   test("keep the Edit tab on one screen, and open and close their Details", async ({ page }) => {
     await page.goto("/");
+    await openPedals(page);
     const height = (): Promise<number> =>
       page.evaluate(() => document.documentElement.scrollHeight);
     expect(await height()).toBeLessThanOrEqual(1080);
@@ -83,6 +90,7 @@ test.describe("the pedals in the editor", () => {
     page,
   }) => {
     await page.goto("/");
+    await openPedals(page);
     await expect(pedalAxis(page, "rudder").locator("select")).toHaveValue("yaw");
     await expect(pedalAxis(page, "left_toe").locator("select")).toHaveValue("");
     await expect(pedalAxis(page, "right_toe").locator("select")).toHaveValue("thrust");
@@ -98,16 +106,21 @@ test.describe("the pedals in the editor", () => {
     const before = saved.get(SETS) ?? "";
     try {
       await page.goto("/");
+      await openPedals(page);
       // A toe is offered directions, and the pedal rules run on the unsaved edit, in the
       // same Checks panel as every other: both toes on hover down is one row twice over.
       await pedalAxis(page, "left_toe").locator("select").selectOption({ label: "Hover down" });
       await pedalAxis(page, "right_toe").locator("select").selectOption({ label: "Hover down" });
+      await page.locator('[data-dock-tab="checks"]').click();
       await expect(
         page.locator(".checks .rule", { hasText: "pedal-axis-assigned-twice" }),
       ).toBeVisible();
       // Hover up on the other toe is its own row. Calibrated to rest at zero, neither
       // raises anything.
+      await openPedals(page);
       await pedalAxis(page, "right_toe").locator("select").selectOption({ label: "Hover up" });
+      await page.locator('[data-dock-tab="checks"]').click();
+      await expect(page.locator(".checks")).toBeVisible();
       await expect(page.locator(".checks .rule", { hasText: "pedal" })).toHaveCount(0);
 
       // There is no pedals-only button: the one Save names what it would write.
@@ -143,6 +156,7 @@ test.describe("the pedals in the editor", () => {
     page,
   }) => {
     await page.goto("/");
+    await openPedals(page);
     await page.locator("details.panel.fold > summary").click();
     await expect(page.locator(".mode-pedals")).toContainText("with-pedals variant");
     await pedalAxis(page, "rudder").locator("select").selectOption("");
@@ -155,6 +169,7 @@ test.describe("the pedals in the editor", () => {
     page,
   }) => {
     await page.goto("/");
+    await openPedals(page);
     await pedalAxis(page, "rudder").locator("select").selectOption("");
     await page.locator("details.panel.fold > summary").click();
     await page
@@ -169,6 +184,7 @@ test.describe("the pedals in the editor", () => {
 
   test("offers to add pedals to a layout that has none", async ({ page }) => {
     await page.goto("/");
+    await openPedals(page);
     await page.locator("header select").nth(1).selectOption("single-v5");
     await expect(page.locator(".pedal-axis")).toHaveCount(0);
     await page.getByRole("button", { name: "Add pedals" }).click();

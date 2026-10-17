@@ -10,6 +10,7 @@ import { start } from "../../../src/editor/app.js";
 import { buildPayload } from "../../../src/lib/editor/payload.js";
 import { LIVE_SET } from "../../helpers/fixtures.js";
 
+import { showDockTab } from "../../helpers/editor.js";
 const PAYLOAD = buildPayload();
 const PAGE = window as unknown as { AZERON_SERVED?: boolean; AZERON_AUTOSAVE?: boolean };
 
@@ -317,6 +318,7 @@ describe("an action dragged onto a pedal", () => {
 
   it("puts a toe on the direction that action is: hover down on one, hover up on the other", () => {
     mount();
+    showDockTab("pedals");
     dropOnPedal("Hover down", "left_toe");
     expect(pedal("left_toe").querySelector("select")?.value).toBe("vertical:down");
     dropOnPedal("Hover up", "left_toe");
@@ -326,6 +328,7 @@ describe("an action dragged onto a pedal", () => {
 
   it("puts the rudder on the whole axis that action is an end of, the way round it says", () => {
     mount();
+    showDockTab("pedals");
     dropOnPedal("Roll left", "rudder");
     expect(pedal("rudder").querySelector("select")?.value).toBe("roll");
     expect(
@@ -335,6 +338,7 @@ describe("an action dragged onto a pedal", () => {
 
   it("is not taken when the action is not one end of an axis", () => {
     mount();
+    showDockTab("pedals");
     const before = pedal("left_toe").querySelector("select")?.value;
     expect(dropOnPedal("Headlight", "left_toe").defaultPrevented).toBe(false);
     expect(pedal("left_toe").querySelector("select")?.value).toBe(before);

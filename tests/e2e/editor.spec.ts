@@ -109,6 +109,7 @@ test.describe("the served editor", () => {
   test("applies a stick mode to both sticks at once", async ({ page }) => {
     await page.goto("/");
     await page.locator("header select").nth(1).selectOption(LIVE_SET);
+    await page.locator('[data-dock-tab="pedals"]').click();
 
     // The panel is folded until it is wanted.
     await page.locator("details.panel.fold > summary").click();

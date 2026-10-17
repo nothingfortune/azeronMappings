@@ -19,8 +19,13 @@ import {
   isWritableInput,
 } from "../lib/unitproto.js";
 import type { StoredProfile } from "../lib/unitproto.js";
-import { UnitSession, compareStored } from "../lib/unitsession.js";
-import type { SlotDifference, UnitIdentity, UnitTransport } from "../lib/unitsession.js";
+import { UnitError, UnitSession, compareStored } from "../lib/unitsession.js";
+import type {
+  SessionHooks,
+  SlotDifference,
+  UnitIdentity,
+  UnitTransport,
+} from "../lib/unitsession.js";
 import type { ExportProfile } from "../types/azeron.js";
 
 /** The subset of a WebHID device this uses, so nothing depends on DOM typings for WebHID. */
@@ -44,6 +49,7 @@ export interface InputReportLike {
 
 export interface ConfigHid {
   getDevices(): Promise<ConfigDevice[]>;
+  addEventListener?(type: "disconnect", listener: (event: { device: ConfigDevice }) => void): void;
   requestDevice(options: {
     filters: { vendorId: number; productId: number; usagePage: number }[];
   }): Promise<ConfigDevice[]>;
@@ -122,17 +128,14 @@ export interface FoundUnit {
 }
 
 /** Open one unit, ask who it is and read its slots. Closes it again if any of that fails. */
-export async function openUnit(
-  device: ConfigDevice,
-  log: (line: string) => void,
-): Promise<FoundUnit> {
+export async function openUnit(device: ConfigDevice, hooks: SessionHooks): Promise<FoundUnit> {
   try {
     if (!device.opened) await device.open();
   } catch (error) {
     throw new Error(explain(error, "opening the unit"), { cause: error });
   }
   const transport = new WebHidTransport(device);
-  const session = new UnitSession(transport, log);
+  const session = new UnitSession(transport, hooks);
   try {
     const identity = await session.identify();
     const slots = await session.readAll();
@@ -149,13 +152,13 @@ export async function openUnit(
  */
 export async function findUnits(
   hid: ConfigHid,
-  log: (line: string) => void,
+  hooks: SessionHooks,
 ): Promise<{ units: FoundUnit[]; problems: string[] }> {
   const units: FoundUnit[] = [];
   const problems: string[] = [];
   for (const device of (await hid.getDevices()).filter(isConfigInterface)) {
     try {
-      units.push(await openUnit(device, log));
+      units.push(await openUnit(device, hooks));
     } catch (error) {
       problems.push(error instanceof Error ? error.message : String(error));
     }
@@ -236,6 +239,23 @@ export function upToDate(plan: UnitPlan): boolean {
 export function explain(error: unknown, doing: string): string {
   const name = error instanceof Error ? error.name : "";
   const message = error instanceof Error ? error.message : String(error);
+  if (error instanceof UnitError) {
+    const where = `while ${error.step}`;
+    const partly =
+      error.written > 0
+        ? ` ${String(error.written)} input(s) had gone in, so the slot holds part of the layout: write it again.`
+        : "";
+    switch (error.kind) {
+      case "no-answer":
+        return `The unit stopped answering ${where} (${message}).${partly} Unplug it, plug it back in, and try again.`;
+      case "transport":
+        return `The unit could not be reached ${where} (${message}).${partly} Check it is plugged in, close the Azeron app, and try again.`;
+      case "unsupported":
+        return `${message}. Nothing was written: the page only writes to units it was checked against.`;
+      case "protocol":
+        return `The unit answered in a way the page did not expect ${where}: ${message}.${partly}`;
+    }
+  }
   if (name === "NotFoundError" || /no device selected/i.test(message)) {
     return "No unit was picked in the browser's dialog.";
   }
@@ -252,11 +272,9 @@ export function explain(error: unknown, doing: string): string {
       "Azeron app, or unplug the unit and plug it back in."
     );
   }
-  if (error instanceof ProtocolError && message.includes("did not answer")) {
-    return `The unit stopped answering while ${doing} (${message}). Unplug it, plug it back in, and try again.`;
-  }
-  if (/sendReport|transfer|disconnected|NetworkError/i.test(`${name} ${message}`)) {
-    return `The unit went away while ${doing} (${message}). Plug it back in and try again.`;
+  if (error instanceof ProtocolError) {
+    // Refused before anything was sent: the layout itself cannot go on a unit as it is.
+    return `Nothing was written: ${message}.`;
   }
   return `${message} (while ${doing})`;
 }

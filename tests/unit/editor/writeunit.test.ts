@@ -190,6 +190,23 @@ describe("writing the layout into the units", () => {
     expect(left.opened).toBe(false);
   });
 
+  it("leaves each unit running the slot it was just given", async () => {
+    // Both units are on slot 0 when the write starts.
+    const left = makeUnit("left", { activeSlot: 0 });
+    const right = makeUnit("right", { activeSlot: 0 });
+    plugIn([left, right]);
+    writeToUnits();
+    await vi.waitFor(() => {
+      expect(bar()).toContain("Right unit (29993) →");
+    }, WAIT);
+    barButton("Write").click();
+    await vi.waitFor(() => {
+      expect(bar()).toContain("The left unit is running it now.");
+      expect(bar()).toContain("The right unit is running it now.");
+    }, WAIT);
+    expect(left.unit.received.some((report) => report[2] === Command.SWITCH_PROFILE)).toBe(true);
+  });
+
   it("says a slot that already holds the layout has nothing to write", async () => {
     plugIn([makeUnit("left", {}, compiled("left")), makeUnit("right", {}, compiled("right"))]);
     writeToUnits();
@@ -244,7 +261,10 @@ describe("writing the layout into the units", () => {
     });
     barButton("Write").click();
     await vi.waitFor(() => {
-      expect(bar()).toContain("Left unit: The unit stopped answering while writing the left unit");
+      expect(bar()).toMatch(
+        /Left unit: The unit stopped answering while writing input \d+ \(\d+ of 31\)/,
+      );
+      expect(bar()).toContain("so the slot holds part of the layout: write it again");
     }, WAIT);
     expect(bar()).toContain('Right unit: slot 2 now holds "Everspace 2 akimbo"');
   });

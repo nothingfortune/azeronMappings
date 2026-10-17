@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { start } from "../../../src/editor/app.js";
 import { buildPayload } from "../../../src/lib/editor/payload.js";
 import { LIVE_SET } from "../../helpers/fixtures.js";
-import { showWiring } from "../../helpers/editor.js";
+import { showDockTab, showWiring } from "../../helpers/editor.js";
 
 // Built once: it re-reads every device, genre, game and template, about 150 ms a time,
 // and was rebuilt before every test. A clone costs a few milliseconds and keeps each test
@@ -335,6 +335,7 @@ describe("the setup tab", () => {
 describe("stick modes in the editor", () => {
   beforeEach(() => {
     mount();
+    showDockTab("pedals");
     const sets = document.querySelectorAll("header select")[1] as HTMLSelectElement;
     sets.value = LIVE_SET;
     sets.dispatchEvent(new Event("change"));
@@ -939,6 +940,7 @@ describe("the checks, from anywhere", () => {
     const sets = document.querySelectorAll("header select")[1] as HTMLSelectElement;
     sets.value = LIVE_SET;
     sets.dispatchEvent(new Event("change"));
+    showDockTab("pedals");
     const panel = document.querySelector<HTMLDetailsElement>("details.panel.fold");
     expect(panel?.hasAttribute("open")).toBe(false);
     expect(panel?.querySelector("summary")?.textContent).toContain("Mode 2");

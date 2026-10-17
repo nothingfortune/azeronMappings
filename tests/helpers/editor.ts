@@ -9,3 +9,12 @@ export function showWiring(): void {
   const toggle = document.querySelector<HTMLButtonElement>('[data-wiring="toggle"]');
   if (toggle?.textContent === "Show the wiring") toggle.click();
 }
+
+/**
+ * Open one of the Edit dock's tabs -- the checks, or the sticks and pedals -- the way the
+ * owner does, by clicking it. Only one shows at a time.
+ */
+export function showDockTab(tab: "checks" | "pedals"): void {
+  const button = document.querySelector<HTMLButtonElement>(`[data-dock-tab="${tab}"]`);
+  if (button !== null && !button.classList.contains("active")) button.click();
+}

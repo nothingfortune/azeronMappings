@@ -8,6 +8,7 @@
  */
 
 import type { ExportProfile, InputRecord } from "../types/azeron.js";
+import { messageOf } from "./object.js";
 import {
   CYBORG2_KEYPAD_TYPE,
   Command,
@@ -48,23 +49,104 @@ export interface UnitIdentity {
 const REPLY_TIMEOUT_MS = 1000;
 /** A whole profile stream, three slots of it, took the app under a second. */
 const STREAM_TIMEOUT_MS = 10_000;
+/** How long the line must be quiet before an operation starts. */
+const DRAIN_MS = 30;
+
+/** What kind of thing went wrong, so the page can say what to do about it. */
+export type UnitErrorKind =
+  /** The unit did not answer in time, after the one retry an idempotent step gets. */
+  | "no-answer"
+  /** Sending failed: the unit was unplugged, or something else holds it. */
+  | "transport"
+  /** The unit is not one this protocol was read from. */
+  | "unsupported"
+  /** The unit said something this code cannot make sense of. */
+  | "protocol";
+
+export class UnitError extends Error {
+  constructor(
+    readonly kind: UnitErrorKind,
+    message: string,
+    /** The step it was on: "identifying", "reading the slots", "writing input 7 of 31". */
+    readonly step: string,
+    /** How many inputs of a write had gone in before it stopped. */
+    readonly written = 0,
+    options?: { cause?: unknown },
+  ) {
+    super(message, options);
+    this.name = "UnitError";
+  }
+}
+
+export interface SessionHooks {
+  /** A line of what the session is doing, for a person. */
+  log?: (line: string) => void;
+  /** Every report out and in, for a log kept for when something fails. */
+  trace?: (line: string) => void;
+}
+
+const hex = (bytes: Uint8Array, length: number): string =>
+  Array.from(bytes.subarray(0, length), (byte) => byte.toString(16).padStart(2, "0")).join("");
 
 export class UnitSession {
   private seq = 0;
   /** How many slots the unit holds, once they have been read; a write needs to know. */
   private slotCount: number | null = null;
   private profileLimit: number | null = null;
+  /** One operation at a time: a second one waits for the first rather than interleaving. */
+  private queue: Promise<unknown> = Promise.resolve();
+  private step = "starting";
+  private readonly log: (line: string) => void;
+  private readonly trace: (line: string) => void;
 
   constructor(
     private readonly transport: UnitTransport,
-    private readonly log: (line: string) => void = () => undefined,
-  ) {}
+    hooks: SessionHooks | ((line: string) => void) = {},
+  ) {
+    const given = typeof hooks === "function" ? { log: hooks } : hooks;
+    this.log = given.log ?? (() => undefined);
+    this.trace = given.trace ?? (() => undefined);
+  }
+
+  private exclusive<T>(run: () => Promise<T>): Promise<T> {
+    const next = this.queue.then(run, run);
+    this.queue = next.catch(() => undefined);
+    return next;
+  }
+
+  private fail(kind: UnitErrorKind, message: string, written = 0, cause?: unknown): UnitError {
+    this.log(`failed while ${this.step}: ${message}`);
+    return new UnitError(
+      kind,
+      message,
+      this.step,
+      written,
+      cause === undefined ? undefined : { cause },
+    );
+  }
+
+  /** Reports left over from before -- input, a late answer -- are read and dropped. */
+  private async drain(): Promise<void> {
+    let dropped = 0;
+    while ((await this.transport.receive(DRAIN_MS)) !== null) dropped++;
+    if (dropped > 0) this.trace(`dropped ${String(dropped)} report(s) left over from before`);
+  }
 
   private async send(command: number, payload: Uint8Array): Promise<void> {
     const reports = hostReports(command, this.seq, payload);
     this.seq = (this.seq + reports.length) & 0xff;
     for (const report of reports) {
-      await this.transport.send(report);
+      this.trace(`→ ${commandName(command)} ${hex(report, 7 + Math.min(report[6] ?? 0, 16))}`);
+      try {
+        await this.transport.send(report);
+      } catch (error) {
+        throw this.fail(
+          "transport",
+          `sending ${commandName(command)} failed: ${messageOf(error)}`,
+          0,
+          error,
+        );
+      }
       if (reports.length > 1) await this.reply(command);
     }
   }
@@ -75,70 +157,147 @@ export class UnitSession {
     for (;;) {
       const left = deadline - Date.now();
       const raw = left > 0 ? await this.transport.receive(left) : null;
-      if (raw === null) throw new ProtocolError(`the unit did not answer ${commandName(command)}`);
-      const report = parseDeviceReport(raw);
+      if (raw === null) {
+        this.trace(`… no ${commandName(command)} in ${String(timeoutMs)} ms`);
+        throw new UnitError(
+          "no-answer",
+          `the unit did not answer ${commandName(command)}`,
+          this.step,
+        );
+      }
+      let report: DeviceReport;
+      try {
+        report = parseDeviceReport(raw);
+      } catch (error) {
+        throw this.fail(
+          "protocol",
+          `a report from the unit made no sense: ${messageOf(error)}`,
+          0,
+          error,
+        );
+      }
+      this.trace(
+        `← ${commandName(report.command)} ${hex(raw, 7 + Math.min(report.payload.length, 16))}`,
+      );
       if (report.command === command) return report;
       // Button positions, diagnostics, released-all-buttons and input arrive unasked.
     }
   }
 
+  /**
+   * Sends `command` and waits for its answer. A step that is safe to repeat -- every read,
+   * a rename, an input record -- is tried once more when the answer does not come.
+   */
   private async ask(
     command: number,
     payload: Uint8Array = new Uint8Array(),
+    repeatable = true,
   ): Promise<DeviceReport> {
-    await this.send(command, payload);
-    return this.reply(command);
+    for (let attempt = 1; ; attempt++) {
+      try {
+        await this.send(command, payload);
+        return await this.reply(command);
+      } catch (error) {
+        if (
+          !(error instanceof UnitError) ||
+          error.kind !== "no-answer" ||
+          !repeatable ||
+          attempt > 1
+        ) {
+          throw error instanceof UnitError && error.kind === "no-answer"
+            ? this.fail("no-answer", error.message, 0, error)
+            : error;
+        }
+        this.log(`no answer to ${commandName(command)}; trying once more`);
+        await this.drain();
+      }
+    }
   }
 
   /** Who this unit is. Refuses firmware or hardware this protocol was not read from. */
-  async identify(): Promise<UnitIdentity> {
-    const version = await this.ask(Command.FIRMWARE_VERSION);
-    const firmware = version.payload[0] ?? 0;
-    const keypadType = version.payload[1] ?? 0;
-    if (!(KNOWN_FIRMWARE as readonly number[]).includes(firmware)) {
-      throw new ProtocolError(
-        `firmware ${String(firmware)} is not one this was checked against (${KNOWN_FIRMWARE.join(", ")})`,
+  identify(): Promise<UnitIdentity> {
+    return this.exclusive(async () => {
+      this.step = "asking the unit who it is";
+      await this.drain();
+      const version = await this.ask(Command.FIRMWARE_VERSION);
+      const firmware = version.payload[0] ?? 0;
+      const keypadType = version.payload[1] ?? 0;
+      if (!(KNOWN_FIRMWARE as readonly number[]).includes(firmware)) {
+        throw this.fail(
+          "unsupported",
+          `firmware ${String(firmware)} is not one this was checked against (${KNOWN_FIRMWARE.join(", ")})`,
+        );
+      }
+      if (keypadType !== CYBORG2_KEYPAD_TYPE) {
+        throw this.fail("unsupported", `keypad type ${String(keypadType)} is not a Cyborg II`);
+      }
+      const details = (await this.ask(Command.KEYPAD_DETAILS)).payload;
+      if (details.length < 19)
+        throw this.fail("protocol", "the unit's details were too short to hold its id");
+      const limit = (await this.ask(Command.PROFILE_LIMIT)).payload;
+      const active = (await this.ask(Command.HARDWARE_PROFILE_INDEX)).payload;
+      const identity: UnitIdentity = {
+        firmware,
+        keypadType,
+        deviceId: (details[17] ?? 0) | ((details[18] ?? 0) << 8),
+        profileLimit: limit[0] ?? 0,
+        activeSlot: active[0] ?? 0,
+      };
+      this.profileLimit = identity.profileLimit;
+      this.log(
+        `unit ${String(identity.deviceId)}, firmware ${String(firmware)}, ` +
+          `slot ${String(identity.activeSlot)} active of ${String(identity.profileLimit)}`,
       );
-    }
-    if (keypadType !== CYBORG2_KEYPAD_TYPE) {
-      throw new ProtocolError(`keypad type ${String(keypadType)} is not a Cyborg II`);
-    }
-    const details = (await this.ask(Command.KEYPAD_DETAILS)).payload;
-    const limit = (await this.ask(Command.PROFILE_LIMIT)).payload;
-    const active = (await this.ask(Command.HARDWARE_PROFILE_INDEX)).payload;
-    const identity: UnitIdentity = {
-      firmware,
-      keypadType,
-      deviceId: (details[17] ?? 0) | ((details[18] ?? 0) << 8),
-      profileLimit: limit[0] ?? 0,
-      activeSlot: active[0] ?? 0,
-    };
-    this.profileLimit = identity.profileLimit;
-    this.log(
-      `unit ${String(identity.deviceId)}, firmware ${String(firmware)}, ` +
-        `slot ${String(identity.activeSlot)} active of ${String(identity.profileLimit)}`,
-    );
-    return identity;
+      return identity;
+    });
   }
 
-  private async stream(command: number, payload: Uint8Array): Promise<StoredProfile[]> {
-    await this.send(command, payload);
+  private async streamOnce(): Promise<StoredProfile[]> {
+    await this.send(Command.PROFILE_PAYLOAD_V2, new Uint8Array());
     const stream = new ProfileStream();
     const deadline = Date.now() + STREAM_TIMEOUT_MS;
     while (!stream.done) {
-      const report = await this.reply(Command.PROFILE_PAYLOAD_V2, deadline - Date.now());
-      stream.push(report);
+      const report = await this.reply(
+        Command.PROFILE_PAYLOAD_V2,
+        Math.min(REPLY_TIMEOUT_MS, deadline - Date.now()),
+      );
+      try {
+        stream.push(report);
+      } catch (error) {
+        throw this.fail("protocol", messageOf(error), 0, error);
+      }
       // Every piece is acknowledged before the unit sends the next, as the app does.
       await this.send(Command.PROFILE_INPUT_PIECE, new Uint8Array());
     }
     return stream.result();
   }
 
-  /** Every onboard slot, as stored. */
-  async readAll(): Promise<StoredProfile[]> {
-    const slots = await this.stream(Command.PROFILE_PAYLOAD_V2, new Uint8Array());
-    this.slotCount = slots.length;
-    return slots;
+  /** Every onboard slot, as stored. A stream that stops part way is read again, once. */
+  readAll(): Promise<StoredProfile[]> {
+    return this.exclusive(async () => {
+      this.step = "reading the slots";
+      await this.drain();
+      let slots: StoredProfile[];
+      try {
+        slots = await this.streamOnce();
+      } catch (error) {
+        if (!(error instanceof UnitError) || error.kind !== "no-answer") throw error;
+        this.log("the slots stopped coming part way; reading them again");
+        await this.drain();
+        try {
+          slots = await this.streamOnce();
+        } catch (again) {
+          throw again instanceof UnitError && again.kind === "no-answer"
+            ? this.fail("no-answer", again.message, 0, again)
+            : again;
+        }
+      }
+      this.slotCount = slots.length;
+      this.log(
+        `read ${String(slots.length)} slot(s): ${slots.map((slot) => `${String(slot.slot)} "${slot.name}"`).join(", ")}`,
+      );
+      return slots;
+    });
   }
 
   /**
@@ -147,8 +306,30 @@ export class UnitSession {
    */
   async readSlot(slot: number): Promise<StoredProfile> {
     const found = (await this.readAll()).find((profile) => profile.slot === slot);
-    if (found === undefined) throw new ProtocolError(`the unit has no slot ${String(slot)}`);
+    if (found === undefined)
+      throw new UnitError("protocol", `the unit has no slot ${String(slot)}`, "reading the slots");
     return found;
+  }
+
+  /**
+   * Makes the unit run `slot`, as the app does after writing one, and checks that it does.
+   * SWITCH_PROFILE carries the slot; the unit answers with it.
+   */
+  switchTo(slot: number): Promise<number> {
+    return this.exclusive(async () => {
+      this.step = `switching to slot ${String(slot)}`;
+      await this.drain();
+      await this.ask(Command.SWITCH_PROFILE, Uint8Array.of(slot));
+      const active = (await this.ask(Command.HARDWARE_PROFILE_INDEX)).payload[0] ?? -1;
+      if (active !== slot) {
+        throw this.fail(
+          "protocol",
+          `asked to run slot ${String(slot)}, and it is running ${String(active)}`,
+        );
+      }
+      this.log(`running slot ${String(slot)}`);
+      return active;
+    });
   }
 
   /**
@@ -165,36 +346,81 @@ export class UnitSession {
     const records = inputs.map((input) => ({ input, bytes: encodeInputRecord(slot, input) }));
     const namePayload = profileNamePayload(slot, name);
 
-    if (this.slotCount === null || this.profileLimit === null) {
-      throw new ProtocolError("read the unit's slots before writing one");
-    }
-    if (slot > this.slotCount || slot >= this.profileLimit) {
-      throw new ProtocolError(
-        `slot ${String(slot)} is past the end: the unit has ${String(this.slotCount)} of ` +
-          `${String(this.profileLimit)}, and a new one goes at ${String(this.slotCount)}`,
-      );
-    }
-    // CHECK_PROFILE is how the app adds a slot: the unit answers it for the next free one
-    // and ignores it for one that exists (seen 2026-10-15). An existing slot is renamed and
-    // written over without it.
-    if (slot === this.slotCount) {
-      await this.ask(Command.CHECK_PROFILE, Uint8Array.of(slot));
-      this.slotCount++;
-    }
-    await this.ask(Command.PROFILE_NAME, namePayload);
-    let written = 0;
-    for (const record of records) {
-      await this.send(Command.OBM_COPY, record.bytes);
-      written++;
-      this.log(
-        `input ${String(record.input.id)} written (${String(written)}/${String(records.length)})`,
-      );
-    }
+    const written = await this.exclusive(async () => {
+      if (this.slotCount === null || this.profileLimit === null) {
+        throw new ProtocolError("read the unit's slots before writing one");
+      }
+      if (slot > this.slotCount || slot >= this.profileLimit) {
+        throw new ProtocolError(
+          `slot ${String(slot)} is past the end: the unit has ${String(this.slotCount)} of ` +
+            `${String(this.profileLimit)}, and a new one goes at ${String(this.slotCount)}`,
+        );
+      }
+      this.log(`writing "${name}" into slot ${String(slot)}: ${String(records.length)} inputs`);
+      await this.drain();
+      // CHECK_PROFILE is how the app adds a slot: the unit answers it for the next free one
+      // and ignores it for one that exists (seen 2026-10-15). An existing slot is renamed
+      // and written over without it. It is not repeated: a lost answer may mean it worked.
+      if (slot === this.slotCount) {
+        this.step = `adding slot ${String(slot)}`;
+        try {
+          await this.ask(Command.CHECK_PROFILE, Uint8Array.of(slot), false);
+        } catch (error) {
+          if (!(error instanceof UnitError) || error.kind !== "no-answer") throw error;
+          throw this.fail(
+            "no-answer",
+            `the unit did not add slot ${String(slot)}; nothing else was sent`,
+            0,
+            error,
+          );
+        }
+        this.slotCount++;
+      }
+      this.step = `naming slot ${String(slot)}`;
+      await this.ask(Command.PROFILE_NAME, namePayload);
+      let count = 0;
+      for (const record of records) {
+        this.step = `writing input ${String(record.input.id)} (${String(count + 1)} of ${String(records.length)})`;
+        try {
+          await this.sendRecord(record.bytes);
+        } catch (error) {
+          if (error instanceof UnitError) {
+            throw new UnitError(error.kind, error.message, this.step, count, { cause: error });
+          }
+          throw error;
+        }
+        count++;
+        this.log(
+          `input ${String(record.input.id)} written (${String(count)}/${String(records.length)})`,
+        );
+      }
+      return count;
+    });
     const stored = await this.readSlot(slot);
     const differences = compareStored(inputs, stored);
     const problems = differences.map(describeDifference);
     if (stored.name !== name) problems.push(`the slot is named "${stored.name}", not "${name}"`);
+    this.log(`slot ${String(slot)} read back: ${String(problems.length)} difference(s)`);
     return { slot, written, stored, problems, differences };
+  }
+
+  /** One input record, every part acknowledged. Sent again, whole, if an answer is lost. */
+  private async sendRecord(bytes: Uint8Array): Promise<void> {
+    try {
+      // `send` waits for the unit's answer to each part of a record that takes several.
+      await this.send(Command.OBM_COPY, bytes);
+    } catch (error) {
+      if (!(error instanceof UnitError) || error.kind !== "no-answer") throw error;
+      this.log("no answer to an input record; sending it once more");
+      await this.drain();
+      try {
+        await this.send(Command.OBM_COPY, bytes);
+      } catch (again) {
+        throw again instanceof UnitError && again.kind === "no-answer"
+          ? this.fail("no-answer", again.message, 0, again)
+          : again;
+      }
+    }
   }
 }
 

@@ -26,3 +26,4 @@ playwright-report/
 # USB captures hold the keys that were pressed while they ran. See docs/guides/hid-capture.md.
 *.pcap
 *.pcapng
+logs/

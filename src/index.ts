@@ -21,7 +21,7 @@ import {
   listDeviceIds,
   listStoredProfiles,
 } from "./lib/install.js";
-import { loadBytes, loadDevice, loadTemplate, writeText } from "./lib/io.js";
+import { appendLog, loadBytes, loadDevice, loadTemplate, writeText } from "./lib/io.js";
 import {
   diffCaptures,
   extractEvents,
@@ -566,9 +566,20 @@ function cmdServe(port: number, host: string): number {
       // owner's screen can be read afterwards.
       readBody(request, response, 10_000, (body) => {
         try {
-          const { line } = JSON.parse(body) as { line?: unknown };
+          const { line, trace } = JSON.parse(body) as { line?: unknown; trace?: unknown };
           if (typeof line !== "string") throw new Error("needs a line");
-          out(`[units] ${line.slice(0, 2_000)}`);
+          const stamp = new Date().toISOString();
+          const text = line.slice(0, 2_000);
+          out(`[units] ${text}`);
+          // Kept in a file too, so a failure can be read after the server is gone; with the
+          // reports that led up to it when the page sends them.
+          const steps = Array.isArray(trace)
+            ? trace.filter((entry) => typeof entry === "string")
+            : [];
+          appendLog(
+            "units.log",
+            `${stamp} ${text}\n` + steps.map((entry) => `    ${entry.slice(0, 300)}\n`).join(""),
+          );
           send(200, JSON.stringify({ ok: true }));
         } catch (error) {
           send(400, JSON.stringify({ ok: false, error: messageOf(error) }));

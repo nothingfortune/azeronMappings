@@ -227,6 +227,10 @@ board. The action list is CSS columns of one-line chips: no scroll region of its
 Nothing renders below 9px. Light and dark are `theme.ts`: it flips from what is on screen,
 keeps the choice, and the tokens are defined once in `styles.ts` for both ways in.
 `.workspace.board` scopes the board's layout and `.probe` the press test's; keep it so.
+The dock's third column is two tabs, **Checks** (with its count on the tab) and **Sticks &
+pedals** (together, because a pedal edit changes how the sticks read), so the Edit screen
+is not one long scroll; the lint chip opens the Checks tab. Tests open a tab with
+`showDockTab` from `tests/helpers/editor.ts`, as the owner would.
 
 - `lint.ts` and `model-core.ts` are free of node imports on purpose: **the browser editor
   imports the same compiler, linter and YAML writer the CLI uses.** There is one
@@ -525,7 +529,7 @@ the reports, `src/lib/unitsession.ts` runs the exchanges, and the header's **Wri
 It finds the units the page has been given, and knows which is which by the id each one
 reports; each hand goes into the slot that already has the layout's name.
 
-- `hostReports` sends only the nine commands the app was seen to send, in the shapes it sent
+- `hostReports` sends only the ten commands the app was seen to send, in the shapes it sent
   them. Reset, DFU, the device id and the details save cannot be built. Do not add a command
   to `SENDABLE_COMMANDS` without a capture of the app sending it.
 - A unit says who it is (`KEYPAD_DETAILS` carries the id in `software_device_id`), and
@@ -539,6 +543,20 @@ reports; each hand goes into the slot that already has the layout's name.
 - `tests/unit/lib/unitproto.test.ts` is the contract: the app's own reports, byte for byte.
 - The Azeron app must be closed during a write: it talks on the same channel. The pedals are
   still never asked anything.
+- After a write that reads back clean, the unit is switched to the slot (`SWITCH_PROFILE`, as
+  the app does) and asked which it runs, so the owner never has to press the profile button.
+- Failures are `UnitError`s with a `kind` (`no-answer`, `transport`, `unsupported`,
+  `protocol`), the `step` it was on and how many inputs had gone in; `explain` in
+  `unit-write.ts` turns each into what to do. A step safe to repeat -- a read, a rename, an
+  input record -- is tried once more when its answer is lost; adding a slot never is. Every
+  report out and in goes to the run's trace, and a failure sends the last of it to
+  `/api/unit-log`, which writes `logs/units.log` (not committed). Read that file first when
+  the owner says a write did not work.
+
+**Test keys** in the header is the live version: while it is on, every key and mouse
+button a unit sends lights the control that sends it (`src/lib/keytester.ts` matches it,
+exactly and then by key alone), and a strip lists the last few. Its capture listeners
+swallow what they read, like the check run's, so a unit's key is never an editor shortcut.
 
 What a unit is running can also be asked of the unit itself: **Check this unit**
 (`src/lib/checkunit.ts`, the run in `app.ts`) asks for each control in board order and reads the keystroke or mouse button that

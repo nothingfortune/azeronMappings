@@ -122,6 +122,8 @@ export const SENDABLE_COMMANDS: ReadonlySet<number> = new Set([
   Command.CHECK_PROFILE,
   Command.PROFILE_NAME,
   Command.OBM_COPY,
+  // Seen 2026-10-14 when a slot was picked in the app: [slot]; the unit answers with it.
+  Command.SWITCH_PROFILE,
 ]);
 
 export class ProtocolError extends Error {}

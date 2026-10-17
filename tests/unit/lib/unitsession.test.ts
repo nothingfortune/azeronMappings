@@ -8,8 +8,9 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import { repoPath } from "../../../src/config/paths.js";
-import { Command, ProtocolError, isWritableInput } from "../../../src/lib/unitproto.js";
-import { UnitSession } from "../../../src/lib/unitsession.js";
+import { Command, isWritableInput } from "../../../src/lib/unitproto.js";
+import { UnitError, UnitSession } from "../../../src/lib/unitsession.js";
+import { hostReports } from "../../../src/lib/unitproto.js";
 import type { ExportDocument, ExportProfile } from "../../../src/types/azeron.js";
 import { FakeUnit } from "../../helpers/fakeunit.js";
 
@@ -64,7 +65,7 @@ describe("identifying a unit", () => {
 
   it("says so when the unit stops answering", async () => {
     await expect(new UnitSession(unit("left", { goSilentAfter: 1 })).identify()).rejects.toThrow(
-      ProtocolError,
+      UnitError,
     );
   });
 });
@@ -185,5 +186,92 @@ describe("reading the slots", () => {
       [1, "Joystick"],
       [2, "Everspace 2 akimbo"],
     ]);
+  });
+});
+
+describe("when things go wrong", () => {
+  const plan = (slot: number) => ({
+    slot,
+    name: "ES2 akimbo",
+    profile: compiled("left"),
+    unknownPins: UNKNOWN_PINS,
+  });
+
+  it("asks again, once, when the answer to a read goes missing", async () => {
+    const lines: string[] = [];
+    const identity = await new UnitSession(unit("left", { loseOnce: [Command.FIRMWARE_VERSION] }), {
+      log: (line) => lines.push(line),
+    }).identify();
+    expect(identity.deviceId).toBe(49229);
+    expect(lines).toContain("no answer to FIRMWARE_VERSION; trying once more");
+  });
+
+  it("sends an input record again when its answer goes missing, and the slot still reads back right", async () => {
+    const fake = unit("left", { loseOnce: [Command.OBM_COPY] });
+    const report = await (await ready(fake)).writeProfile(plan(2));
+    expect(report.problems).toEqual([]);
+  });
+
+  it("never asks twice to add a slot: a lost answer may mean it was added", async () => {
+    const fake = unit("left", { loseOnce: [Command.CHECK_PROFILE] });
+    const session = await ready(fake);
+    const failure = await session.writeProfile(plan(3)).catch((error: unknown) => error);
+    expect(failure).toBeInstanceOf(UnitError);
+    expect((failure as UnitError).kind).toBe("no-answer");
+    expect((failure as UnitError).message).toMatch(/did not add slot 3; nothing else was sent/);
+    expect(fake.received.filter((report) => report[2] === Command.CHECK_PROFILE)).toHaveLength(1);
+    expect(fake.received.some((report) => report[2] === Command.PROFILE_NAME)).toBe(false);
+  });
+
+  it("says which step it was on and how much went in when the unit goes quiet mid-write", async () => {
+    const fake = unit("left");
+    const session = await ready(fake);
+    // Quiet after the rename and ten reports of records.
+    (fake as unknown as { options: { goSilentAfter: number } }).options.goSilentAfter = 12;
+    const failure = (await session
+      .writeProfile(plan(2))
+      .catch((error: unknown) => error)) as UnitError;
+    expect(failure).toBeInstanceOf(UnitError);
+    expect(failure.kind).toBe("no-answer");
+    expect(failure.step).toMatch(/^writing input \d+ \(\d+ of 31\)$/);
+    expect(failure.written).toBeGreaterThan(0);
+    expect(failure.written).toBeLessThan(31);
+  });
+
+  it("says the unit went away when sending fails", async () => {
+    const fake = unit("left");
+    const session = await ready(fake);
+    fake.send = () => Promise.reject(new Error("The device was disconnected."));
+    const failure = (await session.readAll().catch((error: unknown) => error)) as UnitError;
+    expect(failure.kind).toBe("transport");
+    expect(failure.message).toMatch(/disconnected/);
+  });
+
+  it("does one thing at a time, even when asked for two at once", async () => {
+    const fake = unit("left");
+    const session = await ready(fake);
+    const [first, second] = await Promise.all([session.readAll(), session.readAll()]);
+    expect(first.map((slot) => slot.name)).toEqual(second.map((slot) => slot.name));
+  });
+
+  it("keeps a trace of every report, out and in", async () => {
+    const trace: string[] = [];
+    await new UnitSession(unit(), { trace: (line) => trace.push(line) }).identify();
+    expect(trace[0]).toMatch(/^→ FIRMWARE_VERSION 000005/);
+    expect(trace.some((line) => line.startsWith("← FIRMWARE_VERSION"))).toBe(true);
+  });
+});
+
+describe("switching the slot the unit runs", () => {
+  it("sends SWITCH_PROFILE as the app did, and checks the unit took it", async () => {
+    // The app picking slot 3 on 2026-10-14: 00 01 1a 8f 01 01 01 03, zero padded.
+    const app = new Uint8Array(64);
+    app.set([0x00, 0x01, 0x1a, 0x8f, 0x01, 0x01, 0x01, 0x03]);
+    expect(hostReports(Command.SWITCH_PROFILE, 0x8f, Uint8Array.of(3))[0]).toEqual(app);
+
+    const fake = unit();
+    const session = await ready(fake);
+    expect(await session.switchTo(0)).toBe(0);
+    expect((await session.identify()).activeSlot).toBe(0);
   });
 });
