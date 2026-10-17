@@ -79,6 +79,8 @@ import {
 import type { ConfigHid, FoundUnit, UnitPlan, WriteTarget } from "./unit-write.js";
 import type { StoredProfile } from "../lib/unitproto.js";
 import type { SlotDifference, WriteReport } from "../lib/unitsession.js";
+import { layoutFingerprint } from "../lib/written.js";
+import type { DirectWrite } from "../lib/written.js";
 import { CSS } from "./styles.js";
 import { applyStoredTheme, currentTheme, toggleTheme } from "./theme.js";
 
@@ -2530,7 +2532,22 @@ function unitsReportBox(report: UnitsReport): HTMLElement {
   const box = el("div", { class: "save-report imports units-report" });
   const behind = unitsBehind(report);
   if (behind.length === 0) {
-    box.append(el("div", {}, ["The Azeron app has this layout on both units as it is now."]));
+    const direct = report.units.filter((unit) => unit.status === "written");
+    box.append(
+      el("div", {}, [
+        direct.length === 0
+          ? "The Azeron app has this layout on both units as it is now."
+          : "The units have this layout as it is now: " +
+            report.units
+              .map((unit) =>
+                unit.status === "written" && unit.written !== undefined
+                  ? `the ${unit.unit} unit written to it directly on ${unit.written.at.slice(0, 10)}`
+                  : `the ${unit.unit} unit from the Azeron app`,
+              )
+              .join(", ") +
+            ".",
+      ]),
+    );
     return box;
   }
   box.append(
@@ -2939,7 +2956,7 @@ function renderCheckBar(run: CheckRun): HTMLElement {
         "Those are the press-test profile's keys: the unit is on one of its press-test " +
         "slots. Press its profile button until it is on this layout, or pick the layout in " +
         "the Azeron app.";
-    } else if (app !== undefined && app.status !== "matches") {
+    } else if (app !== undefined && app.status !== "matches" && app.status !== "written") {
       advice = `The Azeron app has an older copy too. Import ${app.importPath} there and write it to the unit.`;
     } else if (result.differing.length * 2 > result.checked) {
       advice =
@@ -3531,6 +3548,7 @@ function writeAll(run: WriteRun): void {
         } else {
           logFailure(run, `${unit}: ${report.problems.slice(0, 10).join("; ")}`);
         }
+        if (report.problems.length === 0) await recordDirectWrite(plan, slot);
         run.results.push({ plan, report, error: null, running });
       } catch (error) {
         const message = explain(error, `writing the ${unit}`);
@@ -3540,8 +3558,40 @@ function writeAll(run: WriteRun): void {
     }
     run.stage = "done";
     await closeUnits(run.units);
+    // What the units hold has changed, so the header's Re-import is asked again.
+    askUnits();
     if (writeRun === run) render();
   })();
+}
+
+/**
+ * Tell the server a unit now holds this layout, so the units report counts it current
+ * without the Azeron app's copy. Only for a write that read back as written.
+ */
+async function recordDirectWrite(plan: UnitPlan, slot: number): Promise<void> {
+  const deviceId = plan.target.softwareDeviceId;
+  const fingerprint = layoutFingerprint(plan.target.profile, plan.target.unknownPins);
+  if (!canSave() || deviceId === undefined || fingerprint === null) return;
+  const write: DirectWrite = {
+    deviceId,
+    slot,
+    set: state.setName,
+    unit: plan.target.unit,
+    name: plan.target.name,
+    fingerprint,
+    at: new Date().toISOString(),
+  };
+  try {
+    const response = await fetch("/api/units/written", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(write),
+    });
+    const body = (await response.json()) as { ok?: boolean; error?: string };
+    if (body.ok !== true) unitLog(`could not record the write: ${body.error ?? "no reason given"}`);
+  } catch (error) {
+    unitLog(`could not record the write: ${messageOf(error)}`);
+  }
 }
 
 function endWrite(redraw = true): void {

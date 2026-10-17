@@ -25,7 +25,8 @@ import {
 } from "./ingame.js";
 import type { Comparison, IngameChange, PedalChange, PedalPlan, PedalWaiting } from "./ingame.js";
 import { applyBinds, compareBinds, describeControl, EliteError, parseBinds } from "./elite.js";
-import { loadDevice, loadProfileData, loadTemplate, writeText } from "./io.js";
+import { loadDevice, loadDirectWrites, loadProfileData, loadTemplate, writeText } from "./io.js";
+import { currentWrite, layoutFingerprint } from "./written.js";
 import type { LoadedPedals } from "./io.js";
 import { capturePedals, ingamePlan, planAxes, recordCandidateNames } from "./pedals.js";
 import type { CaptureOptions, CaptureResult, PlannedAxis } from "./pedals.js";
@@ -985,11 +986,13 @@ function applyElite(
 }
 
 /**
- * Whether the Azeron app holds each layout's profiles as they are compiled now. Only reads:
- * the app's directory is the app's. `setName` narrows to one layout.
+ * Whether each layout's profiles are on the units as they are compiled now: written there
+ * directly by the editor (`logs/units-written.json`), or else held by the Azeron app. Only
+ * reads: the app's directory is the app's. `setName` narrows to one layout.
  */
 export function unitsReport(game: Game, setName?: string, store?: string): UnitsReport {
   const found = findStore(store);
+  const writes = loadDirectWrites();
   const units: UnitCheck[] = [];
   for (const profile of game.loadedProfiles()) {
     const set = profile.set ?? "";
@@ -1017,6 +1020,21 @@ export function unitsReport(game: Game, setName?: string, store?: string): Units
       continue;
     }
     const name = compiled.name;
+    // Written straight to the unit as it is now: current, whatever the app's copy says.
+    const direct = currentWrite(
+      writes,
+      profile.device.softwareDeviceId,
+      layoutFingerprint(compiled, [...profile.device.unknownPins]),
+    );
+    if (direct !== null) {
+      units.push({
+        ...base,
+        name,
+        status: "written",
+        written: { slot: direct.slot, at: direct.at },
+      });
+      continue;
+    }
     const copies = found === null ? [] : findStoredProfiles(found, name);
     const newest = copies[0];
     if (newest === undefined) {

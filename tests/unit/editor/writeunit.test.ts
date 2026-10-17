@@ -422,3 +422,81 @@ describe("a write that is changed or stopped part way", () => {
     expect(document.querySelector(".write-bar")).toBeNull();
   });
 });
+
+describe("what the page says is on the units, after a direct write", () => {
+  const SERVED = window as unknown as { AZERON_SERVED?: boolean };
+  let recorded: Record<string, unknown>[] = [];
+
+  /** The server: no Azeron app running, its store holding neither unit's copy, until written. */
+  function serve(): void {
+    SERVED.AZERON_SERVED = true;
+    recorded = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((path: string, init?: { body?: string }) => {
+        let body: unknown = { ok: true };
+        if (path === "/api/azeron-app") body = { ok: true, running: false };
+        if (path === "/api/units/written") {
+          recorded.push(JSON.parse(init?.body ?? "{}") as Record<string, unknown>);
+        }
+        if (path.startsWith("/api/units?")) {
+          const units = (["left", "right"] as const).map((unit) => {
+            const done = recorded.find((entry) => entry.unit === unit);
+            return {
+              set: LIVE_SET,
+              unit,
+              name: `Everspace 2 akimbo v10 (${unit})`,
+              file: `dist/SpaceSims/everspace/everspace_akimbo_v10_${unit}.json`,
+              importPath: `C:\\repo\\dist\\everspace_akimbo_v10_${unit}.json`,
+              status: done === undefined ? "missing" : "written",
+              ...(done === undefined ? {} : { written: { slot: done.slot, at: done.at } }),
+              copies: 0,
+              differences: [],
+            };
+          });
+          body = { ok: true, report: { store: "C:\\store", units } };
+        }
+        return Promise.resolve({ status: 200, json: () => Promise.resolve(body) });
+      }),
+    );
+    document.body.innerHTML = '<div id="app"></div>';
+    start({ ...structuredClone(PAYLOAD), appStore: true });
+    const select = document.querySelectorAll<HTMLSelectElement>("header select")[1];
+    if (select && select.value !== LIVE_SET) {
+      select.value = LIVE_SET;
+      select.dispatchEvent(new Event("change"));
+    }
+  }
+
+  afterEach(() => {
+    SERVED.AZERON_SERVED = false;
+    vi.unstubAllGlobals();
+  });
+
+  it("records each clean write, and stops asking for a re-import", async () => {
+    serve();
+    await vi.waitFor(() => {
+      expect(document.querySelector('header [data-todo="import"]')?.textContent).toBe(
+        "Re-import 2",
+      );
+    }, WAIT);
+    plugIn([makeUnit("left"), makeUnit("right")]);
+    await writeToUnits();
+    await vi.waitFor(() => {
+      expect(bar()).toContain("Right unit (29993) →");
+    }, WAIT);
+    barButton("Write").click();
+    await vi.waitFor(() => {
+      expect(bar()).toContain("read back as written");
+      expect(recorded).toHaveLength(2);
+    }, WAIT);
+    expect(recorded.map((entry) => [entry.deviceId, entry.slot, entry.unit])).toEqual([
+      ["49229", 2, "left"],
+      ["29993", 2, "right"],
+    ]);
+    for (const entry of recorded) expect(entry.fingerprint).toMatch(/^[0-9a-f]{16}$/);
+    await vi.waitFor(() => {
+      expect(document.querySelector('header [data-todo="import"]')).toBeNull();
+    }, WAIT);
+  });
+});

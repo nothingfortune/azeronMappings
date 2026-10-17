@@ -519,6 +519,16 @@ when the window regains focus, and only when the payload says the store is on th
 computer (`appStore`). Tests set `AZERON_STORE` to a folder that is not there, so none of
 them reads the owner's store; one that wants a store makes its own.
 
+**A direct write counts too.** Write to units does not touch the app's store, so after one
+the app's copy would go on saying "re-import". A write that reads back clean is recorded
+(`POST /api/units/written`, into `logs/units-written.json`: per unit and slot, the layout,
+the name and when) with a fingerprint of exactly what went onto the unit --
+`layoutFingerprint` in `src/lib/written.ts`, the encoded records of the writable inputs
+with the slot byte zeroed, so a label or a slot changes nothing. `unitsReport` calls a unit
+`written` when its newest recorded write has the fingerprint of the layout as compiled now,
+before it looks at the app's store; a layout edited since falls back to the store as
+before.
+
 **What a unit runs is not on disk.** Each unit holds onboard profiles (OBM, up to six) and
 runs the one its profile button picked. The app reads and writes them over a private HID
 protocol, shipped as compiled V8 bytecode (`out/main` in its `app.asar`). On 2026-10-14 the

@@ -169,11 +169,15 @@ export interface UnitCheck {
   /** The same file as the Azeron app's import dialog would take it. */
   importPath: string;
   /**
-   * `matches`: the app's newest copy sends what the file does from every control.
-   * `differs`: it does not, and `differences` says where. `missing`: the app has no
-   * profile by that name. `unbuilt`: there is no compiled file to compare.
+   * `written`: the editor wrote the layout as it is now straight into the unit, and it read
+   * back as written; the app's copy is not consulted. `matches`: the app's newest copy sends
+   * what the file does from every control. `differs`: it does not, and `differences` says
+   * where. `missing`: the app has no profile by that name. `unbuilt`: there is no compiled
+   * file to compare.
    */
-  status: "matches" | "differs" | "missing" | "unbuilt";
+  status: "written" | "matches" | "differs" | "missing" | "unbuilt";
+  /** For `written`: the slot it went into and when. */
+  written?: { slot: number; at: string };
   /** The app's copy that was compared, and when the app last wrote it. */
   appFile?: string;
   appModified?: string;

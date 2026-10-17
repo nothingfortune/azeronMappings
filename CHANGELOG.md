@@ -30,6 +30,13 @@ Every profile change, and why. `playtests.md` records what each layout felt like
   settings, now decoded as far as the evidence goes -- the DPI steps the slot holds when
   they are not the layout's. The slot's current step and sensor state are not decoded: every
   slot seen holds the same values in bytes that cannot be told apart.
+- **A layout written straight to the units counts as on the units.** After Write to units,
+  the header's Re-import and `azeron units` went on asking for an import the units no
+  longer needed, because they judged by the Azeron app's copy. A write that reads back
+  clean is now recorded with a fingerprint of what went onto the unit
+  (`logs/units-written.json`), and a unit whose last such write is the layout as it is now
+  is reported as written directly, on that date, into that slot.
+
 - **Test keys**, in the header: press anything on a unit and the control that sends it
   lights up on the board while it is held, with a strip of what arrived and which action it
   is. Free-form, unlike Check this unit; the page's own shortcuts are off while it runs.

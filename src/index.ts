@@ -22,7 +22,15 @@ import {
   listDeviceIds,
   listStoredProfiles,
 } from "./lib/install.js";
-import { appendLog, loadBytes, loadDevice, loadTemplate, writeText } from "./lib/io.js";
+import {
+  appendLog,
+  loadBytes,
+  loadDevice,
+  loadTemplate,
+  saveDirectWrite,
+  writeText,
+} from "./lib/io.js";
+import { parseDirectWrite } from "./lib/written.js";
 import {
   diffCaptures,
   extractEvents,
@@ -588,6 +596,24 @@ function cmdServe(port: number, host: string): number {
       });
       return;
     }
+    if (request.method === "POST" && url === "/api/units/written") {
+      // A write the page made straight to a unit and read back clean, so the units report
+      // stops asking for an import the unit no longer needs.
+      readBody(request, response, 10_000, (body) => {
+        try {
+          const write = parseDirectWrite(JSON.parse(body));
+          saveDirectWrite(write);
+          appendLog(
+            "units.log",
+            `${new Date().toISOString()} recorded: unit ${write.deviceId} slot ${String(write.slot)} holds ${write.set} ${write.unit} (${write.fingerprint})\n`,
+          );
+          send(200, JSON.stringify({ ok: true }));
+        } catch (error) {
+          send(400, JSON.stringify({ ok: false, error: messageOf(error) }));
+        }
+      });
+      return;
+    }
     if (request.method === "GET" && url.startsWith("/api/units")) {
       const query = new URL(url, "http://localhost").searchParams;
       const slug = query.get("game");
@@ -789,6 +815,12 @@ function unitsLines(report: UnitsReport): string[] {
   }
   for (const unit of report.units) {
     const head = `${unit.set} ${unit.unit}: `;
+    if (unit.status === "written" && unit.written !== undefined) {
+      lines.push(
+        `${head}written to the unit directly on ${unit.written.at.slice(0, 10)}, into slot ` +
+          `${String(unit.written.slot)}, as it is now`,
+      );
+    }
     if (unit.status === "matches") lines.push(`${head}the app has it as it is now`);
     if (unit.status === "unbuilt") lines.push(`${head}${unit.file} has not been built`);
     if (unit.status === "missing") {
@@ -817,7 +849,7 @@ function cmdUnits(selector: string | undefined, set: string | undefined, store?:
     if (report.units.length === 0) continue;
     out(`${game.name}${report.store === null ? "" : `  (app profiles: ${report.store})`}`);
     for (const line of unitsLines(report)) out(`  ${line}`);
-    behind ||= report.units.some((unit) => unit.status !== "matches");
+    behind ||= report.units.some((unit) => unit.status !== "matches" && unit.status !== "written");
   }
   return behind ? 1 : 0;
 }

@@ -18,6 +18,8 @@ import type { DeviceData, ProfileData } from "../types/profile.js";
 import type { GameLike } from "./model-core.js";
 import { ActionSet, Device, Profile } from "./model-core.js";
 import { normalizeProfileData } from "./normalize.js";
+import { parseDirectWrites, recordWrite } from "./written.js";
+import type { DirectWrite, DirectWrites } from "./written.js";
 import { parsePedalsDevice, parseSets } from "./pedals.js";
 import { StickModeError, validateStickModes } from "./stickmodes.js";
 import type { StickModeSet } from "./stickmodes.js";
@@ -101,10 +103,7 @@ export function loadBytes(path: string): Uint8Array {
  * `.1`, replacing the one before. The logs are the owner's, not the repo's, and not committed.
  */
 export function appendLog(name: string, text: string): void {
-  // AZERON_LOGS names another folder, so a test server writes into its own.
-  const folder = process.env.AZERON_LOGS;
-  const full =
-    folder !== undefined && folder !== "" ? join(folder, name) : repoPath(posixJoin("logs", name));
+  const full = logPath(name);
   mkdirSync(dirname(full), { recursive: true });
   try {
     if (statSync(full).size > 1_000_000) renameSync(full, `${full}.1`);
@@ -112,4 +111,32 @@ export function appendLog(name: string, text: string): void {
     // No log yet.
   }
   appendFileSync(full, text, "utf8");
+}
+
+/** A file under `logs/`, or under `AZERON_LOGS`, so a test writes into its own folder. */
+export function logPath(name: string): string {
+  const folder = process.env.AZERON_LOGS;
+  return folder !== undefined && folder !== ""
+    ? join(folder, name)
+    : repoPath(posixJoin("logs", name));
+}
+
+const WRITTEN = "units-written.json";
+
+/** What the editor has written straight to the units; empty when it never has. */
+export function loadDirectWrites(): DirectWrites {
+  try {
+    return parseDirectWrites(JSON.parse(readFileSync(logPath(WRITTEN), "utf8")));
+  } catch {
+    return { writes: [] };
+  }
+}
+
+/** Keep a write that read back clean, replacing whatever was last written into that slot. */
+export function saveDirectWrite(write: DirectWrite): DirectWrites {
+  const record = recordWrite(loadDirectWrites(), write);
+  const full = logPath(WRITTEN);
+  mkdirSync(dirname(full), { recursive: true });
+  writeFileSync(full, `${JSON.stringify(record, null, 2)}\n`, "utf8");
+  return record;
 }

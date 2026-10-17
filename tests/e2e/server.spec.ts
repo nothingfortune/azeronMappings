@@ -84,6 +84,30 @@ test.describe("the server's request checks", () => {
     expect(refused.status).toBe(415);
   });
 
+  test("keeps a direct write to a unit only when it is one, and only as JSON", async () => {
+    const write = {
+      deviceId: "49229",
+      slot: 2,
+      set: "akimbo-v10",
+      unit: "left",
+      name: "Everspace 2 akimbo",
+      fingerprint: "0123456789abcdef",
+      at: "2026-10-17T10:00:00.000Z",
+    };
+    expect(
+      (await send("POST", "/api/units/written", JSON_HEADERS, JSON.stringify(write))).status,
+    ).toBe(200);
+    const bad = await send(
+      "POST",
+      "/api/units/written",
+      JSON_HEADERS,
+      JSON.stringify({ ...write, slot: 99 }),
+    );
+    expect(bad.status).toBe(400);
+    const plain = await send("POST", "/api/units/written", { "content-type": "text/plain" }, "{}");
+    expect(plain.status).toBe(415);
+  });
+
   test("refuses a Host that is not loopback", async () => {
     const refused = await send("GET", "/api/payload", { host: `rebind.example:${String(PORT)}` });
     expect(refused.status).toBe(403);
