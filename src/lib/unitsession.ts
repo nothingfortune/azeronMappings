@@ -351,6 +351,8 @@ export class UnitSession {
           `asked to run slot ${String(slot)}, and it is running ${String(active)}`,
         );
       }
+      // What deleteSlot refuses follows the unit: the slot it runs now, not the one it ran.
+      this.activeSlot = active;
       this.log(`running slot ${String(slot)}`);
       return active;
     });

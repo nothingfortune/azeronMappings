@@ -316,6 +316,10 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Fixed
 
+- **Deleting a slot after the unit was switched.** A session went on taking the slot the
+  unit ran when it was first asked for the running one, so after a write switched the unit
+  it refused to delete the slot left behind and would have deleted the one now running.
+  Switching now updates it. Found while clearing the left unit's probe slots.
 - **The stick's hold key is encoded as the app encodes it.** The app writes the export's
   `"16"` as `0xE002` (left Shift) and `"17"` as `0x0011`; the page wrote `0x0010`, so a
   slot the app had written read back as different and one the page wrote held another key.

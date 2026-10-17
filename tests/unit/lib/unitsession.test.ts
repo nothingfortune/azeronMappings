@@ -386,6 +386,15 @@ describe("deleting a slot, and the gap it leaves", () => {
     await expect(session.deleteSlot(5)).rejects.toThrow(/no slot 5/);
   });
 
+  it("knows the unit is running another slot once it has been switched", async () => {
+    // It used to go on refusing the slot the unit had left, and allowing the one it ran.
+    const session = await ready(unit());
+    await session.switchTo(0);
+    await expect(session.deleteSlot(0)).rejects.toThrow(/running/);
+    const slots = await session.deleteSlot(2);
+    expect(slots.map((slot) => slot.slot)).not.toContain(2);
+  });
+
   it("puts a new slot in the gap a deleted one left, and nowhere else", async () => {
     const fake = unit();
     fake.seed("Spare", compiled("left").inputs);
