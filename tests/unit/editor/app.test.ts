@@ -823,6 +823,7 @@ describe("the inspector in plain words", () => {
   });
 
   it("says why there are no stick modes for a single unit instead of hiding the panel", () => {
+    showDockTab("pedals");
     const panels = [...document.querySelectorAll(".panel")].map((panel) => panel.textContent);
     expect(panels.some((text) => text.includes("needs a left and a right unit"))).toBe(true);
   });

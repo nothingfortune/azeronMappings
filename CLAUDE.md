@@ -183,7 +183,10 @@ profile rebuilds `dist/` and lints in the same round trip.
 loses the comments, the `extends:` line and the duplicate-key allowlist.
 
 Per-session editor state — a key capture, a rename in progress, the press test — is reset
-by `resetSession()` on a change of game or tab; new state of that kind goes there. The
+by `resetSession()` on a change of game or tab; new state of that kind goes there. Where
+the page is — the game, the layout and the tab — is kept in localStorage
+(`azeron-editor-place`, `keepPlace` on every render, `storedPlace` in `start`) so a reload
+opens there; `tests/helpers/setup.ts` empties storage before every unit test. The
 inspector must not write to the working profile while drawing, or looking at an empty key
 marks the page unsaved.
 

@@ -4,6 +4,8 @@ export default defineConfig({
   test: {
     // tests/e2e is Playwright's; vitest would try to run its describes and fail.
     include: ["tests/unit/**/*.test.ts"],
+    // An empty localStorage before each test: see the file.
+    setupFiles: ["tests/helpers/setup.ts"],
     // The tests run against a frozen copy of the data, not the layouts the owner is editing:
     // see tests/fixtures/repo/README.md.
     // AZERON_STORE names an Azeron app profile folder that is not there, so nothing reads

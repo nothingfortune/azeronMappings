@@ -266,6 +266,10 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Changed
 
+- **A reload opens where the page was.** The game, the layout and the tab are kept in the
+  browser and restored, instead of the page opening on the first game every time. A game
+  or layout that has gone since falls back to the first; a reload on the press test opens
+  Edit. Unit tests start each with empty storage, so none opens where another left off.
 - **No sensor on the Cyborg II.** It has no optical sensor, so its device maps say
   `sensor: false`, the editor's Key panel no longer offers a sensor checkbox, a DPI step or
   the "both sensors are on" warning for it, and the write bar says nothing of a sensor or

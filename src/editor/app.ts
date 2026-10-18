@@ -1466,6 +1466,59 @@ function renderLintChip(): HTMLElement {
 }
 
 /**
+ * Where the page was -- the game, the layout and the tab -- kept across a reload, which
+ * otherwise always opened on the first game. Per browser, like the dock tab and the theme.
+ * A game or layout that has gone since falls back to the first; the press test is a run on
+ * the hardware, not a place, so a reload on it opens Edit.
+ */
+const PLACE_KEY = "azeron-editor-place";
+
+interface Place {
+  gameIndex: number;
+  setName: string;
+  mode: Mode;
+}
+
+function storedPlace(payload: EditorPayload): Place {
+  const first = payload.games[0];
+  const fallback: Place = {
+    gameIndex: 0,
+    setName: first ? ([...setsOf(first).keys()][0] ?? "") : "",
+    mode: "edit",
+  };
+  let kept: unknown;
+  try {
+    kept = JSON.parse(window.localStorage.getItem(PLACE_KEY) ?? "null");
+  } catch {
+    return fallback;
+  }
+  if (typeof kept !== "object" || kept === null) return fallback;
+  const { game, set, mode } = kept as Record<string, unknown>;
+  const gameIndex = payload.games.findIndex((entry) => entry.slug === game);
+  const found = payload.games[gameIndex];
+  if (found === undefined) return fallback;
+  const sets = [...setsOf(found).keys()];
+  return {
+    gameIndex,
+    setName: typeof set === "string" && sets.includes(set) ? set : (sets[0] ?? ""),
+    mode: mode === "in-game" || mode === "repo" ? mode : "edit",
+  };
+}
+
+function keepPlace(): void {
+  const game = state.payload.games[state.gameIndex];
+  if (game === undefined) return;
+  try {
+    window.localStorage.setItem(
+      PLACE_KEY,
+      JSON.stringify({ game: game.slug, set: state.setName, mode: state.mode }),
+    );
+  } catch {
+    // Not kept across reloads, which is all that is lost.
+  }
+}
+
+/**
  * The Edit dock's third column is two tabs, so the page is not one long scroll: the checks,
  * and the sticks and pedals together -- a pedal edit changes how the sticks read, so those
  * two stay side by side.
@@ -4880,12 +4933,15 @@ async function refreshPayload(select?: string): Promise<boolean> {
     // A game that did not exist before is the one just made, so it is named; otherwise
     // the page stays on the game it was on.
     const gameSlug = select ?? currentGame().slug;
+    const setName = state.setName;
     start(payload);
     state.mode = mode;
     const index = payload.games.findIndex((game) => game.slug === gameSlug);
     if (index >= 0) {
       state.gameIndex = index;
-      state.setName = [...setsOf(currentGame()).keys()][0] ?? "";
+      // The same game keeps its layout, while it still has it.
+      const sets = [...setsOf(currentGame()).keys()];
+      state.setName = select === undefined && sets.includes(setName) ? setName : (sets[0] ?? "");
     }
     return true;
   } catch {
@@ -5598,6 +5654,7 @@ function render(): void {
   adoptPendingSpec();
   trackHistory();
   draw();
+  keepPlace();
   lightTester();
   if (typing) {
     const filter = document.querySelector<HTMLInputElement>(".panel .filter");
@@ -5785,15 +5842,15 @@ export function start(payload = window.AZERON_PAYLOAD): void {
   gameBehind = false;
   unitsKnown = null;
   unitsAsking = null;
-  const firstGame = payload.games[0];
+  const place = storedPlace(payload);
   resetSession();
   state = {
     payload,
-    mode: "edit",
+    mode: place.mode,
     workingActions: null,
     workingSets: null,
-    gameIndex: 0,
-    setName: firstGame ? ([...setsOf(firstGame).keys()][0] ?? "") : "",
+    gameIndex: place.gameIndex,
+    setName: place.setName,
     working: new Map(),
     selected: null,
     slot: "tap",
