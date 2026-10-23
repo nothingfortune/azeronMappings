@@ -395,6 +395,16 @@ describe("deleting a slot, and the gap it leaves", () => {
     expect(slots.map((slot) => slot.slot)).not.toContain(2);
   });
 
+  it("asks which slot runs before deleting, since the profile button may have moved it", async () => {
+    // It used to trust the slot it saw on connecting, and deleted the one the unit ran.
+    const fake = unit();
+    const session = await ready(fake);
+    fake.pressProfileButton(1);
+    await expect(session.deleteSlot(1)).rejects.toThrow(/running/);
+    const slots = await session.deleteSlot(2);
+    expect(slots.map((slot) => slot.slot)).not.toContain(2);
+  });
+
   it("puts a new slot in the gap a deleted one left, and nowhere else", async () => {
     const fake = unit();
     fake.seed("Spare", compiled("left").inputs);

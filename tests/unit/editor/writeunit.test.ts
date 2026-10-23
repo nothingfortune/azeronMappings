@@ -217,6 +217,25 @@ describe("writing the layout into the units", () => {
     expect(left.unit.received.some((report) => report[2] === Command.SWITCH_PROFILE)).toBe(true);
   });
 
+  it("asks which slot runs after a write, since the profile button may have moved it", async () => {
+    // It used to say a unit ran the slot it had connected on, without asking.
+    const left = makeUnit("left");
+    const right = makeUnit("right");
+    plugIn([left, right]);
+    await writeToUnits();
+    await vi.waitFor(() => {
+      expect(bar()).toContain("Right unit (29993) →");
+    }, WAIT);
+    left.unit.pressProfileButton(0);
+    barButton("Write").click();
+    await vi.waitFor(() => {
+      expect(bar()).toContain("The left unit is running it now.");
+    }, WAIT);
+    expect(left.unit.received.some((report) => report[2] === Command.SWITCH_PROFILE)).toBe(true);
+    // The right unit was still on the slot, so it is not switched to it.
+    expect(right.unit.received.some((report) => report[2] === Command.SWITCH_PROFILE)).toBe(false);
+  });
+
   it("says nothing of a sensor or DPI for the Cyborg II, which has neither", async () => {
     plugIn([makeUnit("left"), makeUnit("right")]);
     await writeToUnits();
@@ -540,5 +559,32 @@ describe("clearing out a unit's other slots", () => {
     expect(options).toContain("a new slot (1)");
     // The slot being written and the one the unit runs are not offered for deleting.
     expect(document.querySelector('.write-bar [data-delete-slot="2"]')).toBeNull();
+  });
+
+  it("tells the server the slot is gone, so a write recorded there stops counting", async () => {
+    const SERVED = window as unknown as { AZERON_SERVED?: boolean };
+    const deleted: unknown[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((path: string, init?: { body?: string }) => {
+        if (path === "/api/units/deleted") deleted.push(JSON.parse(init?.body ?? "{}"));
+        return Promise.resolve({ status: 200, json: () => Promise.resolve({ ok: true }) });
+      }),
+    );
+    SERVED.AZERON_SERVED = true;
+    try {
+      plugIn([makeUnit("left"), makeUnit("right")]);
+      vi.stubGlobal("confirm", () => true);
+      await writeToUnits();
+      await vi.waitFor(() => {
+        expect(bar()).toContain("Right unit (29993) →");
+      }, WAIT);
+      document.querySelector<HTMLButtonElement>('.write-bar [data-delete-slot="1"]')?.click();
+      await vi.waitFor(() => {
+        expect(deleted).toEqual([{ deviceId: "49229", slot: 1 }]);
+      }, WAIT);
+    } finally {
+      SERVED.AZERON_SERVED = false;
+    }
   });
 });

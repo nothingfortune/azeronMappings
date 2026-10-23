@@ -3593,15 +3593,17 @@ function writeAll(run: WriteRun): void {
         );
         // As the app does after a write: the unit runs the slot it was just given. Only
         // when the slot read back as written; a slot that did not is not one to play on.
+        // Which slot it runs is asked, not remembered from connecting: the profile button
+        // may have moved it since. A unit already on the slot is not switched to it, which
+        // has never been seen done.
         let running: number | null = null;
-        if (report.problems.length === 0 && found.identity.activeSlot !== slot) {
+        if (report.problems.length === 0) {
           try {
-            running = await found.session.switchTo(slot);
+            running = await found.session.runningSlot();
+            if (running !== slot) running = await found.session.switchTo(slot);
           } catch (error) {
             logFailure(run, `${unit}: switching to slot ${String(slot)}: ${messageOf(error)}`);
           }
-        } else if (report.problems.length === 0) {
-          running = slot;
         } else {
           logFailure(run, `${unit}: ${report.problems.slice(0, 10).join("; ")}`);
         }
@@ -3649,6 +3651,27 @@ async function recordDirectWrite(plan: UnitPlan, slot: number): Promise<void> {
   } catch (error) {
     unitLog(`could not record the write: ${messageOf(error)}`);
   }
+}
+
+/**
+ * Tell the server a slot is gone, so a layout recorded as written there stops counting as
+ * on the unit, then ask the units report again.
+ */
+async function forgetDeletedSlot(deviceId: string | undefined, slot: number): Promise<void> {
+  if (!canSave() || deviceId === undefined) return;
+  try {
+    const response = await fetch("/api/units/deleted", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ deviceId, slot }),
+    });
+    const body = (await response.json()) as { ok?: boolean; error?: string };
+    if (body.ok !== true)
+      unitLog(`could not forget slot ${String(slot)}: ${body.error ?? "no reason given"}`);
+  } catch (error) {
+    unitLog(`could not forget slot ${String(slot)}: ${messageOf(error)}`);
+  }
+  askUnits();
 }
 
 function endWrite(redraw = true): void {
@@ -3737,6 +3760,7 @@ function deleteSlotNow(run: WriteRun, index: number, slot: StoredProfile): void 
       found.slots = slots;
       unitLog(`${unit}: slot ${String(slot.slot)} "${slot.name}" deleted`);
       run.note = `Slot ${String(slot.slot)}, "${slot.name}", is gone from the ${unit}.`;
+      return forgetDeletedSlot(plan.target.softwareDeviceId, slot.slot);
     })
     .catch((error: unknown) => {
       const message = explain(error, `deleting slot ${String(slot.slot)}`);

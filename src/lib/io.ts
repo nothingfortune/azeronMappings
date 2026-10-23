@@ -18,7 +18,7 @@ import type { DeviceData, ProfileData } from "../types/profile.js";
 import type { GameLike } from "./model-core.js";
 import { ActionSet, Device, Profile } from "./model-core.js";
 import { normalizeProfileData } from "./normalize.js";
-import { parseDirectWrites, recordWrite } from "./written.js";
+import { forgetSlot, parseDirectWrites, recordWrite } from "./written.js";
 import type { DirectWrite, DirectWrites } from "./written.js";
 import { parsePedalsDevice, parseSets } from "./pedals.js";
 import { StickModeError, validateStickModes } from "./stickmodes.js";
@@ -135,6 +135,15 @@ export function loadDirectWrites(): DirectWrites {
 /** Keep a write that read back clean, replacing whatever was last written into that slot. */
 export function saveDirectWrite(write: DirectWrite): DirectWrites {
   const record = recordWrite(loadDirectWrites(), write);
+  const full = logPath(WRITTEN);
+  mkdirSync(dirname(full), { recursive: true });
+  writeFileSync(full, `${JSON.stringify(record, null, 2)}\n`, "utf8");
+  return record;
+}
+
+/** Drop what was written into a slot that has been deleted: the unit no longer holds it. */
+export function forgetDirectWrite(deviceId: string, slot: number): DirectWrites {
+  const record = forgetSlot(loadDirectWrites(), deviceId, slot);
   const full = logPath(WRITTEN);
   mkdirSync(dirname(full), { recursive: true });
   writeFileSync(full, `${JSON.stringify(record, null, 2)}\n`, "utf8");

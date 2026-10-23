@@ -9,11 +9,12 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { repoPath } from "../../../src/config/paths.js";
-import { loadDirectWrites, saveDirectWrite } from "../../../src/lib/io.js";
+import { forgetDirectWrite, loadDirectWrites, saveDirectWrite } from "../../../src/lib/io.js";
 import { Game } from "../../../src/lib/model.js";
 import { unitsReport } from "../../../src/lib/tasks.js";
 import {
   currentWrite,
+  forgetSlot,
   layoutFingerprint,
   parseDirectWrite,
   recordWrite,
@@ -103,6 +104,18 @@ describe("the record of direct writes", () => {
     expect(currentWrite(record, undefined, fingerprint)).toBeNull();
   });
 
+  it("forgets a deleted slot of that unit only", () => {
+    const record = {
+      writes: [write({ slot: 2 }), write({ slot: 3 }), write({ deviceId: "29993" })],
+    };
+    expect(
+      forgetSlot(record, "49229", 2).writes.map((entry) => [entry.deviceId, entry.slot]),
+    ).toEqual([
+      ["49229", 3],
+      ["29993", 2],
+    ]);
+  });
+
   it("refuses a record that is not one", () => {
     expect(() => parseDirectWrite({ ...write(), slot: -1 })).toThrow(/slot/);
     expect(() => parseDirectWrite({ ...write(), fingerprint: "nope" })).toThrow(/16 hex/);
@@ -137,6 +150,13 @@ describe("the units report, after a direct write", () => {
     expect(unitsReport(game, LIVE_SET).units.find((unit) => unit.unit === "right")?.status).toBe(
       "missing",
     );
+  });
+
+  it("goes back to the app's copy once the slot written is deleted", () => {
+    saveDirectWrite(write());
+    expect(left()?.status).toBe("written");
+    forgetDirectWrite("49229", 2);
+    expect(left()?.status).toBe("missing");
   });
 
   it("goes back to the app's copy once the layout has changed since the write", () => {

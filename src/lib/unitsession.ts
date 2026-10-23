@@ -335,6 +335,18 @@ export class UnitSession {
     return found;
   }
 
+  /** Which slot the unit runs now, asked of it: the profile button moves it unannounced. */
+  runningSlot(): Promise<number> {
+    return this.exclusive(async () => {
+      this.step = "asking which slot runs";
+      await this.drain();
+      const active = (await this.ask(Command.HARDWARE_PROFILE_INDEX)).payload[0];
+      if (active === undefined) throw this.fail("protocol", "the unit did not say which slot runs");
+      this.activeSlot = active;
+      return active;
+    });
+  }
+
   /**
    * Makes the unit run `slot`, as the app does after writing one, and checks that it does.
    * SWITCH_PROFILE carries the slot; the unit answers with it.
@@ -371,14 +383,17 @@ export class UnitSession {
       }
       if (!this.slotNumbers.has(slot))
         throw new ProtocolError(`the unit has no slot ${String(slot)}`);
+      this.step = `deleting slot ${String(slot)}`;
+      await this.drain();
+      // Asked, not remembered: the profile button moves the unit without telling anyone.
+      const running = (await this.ask(Command.HARDWARE_PROFILE_INDEX)).payload[0];
+      if (running !== undefined) this.activeSlot = running;
       if (slot === this.activeSlot) {
         throw new ProtocolError(
           `slot ${String(slot)} is the one the unit is running: switch away from it first`,
         );
       }
       if (this.slotNumbers.size <= 1) throw new ProtocolError("that is the unit's only slot");
-      this.step = `deleting slot ${String(slot)}`;
-      await this.drain();
       // Not repeated: a lost answer may mean it was deleted, which the read below shows.
       try {
         await this.ask(Command.DELETE_PROFILE, Uint8Array.of(slot), false);

@@ -27,10 +27,11 @@ import {
   loadBytes,
   loadDevice,
   loadTemplate,
+  forgetDirectWrite,
   saveDirectWrite,
   writeText,
 } from "./lib/io.js";
-import { parseDirectWrite } from "./lib/written.js";
+import { parseDeletedSlot, parseDirectWrite } from "./lib/written.js";
 import {
   diffCaptures,
   extractEvents,
@@ -606,6 +607,23 @@ function cmdServe(port: number, host: string): number {
           appendLog(
             "units.log",
             `${new Date().toISOString()} recorded: unit ${write.deviceId} slot ${String(write.slot)} holds ${write.set} ${write.unit} (${write.fingerprint})\n`,
+          );
+          send(200, JSON.stringify({ ok: true }));
+        } catch (error) {
+          send(400, JSON.stringify({ ok: false, error: messageOf(error) }));
+        }
+      });
+      return;
+    }
+    if (request.method === "POST" && url === "/api/units/deleted") {
+      // A slot the page deleted from a unit: whatever was recorded as written there is gone.
+      readBody(request, response, 1_000, (body) => {
+        try {
+          const { deviceId, slot } = parseDeletedSlot(JSON.parse(body));
+          forgetDirectWrite(deviceId, slot);
+          appendLog(
+            "units.log",
+            `${new Date().toISOString()} deleted: unit ${deviceId} slot ${String(slot)}\n`,
           );
           send(200, JSON.stringify({ ok: true }));
         } catch (error) {

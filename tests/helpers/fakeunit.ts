@@ -165,6 +165,11 @@ export class FakeUnit implements UnitTransport {
   private lateRecord: "waiting" | Uint8Array | "done";
   private readonly sensitivityValues: number[] | undefined;
 
+  /** The owner pressing the unit's profile button: it runs `slot`, and tells no one. */
+  pressProfileButton(slot: number): void {
+    this.options.activeSlot = slot;
+  }
+
   constructor(options: FakeUnitOptions = {}) {
     this.options = {
       firmware: options.firmware ?? 111,

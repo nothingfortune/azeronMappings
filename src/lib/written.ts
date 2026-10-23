@@ -83,6 +83,25 @@ export function recordWrite(record: DirectWrites, write: DirectWrite): DirectWri
   };
 }
 
+/** The record without what was written into a slot that has since been deleted. */
+export function forgetSlot(record: DirectWrites, deviceId: string, slot: number): DirectWrites {
+  return {
+    writes: record.writes.filter((entry) => !(entry.deviceId === deviceId && entry.slot === slot)),
+  };
+}
+
+/** A deleted slot, as the page sends it: the unit's id and the slot's number. */
+export function parseDeletedSlot(value: unknown): { deviceId: string; slot: number } {
+  if (typeof value !== "object" || value === null) throw new Error("a deleted slot is an object");
+  const { deviceId, slot } = value as Record<string, unknown>;
+  if (typeof deviceId !== "string" || deviceId === "")
+    throw new Error("a deleted slot needs deviceId");
+  if (typeof slot !== "number" || !Number.isInteger(slot) || slot < 0 || slot > 15) {
+    throw new Error("a deleted slot needs a slot from 0 to 15");
+  }
+  return { deviceId, slot };
+}
+
 /**
  * The newest write of this layout's unit that is the layout as `fingerprint` says it is now,
  * or null. Any slot will do: what the unit holds is what it holds, wherever it is.
