@@ -19,29 +19,28 @@
 #   invert, dead_zone, scale, sensitivity, exponent
 #               written to bInvert, DeadZone, Scale, Sensitivity, Exponent on the game's
 #               row, only when given. Absent means the row is left as the game has it.
+#   end         up or down: the pedal drives one direction of the axis, on the game's row
+#               for that direction, and takes no invert or scale. For a toe brake.
 #   shared      two pedal axes may drive one game axis only when every one says so. The
 #               row holds two (Key1, Key2) and the tuning is the row's, so it is shared.
 #
-# The set's stick mode is the with-pedals variant of its mode (stick-modes.yaml), which is
-# what hands the stick axis the pedals now carry to something else.
+# The sticks use the with-pedals variant of a mode (stick-modes.yaml) only when the pedals
+# carry every axis in its `pedals.takes` -- yaw. In akimbo-v10 the rudder drives roll, not
+# yaw, so the sticks read as the plain mode and yaw stays on a stick.
 sets:
   akimbo-v10:
     pedals:
       device: logitech-pro-flight-pedals
       assign:
-        # The rudder springs back to centre, which is what a yaw axis wants. This is the
-        # proportional, self-centring turn that neither the pointer nor a keyboard-mode
-        # stick can give, and it is what takes yaw off the left stick.
+        # The rudder springs back to centre, so it gives a proportional, self-centring
+        # roll that a keyboard-mode stick cannot.
         rudder: {drives: roll, invert: true}
 
-        # THE RIGHT TOE IS THE THROTTLE: forward thrust in proportion to the pedal, from
-        # nothing with the foot off to full with it down. A toe brake rests at the end of
-        # its travel, which uncalibrated is a full deflection on a game axis read about a
-        # centre; both toes carry a Windows calibration that makes rest read zero and a
-        # press full (the device file records it; the values are in
-        # docs/guides/analog-input.md). The game's thrust row is inverted as it ships, so
-        # `invert: false` is said outright. Not flown -- see playtests.md, 2026-10-01. The
-        # stick's thrust keys stay: they are full thrust and the only reverse. The left toe
-        # is not assigned.
+        # The toes are vertical thrust, one direction each: the right toe hovers up, the
+        # left down. An assignment with `end` writes the game's row for that direction
+        # (MoveUp+ / MoveUp-), so it has no `invert` or `scale`. A toe brake rests at the end
+        # of its travel; both carry a Windows calibration that makes rest read zero (the
+        # device file records it; the values are in docs/guides/analog-input.md). Whether
+        # the game reads them in proportion on those rows is not yet flown.
         left_toe: {drives: vertical, end: down}
         right_toe: {drives: vertical, end: up}
