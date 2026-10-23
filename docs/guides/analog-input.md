@@ -58,10 +58,11 @@ Cruise and boost give a crude three-notch speed on top (normal, cruise, boost).
 
 Four separate things, worth keeping apart:
 
-1. **The unit's own optical sensor.** `profileSettings.isSensorOn`, with five DPI steps
-   in `sensitivityValues` (1000 / 4000 / 7500 / 10000 / 15000). Moving the unit moves
-   the system pointer. This is a real mouse, and it is why a keypad-only setup can still
-   aim.
+1. **An optical sensor — which the Cyborg II does not have.** The export format carries
+   `profileSettings.isSensorOn` and five DPI steps in `sensitivityValues` for the Azeron
+   keypads that have one, and the Cyborg II's exports carry them too, but its device maps
+   say `sensor: false`. The pointer is a real mouse's, and the pointer actions are
+   `provided_by: mouse`, never sent from a key.
 2. **A stick in mouse mode.** The stick drives the pointer instead of sending keys;
    `analogSettings.mouseSensitivity` shapes it. The type code for this mode has never
    been captured, so the compiler refuses to emit it.
@@ -70,13 +71,7 @@ Four separate things, worth keeping apart:
    against the game's own bindings for those.
 4. **Scroll.** `scrollSpeed`, `scrollThreshold`, `isSmoothScroll` per input.
 
-**Two units means two sensors, and they drive the same pointer.** The imported akimbo
-profiles both had `isSensorOn: true`, inherited from the template, because
-`profileSettings` passes through untouched and nothing could say otherwise. A profile can
-now set `sensor: true|false` and `dpi: <step>`; the live pair has the left unit's sensor
-on and the right unit's off.
-
-What the sensor cannot do is throttle. In Everspace 2's binding file the mouse axes reach
+The mouse cannot throttle either. In Everspace 2's binding file the mouse axes reach
 only `CameraPitch` and `CameraYaw`, and those sit with the photo-mode controls — so what
 the pointer does in flight is not in the file at all. Whether moving it turns the ship or
 only aims is untested, and it decides whether a stick should carry yaw or roll. `MoveForward`'s axis row is `Key1=None` in the
@@ -119,8 +114,9 @@ there is nothing to flip between.
 
 - **Cost:** you lose mouse aiming, and the game applies its gamepad flight handling and
   aim assist. For a twitchy space sim that is a real downgrade.
-- **Cost:** the repo's `require_keyboard_stick` lint rule exists to stop exactly this, so
-  it would have to be turned off for the game deliberately in `game.yaml` — not quietly.
+- **Cost:** the repo's `stick-not-keyboard` lint rule exists to stop exactly this, so the
+  finding would have to be acknowledged deliberately in `game.yaml`, with a reason — not
+  quietly.
 - **Untested.** Worth one session if full-analog flight matters more than mouse aim.
 
 ## Option B — stick in mouse mode: tried, and it spins
@@ -182,7 +178,7 @@ at one end and are pressed towards the other.
   any game axis read about a centre — all six flight axes — a toe is therefore a full
   deflection with the foot off, and the fields the game's row offers (`bInvert`, `Scale`,
   `DeadZone`, `Sensitivity`, `Exponent`) cannot re-centre it: none of them is an offset.
-  The toes are not bound to anything.
+  Uncalibrated, a toe is unusable on any of them.
 
 **A Windows calibration makes a toe rest at zero — set and measured 2026-10-01.** The game
 reads the pedals through SDL's DirectInput backend, and DirectInput applies the calibration
@@ -229,10 +225,15 @@ axis assigned in the Pedals panel, so its box shows what the game is given.
 then sent nothing to anything — the game and `joy.cpl` included — until they were unplugged
 and plugged back in. Listening to the reports they send on their own is safe.
 
+**A toe can drive one direction of an axis.** The game's Joystick group keeps a `Scale=1`
+and a `Scale=-1` row beside each axis row, so a toe written onto one of those (`end: up` or
+`end: down` in `sets.yaml`) is half an axis, which is what a toe is. Whether the game reads
+a pedal in proportion on those rows, or as a button, has not been flown.
+
 **This has a home in the repo.** The pedals are a device (`devices/logitech-pro-flight-
 pedals.yaml`), what a layout does with them is in the game's `sets.yaml` beside its profiles
-(`akimbo-v10`: the rudder on yaw), and the stick mode has a with-pedals variant that hands
-the stick axis the rudder now carries to roll. `azeron ingame --apply` writes the layout's
+(`akimbo-v10`: the rudder on roll, the right toe on hover up and the left toe on hover
+down), and the stick mode has a with-pedals variant for a layout whose pedals take yaw. `azeron ingame --apply` writes the layout's
 pedals into the Joystick group's axis rows, under the keyboard side's guarantees; see "The
 game's own binding file" in `CLAUDE.md`.
 
@@ -252,24 +253,25 @@ confirmed. Which is which is not:
   takes whatever moves first, and a toe reads full deflection from the start, so it won a
   capture meant for the rudder. It was a mis-capture, not a fact about the rudder, and it
   is the reason a capture is recorded as `bound` (what the game wrote) and never as
-  confirmed. `azeron ingame --apply` moves it: Yaw takes `Axis2`.
+  confirmed. `azeron ingame --apply` rewrites the rows from the layout, so the mis-capture
+  does not survive it.
 
 Each name in the device file carries a status — `confirmed` (flown; none yet), `inferred`,
 `unconfirmed`, `bound`, `candidate` — and generation says which it used, so a name that is
 not yet flown is never mistaken for one that is.
 
-**What to do next.** Apply, then fly the rudder: does the ship yaw in proportion to the
-pedal, and stop when it centres? If it yaws on its own or the wrong way, the inference is
-wrong and `azeron ingame --capture-pedals` will say where the file and the device data
-disagree. Then the right toe, which `akimbo-v10` has on thrust: does thrust follow the pedal
-from nothing to full, and stop when the foot comes off? If the ship thrusts on its own, the
-calibration is not reaching the game; if pressing the toe reverses, the invert is the wrong
-way round.
+**What to do next.** Apply, then fly the rudder: `akimbo-v10` has it on roll. Does the ship
+roll in proportion to the pedal, and stop when it centres? If it rolls on its own or the
+wrong way, the inference is wrong and `azeron ingame --capture-pedals` will say where the
+file and the device data disagree. Then the toes, the right on hover up and the left on
+hover down: does the ship rise and sink with the pedal, in proportion or all at once, and
+stop when the foot comes off? If it moves on its own, the calibration is not reaching the
+game.
 
-The Azeron exposes a fixed set of USB HID interfaces, with configuration over hidraw on
-interface 4 in a proprietary protocol; the profile JSON this repo compiles chooses what
-the existing keyboard, mouse and gamepad endpoints send, not which endpoints exist. Adding
-a device class would be firmware work, not profile work.
+The Azeron exposes a fixed set of USB HID interfaces, with configuration on a
+vendor-defined one in a proprietary protocol (`docs/guides/unit-protocol.md`); the profile
+this repo compiles chooses what the existing keyboard, mouse and gamepad endpoints send,
+not which endpoints exist. Adding a device class would be firmware work, not profile work.
 
 **An untested lead: the units already enumerate as DirectInput joysticks.** Measured
 2026-10-01 with SDL 2.30.6 on the owner's machine, both units plugged in: SDL's DirectInput

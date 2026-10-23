@@ -33,43 +33,62 @@ works in bash only). `npm run azeron -- help` lists everything.
    game's `Input.ini` from `games/SpaceSims/everspace/actions.yaml`, keeping the previous
    file beside it. You do this once, and again only when an in-game key changes — never
    from the game's own controls screen.
-2. **Import both files** in the Azeron app (2.0.2), each onto its own unit:
-   - `dist/SpaceSims/everspace/everspace_akimbo_v10_left.json` → the unit on your left hand
-   - `dist/SpaceSims/everspace/everspace_akimbo_v10_right.json` → the unit on your right
-3. **Write each profile to its unit, then close the app before playing.** Profiles run
-   onboard, and the app rewrites its own files while it is open.
+2. **Write to units**, in the editor's header (Chrome or Edge, with the Azeron app
+   closed). It writes the layout straight into both units' onboard slots over USB, reads
+   each slot back to check it, and leaves each unit running it. No export, no import. It
+   tells the two units apart by the id each one reports, puts each hand into the slot that
+   already has the layout's name (or a new one), and says before writing how many controls
+   each slot will change. The write bar also lists each unit's other slots, with a
+   **Delete** beside each.
 
-**Is what is on the units the layout?** The editor reads the Azeron app's own copy of each
-profile and compares it with the layout, key by key. While the app has an older one, the
-header shows **Re-import N**: it lists each unit's file to import and every key the unit
-does something else on — "Ring 4: the unit has Inventory (I); the layout has Ultimate
-(G)" — and those keys are marked _not on unit_ on the board. Coming back to the page from
-the app checks again. `npm run azeron -- units` says the same in the terminal.
+The Azeron app is the other way in: import
+`dist/SpaceSims/everspace/everspace_akimbo_v10_left.json` onto the unit on your left hand
+and `…_right.json` onto the one on your right, write each to its unit, then close the app
+before playing. It rewrites its own files while it is open.
 
-**Is a unit running the layout?** The app's copy is not the unit: each unit runs one of
-three profiles held in its own memory, picked with its profile button, and only the Azeron
-app can read them. So the editor asks the unit itself. **Check this unit**, beside each
-unit's name on the board, lights up one control at a time; press it, and the page reads the
-key or mouse button that arrives. Each key goes green or red, and at the end the page says
-whether the unit is running this layout, which controls are not, and what to do about it —
-including when the unit is on a press-test profile, which two of its slots still hold.
-Point at the board for the mouse-button keys: a click on the bar is a click on its buttons.
+**Is what is on the units the layout?** After a write that read back clean, the editor
+knows: it keeps a fingerprint of what went onto each unit (`logs/units-written.json`). For
+a layout that came in through the app, it reads the app's own copy of each profile and
+compares it with the layout, key by key. While either is older than the layout, the header
+shows **Re-import N**: it lists each unit's file and every key the unit does something else
+on — "Ring 4: the unit has Inventory (I); the layout has Ultimate (G)" — and those keys are
+marked _not on unit_ on the board. Coming back to the page checks again.
+`npm run azeron -- units` says the same in the terminal.
 
-Both units report the same USB product id, so nothing on the computer can tell them
-apart for you — the app lists them separately, and the press test (below) will confirm
-which is which if you are unsure.
+**Is a unit running the layout?** Each unit holds up to six profiles in its own memory and
+runs the one its profile button picked. **Check this unit**, beside each unit's name on the
+board, lights up one control at a time; press it, and the page reads the key or mouse
+button that arrives. Each key goes green or red, and at the end the page says whether the
+unit is running this layout, which controls are not, and what to do about it — including
+when the unit is on a press-test profile. Point at the board for the mouse-button keys: a
+click on the bar is a click on its buttons. **Test keys**, in the header, is the free-form
+version: while it is on, every key a unit sends lights the control that sent it.
+
+Both units report the same USB product id, so the computer alone cannot tell them apart.
+Write to units asks each unit for its id, which its device map records; the press test
+(below) confirms which is which if you are unsure.
 
 ### Elite Dangerous
 
 Elite is played in modes, and has a layout for each: **ship**, **srv** (the buggy) and
-**on-foot**, each a pair of files in `dist/SpaceSims/eliteDangerous/`. Import all six, one
-profile per mode on each unit, and switch between them with the unit's profile button as
+**on-foot**, each a pair of files in `dist/SpaceSims/eliteDangerous/`. Put all three on the
+units, one slot per mode on each, and switch between them with the unit's profile button as
 you get out of the ship. The same button is a different thing in each.
 
 Update the game's keys… writes Elite's `Custom.4.1.binds` and tells the game to use it
 (`StartPreset.4.start`), keeping copies of both. Close Elite first. Anything you had bound
 to a joystick in the game is not in the new file: it starts from the game's keyboard
 preset, not your old one.
+
+### Helldivers 2 and Ace Combat 7
+
+Each has a default layout, not yet played. **Helldivers 2** is one unit on the left hand
+with a mouse in the right (`dist/FPS/hellDivers/`); the mouse aims, which a keypad stick
+cannot. **Ace Combat 7** is a pair (`dist/Flight/aceCombat7/`): throttle and yaw on the
+left stick, pitch and roll on the right, both weapons on the index fingers. The repo does
+not write either game's bindings, so both layouts send the game's own default keys; check
+them in the game's controls screen, and change a key in the game's `actions.yaml` if the
+game has it elsewhere.
 
 ## Changing a binding
 
@@ -88,19 +107,21 @@ turns autosave off if you would rather press Save.
   **Update the game's keys…**. The **In-game** tab is where actions are named and given
   their roles; **Show the wiring** there shows the keys, and lets one be moved by hand.
 
-What a save leaves for you to do shows in the header: **Re-import N** lists the files to
-import into the Azeron app, as paths its dialog takes, and **Update the game's keys…**
+What a save leaves for you to do shows in the header: **Re-import N** says the units are
+behind (Write to units brings them up to date, or import the files it lists, as paths the
+app's dialog takes), and **Update the game's keys…**
 appears when the wiring or the pedals changed. That one asks whether the game is closed and
 then writes its `Input.ini`; it is the one thing saving never does on its own, because it
 writes outside the repo. **Clear all keys**, on the Actions bar, empties the board to lay a
 layout out again; Undo brings it back.
 
-Stick modes (DJI Mode 1/2/3, the game's own twin-stick layout, and a roll variant) are
-applied to both sticks in one click from the editor's side panel.
+Beside the board are two tabs: **Checks**, the linter's findings with their count on the
+tab, and **Sticks & pedals**. Stick modes (DJI Mode 1/2/3, the game's own twin-stick
+layout, and a roll variant) are applied to both sticks in one click there.
 
-Rudder pedals are part of a layout. They sit beside the checks on the Edit tab — what each
-axis drives, and how far the game's name for it is trusted — and save with the keypads and
-the in-game keys. While the pedals carry yaw, a stick mode is applied in its with-pedals
+Rudder pedals are part of a layout. They are on the Sticks & pedals tab — what each axis
+drives, and how far the game's name for it is trusted — and save with the keypads and the
+in-game keys. While the pedals carry yaw, a stick mode is applied in its with-pedals
 form, which gives the stick's freed direction to roll. A toe brake is half an axis, so it
 is offered directions: hover up on one toe and hover down on the other. An action dragged
 from the list onto a pedal does the same. A layout with no pedals offers
@@ -138,14 +159,26 @@ The linter's rules came from real play sessions. Each finding names its rule:
 | `unbound-key`                         | error   | A key no action declares, usually an edit made in the app         |
 | `action-sends-nothing`                | error   | A control whose action has no key to be sent on                   |
 | `unknown-position` / `unknown-action` | error   | A typo in a profile                                               |
+| `misplaced-binding`                   | error   | Directions on a key, or a tap on a stick, which the unit ignores  |
+| `provided-action-bound`               | error   | An action another device provides (the mouse) put on a key        |
+| `raw-types-stale`                     | error   | A kept raw type that would stop a new binding from working        |
 | `stick-not-keyboard`                  | error   | A stick in gamepad mode, which made the game stutter              |
 | `stick-double-correction`             | error   | Two corrections for one stick rotation                            |
+| `pedals-no-device`                    | error   | Pedals on a device with no device map                             |
+| `pedals-set-unknown`                  | error   | Pedals in `sets.yaml` for a layout no profile names               |
+| `pedal-unknown-axis`                  | error   | A pedal axis the device does not have                             |
+| `pedal-unknown-game-axis`             | error   | A pedal driving something that is not a game axis                 |
+| `pedal-axis-assigned-twice`           | error   | Two pedals on one game axis without `shared: true`                |
+| `pedal-shared-mismatch`               | error   | Shared pedals that disagree on the row's tuning                   |
+| `pedals-mode-without-pedals`          | error   | A with-pedals stick mode, and no pedal taking what it gave up     |
 | `combat-tap-delayed`                  | warning | A long or double press delaying a fight or flight key             |
 | `menu-with-combat`                    | warning | A menu on a key you mash or hold in a fight                       |
 | `hold-on-movement`                    | warning | A latching flight key — boost must not latch                      |
 | `duplicate-output-key`                | warning | The same key sent from two positions                              |
 | `akimbo-role-mismatch`                | warning | The same finger doing unrelated jobs on each hand                 |
 | `label-names-other-action`            | warning | A key labelled with another action's name, which the unit shows   |
+| `pedal-duplicates-stick`              | warning | A pedal and a stick both sending one axis                         |
+| `pedal-rest-on-centred`               | warning | A toe brake, uncalibrated, on an axis read about a centre         |
 | `unverified-device`                   | warning | A device map nobody has press-tested                              |
 | `stale-acknowledgement`               | note    | An acceptance for a finding that no longer exists                 |
 
@@ -160,8 +193,8 @@ is rotated half a turn — so each map is measured. `npm run azeron -- probe` wr
 `probe-2-stick-zero.json` for the stick. Import one onto a unit, open the editor's
 **Press test** tab, and press what it highlights; it records which pin fired and exports
 a corrected `devices/<unit>.yaml`. Then delete **PROBE 1 pins** and **PROBE 2 stick zero**
-from the unit's on-board profiles in the Azeron app: left there, the unit's profile button
-cycles onto them and every key sends a probe key.
+from the unit's onboard slots, from the Write to units bar or in the Azeron app: left
+there, the unit's profile button cycles onto them and every key sends a probe key.
 
 **Bringing a layout from the Azeron app.** In the Setup tab, **Add a layout**: a name, the
 export for the left unit and the export for the right (either alone will do), then **Add
@@ -175,12 +208,14 @@ sends becomes an action named after the key — an export says which keys are pr
 what they do — so the first job is the **In-game** tab: click a name to rename it, and
 switch on the roles it plays. The Checks panel lists the genre's required actions that are
 on no key yet as one entry. Writing keys into the game itself is built for Everspace 2's
-settings file only; for another game, set the keys in its own controls screen to match.
+`Input.ini` and Elite Dangerous's `.binds` only; for another game, set the keys in its own
+controls screen to match.
 
 **Writing into the app's library directly.** `npm run azeron -- install everspace --yes`
 drops each profile into the app's store under its own unit (`--dry-run` first). It
-refuses while the app is open and backs up what it replaces. Importing through the app
-stays the supported path.
+refuses while the app is open and backs up what it replaces. It is unsupported: the app's
+store format is not documented. Write to units, or an import through the app, is the way to
+get a layout onto the units.
 
 ## Contributing
 

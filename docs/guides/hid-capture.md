@@ -1,8 +1,9 @@
 # Capturing what the Azeron app says to a unit
 
 The repo speaks the part of the units' configuration protocol the Azeron app was seen to
-use -- reading slots and writing a layout into one (`docs/guides/unit-protocol.md`). The
-rest, the sensor, DPI, lights and deleting a slot, is still to be learned, and a guessed
+use -- reading slots, writing a layout into one and deleting one
+(`docs/guides/unit-protocol.md`). The rest -- the lights, three of the stick's switches,
+and what that guide lists under "Not known yet" -- is still to be learned, and a guessed
 request to a unit could change what it holds. The way to learn it is to **watch the Azeron
 app do it**, one setting at a time, and read the bytes. This is the procedure with USBPcap.
 Nothing here sends anything to a unit: USBPcap only copies the traffic, and `azeron hidcap`
@@ -89,9 +90,9 @@ HID report` event for it. Until then the bytes are raw.
 
 ## Rules
 
-- **Listen, never ask.** Do not replay a captured request at a unit, and do not write a
-  tool that sends one until the protocol is read and a unit's profile is backed up (export
-  it from the app). The pedals were hung by a single `GET_REPORT`; the keypads' configuration
+- **Listen, never ask.** Do not replay a captured request at a unit. A command joins the
+  ones the repo sends (`SENDABLE_COMMANDS`) only once the app has been seen sending it, in
+  that shape, and a unit's profile is backed up (export it from the app). The pedals were hung by a single `GET_REPORT`; the keypads' configuration
   channel is less forgiving than that.
 - Never send anything on the firmware or bootloader path (`dfu-util`, the STM32 bootloader
   driver). That is not configuration.

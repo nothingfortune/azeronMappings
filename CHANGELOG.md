@@ -6,6 +6,21 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Added
 
+- **Helldivers 2 and Ace Combat 7, with a default layout each; and a Flight genre.** Neither
+  has been played on the units yet.
+  - `genres/Flight/`: the four axes of a plane, weapons, view and menus, a single-unit
+    default, and DJI Modes 1–3 as stick modes, which translate one for one for a plane.
+  - `games/FPS/hellDivers/`: one left unit and a mouse. Aiming needs the mouse: the Cyborg
+    II has no sensor and a stick can only be written in keyboard mode, so a right-hand unit
+    would have nothing to aim with. Keys are the game's defaults, from Arrowhead's list; the
+    owner's settings file has not changed any. The stratagem input is held on the pinky
+    and the code entered on the movement stick, which sends the same W A S D the game
+    reads for both.
+  - `games/Flight/aceCombat7/`: a pair in Mode 2, throttle and yaw on the left stick and
+    pitch and roll on the right. Keys are the game's published defaults, not checked
+    against an installed copy. A second decelerate key makes the high-G turn (both throttle
+    keys held) reachable.
+
 - **Deleting a unit's slots from the write bar.** Each unit's other slots are listed with a
   Delete beside each, which sends `DELETE_PROFILE` -- seen on 2026-10-17 when a slot was
   deleted in the app -- and reads the slots back to see it gone. It will not delete the slot
@@ -320,6 +335,22 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Fixed
 
+- **The units are asked which slot they run, not remembered.** The profile button moves a
+  unit without telling the page, so a slot remembered from connecting could be wrong:
+  Delete could reach the slot the unit was running, and a write into the slot remembered
+  as running reported it running without asking. Both now ask the unit first, and a write
+  switches only when the unit is on another slot.
+- **A deleted slot no longer counts as holding its layout.** Deleting a slot left its
+  record in `logs/units-written.json`, so the header went on calling the layout on the
+  unit. The page now tells the server (`POST /api/units/deleted`), which drops it.
+- **The editor writes where it is to storage only when that changes**, not on every
+  render, which the key tester and the check run do on every key.
+- **Stale notes.** The Everspace `sets.yaml` header still said the sticks use the
+  with-pedals mode (the rudder is on roll, so they do not); the Flight default said pitch
+  and roll were left to a mouse, though it puts them on keys; CLAUDE.md's `install` row
+  had lost `--device-id` and `--store`. Helldivers 2 and Ace Combat 7 now say which
+  Windows shortcuts their default modifier keys can make (Alt+Shift, Alt+Tab, Ctrl+Shift,
+  Ctrl+Space), and why Ace Combat's second S key is not for braking.
 - **Deleting a slot after the unit was switched.** A session went on taking the slot the
   unit ran when it was first asked for the running one, so after a write switched the unit
   it refused to delete the slot left behind and would have deleted the one now running.

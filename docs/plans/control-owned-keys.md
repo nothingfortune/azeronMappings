@@ -1,7 +1,17 @@
 # Plan: keys that belong to controls, not actions
 
-Status: **deferred, 2026-10-02.** Written down so it can be picked up cold. Nothing here is
-built. Everspace 2 works without it; Elite Dangerous needs it.
+Status: **deferred, 2026-10-02; still not built.** Written down so it can be picked up
+cold. Since it was written, both of its reasons have been met another way:
+
+- **Elite did not need it.** Elite Dangerous was built with a layout per mode of play
+  (ship, buggy, on foot), switched on the keypads with the profile button, and a writer
+  for its `.binds` (`src/lib/elite.ts`). Step 4 below is done in that form.
+- **Changing a layout no longer means an import.** Write to units (2026-10-15) writes a
+  layout straight into the units' onboard slots and reads it back, so cost 1 is now one
+  button, not two imports in the Azeron app.
+
+What it would still buy is one keypad profile for every game, and a layout change that
+never touches the units at all.
 
 ## The problem
 

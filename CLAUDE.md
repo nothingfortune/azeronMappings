@@ -55,7 +55,7 @@ output, so `npm run build` first:
 | `azeron probe [--device D]`                         | press-test profile + capture page for the real pin map                          |
 | `azeron import <export.json> --genre G --game SLUG` | start a game folder from an export                                              |
 | `azeron decompile <export.json> [-o ...]`           | an app export back into profile YAML                                            |
-| `azeron install [game] --device-id ID`              | write straight into the Azeron app's profile store                              |
+| `azeron install [game] [--yes] [--dry-run]`         | write into the app's store; `--device-id ID` and `--store PATH` too             |
 | `azeron hidcap devices\|decode\|diff <capture>`     | read a USBPcap capture of the app talking to a unit; reads files only           |
 
 ## Layout
@@ -121,8 +121,9 @@ then they have to be set in the game by hand.
   therefore the `dist/` diff — stays stable.
 - `decompile.ts` goes the other way, for edits made in the Azeron app. Anything
   that will not round-trip canonically is kept as `*_raw` or `raw: {types: [...]}`.
-  There are two ways to open the editor, and they differ in one thing: whether an edit can
-  get back into the repo.
+
+There are two ways to open the editor, and they differ in one thing: whether an edit can
+get back into the repo.
 
 - `azeron editor` writes a self-contained file. It works offline with no server, and the
   only way out is a download you then copy in by hand.
@@ -493,8 +494,8 @@ The editor's press test reports what is connected over WebHID (Chrome and Edge o
 Both Cyborg II units report product id `0x12f7` — 4855 in decimal, which is the
 `DevicesStorage` folder holding the profiles filed before the units were told apart — so
 a single connection cannot be attributed to one unit from USB alone, and the UI says so
-rather than guessing. Detection reports only; writing profiles still goes through the
-Azeron software.
+rather than guessing. **Write to units** tells them apart another way: it asks each unit
+for its id over the configuration channel (see below).
 
 ## The Azeron app's own profile store
 
@@ -510,10 +511,11 @@ refuses to run rather than guess:
   wrote, when there is one to copy the shape from;
 - the app rewrites that directory as it pleases, so it must be closed first.
 
-Importing through the app stays the supported path.
+A layout reaches the units by **Write to units** (below) or an import through the app;
+`install` is neither.
 
-**Reading the store is how the repo knows what the units have.** A layout reaches a unit
-only through an import, and the page's own list of files a save changed did not survive a
+**Reading the store is how the repo knows what an import put on the units.** Before Write
+to units, a layout reached a unit only through an import, and the page's own list of files a save changed did not survive a
 reload: the units went on with an old layout while the board showed the new one, and a
 key labelled Ultimate opened the inventory. `unitsReport` in `tasks.ts` finds the app's
 copy of each profile by name (the app gives an import a new id but keeps its name; the

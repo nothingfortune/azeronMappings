@@ -2,7 +2,7 @@
 
 How the repo writes a layout straight into a Cyborg II's onboard memory, and how sure each
 part of that is. The code is `src/lib/unitproto.ts` (the bytes), `src/lib/unitsession.ts`
-(the exchanges) and `src/editor/unit-write.ts` (WebHID); the editor's **Write to unit**
+(the exchanges) and `src/editor/unit-write.ts` (WebHID); the editor's **Write to units**
 drives them.
 
 ## Where it came from
