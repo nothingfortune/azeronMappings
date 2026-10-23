@@ -1,0 +1,33 @@
+# Ace Combat 7 -- default pair, LEFT unit. The throttle hand.
+#
+# Mode 2 from genres/Flight/stick-modes.yaml: the left stick throttles and yaws, the right
+# stick pitches and rolls, the way the game's own gamepad layout and most flight sticks
+# have it. The index finger on each hand fires: the gun here, missiles on the right. The
+# middle finger defends here (flare) and picks the target on the right.
+#
+# Not flown. See playtests.md.
+profile:
+  id: 2a959136-5e44-46b9-929f-71a7e2670c98
+  name: Ace Combat 7 default (left)
+  device: cyborg2-left
+  unit: left
+  template: templates/everspace2-akimbo-left.json
+  set: default
+  output: aceCombat7_default_left.json
+  sensor: false
+positions:
+  stick:
+    mode: keyboard
+    directions: { up: throttle_up, right: yaw_right, down: throttle_down, left: yaw_left }
+
+  # Index: the gun on the resting row. Decelerate on the top row is for the high-G turn, which
+  # the game reads as both throttle keys held: the stick pushed up (accelerate) and this.
+  index_1: {label: Decelerate (high-G), tap: throttle_down}
+  index_3: {label: Fire gun, tap: fire_gun}
+
+  # Middle: the flare, beside the gun.
+  middle_3: {label: Flare, tap: flare}
+
+  # Bottom row: the map and the menu, away from anything mashed.
+  pinky_5: {label: Pause, tap: menu_main}
+  index_5: {label: Radar map, tap: radar_map}

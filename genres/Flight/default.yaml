@@ -1,0 +1,50 @@
+# Default single-unit layout for a flight game.
+#
+# The left unit flies throttle and yaw on its stick (the left half of Mode 2), carries both
+# weapons, and has pitch and roll as keys under the ring and pinky, so one keypad can fly.
+# A game played with a mouse or a flight stick for pitch and roll can drop those four keys.
+# A pair of units puts pitch and roll on the right stick: see games/Flight/aceCombat7.
+# Tap only -- no long-press, no double-tap, no latching -- so nothing in a dogfight waits
+# on a delay window (constraint 4) and nothing sticks on (constraint 6). Start a new
+# flight game from it with:
+#
+#   extends: genres/Flight/default.yaml
+profile:
+  name: Flight default (left)
+  device: cyborg2-left
+  unit: left
+  set: Flight-default
+
+lint:
+  require_keyboard_stick: true
+
+positions:
+  stick:
+    mode: keyboard
+    directions: {up: throttle_up, right: yaw_right, down: throttle_down, left: yaw_left}
+
+  # Index: the two weapons, on the resting row and the one above it.
+  index_2: {label: Change weapon, tap: weapon_change}
+  index_3: {label: Fire missile, tap: fire_missile}
+  index_4: {label: Flare, tap: flare}
+
+  # Middle: the gun and the target.
+  middle_2: {label: Change target, tap: target_change}
+  middle_3: {label: Fire gun, tap: fire_gun}
+
+  # Ring and pinky: pitch and roll, for a unit flying without a second stick.
+  ring_2: {label: Pitch down, tap: pitch_down}
+  ring_3: {label: Pitch up, tap: pitch_up}
+  pinky_3: {label: Roll left, tap: roll_left}
+  pinky_side: {label: Roll right, tap: roll_right}
+
+  # Thumb pad: the camera.
+  dpad_up:    {label: Look up, tap: camera_up}
+  dpad_down:  {label: Look down, tap: camera_down}
+  dpad_left:  {label: Look left, tap: camera_left}
+  dpad_right: {label: Look right, tap: camera_right}
+  dpad_press: {label: Change view, tap: view_change}
+
+  # Bottom row: the map and the menu, away from anything mashed.
+  pinky_5: {label: Pause, tap: menu_main}
+  index_5: {label: Radar map, tap: radar_map}
