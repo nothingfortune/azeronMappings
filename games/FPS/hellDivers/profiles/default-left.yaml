@@ -1,0 +1,63 @@
+# Helldivers 2 -- default layout, LEFT unit, with a mouse in the right hand.
+#
+# One unit, not a pair: aiming and firing need the mouse. The Cyborg II has no sensor, and
+# the compiler can only write a stick in keyboard mode, which sends keys rather than
+# aiming, so a right-hand unit would have nothing to aim with.
+#
+# Built on genres/FPS/default.yaml: movement on the stick, weapons on the ring finger,
+# the fight on the middle, stance on the index, menus on the bottom row. The pinky's
+# resting key holds the stratagem input, so the thumb enters the code on the stick while
+# it is held -- the same keys, W A S D, the game reads for both.
+#
+# Tap only: nothing in a firefight waits on a long-press window (constraint 4).
+#
+# Not played. See playtests.md.
+profile:
+  id: 65bfc878-513a-40df-affa-1d5c61a3e7c2
+  name: Helldivers 2 default (left)
+  device: cyborg2-left
+  unit: left
+  template: templates/everspace2-akimbo-left.json
+  set: default
+  output: hellDivers_default_left.json
+  sensor: false
+positions:
+  stick:
+    mode: keyboard
+    directions: { up: move_forward, right: strafe_right, down: move_back, left: strafe_left }
+
+  # Pinky bank: the stratagem on the resting row, the backpack and drop above it.
+  pinky_1: {label: Backpack, tap: backpack}
+  pinky_2: {label: Drop, tap: drop}
+  pinky_3: {label: Stratagem (hold), tap: stratagem}
+  pinky_4: {label: Ping, tap: ping}
+
+  # Ring bank: the four equipment slots, in the game's order.
+  ring_1: {label: Primary, tap: weapon_1}
+  ring_2: {label: Secondary, tap: weapon_2}
+  ring_3: {label: Support weapon, tap: weapon_3}
+  ring_4: {label: Grenade slot, tap: grenade_slot}
+
+  # Middle: the things a fight needs constantly.
+  middle_1: {label: Push to talk, tap: push_to_talk}
+  middle_2: {label: Reload, tap: reload}
+  middle_3: {label: Interact, tap: interact}
+  middle_4: {label: Stim, tap: stim}
+
+  # Index: stance, with sprint on the resting row.
+  index_1: {label: Prone, tap: prone}
+  index_2: {label: Climb / vault, tap: jump}
+  index_3: {label: Sprint, tap: sprint}
+  index_4: {label: Crouch, tap: crouch}
+
+  # Side keys: the two attacks that are not the trigger.
+  pinky_side: {label: Melee, tap: melee}
+  index_side: {label: Throw grenade, tap: grenade}
+
+  # Thumb aux: the dive, a thumb's reach from the stick.
+  thumb_aux_lower: {label: Dive, tap: dive}
+
+  # Bottom row: menus only.
+  pinky_5:  {label: Main menu, tap: menu_main}
+  middle_5: {label: Emote, tap: emote}
+  index_5:  {label: Map, tap: map}

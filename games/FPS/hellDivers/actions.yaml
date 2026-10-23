@@ -1,0 +1,55 @@
+# Helldivers 2 -- the in-game key behind each action in the FPS vocabulary.
+#
+# These are the game's DEFAULT keys, from Arrowhead's own list
+# (content.thehelldiversgame.com/help/inputs.md). The owner's input_settings.config, read
+# 2026-10-21, holds only sensitivity settings, so the defaults are what the game uses.
+#
+# FPS actions the game has no key for (next/previous weapon, abilities, equipment,
+# flashlight, inventory, scoreboard) are left without one, and no layout puts them on a
+# control. Aim, fire and look stay on the mouse.
+extends: genres/FPS/actions.yaml
+game: Helldivers 2
+
+actions:
+  # --- movement ------------------------------------------------------------------
+  move_forward:     {key: KeyW}
+  move_back:        {key: KeyS}
+  strafe_left:      {key: KeyA}
+  strafe_right:     {key: KeyD}
+  sprint:           {meta: ShiftLeft}
+  jump:             {key: Space, label: Climb / vault}
+  crouch:           {key: KeyC}
+  prone:            {key: KeyZ}
+  # Alt with Shift (sprint) switches the input language on a machine with more than one,
+  # and Alt with Tab (map) leaves the game; Ctrl (stratagem) with Shift switches the
+  # keyboard layout. If any of these bite, rebind dive or the stratagem key in the game
+  # and change it here.
+  dive:             {meta: AltLeft, label: Dive}
+
+  # --- weapons -------------------------------------------------------------------
+  reload:           {key: KeyR}
+  melee:            {key: KeyF}
+  grenade:          {key: KeyG, label: Throw grenade}
+  weapon_1:         {key: Digit1, label: Primary}
+  weapon_2:         {key: Digit2, label: Secondary}
+  weapon_3:         {key: Digit3, label: Support weapon}
+  stim:             {key: KeyV}
+
+  # The stratagem input. Hold it and enter the code with W, A, S and D -- the movement
+  # keys, so the stick enters the code while this is held and no separate direction
+  # actions exist (they would collide with movement). Never latched: constraint 6.
+  stratagem:        {meta: ControlLeft, label: Stratagem (hold), tags: [combat]}
+  grenade_slot:     {key: Digit4, label: Grenade slot, tags: [combat]}
+  backpack:         {key: Digit5, label: Backpack, tags: [combat]}
+  drop:             {key: KeyX, label: Drop, tags: [utility]}
+
+  # --- utility -------------------------------------------------------------------
+  interact:         {key: KeyE}
+  ping:             {key: KeyQ, label: Ping / comms wheel,
+                     note: "Tap pings; the game opens the comms wheel on a long press of Q itself."}
+  push_to_talk:     {key: CapsLock}
+
+  # --- menus ---------------------------------------------------------------------
+  map:              {key: Tab}
+  emote:            {key: KeyB, label: Emote}
+  menu_main:        {key: Escape, note: "Ctrl+Escape is the Windows Start menu: let go of the stratagem key first."}
