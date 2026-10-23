@@ -1480,6 +1480,8 @@ interface Place {
 }
 
 function storedPlace(payload: EditorPayload): Place {
+  // A new page: what it keeps is written afresh, whatever an earlier one wrote.
+  keptPlace = null;
   const first = payload.games[0];
   const fallback: Place = {
     gameIndex: 0,
@@ -1505,14 +1507,17 @@ function storedPlace(payload: EditorPayload): Place {
   };
 }
 
+/** The place last written, so a render that did not move the page does not write it again. */
+let keptPlace: string | null = null;
+
 function keepPlace(): void {
   const game = state.payload.games[state.gameIndex];
   if (game === undefined) return;
+  const place = JSON.stringify({ game: game.slug, set: state.setName, mode: state.mode });
+  if (place === keptPlace) return;
   try {
-    window.localStorage.setItem(
-      PLACE_KEY,
-      JSON.stringify({ game: game.slug, set: state.setName, mode: state.mode }),
-    );
+    window.localStorage.setItem(PLACE_KEY, place);
+    keptPlace = place;
   } catch {
     // Not kept across reloads, which is all that is lost.
   }

@@ -3,7 +3,7 @@
  * A reload opens where the page was: the game, the layout and the tab. It used to open on
  * the first game every time.
  */
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { start } from "../../../src/editor/app.js";
 import { buildPayload } from "../../../src/lib/editor/payload.js";
@@ -88,5 +88,20 @@ describe("where the page was, across a reload", () => {
     mount();
     expect(selects()[0]?.value).toBe("0");
     expect(openTab()).toBe("Edit");
+  });
+
+  it("writes the place only when it moves, not on every render", () => {
+    // It used to write storage on every render, the key tester's included.
+    mount(twoGames());
+    const setItem = vi.spyOn(window.localStorage, "setItem");
+    try {
+      tab("Edit");
+      tab("Edit");
+      expect(setItem.mock.calls.filter(([key]) => key === "azeron-editor-place")).toHaveLength(0);
+      choose(0, "1");
+      expect(setItem.mock.calls.filter(([key]) => key === "azeron-editor-place")).toHaveLength(1);
+    } finally {
+      setItem.mockRestore();
+    }
   });
 });
