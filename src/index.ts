@@ -1,47 +1,91 @@
 #!/usr/bin/env node
-/** azeron -- build, decompile, lint, cheatsheet, editor, install. */
+/** azeron -- build, decompile, lint, editor, install. */
 
 import { createServer } from "node:http";
+import type { IncomingMessage, ServerResponse } from "node:http";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { parseArgs } from "node:util";
 
-import { dataDirs, repoPath, repoRoot } from "./config/paths.js";
+import { dataDirs, dataRoot, isEntryPoint, repoPath, repoRoot } from "./config/paths.js";
 import { bindingSheet, renderBindingsCsv, renderBindingsMarkdown } from "./lib/bindings.js";
-import { renderCheatsheet } from "./lib/cheatsheet.js";
 import { CompileError, compileProfile, dumps } from "./lib/compile.js";
 import { decompile, dumpProfile } from "./lib/decompile.js";
 import { buildPayload } from "./lib/editor/payload.js";
 import { renderEditorHtml } from "./lib/editor/html.js";
 import {
   appIsRunning,
+  appRunningState,
+  closeApp,
   findStore,
   installProfile,
   listDeviceIds,
   listStoredProfiles,
 } from "./lib/install.js";
-import { loadDevice, loadTemplate, writeText } from "./lib/io.js";
+import {
+  appendLog,
+  loadBytes,
+  loadDevice,
+  loadTemplate,
+  forgetDirectWrite,
+  saveDirectWrite,
+  writeText,
+} from "./lib/io.js";
+import { parseDeletedSlot, parseDirectWrite } from "./lib/written.js";
+import {
+  diffCaptures,
+  extractEvents,
+  filterEvents,
+  formatDevices,
+  formatDiff,
+  formatEvents,
+  summariseDevices,
+} from "./lib/hidcapture.js";
+import type { HidEvent } from "./lib/hidcapture.js";
+import { readUsbPcap } from "./lib/usbpcap.js";
 import { buildProbeProfile, buildStickCalibrationProfile } from "./lib/probe.js";
-import { compareToGame, gameCollisions, parseInput } from "./lib/ingame.js";
-import { gameConfig, seedActions, unnamedPositions } from "./lib/scaffold.js";
-import { CONTENT_TYPES, SaveRejected, parseSaveRequest, resolveSavePath } from "./lib/serve.js";
+import { checkFileName } from "./lib/scaffold.js";
+import { patchActionBindings } from "./lib/actionfile.js";
+import type { BindingChange } from "./lib/actionfile.js";
+import {
+  CONTENT_TYPES,
+  SaveRejected,
+  parseSaveRequest,
+  preserveHeader,
+  resolveSavePath,
+  guardedListener,
+  readBody,
+  validateSaveContent,
+} from "./lib/serve.js";
 import {
   buildAll,
+  createGame,
+  deviceNames,
+  ImportCollision,
   importExport,
+  applyIngame,
+  capturePedalsFrom,
+  checkAfterSave,
+  setPedalCandidates,
   ingameReport,
-  lintAll,
+  unitsReport,
+  lintFails,
   profilePathFor,
   templatePathFor,
 } from "./lib/tasks.js";
+import type { SaveCheck } from "./lib/tasks.js";
+import type { UnitsReport } from "./lib/units.js";
 import type { ExportDocument } from "./types/azeron.js";
-import { dumpYaml } from "./lib/yaml.js";
 import { ERROR, WARNING, formatFinding, lintGame, lintGenre } from "./lib/lint.js";
 import type { LintResult } from "./lib/lint.js";
 import { Game, Genre } from "./lib/model.js";
 import type { Profile } from "./lib/model-core.js";
 import type { ProfileMeta } from "./types/profile.js";
+import { messageOf } from "./lib/object.js";
 
 const DEFAULT_DEVICE = "cyborg2-left";
+const LOOPBACK_BINDINGS = new Set(["127.0.0.1", "::1", "localhost"]);
+const WILDCARD_BINDINGS = new Set(["0.0.0.0", "::"]);
 const DEFAULT_PROBE_DEVICES = ["cyborg2-left", "cyborg2-right"];
 
 function out(message: string): void {
@@ -82,7 +126,7 @@ function cmdBuild(selector: string | undefined, check: boolean): number {
       try {
         text = compiled(profile, game);
       } catch (error) {
-        process.stderr.write(`error: ${(error as Error).message}\n`);
+        process.stderr.write(`error: ${messageOf(error)}\n`);
         failures += 1;
         continue;
       }
@@ -128,7 +172,7 @@ function report(label: string, result: LintResult, strict: boolean, showAcked: b
       );
     }
   }
-  return errors.length > 0 || (strict && warnings.length > 0) ? 1 : 0;
+  return lintFails(result, strict) ? 1 : 0;
 }
 
 function cmdLint(selector: string | undefined, strict: boolean, showAcked: boolean): number {
@@ -168,28 +212,6 @@ function cmdRoundtrip(selector: string | undefined): number {
   return failures > 0 ? 1 : 0;
 }
 
-function cmdCheatsheet(selector: string | undefined): number {
-  for (const game of games(selector)) {
-    // One page per set, so a pair is learned as a pair rather than as two sheets.
-    const bySet = new Map<string, Profile[]>();
-    for (const profile of game.loadedProfiles()) {
-      const key = profile.set ?? profile.slug;
-      const list = bySet.get(key) ?? [];
-      list.push(profile);
-      bySet.set(key, list);
-    }
-    for (const [setName, profiles] of [...bySet].sort(([a], [b]) => a.localeCompare(b))) {
-      const ordered = [...profiles].sort(
-        (a, b) => Number(a.unit === "right") - Number(b.unit === "right"),
-      );
-      const outPath = join(game.distDir(), "cheatsheets", `${setName}.html`);
-      writeText(outPath, renderCheatsheet(ordered, game.actions));
-      out(`wrote ${outPath}  (${String(ordered.length)} unit(s))`);
-    }
-  }
-  return 0;
-}
-
 const PROBE_ID = "7c3f5f2e-2a3b-4c21-9b7d-0d2f6a1c4e88";
 const PROBE_STICK_ID = "b41d9a06-5f8e-4a77-9c15-3e6b2d4f8a19";
 
@@ -227,6 +249,8 @@ function cmdProbe(devices: string[], templatePath: string, outDir: string): numb
   out("  1. Import probe-1-pins.json in the Azeron app and write it to the unit.");
   out("  2. Close the app, open the editor, and switch to Press test.");
   out("  3. Export the device YAML it produces over devices/<unit>.yaml.");
+  out("  4. Delete PROBE 1 pins and PROBE 2 stick zero from the unit's on-board profiles in");
+  out("     the Azeron app. Left there, the unit's profile button cycles onto them.");
   out("");
   out("  `azeron editor` can download both profiles itself -- this command is for");
   out("  getting them without opening a browser.");
@@ -244,72 +268,22 @@ interface ImportFlags {
 
 /** Start a game folder from an Azeron export. */
 function cmdImport(exportPath: string, flags: ImportFlags): number {
-  const slug = flags.game;
-  const gameDir = join(dataDirs.games, flags.genre, slug);
-  if (existsSync(repoPath(join(gameDir, "actions.yaml")))) {
-    process.stderr.write(`error: ${gameDir} already has an actions.yaml.\n`);
-    return 1;
-  }
-
-  const device = loadDevice(flags.device);
-  const setName = flags.set ?? "v1";
-  const exported = loadTemplate(exportPath);
-
-  // The export is kept verbatim as the compiler's template and the round-trip reference.
-  const templateRel = join(dataDirs.templates, `${slug}-${setName}-${device.hand ?? "left"}.json`);
-  writeText(templateRel, `${JSON.stringify(exported, null, 2)}\n`);
-
-  const actions = seedActions(exported);
-  writeText(
-    join(gameDir, "actions.yaml"),
-    dumpYaml(
-      {
-        extends: join(dataDirs.genres, flags.genre, "actions.yaml"),
-        game: flags.name ?? slug,
-        actions,
-      },
-      `# ${flags.name ?? slug} -- every action and the in-game key it is bound to.\n` +
-        "#\n# Seeded by `azeron import` from the keys the export sends. Each action is named\n" +
-        "# after its key because an export cannot say what a key does in game. Rename and\n" +
-        "# tag them as you learn them; the genre vocabulary is inherited above.\n",
-    ),
-  );
-
-  writeText(
-    join(gameDir, "game.yaml"),
-    dumpYaml(
-      gameConfig({
-        name: flags.name ?? slug,
-        slug,
-        genre: flags.genre,
-        template: templateRel,
-        exportTo: flags.exportTo,
-      }),
-      `# ${flags.name ?? slug}\n`,
-    ),
-  );
-
-  const game = new Game(gameDir);
-  const data = decompile(exported, device, {
-    actions: game.actions,
-    meta: {
-      set: setName,
-      template: templateRel,
-      output: `${slug}_${device.hand ?? "left"}.json`,
-    },
+  const result = createGame({
+    exported: loadTemplate(exportPath),
+    name: flags.name ?? flags.game,
+    slug: flags.game,
+    genre: flags.genre,
+    device: flags.device,
+    set: flags.set ?? "v1",
+    exportTo: flags.exportTo,
   });
-  const profileRel = join(gameDir, "profiles", `${setName}-${device.hand ?? "left"}.yaml`);
-  writeText(profileRel, dumpProfile(data));
 
-  writeText(join(gameDir, "playtests.md"), `# ${flags.name ?? slug} playtests\n`);
-
-  const unnamed = unnamedPositions(data, device.data);
-  out(`created ${gameDir}`);
-  out(`  ${templateRel}`);
-  out(`  ${profileRel}`);
-  out(`  ${String(Object.keys(actions).length)} action(s) seeded from the keys it sends`);
-  if (unnamed.length > 0) {
-    out(`  ${String(unnamed.length)} position(s) still raw: ${unnamed.join(", ")}`);
+  out(`created ${result.gameDir}`);
+  out(`  ${result.templatePath}`);
+  out(`  ${result.profilePath}`);
+  out(`  ${String(result.actions)} action(s) seeded from the keys it sends`);
+  if (result.unnamed.length > 0) {
+    out(`  ${String(result.unnamed.length)} position(s) still raw: ${result.unnamed.join(", ")}`);
   }
   if (flags.exportTo) out(`  builds will also be written to ${flags.exportTo}`);
   out("");
@@ -318,71 +292,256 @@ function cmdImport(exportPath: string, flags: ImportFlags): number {
 }
 
 /** Compare actions.yaml against the game's own binding file. */
-function cmdIngame(selector: string | undefined, configPath: string | undefined): number {
+function cmdIngame(
+  selector: string | undefined,
+  configPath: string | undefined,
+  apply: boolean,
+  pedals: {
+    capture: boolean;
+    require: boolean;
+    set: string | undefined;
+    assign: string[];
+    ignoreDevices: string[];
+    candidate: string[];
+  },
+): number {
   let failures = 0;
   for (const game of games(selector)) {
-    const path = configPath ?? game.config.ingame_config;
-    if (path === undefined) {
-      process.stderr.write(
-        `error: ${game.slug} has no ingame_config in game.yaml, and no --config given.\n`,
+    try {
+      if (pedals.candidate.length > 0) {
+        const done = setPedalCandidates(game, {
+          write: true,
+          ...(pedals.set === undefined ? {} : { set: pedals.set }),
+          names: parseAssign(pedals.candidate, "--candidate", "pedal_axis=NAME"),
+        });
+        out(`${game.slug}: pedals of ${done.set}, untested candidate names written`);
+        out(`  wrote ${String(done.written)}`);
+        out("  these are NOT captured: `azeron ingame --apply` will write them into the game's");
+        out("  file so they can be tried, and says so. A real capture replaces them.");
+        continue;
+      }
+      if (pedals.capture) {
+        cmdCapturePedals(game, configPath, pedals);
+        continue;
+      }
+      if (apply) {
+        const result = applyIngame(game, {
+          write: true,
+          toGame: true,
+          requirePedals: pedals.require,
+          ...(configPath === undefined ? {} : { override: configPath }),
+        });
+        out(`${game.slug}: generated from ${result.source}`);
+        if (result.changes.length === 0) out("  the game already agrees with actions.yaml");
+        for (const change of result.changes) {
+          out(
+            `  ${change.display.padEnd(30)} ${change.from.padEnd(14)} -> ${change.to.padEnd(14)}` +
+              ` (${String(change.by)})`,
+          );
+        }
+        for (const path of result.written) out(`  wrote ${path}`);
+        if (result.backups !== undefined && result.backups.length > 0) {
+          for (const path of result.backups) out(`  the game's previous file is at ${path}`);
+        } else if (result.backup !== null) {
+          out(`  the game's previous file is at ${result.backup}`);
+        }
+        for (const entry of result.collisions) {
+          out(`  shared on purpose: ${entry.key} -> ${entry.actions.join(" + ")}`);
+        }
+        if (result.pedals !== null) {
+          out(`  pedals of set ${result.pedals.set}:`);
+          for (const change of result.pedals.changes) {
+            out(
+              `    ${change.display.padEnd(28)} ${change.field.padEnd(11)} ` +
+                `${change.from} -> ${change.to}` +
+                (change.pedalAxis === null ? "" : ` (${change.pedalAxis})`) +
+                (change.status === undefined || change.status === "confirmed"
+                  ? ""
+                  : `  [name ${change.status}, not flown]`),
+            );
+          }
+          for (const wait of result.pedals.waiting) {
+            out(
+              `    waiting for capture: ${wait.pedalAxis} (${wait.label}) -> ${wait.row}` +
+                " -- nothing written for it",
+            );
+          }
+          if (result.pedals.waiting.length > 0) {
+            out(
+              "    bind those in the game's controls screen, close the game, then " +
+                "`azeron ingame --capture-pedals` -- or, if the game will not take them, " +
+                "write a candidate by hand with --candidate pedal_axis=NAME",
+            );
+          }
+        }
+        continue;
+      }
+
+      const report = ingameReport(game, configPath);
+      if (report.pedals !== null) {
+        const axes = report.pedals.axes;
+        const waiting = axes.filter((axis) => axis.status === "waiting");
+        const named = axes.filter((axis) => axis.status !== "waiting");
+        out(
+          `${game.slug}: pedals of ${report.pedals.set}: ${String(named.length)} named, ` +
+            `${String(waiting.length)} waiting for a name` +
+            (waiting.length > 0
+              ? ` (${waiting.map((axis) => `${axis.pedalAxis} -> ${String(axis.row)}`).join(", ")})`
+              : ""),
+        );
+        for (const axis of named) {
+          out(
+            `  ${axis.pedalAxis.padEnd(10)} ${String(axis.name)}  [${axis.status}]` +
+              (axis.status === "confirmed" ? "" : " -- not flown"),
+          );
+        }
+      }
+      const differs = report.rows.filter((row) => row.status === "differs");
+      const unmatched = report.rows.filter((row) => row.status === "unmatched");
+      out(`${game.slug}: ${report.path}`);
+      out(
+        `  ${String(report.rows.filter((row) => row.status === "agrees").length)} agree, ` +
+          `${String(differs.length)} differ, ${String(unmatched.length)} not in the game`,
       );
+      if (differs.length > 0) {
+        out("");
+        out("  the game has these on another key -- `azeron ingame --apply` fixes it:");
+        for (const row of differs) {
+          const theirs = row.theirs[0];
+          out(
+            `    ${row.label.padEnd(26)} ours ${String(row.ours).padEnd(14)} ` +
+              `game ${String(theirs?.key)}`,
+          );
+        }
+      }
+      if (unmatched.length > 0) {
+        out("");
+        out("  we send these, the game has nothing on them:");
+        for (const row of unmatched) out(`    ${row.label.padEnd(26)} ${String(row.ours)}`);
+      }
+      if (report.collisions.length > 0) {
+        out("");
+        out("  keys two live actions share in the game:");
+        for (const entry of report.collisions) {
+          out(`    ${entry.key.padEnd(16)} ${entry.actions.join(" + ")}`);
+        }
+      }
+    } catch (error) {
+      process.stderr.write(`error: ${game.slug}: ${messageOf(error)}\n`);
       failures += 1;
-      continue;
-    }
-    if (!existsSync(path)) {
-      process.stderr.write(`error: ${path} does not exist.\n`);
-      failures += 1;
-      continue;
-    }
-
-    const file = parseInput(readFileSync(path, "utf8"));
-    const rows = compareToGame(game.actions, file);
-    const agrees = rows.filter((row) => row.status === "agrees");
-    const unmatched = rows.filter((row) => row.status === "unmatched");
-
-    out(`${game.slug}: ${path}`);
-    out(
-      `  ${String(file.entries.length)} binding rows, ` +
-        `${String(agrees.length)} of our actions found in game, ` +
-        `${String(unmatched.length)} not bound to anything`,
-    );
-
-    out("");
-    out("  what the game does with the keys we send:");
-    for (const row of agrees) {
-      const what = row.theirs
-        .map((entry) => `${entry.display}${entry.scale < 0 ? " (negative)" : ""}`)
-        .join(" + ");
-      const flag = row.theirs.length > 1 ? "  <-- more than one" : "";
-      out(`    ${row.label.padEnd(24)} ${String(row.ours).padEnd(16)} ${what}${flag}`);
-    }
-
-    if (unmatched.length > 0) {
-      out("");
-      out("  we send these, the game has nothing on them:");
-      for (const row of unmatched) out(`    ${row.label.padEnd(24)} ${String(row.ours)}`);
-    }
-
-    const collisions = gameCollisions(file);
-    if (collisions.length > 0) {
-      out("");
-      out("  keys the game itself binds twice:");
-      for (const entry of collisions)
-        out(`    ${entry.key.padEnd(16)} ${entry.actions.join(" + ")}`);
     }
   }
   return failures > 0 ? 1 : 0;
 }
 
+/** `--assign NAME=axis` pairs, as a map. */
+function parseAssign(
+  pairs: readonly string[],
+  flag = "--assign",
+  shape = "NAME=pedal_axis",
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const pair of pairs) {
+    const at = flag === "--assign" ? pair.lastIndexOf("=") : pair.indexOf("=");
+    if (at <= 0 || at === pair.length - 1) {
+      throw new Error(`${flag} needs ${shape}, not '${pair}'`);
+    }
+    // --assign is NAME=axis, the game's name first; --candidate is axis=NAME.
+    out[pair.slice(0, at)] = pair.slice(at + 1);
+  }
+  return out;
+}
+
+/** Read the pedals' game names out of a file they have been bound in, and record them. */
+function cmdCapturePedals(
+  game: Game,
+  configPath: string | undefined,
+  options: { set: string | undefined; assign: string[]; ignoreDevices: string[] },
+): void {
+  const done = capturePedalsFrom(game, {
+    write: true,
+    ...(options.set === undefined ? {} : { set: options.set }),
+    ...(configPath === undefined ? {} : { override: configPath }),
+    assign: parseAssign(options.assign),
+    ignoreDevices: options.ignoreDevices,
+  });
+  const { result } = done;
+  out(`${game.slug}: pedals of ${done.set}, read from ${done.source}`);
+  for (const other of result.otherDevices)
+    out(`  skipped ${other}: already has buttons in the file`);
+  for (const found of result.known) {
+    out(
+      `  already recorded: ${found.pedalAxis} = ${found.name} [${found.status}]` +
+        `, found on ${found.row} as the layout expects`,
+    );
+  }
+  for (const found of result.recorded) {
+    out(
+      `  ${found.pedalAxis.padEnd(10)} = ${found.name}   (found on ${found.row}, ${found.slot}; ` +
+        "recorded as bound: the game wrote it there, which is not proof the right pedal was moved)",
+    );
+  }
+  if (result.conflicts.length > 0) {
+    out("");
+    out("  the file and the device data DISAGREE -- nothing was changed:");
+    for (const found of result.conflicts) {
+      out(`    ${found.name} on ${found.row}: ${found.reason}`);
+    }
+  }
+  if (done.written !== null) out(`  wrote ${done.written}`);
+  if (result.unresolved.length > 0) {
+    out("");
+    out("  found, but not placed -- nothing was guessed:");
+    for (const found of result.unresolved) {
+      out(`    ${found.name}   on ${found.row} (${found.slot}): ${found.reason}`);
+    }
+    out("  say which pedal axis each is with --assign NAME=pedal_axis and run it again.");
+  }
+  if (
+    result.recorded.length === 0 &&
+    result.unresolved.length === 0 &&
+    result.conflicts.length === 0 &&
+    result.known.length === 0
+  ) {
+    out(
+      "  nothing new: no Joystick axis is bound to a pedal that is not already recorded. In " +
+        "the game's controls screen, Joystick column, bind each pedal on the axis the layout " +
+        "says it drives, quit the game so it writes Input.ini, then run this again.",
+    );
+  }
+  for (const entry of result.unproven) {
+    out(
+      `  not seen in this file: ${entry.pedalAxis} = ${entry.name} [${entry.status}]` +
+        ` (${String(entry.row)})`,
+    );
+  }
+  if (result.missing.length > 0) {
+    out("");
+    out("  still without a name -- nothing is written for these:");
+    for (const entry of result.missing) {
+      out(`    ${entry.pedalAxis} (${entry.label}) -> ${String(entry.row)}`);
+    }
+    out(
+      "  if the game's controls screen will not bind one, write a name to try by hand: " +
+        "--candidate pedal_axis=NAME",
+    );
+  }
+}
+
 /** Serve the editor and let it write back into the repo. */
-function cmdServe(port: number): number {
+function cmdServe(port: number, host: string): number {
   const bundle = readBundle("editor-app.js");
   if (bundle === null) {
     process.stderr.write("error: build/editor-app.js is missing. Run `npm run build` first.\n");
     return 1;
   }
 
-  const server = createServer((request, response) => {
+  // Read from disk for every page, never kept. It was cached and cleared when the server
+  // itself wrote, so a file changed any other way -- actions.yaml edited by hand, a game
+  // folder removed -- stayed on screen until something was saved through the page.
+  const payload = buildPayload;
+
+  const route = (request: IncomingMessage, response: ServerResponse): void => {
     const send = (status: number, body: string, type = "application/json"): void => {
       response.writeHead(status, { "content-type": type, "cache-control": "no-store" });
       response.end(body);
@@ -391,35 +550,148 @@ function cmdServe(port: number): number {
     const url = request.url ?? "/";
     if (request.method === "GET" && (url === "/" || url === "/index.html")) {
       // Built fresh per request, so a file edited on disk shows up on reload.
-      send(200, renderEditorHtml(buildPayload(), bundle, true), CONTENT_TYPES[".html"]);
+      send(200, renderEditorHtml(payload(), bundle, true), CONTENT_TYPES[".html"]);
       return;
     }
     if (request.method === "GET" && url === "/api/payload") {
-      send(200, JSON.stringify(buildPayload()));
+      send(200, JSON.stringify(payload()));
+      return;
+    }
+    if (request.method === "GET" && url === "/api/azeron-app") {
+      // The editor writes to a unit on the channel the Azeron app uses, so it asks first.
+      send(200, JSON.stringify({ ok: true, running: appRunningState() }));
+      return;
+    }
+    if (request.method === "POST" && url === "/api/azeron-app/close") {
+      // Asked for from the write bar, by the owner, when the app is in the way.
+      readBody(request, response, 1_000, () => {
+        void closeApp().then((running) => {
+          send(200, JSON.stringify({ ok: true, running }));
+        });
+      });
+      return;
+    }
+    if (request.method === "POST" && url === "/api/unit-log") {
+      // What a write to the units did on the page, in this output, where a failure on the
+      // owner's screen can be read afterwards.
+      readBody(request, response, 10_000, (body) => {
+        try {
+          const { line, trace } = JSON.parse(body) as { line?: unknown; trace?: unknown };
+          if (typeof line !== "string") throw new Error("needs a line");
+          const stamp = new Date().toISOString();
+          const text = line.slice(0, 2_000);
+          out(`[units] ${text}`);
+          // Kept in a file too, so a failure can be read after the server is gone; with the
+          // reports that led up to it when the page sends them.
+          const steps = Array.isArray(trace)
+            ? trace.filter((entry) => typeof entry === "string")
+            : [];
+          appendLog(
+            "units.log",
+            `${stamp} ${text}\n` + steps.map((entry) => `    ${entry.slice(0, 300)}\n`).join(""),
+          );
+          send(200, JSON.stringify({ ok: true }));
+        } catch (error) {
+          send(400, JSON.stringify({ ok: false, error: messageOf(error) }));
+        }
+      });
+      return;
+    }
+    if (request.method === "POST" && url === "/api/units/written") {
+      // A write the page made straight to a unit and read back clean, so the units report
+      // stops asking for an import the unit no longer needs.
+      readBody(request, response, 10_000, (body) => {
+        try {
+          const write = parseDirectWrite(JSON.parse(body));
+          saveDirectWrite(write);
+          appendLog(
+            "units.log",
+            `${new Date().toISOString()} recorded: unit ${write.deviceId} slot ${String(write.slot)} holds ${write.set} ${write.unit} (${write.fingerprint})\n`,
+          );
+          send(200, JSON.stringify({ ok: true }));
+        } catch (error) {
+          send(400, JSON.stringify({ ok: false, error: messageOf(error) }));
+        }
+      });
+      return;
+    }
+    if (request.method === "POST" && url === "/api/units/deleted") {
+      // A slot the page deleted from a unit: whatever was recorded as written there is gone.
+      readBody(request, response, 1_000, (body) => {
+        try {
+          const { deviceId, slot } = parseDeletedSlot(JSON.parse(body));
+          forgetDirectWrite(deviceId, slot);
+          appendLog(
+            "units.log",
+            `${new Date().toISOString()} deleted: unit ${deviceId} slot ${String(slot)}\n`,
+          );
+          send(200, JSON.stringify({ ok: true }));
+        } catch (error) {
+          send(400, JSON.stringify({ ok: false, error: messageOf(error) }));
+        }
+      });
+      return;
+    }
+    if (request.method === "GET" && url.startsWith("/api/units")) {
+      const query = new URL(url, "http://localhost").searchParams;
+      const slug = query.get("game");
+      try {
+        if (!slug) throw new Error("name a game: /api/units?game=<slug>&set=<layout>");
+        const game = games(slug)[0];
+        if (!game) throw new Error(`no game '${slug}'`);
+        send(
+          200,
+          JSON.stringify({ ok: true, report: unitsReport(game, query.get("set") ?? undefined) }),
+        );
+      } catch (error) {
+        send(400, JSON.stringify({ ok: false, error: messageOf(error) }));
+      }
       return;
     }
     if (request.method === "GET" && url.startsWith("/api/ingame")) {
       const slug = new URL(url, "http://localhost").searchParams.get("game");
       try {
-        const game = games(slug ?? undefined)[0];
-        if (!game) throw new Error("no such game");
+        if (!slug) throw new Error("name a game: /api/ingame?game=<slug>");
+        const game = games(slug)[0];
+        if (!game) throw new Error(`no game '${slug}'`);
         send(200, JSON.stringify({ ok: true, report: ingameReport(game) }));
       } catch (error) {
-        send(400, JSON.stringify({ ok: false, error: (error as Error).message }));
+        send(400, JSON.stringify({ ok: false, error: messageOf(error) }));
       }
       return;
     }
-    if (request.method === "POST" && (url === "/api/build" || url === "/api/import")) {
-      let body = "";
-      request.on("data", (chunk: Buffer) => {
-        body += chunk.toString("utf8");
-        if (body.length > 20_000_000) request.destroy();
-      });
-      request.on("end", () => {
+    if (
+      request.method === "POST" &&
+      (url === "/api/build" || url === "/api/import" || url === "/api/game")
+    ) {
+      readBody(request, response, 20_000_000, (body) => {
         try {
           if (url === "/api/build") {
             const result = buildAll(Game.discover());
             send(200, JSON.stringify({ ok: result.errors.length === 0, ...result }));
+            return;
+          }
+          if (url === "/api/game") {
+            // A new game. Every name in it becomes part of a path, and createGame checks
+            // each one -- the page's own check is a courtesy, this is the gate.
+            const fresh = JSON.parse(body) as {
+              name?: string;
+              genre?: string;
+              device?: string;
+              set?: string;
+              exported?: ExportDocument;
+              overwrite?: boolean;
+            };
+            if (!fresh.exported) throw new Error("a new game needs the export");
+            const result = createGame({
+              exported: fresh.exported,
+              name: fresh.name ?? "",
+              genre: fresh.genre ?? "",
+              device: fresh.device ?? "",
+              set: fresh.set ?? "",
+              ...(fresh.overwrite === true ? { overwrite: true } : {}),
+            });
+            send(200, JSON.stringify({ ok: true, ...result }));
             return;
           }
           const parsed = JSON.parse(body) as {
@@ -427,11 +699,18 @@ function cmdServe(port: number): number {
             device?: string;
             set?: string;
             exported?: ExportDocument;
+            overwrite?: boolean;
           };
           const game = games(parsed.game)[0];
           if (!game) throw new Error("no such game");
           if (!parsed.exported || !parsed.device || !parsed.set) {
             throw new Error("import needs exported, device and set");
+          }
+          // The name becomes part of a file path. Unchecked, "../" in it wrote outside the
+          // game's folder.
+          checkFileName("layout name", parsed.set);
+          if (!deviceNames().includes(parsed.device)) {
+            throw new Error(`'${parsed.device}' is not a device map`);
           }
           const unit = loadDevice(parsed.device).hand ?? "left";
           const result = importExport({
@@ -441,64 +720,156 @@ function cmdServe(port: number): number {
             profilePath: profilePathFor(game, parsed.set, unit),
             templatePath: templatePathFor(game, parsed.set, unit),
             meta: { set: parsed.set, output: `${game.slug}_${parsed.set}_${unit}.json` },
+            ...(parsed.overwrite === true ? { overwrite: true } : {}),
           });
           send(200, JSON.stringify({ ok: true, ...result, yaml: undefined }));
         } catch (error) {
-          send(400, JSON.stringify({ ok: false, error: (error as Error).message }));
+          // A name already in use is the user's to resolve, not a malformed request.
+          const status = error instanceof ImportCollision ? 409 : 400;
+          send(status, JSON.stringify({ ok: false, error: messageOf(error) }));
+        }
+      });
+      return;
+    }
+    if (request.method === "POST" && url === "/api/actions") {
+      // Keys, labels and role tags, patched line by line. The path is the game's own,
+      // derived here -- the page names a game, never a file.
+      readBody(request, response, 200_000, (body) => {
+        try {
+          const parsed = JSON.parse(body) as {
+            game?: string;
+            changes?: Record<string, BindingChange>;
+          };
+          if (!parsed.game || !parsed.changes) throw new Error("needs game and changes");
+          const game = games(parsed.game)[0];
+          if (!game) throw new Error(`no game '${parsed.game}'`);
+          const path = join(game.rel, "actions.yaml");
+          const text = readFileSync(repoPath(path), "utf8");
+          writeFileSync(repoPath(path), patchActionBindings(text, parsed.changes), "utf8");
+          // The file is written. What follows is the verdict on it, not a condition of it:
+          // a failure here used to answer "not saved" about a file that was.
+          let check: SaveCheck | { error: string };
+          try {
+            check = checkAfterSave(path, Game.discover());
+          } catch (error) {
+            check = { error: messageOf(error) };
+          }
+          send(200, JSON.stringify({ ok: true, saved: true, path, check }));
+        } catch (error) {
+          send(400, JSON.stringify({ ok: false, error: messageOf(error) }));
+        }
+      });
+      return;
+    }
+    if (request.method === "POST" && url === "/api/ingame/apply") {
+      readBody(request, response, 10_000, (body) => {
+        try {
+          const parsed = JSON.parse(body) as { game?: string };
+          if (!parsed.game) throw new Error("needs game");
+          const game = games(parsed.game)[0];
+          if (!game) throw new Error(`no game '${parsed.game}'`);
+          const result = applyIngame(game, { write: true, toGame: true });
+          send(200, JSON.stringify({ ok: true, result }));
+        } catch (error) {
+          send(400, JSON.stringify({ ok: false, error: messageOf(error) }));
         }
       });
       return;
     }
     if (request.method === "POST" && url === "/api/save") {
-      let body = "";
-      request.on("data", (chunk: Buffer) => {
-        body += chunk.toString("utf8");
-        if (body.length > 2_000_000) request.destroy();
-      });
-      request.on("end", () => {
+      readBody(request, response, 2_000_000, (body) => {
         try {
           const { path, content } = parseSaveRequest(body);
-          const target = resolveSavePath(repoRoot, path);
+          const target = resolveSavePath(dataRoot, path);
+          // Nothing is written until the content parses as what the path says it is.
+          validateSaveContent(path, content);
           mkdirSync(dirname(target), { recursive: true });
-          writeFileSync(target, content, "utf8");
+          const existing = existsSync(target) ? readFileSync(target, "utf8") : null;
+          writeFileSync(target, preserveHeader(existing, content), "utf8");
 
-          // The point of saving into the repo is getting the verdict back, and dist/
-          // should not lag behind what was just written.
-          let verdict = "saved";
+          // The file is written. What follows is the verdict on it, not a condition of it.
+          let check: SaveCheck | { error: string };
           try {
-            const discovered = Game.discover();
-            const summaries = lintAll(discovered, Genre.discover());
-            const errors = summaries.flatMap((summary) => summary.errors);
-            const build = buildAll(discovered);
-            const changed = build.built.filter((entry) => entry.changed).length;
-            verdict =
-              errors.length > 0
-                ? `lint: ${errors.join(" | ")}`
-                : `saved, rebuilt ${String(changed)} profile(s), lint clean`;
-            if (build.errors.length > 0) verdict = `build: ${build.errors.join(" | ")}`;
+            check = checkAfterSave(path, Game.discover());
           } catch (error) {
-            verdict = `saved, but reloading failed: ${(error as Error).message}`;
+            check = { error: messageOf(error) };
           }
-          send(200, JSON.stringify({ ok: true, path, verdict }));
+          send(200, JSON.stringify({ ok: true, saved: true, path, check }));
         } catch (error) {
           const rejected = error instanceof SaveRejected;
-          send(
-            rejected ? 400 : 500,
-            JSON.stringify({ ok: false, error: (error as Error).message }),
-          );
+          send(rejected ? 400 : 500, JSON.stringify({ ok: false, error: messageOf(error) }));
         }
       });
       return;
     }
     send(404, JSON.stringify({ ok: false, error: "not found" }));
-  });
+  };
 
-  server.listen(port, () => {
+  // Loopback only unless the owner bound another interface on purpose; the Host check
+  // follows the same choice.
+  const extraHosts = LOOPBACK_BINDINGS.has(host)
+    ? []
+    : WILDCARD_BINDINGS.has(host)
+      ? ["*"]
+      : [host];
+  const server = createServer(guardedListener(route, () => port, extraHosts));
+
+  server.listen(port, host, () => {
     out(`editor on http://localhost:${String(port)}`);
+    if (!LOOPBACK_BINDINGS.has(host)) {
+      out(`  WARNING: listening on ${host}. Anyone who can reach it can write into the repo.`);
+    }
     out("  Saving writes straight into the repo and reports what the linter says.");
     out("  Ctrl-C to stop.");
   });
   return 0;
+}
+
+/** The report as lines: each unit, then what differs on it. */
+function unitsLines(report: UnitsReport): string[] {
+  const lines: string[] = [];
+  if (report.store === null) {
+    lines.push("the Azeron app's profiles were not found on this computer (set AZERON_STORE)");
+  }
+  for (const unit of report.units) {
+    const head = `${unit.set} ${unit.unit}: `;
+    if (unit.status === "written" && unit.written !== undefined) {
+      lines.push(
+        `${head}written to the unit directly on ${unit.written.at.slice(0, 10)}, into slot ` +
+          `${String(unit.written.slot)}, as it is now`,
+      );
+    }
+    if (unit.status === "matches") lines.push(`${head}the app has it as it is now`);
+    if (unit.status === "unbuilt") lines.push(`${head}${unit.file} has not been built`);
+    if (unit.status === "missing") {
+      lines.push(`${head}the app has no profile named "${unit.name}". Import ${unit.importPath}`);
+    }
+    if (unit.status === "differs") {
+      const count = unit.differences.length;
+      lines.push(
+        `${head}the app's copy differs on ${String(count)} control${count === 1 ? "" : "s"}. ` +
+          `Import ${unit.importPath} and write it to the unit.`,
+      );
+      for (const difference of unit.differences) {
+        lines.push(`  ${difference.where}: the app has ${difference.app}`);
+        lines.push(`  ${" ".repeat(difference.where.length)}  the layout has ${difference.layout}`);
+      }
+    }
+  }
+  return lines;
+}
+
+/** Whether the Azeron app holds each layout as it is compiled now. Non-zero when it does not. */
+function cmdUnits(selector: string | undefined, set: string | undefined, store?: string): number {
+  let behind = false;
+  for (const game of games(selector)) {
+    const report = unitsReport(game, set, store);
+    if (report.units.length === 0) continue;
+    out(`${game.name}${report.store === null ? "" : `  (app profiles: ${report.store})`}`);
+    for (const line of unitsLines(report)) out(`  ${line}`);
+    behind ||= report.units.some((unit) => unit.status !== "matches" && unit.status !== "written");
+  }
+  return behind ? 1 : 0;
 }
 
 function cmdBindings(selector: string | undefined): number {
@@ -548,7 +919,7 @@ interface DecompileFlags {
 function cmdDecompile(exportPath: string, flags: DecompileFlags): number {
   const game = flags.game ? games(flags.game)[0] : undefined;
   const meta: Partial<ProfileMeta> = {
-    template: flags.template ?? relative(repoRoot, repoPath(exportPath)),
+    template: flags.template ?? relative(dataRoot, repoPath(exportPath)),
   };
   if (flags.set) meta.set = flags.set;
   if (flags.outputName) meta.output = flags.outputName;
@@ -578,6 +949,32 @@ interface InstallFlags {
 }
 
 function cmdInstall(selector: string | undefined, flags: InstallFlags): number {
+  // What was asked for is checked before anything on this machine is looked at, so a bad
+  // invocation gets the same answer everywhere -- with or without the app installed.
+  if (!flags.yes && !flags.dryRun) {
+    process.stderr.write(
+      "error: this writes outside the repo. Re-run with --yes (or --dry-run).\n",
+    );
+    return 1;
+  }
+
+  // --device-id overrides every profile's own unit. For a pair that sends both hands to
+  // one device, so it is refused rather than obeyed: each unit's id is in its device map.
+  if (flags.deviceId !== undefined) {
+    const units = new Set(
+      games(selector).flatMap((game) => game.loadedProfiles().map((p) => p.device.name)),
+    );
+    if (units.size > 1) {
+      process.stderr.write(
+        `error: --device-id would send profiles for ${String(units.size)} units ` +
+          `(${[...units].sort().join(", ")}) to one device. Leave it out -- each unit's ` +
+          "software_device_id is in its device map -- or name a single game whose profiles " +
+          "are all for one unit.\n",
+      );
+      return 1;
+    }
+  }
+
   const store = findStore(flags.store);
   if (!store) {
     process.stderr.write(
@@ -603,13 +1000,6 @@ function cmdInstall(selector: string | undefined, flags: InstallFlags): number {
     process.stderr.write(
       "error: the Azeron app is running. It rewrites this directory as it pleases -- " +
         "close it first.\n",
-    );
-    return 1;
-  }
-
-  if (!flags.yes && !flags.dryRun) {
-    process.stderr.write(
-      "error: this writes outside the repo. Re-run with --yes (or --dry-run).\n",
     );
     return 1;
   }
@@ -658,28 +1048,132 @@ function cmdInstall(selector: string | undefined, flags: InstallFlags): number {
   return 0;
 }
 
+function loadCaptureEvents(path: string): { events: HidEvent[]; note: string | null } {
+  const read = readUsbPcap(loadBytes(path));
+  const notes: string[] = [];
+  if (read.truncated) notes.push("the file ends inside a record (capture stopped mid-write)");
+  if (read.skipped > 0) notes.push(`${String(read.skipped)} record(s) were not USBPcap packets`);
+  return {
+    events: extractEvents(read.packets),
+    note: notes.length > 0 ? `${path}: ${notes.join("; ")}` : null,
+  };
+}
+
+interface HidcapFlags {
+  bus: number | undefined;
+  device: number | undefined;
+  endpoint: number | undefined;
+  full: boolean;
+  json: boolean;
+}
+
+/** Read a USBPcap capture. Never opens a device: it only reads the file it is given. */
+function cmdHidcap(action: string | undefined, files: string[], flags: HidcapFlags): number {
+  const filter = { bus: flags.bus, device: flags.device, endpoint: flags.endpoint };
+  const need = (count: number): void => {
+    if (files.length !== count) {
+      throw new Error(`hidcap ${action ?? ""} needs ${String(count)} capture file(s)`);
+    }
+  };
+  const replacer = (_key: string, value: unknown): unknown =>
+    value instanceof Uint8Array ? [...value] : typeof value === "bigint" ? value.toString() : value;
+
+  if (action === "devices") {
+    need(1);
+    const [path = ""] = files;
+    const read = readUsbPcap(loadBytes(path));
+    const devices = summariseDevices(read.packets, extractEvents(read.packets));
+    if (flags.json) out(JSON.stringify(devices, null, 2));
+    else for (const line of formatDevices(devices)) out(line);
+    return devices.length > 0 ? 0 : 1;
+  }
+  if (action === "decode") {
+    need(1);
+    const [path = ""] = files;
+    const { events, note } = loadCaptureEvents(path);
+    if (note) process.stderr.write(`${note}\n`);
+    const shown = filterEvents(events, filter);
+    if (flags.json) out(JSON.stringify(shown, replacer, 2));
+    else {
+      for (const line of formatEvents(shown, { full: flags.full })) out(line);
+      out(`${String(shown.length)} event(s) of ${String(events.length)} in the capture.`);
+    }
+    return shown.length > 0 ? 0 : 1;
+  }
+  if (action === "diff") {
+    need(2);
+    const [beforePath = "", afterPath = ""] = files;
+    const before = loadCaptureEvents(beforePath);
+    const after = loadCaptureEvents(afterPath);
+    for (const note of [before.note, after.note]) {
+      if (note) process.stderr.write(`${note}\n`);
+    }
+    const diff = diffCaptures(
+      filterEvents(before.events, filter),
+      filterEvents(after.events, filter),
+    );
+    if (flags.json) out(JSON.stringify(diff, replacer, 2));
+    else for (const line of formatDiff(diff)) out(line);
+    return diff.changed.length > 0 || diff.missing.length > 0 ? 1 : 0;
+  }
+  throw new Error(
+    "hidcap needs 'devices <capture>', 'decode <capture>' or 'diff <before> <after>'",
+  );
+}
+
 function usage(): void {
   out(`azeron <command>
 
   build [game] [--check]          compile profile YAML into ${dataDirs.dist}/
   lint [game] [--strict] [--show-acknowledged]
+                                  the constraint rules from real play sessions
   roundtrip [game]                verify golden profiles rebuild their template
-  cheatsheet [game]               per-profile layout diagram + binding checklist
   bindings [game]                 the in-game key list to check against the game
+  units [game] [--set S] [--store PATH]
+                                  whether the Azeron app holds each layout as it is now,
+                                  and which controls differ; non-zero when one does not
+  ingame [game] [--apply] [--config PATH] [--require-pedals]
+                                  compare the game's own bindings; --apply makes them agree
+  ingame [game] --capture-pedals [--set S] [--config PATH] [--assign NAME=axis]...
+         [--ignore-device NAME]...
+                                  read the pedals' game names from a file they were bound
+                                  in, and record them in the pedals device file
+  ingame [game] --candidate pedal_axis=NAME [--set S]
+                                  write a name to try by hand, marked UNTESTED, for a pedal
+                                  axis the game's own controls screen will not bind
   editor [--out PATH]             the editor as one self-contained HTML file
-  serve [--port N]                the same editor, able to save back into the repo
-  probe [--device D ...]          press-test profile + capture page for the real pin map
+  serve [--port N] [--host H]     the same editor, able to save back into the repo; it
+                                  listens on 127.0.0.1 only unless --host names another
+  probe [--device D]              press-test profiles; capture them in the editor's Press test tab
   import <export.json> --genre G --game SLUG [--name N] [--device D] [--set S]
          [--export-to DIR]      start a game folder from an export
   decompile <export.json> [--device D] [--game G] [--set S] [--template T]
             [--output-name N] [--profile-index N] [--golden] [-o OUT]
-  install [game] --device-id ID [--store PATH] [--yes] [--dry-run]
+  install [game] [--store PATH] [--yes] [--dry-run] [--device-id ID]
+                                  each unit's id comes from its device map; --device-id
+                                  overrides it, and only for a single unit
+  hidcap devices <capture>        the USB devices in a USBPcap capture, by bus and address
+  hidcap decode <capture> [--usb-device N] [--bus N] [--endpoint 0x84] [--full] [--json]
+                                  the HID conversation: reports set, asked for and sent
+  hidcap diff <before> <after> [--usb-device N] [--bus N] [--endpoint 0x84] [--json]
+                                  what the second capture sent that the first did not;
+                                  non-zero when they differ. Reads files only: it never
+                                  opens or writes to a unit. See docs/guides/hid-capture.md
 `);
+}
+
+/** A whole, non-negative number from a flag, or an error that names the flag. */
+function wholeNumber(flag: string, text: string): number {
+  const value = Number(text);
+  if (!Number.isInteger(value) || value < 0) {
+    throw new Error(`${flag} needs a whole number, not '${text}'`);
+  }
+  return value;
 }
 
 export function main(argv: string[]): number {
   const [command, ...rest] = argv;
-  if (!command || command === "--help" || command === "-h") {
+  if (!command || command === "--help" || command === "-h" || command === "help") {
     usage();
     return command ? 0 : 1;
   }
@@ -691,10 +1185,16 @@ export function main(argv: string[]): number {
       check: { type: "boolean", default: false },
       strict: { type: "boolean", default: false },
       "show-acknowledged": { type: "boolean", default: false },
+      apply: { type: "boolean", default: false },
+      "capture-pedals": { type: "boolean", default: false },
+      "require-pedals": { type: "boolean", default: false },
+      assign: { type: "string", multiple: true, default: [] },
+      "ignore-device": { type: "string", multiple: true, default: [] },
+      candidate: { type: "string", multiple: true, default: [] },
       golden: { type: "boolean", default: false },
       yes: { type: "boolean", default: false },
       "dry-run": { type: "boolean", default: false },
-      device: { type: "string", default: DEFAULT_DEVICE },
+      device: { type: "string" },
       game: { type: "string" },
       set: { type: "string" },
       template: { type: "string" },
@@ -707,6 +1207,12 @@ export function main(argv: string[]): number {
       "export-to": { type: "string" },
       config: { type: "string" },
       port: { type: "string" },
+      host: { type: "string" },
+      "usb-device": { type: "string" },
+      bus: { type: "string" },
+      endpoint: { type: "string" },
+      full: { type: "boolean", default: false },
+      json: { type: "boolean", default: false },
       out: { type: "string", short: "o" },
     },
   });
@@ -718,18 +1224,26 @@ export function main(argv: string[]): number {
       return cmdLint(positionals[0], values.strict, values["show-acknowledged"]);
     case "roundtrip":
       return cmdRoundtrip(positionals[0]);
-    case "cheatsheet":
-      return cmdCheatsheet(positionals[0]);
     case "bindings":
       return cmdBindings(positionals[0]);
+    case "units":
+      return cmdUnits(positionals[0], values.set, values.store);
     case "ingame":
-      return cmdIngame(positionals[0], values.config);
+      return cmdIngame(positionals[0], values.config, values.apply, {
+        capture: values["capture-pedals"],
+        require: values["require-pedals"],
+        set: values.set,
+        assign: values.assign,
+        ignoreDevices: values["ignore-device"],
+        candidate: values.candidate,
+      });
     case "serve":
-      return cmdServe(Number(values.port ?? "4173"));
+      return cmdServe(wholeNumber("--port", values.port ?? "4173"), values.host ?? "127.0.0.1");
     case "editor":
       return cmdEditor(values.out ?? join(dataDirs.dist, "editor.html"));
     case "probe": {
-      const chosen = values.device === DEFAULT_DEVICE ? DEFAULT_PROBE_DEVICES : [values.device];
+      // No --device means both units; naming one means that one.
+      const chosen = values.device === undefined ? DEFAULT_PROBE_DEVICES : [values.device];
       return cmdProbe(
         chosen,
         values.template ?? join(dataDirs.templates, "everspace2-v5.json"),
@@ -740,12 +1254,12 @@ export function main(argv: string[]): number {
       const target = positionals[0];
       if (!target) throw new Error("decompile needs an export path");
       return cmdDecompile(target, {
-        device: values.device,
+        device: values.device ?? DEFAULT_DEVICE,
         game: values.game,
         set: values.set,
         template: values.template,
         outputName: values["output-name"],
-        profileIndex: Number(values["profile-index"]),
+        profileIndex: wholeNumber("--profile-index", values["profile-index"]),
         golden: values.golden,
         out: values.out,
       });
@@ -760,9 +1274,23 @@ export function main(argv: string[]): number {
         genre: values.genre,
         game: values.game,
         name: values.name,
-        device: values.device,
+        device: values.device ?? DEFAULT_DEVICE,
         set: values.set,
         exportTo: values["export-to"],
+      });
+    }
+    case "hidcap": {
+      const [action, ...files] = positionals;
+      return cmdHidcap(action, files, {
+        bus: values.bus === undefined ? undefined : wholeNumber("--bus", values.bus),
+        device:
+          values["usb-device"] === undefined
+            ? undefined
+            : wholeNumber("--usb-device", values["usb-device"]),
+        endpoint:
+          values.endpoint === undefined ? undefined : wholeNumber("--endpoint", values.endpoint),
+        full: values.full,
+        json: values.json,
       });
     }
     case "install":
@@ -779,12 +1307,12 @@ export function main(argv: string[]): number {
   }
 }
 
-const invokedDirectly = process.argv[1]?.includes("index") ?? false;
+const invokedDirectly = isEntryPoint(process.argv[1], import.meta.url);
 if (invokedDirectly) {
   try {
     process.exitCode = main(process.argv.slice(2));
   } catch (error) {
-    process.stderr.write(`error: ${(error as Error).message}\n`);
+    process.stderr.write(`error: ${messageOf(error)}\n`);
     process.exitCode = 1;
   }
 }

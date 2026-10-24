@@ -1,0 +1,117 @@
+# Everspace 2 -- akimbo v10, RIGHT unit. The flying hand: thrust and strafe on the stick,
+# pitch and roll on the pad, devices on the fingers.
+#
+# Mode 2 with pedals on the sticks, from genres/SpaceSims/stick-modes.yaml: the left stick
+# climbs and banks (hover, roll); the right stick flies forward and strafes (thrust,
+# strafe). Yaw is on the rudder pedals (games/SpaceSims/everspace/sets.yaml). The right
+# thumb pad pitches and rolls, so all six axes are on the pair plus the feet and the
+# pointer is left to aim.
+#
+# Every label is the action's own, so the cheatsheet and the app say what the key does.
+# Up to v9 the keys labelled weapon cycling sent the arrows, which the game has on pitch
+# and yaw; they now send the weapon actions they were meant to. The in-game half is
+# generated from actions.yaml (`azeron ingame --apply`), so these keys are what the game
+# listens for.
+#
+# EXPERIMENT: middle_1 and middle_4 send thrust forward as a repeated key, at two
+# intervals, so a pulsed press can be compared against the stick holding it. What a
+# pulsed key does depends on inertia dampeners: on, it averages to part power; off, the
+# ship coasts between pulses and only reaches full speed more slowly. Note the dampener
+# state on every run. Delete both keys and the acknowledgement together once judged.
+#
+# Source export: templates/everspace2-akimbo-right.json
+profile:
+  id: 03e60aef-5647-4d2f-8ede-3436552761d5
+  name: Everspace 2 akimbo v10 (right)
+  device: cyborg2-right
+  unit: right
+  template: templates/everspace2-akimbo-right.json
+  set: akimbo-v10
+  output: everspace_akimbo_v10_right.json
+  sensor: false
+positions:
+  pinky_1:
+    label: Device 4
+    tap: device_4
+  pinky_2:
+    label: Device 3
+    tap: device_3
+  pinky_3:
+    label: Next primary
+    tap: next_primary
+  pinky_5:
+    label: Map
+    tap: map
+  pinky_side:
+    label: Switch camera
+    tap: view_ship
+  ring_2:
+    label: Device 2
+    tap: device_2
+  ring_3:
+    label: Previous primary
+    tap: previous_primary
+  ring_5:
+    label: Crafting
+    tap: crafting
+  middle_2:
+    label: Device 1
+    tap: device_1
+  middle_3:
+    label: Fire primary
+    tap: fire_primary
+  middle_5:
+    label: Inventory
+    tap: inventory
+  index_2:
+    label: Thrust forward
+    tap: throttle_up
+  index_3:
+    label: Fire secondary
+    tap: fire_secondary
+  index_4:
+    label: Thrust backward
+    tap: throttle_down
+  index_5:
+    label: Data / logs
+    tap: data_logs
+  index_side:
+    label: Boost
+    tap: boost
+  dpad_up:
+    label: Pitch up
+    tap: pitch_up
+  dpad_left:
+    label: Roll left
+    tap: roll_left
+  dpad_press:
+    label: Interact / fling
+    tap: interact
+  dpad_right:
+    label: Roll right
+    tap: roll_right
+  dpad_down:
+    label: Pitch down
+    tap: pitch_down
+  thumb_aux_upper:
+    label: Jump / supralight drive
+    tap: supralight
+  thumb_aux_lower:
+    label: Lock target
+    tap: lock_target
+  stick_press:
+    label: Inertia dampeners
+    tap: inertia_dampeners
+  stick:
+    mode: keyboard
+    directions: { up: throttle_up, right: strafe_right, down: throttle_down, left: strafe_left }
+  middle_1:
+    label: Thrust fwd (pulse 40)
+    tap: throttle_up
+    turbo: true
+    turbo_interval: 40
+  middle_4:
+    label: Thrust fwd (pulse 100)
+    tap: throttle_up
+    turbo: true
+    turbo_interval: 100

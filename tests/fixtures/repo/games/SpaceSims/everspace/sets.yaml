@@ -1,0 +1,47 @@
+# What a layout does beyond its profiles: today, its pedals.
+#
+# WHY HERE. A layout is a set -- `akimbo-v10` is a left profile and a right profile -- and
+# the owner changes it as one control scheme, saved together: not "save left, save right,
+# save pedals". A profile is one unit's file, and the pedals belong to neither unit, so
+# putting them in a profile would either pick a hand or say the same thing twice. They are
+# also game-specific (which game axis a pedal drives is a fact about that game's controls),
+# so they cannot live in the device file, which is hardware and shared by every game. What
+# is left is the one thing that already names a layout: the set. This file is keyed by set
+# name, beside the profiles that carry `set:`, so one name selects the keypads and the
+# pedals together, and an editor saving a layout writes both from the same place.
+#
+# The pedal DEVICE -- its axes, which rest where, what the game calls each -- is
+# devices/logitech-pro-flight-pedals.yaml. Here is only what this layout does with them.
+#
+#   drives      a game axis in the genre's vocabulary (stick-modes.yaml `axes`): thrust,
+#               vertical, strafe, yaw, pitch, roll. It reaches the game's own row through
+#               actions.yaml, so nothing here names `Yaw` or `MoveForward` itself.
+#   invert, dead_zone, scale, sensitivity, exponent
+#               written to bInvert, DeadZone, Scale, Sensitivity, Exponent on the game's
+#               row, only when given. Absent means the row is left as the game has it.
+#   shared      two pedal axes may drive one game axis only when every one says so. The
+#               row holds two (Key1, Key2) and the tuning is the row's, so it is shared.
+#
+# The set's stick mode is the with-pedals variant of its mode (stick-modes.yaml), which is
+# what hands the stick axis the pedals now carry to something else.
+
+sets:
+  akimbo-v10:
+    pedals:
+      device: logitech-pro-flight-pedals
+      assign:
+        # The rudder springs back to centre, which is what a yaw axis wants. This is the
+        # proportional, self-centring turn that neither the pointer nor a keyboard-mode
+        # stick can give, and it is what takes yaw off the left stick.
+        rudder: {drives: yaw}
+
+        # THE RIGHT TOE IS THE THROTTLE: forward thrust in proportion to the pedal, from
+        # nothing with the foot off to full with it down. A toe brake rests at the end of
+        # its travel, which uncalibrated is a full deflection on a game axis read about a
+        # centre; both toes carry a Windows calibration that makes rest read zero and a
+        # press full (the device file records it; the values are in
+        # docs/guides/analog-input.md). The game's thrust row is inverted as it ships, so
+        # `invert: false` is said outright. Not flown -- see playtests.md, 2026-10-01. The
+        # stick's thrust keys stay: they are full thrust and the only reverse. The left toe
+        # is not assigned.
+        right_toe: {drives: thrust, invert: false}

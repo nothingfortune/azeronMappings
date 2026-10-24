@@ -17,16 +17,17 @@ leaves open.
 
 `npm run check` is the gate. It must pass before you claim work is done.
 
-| Command                                   | Purpose                                           |
-| ----------------------------------------- | ------------------------------------------------- |
-| `npm run check`                           | build + typecheck + lint + format check + tests   |
-| `npm run build`                           | `tsc` to `build/`, then bundle the editor         |
-| `npm run typecheck`                       | `tsc --noEmit`                                    |
-| `npm run lint` / `npm run lint:fix`       | ESLint                                            |
-| `npm run format` / `npm run format:check` | Prettier                                          |
-| `npm test` / `npm run test:watch`         | Vitest                                            |
-| `npm run test:quick`                      | library tests only; what the pre-commit hook runs |
-| `npm run test:bin`                        | Bash smoke tests for `bin/azeron`                 |
+| Command                                   | Purpose                                            |
+| ----------------------------------------- | -------------------------------------------------- |
+| `npm run check`                           | build + typecheck + lint + format check + tests    |
+| `npm start`                               | build, then serve the editor — the owner's command |
+| `npm run build`                           | `tsc` to `build/`, then bundle the editor          |
+| `npm run typecheck`                       | `tsc --noEmit`                                     |
+| `npm run lint` / `npm run lint:fix`       | ESLint                                             |
+| `npm run format` / `npm run format:check` | Prettier                                           |
+| `npm test` / `npm run test:watch`         | Vitest                                             |
+| `npm run test:quick`                      | every unit test; what the pre-commit hook runs     |
+| `npm run test:bin`                        | Bash smoke tests for `bin/azeron`                  |
 
 Run one test: `npx vitest run tests/unit/lib/compile.test.ts -t "byte for byte"`.
 
@@ -39,35 +40,40 @@ mean to work in.
 The CLI is `bin/azeron` (also `npm run azeron -- <command>`), and it runs the built
 output, so `npm run build` first:
 
-| Command                                             | Purpose                                                |
-| --------------------------------------------------- | ------------------------------------------------------ |
-| `azeron build [game] [--check]`                     | compile profile YAML into `dist/`                      |
-| `azeron lint [game] [--strict]`                     | the constraint rules; `--show-acknowledged` too        |
-| `azeron roundtrip [game]`                           | golden profiles must rebuild their template exactly    |
-| `azeron cheatsheet [game]`                          | per-profile layout diagram + binding checklist         |
-| `azeron bindings [game]`                            | the in-game key list, to check against the game        |
-| `azeron editor`                                     | the side-by-side editor, one self-contained HTML       |
-| `azeron probe [--device D]`                         | press-test profile + capture page for the real pin map |
-| `azeron import <export.json> --genre G --game SLUG` | start a game folder from an export                     |
-| `azeron decompile <export.json> [-o ...]`           | an app export back into profile YAML                   |
-| `azeron install [game] --device-id ID`              | write straight into the Azeron app's profile store     |
+| Command                                             | Purpose                                                                         |
+| --------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `azeron build [game] [--check]`                     | compile profile YAML into `dist/`                                               |
+| `azeron lint [game] [--strict]`                     | the constraint rules; `--show-acknowledged` too                                 |
+| `azeron roundtrip [game]`                           | golden profiles must rebuild their template exactly                             |
+| `azeron bindings [game]`                            | the in-game key list, to check against the game                                 |
+| `azeron units [game] [--set S]`                     | whether the Azeron app has each layout as it is now, and which keys differ      |
+| `azeron ingame [game] [--apply]`                    | compare the game's `Input.ini`; `--apply` rewrites it                           |
+| `azeron ingame [game] --capture-pedals`             | record the pedals' game names from a file they were bound in                    |
+| `azeron ingame [game] --candidate axis=NAME`        | write a hand-written pedal name (a candidate)                                   |
+| `azeron serve [--port N] [--host H]`                | the editor, able to save back into the repo; this computer only unless `--host` |
+| `azeron editor`                                     | the side-by-side editor, one self-contained HTML                                |
+| `azeron probe [--device D]`                         | press-test profile + capture page for the real pin map                          |
+| `azeron import <export.json> --genre G --game SLUG` | start a game folder from an export                                              |
+| `azeron decompile <export.json> [-o ...]`           | an app export back into profile YAML                                            |
+| `azeron install [game] [--yes] [--dry-run]`         | write into the app's store; `--device-id ID` and `--store PATH` too             |
+| `azeron hidcap devices\|decode\|diff <capture>`     | read a USBPcap capture of the app talking to a unit; reads files only           |
 
 ## Layout
 
-| Path                    | Contents                                                           |
-| ----------------------- | ------------------------------------------------------------------ |
-| `src/lib/`              | The toolchain. Pure modules; `io.ts` holds every filesystem touch. |
-| `src/editor/`           | Browser editor. `main.ts` is the bundle entry, `app.ts` the code.  |
-| `src/types/`            | Shared types: the export format, the YAML schemas, the payload.    |
-| `src/config/paths.ts`   | Repo root and the data directory names.                            |
-| `tests/unit/`           | Vitest specs mirroring `src/`.                                     |
-| `tests/bin/run.sh`      | CLI smoke tests.                                                   |
-| `devices/`              | Pin map per unit.                                                  |
-| `genres/<Genre>/`       | Shared action vocabulary and default layout for a kind of game.    |
-| `games/<Genre>/<game>/` | `game.yaml`, `actions.yaml`, `profiles/*.yaml`, `playtests.md`.    |
-| `templates/`            | Real Azeron exports, committed untouched.                          |
-| `dist/`                 | Compiled import JSON and cheatsheets. **Committed.**               |
-| `build/`                | TypeScript output. Gitignored. Not to be confused with `dist/`.    |
+| Path                    | Contents                                                                     |
+| ----------------------- | ---------------------------------------------------------------------------- |
+| `src/lib/`              | The toolchain. Pure modules; `io.ts` holds every filesystem touch.           |
+| `src/editor/`           | Browser editor. `main.ts` is the bundle entry, `app.ts` the code.            |
+| `src/types/`            | Shared types: the export format, the YAML schemas, the payload.              |
+| `src/config/paths.ts`   | Repo root and the data directory names.                                      |
+| `tests/unit/`           | Vitest specs mirroring `src/`.                                               |
+| `tests/bin/run.sh`      | CLI smoke tests.                                                             |
+| `devices/`              | Pin map per unit; and `kind: pedals` devices (axes, no pins).                |
+| `genres/<Genre>/`       | Shared action vocabulary and default layout for a kind of game.              |
+| `games/<Genre>/<game>/` | `game.yaml`, `actions.yaml`, `sets.yaml`, `profiles/*.yaml`, `playtests.md`. |
+| `templates/`            | Real Azeron exports, committed untouched.                                    |
+| `dist/`                 | Compiled import JSON and the game's bindings. **Committed.**                 |
+| `build/`                | TypeScript output. Gitignored. Not to be confused with `dist/`.              |
 
 ## Architecture
 
@@ -92,38 +98,143 @@ Three inputs meet in the compiler, and are kept separate:
 
 Profiles map position to action id, never position to raw key.
 
+**A layout and its wiring.** What the owner edits is the _layout_: which control does which
+action. The key an action is sent on is the _wiring_, and it is the tooling's to choose:
+`src/lib/wiring.ts` gives an action with no key the first free one from a pool chosen to
+stay out of a game's way (`WIRE_POOL`: navigation keys, numpad operators, punctuation — no
+letters, digits, function keys, modifiers or anything a menu uses), narrowed to keys the
+game's file can name. The editor does this the moment an action is first put on a control
+(`wire()` in `app.ts`), saves it into the game's `actions.yaml` with the rest of the
+layout, and `Update the game's keys…` writes it into the game. A key, once given, is never
+re-dealt: the compiled layouts, the golden fixture and the game's file all depend on an
+action keeping the key it has. `action-sends-nothing` is the lint error for a control whose
+action has no key, which is what a hand edit runs into. The In-game tab hides the keys
+while there is a game file to write them into, and shows them when there is not, because
+then they have to be set in the game by hand.
+
 - `compile.ts` neutralizes every _mapped_ pin in the template, then applies the YAML.
-  Pins in the device's `unknown_pins` and unused `pinOne: 255` slots are never touched.
+  Pins in the device's `unknown_pins` and unused `pinOne: 255` slots are never touched,
+  and neither is a record whose type is not a key, an empty slot, a mouse button or a
+  stick — `isRebindableRecord` decides, shared with the probe. Binding such a position
+  is refused rather than written over.
   `label` is overwritten in place rather than deleted and re-added, so key order — and
   therefore the `dist/` diff — stays stable.
 - `decompile.ts` goes the other way, for edits made in the Azeron app. Anything
   that will not round-trip canonically is kept as `*_raw` or `raw: {types: [...]}`.
-  There are two ways to open the editor, and they differ in one thing: whether an edit can
-  get back into the repo.
+
+There are two ways to open the editor, and they differ in one thing: whether an edit can
+get back into the repo.
 
 - `azeron editor` writes a self-contained file. It works offline with no server, and the
   only way out is a download you then copy in by hand.
 - `azeron serve` serves the same page over HTTP, where it can POST an edit straight into
   the repo and get the linter's verdict back. The header says which mode the page is in.
 
+`genres/<Genre>/stick-modes.yaml` defines stick modes, after the convention RC
+transmitters use (DJI Mode 1/2/3): a mode assigns four action pairs to the four axes a
+pair of units has, and the editor applies one to both sticks in a click. A mode owns the
+eight directions and nothing else on the position. The DJI modes translate faithfully —
+RC throttle is vertical, pitch is thrust, roll is strafe, and yaw is yaw — and
+`mode2_roll` and `twin_stick` cover roll on a stick and the game's own gamepad layout. A
+ship has six axes and two thumbs (the d-pad is under the same thumb as the stick), so
+which four go on the sticks is a choice; roll is not a stand-in for yaw.
+
+**Pedals are a modifier on the stick mode, and part of the layout.** Rudder pedals carry
+yaw, so a stick that still sends it duplicates them. `stick-modes.yaml` says which axes
+pedals take (`pedals.takes`) and each mode's `with_pedals` which slots to replace — in
+every mode, the freed slot goes to roll. `directionsFor` / `applyMode` / `detectMode` take
+a `withPedals` flag and always agree; without it every mode is exactly what it was.
+`detectStickModes` lists every reading, because Mode 2 with pedals is also Mode 2, roll
+for yaw: the sticks cannot say which they are, the layout can, by whether it has pedals.
+
+What a layout's pedals do lives in the game's `sets.yaml`, keyed by set name, beside the
+profiles that carry `set:` — one name selects the keypads and the pedals together, and a
+layout is saved as one control scheme. (A profile is one unit's file and the pedals belong
+to neither; the device file is hardware shared by every game.) Each entry is
+`pedal axis: {drives: yaw, invert, dead_zone, scale, sensitivity, exponent, shared}`.
+`drives` is a game axis in the genre's vocabulary; it reaches the game's row (`Yaw`) through
+the `ingame` row of the action at the axis's `up` end, so nothing names a game row twice.
+One game axis driven by two pedal axes is an error unless every one says `shared: true`.
+The device, `devices/<pedals>.yaml` with `kind: pedals`, has three axes with `rest: centre`
+or `end`, and per game a `names` entry — `{name, status}` — saying what the game calls the
+axis and how far to trust it (`confirmed` flown; `inferred`; `unconfirmed`; `bound` by
+`--capture-pedals`; `candidate` by hand), plus `inputs`, the names the game registers for
+the device, which no axis may step outside of. The editor payload carries it under `pedals`, apart from `devices`, so everything that expects
+a pin map keeps getting only keypads; each game carries its `sets` and `ingameSet`.
+
+In the editor the pedals are one more entry in `schemeParts()` (`pedalsPart()`), so the
+one Save, the unsaved marker and the report cover them. `src/lib/setsfile.ts`
+(`patchSetPedals`) is the node-free line patcher for `sets.yaml`; the page gets the
+file's text from `payload.games[].setsText` and sends the patched file through
+`/api/save`, and `checkAfterSave` answers a `sets.yaml` save with a `pedals` summary. The
+stick-mode panel uses a mode's with-pedals variant when `pedalsCarry(modes, pedals)` is
+true — every axis in `pedals.takes` is driven by some pedal — not merely when a layout has
+pedals. A pedal edit that changes how the sticks read shows a note and never rewrites the
+sticks.
+
 `src/lib/tasks.ts` holds the operations — build, lint, import an export, read the game's
 config — as functions rather than commands. The CLI and the served editor both call
 them, so what the UI can do is what the CLI can do rather than a subset that drifts. The
-editor's Repo tab reaches them over `/api/build`, `/api/import` and `/api/ingame`;
-saving a profile rebuilds `dist/` and lints in the same round trip.
+editor reaches them over `/api/build`, `/api/import`, `/api/ingame`, `/api/ingame/apply`
+and `/api/actions` (which patches keys, labels and tags in actions.yaml line by line); saving a
+profile rebuilds `dist/` and lints in the same round trip.
+
+`patchActionBindings` needs every action on one line, so `createGame` writes a seeded
+`actions.yaml` in flow style. Never regenerate `actions.yaml` with a generic YAML dump: it
+loses the comments, the `extends:` line and the duplicate-key allowlist.
+
+Per-session editor state — a key capture, a rename in progress, the press test — is reset
+by `resetSession()` on a change of game or tab; new state of that kind goes there. Where
+the page is — the game, the layout and the tab — is kept in localStorage
+(`azeron-editor-place`, `keepPlace` on every render, `storedPlace` in `start`) so a reload
+opens there; `tests/helpers/setup.ts` empties storage before every unit test. The
+inspector must not write to the working profile while drawing, or looking at an empty key
+marks the page unsaved.
 
 Whether the page can save is decided by `window.AZERON_SERVED`, which only `azeron serve`
 sets. Sniffing the protocol would claim as much of a static file served by any web
 server, and the buttons would then silently do nothing.
 
 Writes go through `resolveSavePath`, which accepts profile YAML, a game's `actions.yaml`
-and device maps, and nothing else — checked on the resolved path, so no spelling of `..`
-escapes.
+and `sets.yaml`, and device maps (pedals included), and nothing else — checked on the
+resolved path, so no spelling of `..` escapes. `validateSaveContent` then parses the
+content as the kind of file its path names before anything is written, so a malformed
+save is refused and the file on disk is untouched.
+
+The server writes into the repo and into the game's config, so it answers only the page
+it served. It listens on `127.0.0.1` (`--host` opts out), and `checkRequest` in
+`lib/serve.ts` refuses a request whose `Host` is not a loopback name on the listening
+port, and a state-changing request that is not `application/json` or that carries another
+site's `Origin`. One `guardedListener` wraps every route with that check and turns a
+handler's exception into a JSON 500. The page's data is read from disk for every request,
+never cached, so a file edited by hand shows on reload.
 
 `azeron editor` writes one page for every game: games and sets are data, chosen from the
 two selectors. The payload is embedded because a page opened from `file://` cannot fetch
 a sibling JSON, and `editor-data.json` is written beside it so an open page can be
 pointed at newer data with the Data button instead of being regenerated.
+
+Saving is one thing, because a layout is one control scheme: both keypads and the in-game
+keys. `schemeParts()` in `app.ts` is the list of what belongs to it -- each part says
+whether it is dirty and how to write itself -- and the header's Save, the unsaved marker,
+the single report and the unload guard all follow from that list. Adding a part (pedals)
+is adding an entry there. Telling the game stays outside Save on purpose: it writes
+outside the repo and needs the game closed, so the report and the menu offer it and it asks.
+
+The Edit board is laid out by CSS and one function. `fitStage` narrows the keys (`--key-w`,
+84 to 100px, up to 124 on a portrait window) before it scales anything, so type stays at
+the size it was written at; only a window too narrow for 84px keys scales the stage, and
+then only by the shortfall. A portrait window stacks the hands. From 1700px wide in
+landscape the key inspector rises beside the board and the checks sit beside the actions,
+so the whole Edit workflow fits a 1080p screen; narrower, the dock is a row under the
+board. The action list is CSS columns of one-line chips: no scroll region of its own.
+Nothing renders below 9px. Light and dark are `theme.ts`: it flips from what is on screen,
+keeps the choice, and the tokens are defined once in `styles.ts` for both ways in.
+`.workspace.board` scopes the board's layout and `.probe` the press test's; keep it so.
+The dock's third column is two tabs, **Checks** (with its count on the tab) and **Sticks &
+pedals** (together, because a pedal edit changes how the sticks read), so the Edit screen
+is not one long scroll; the lint chip opens the Checks tab. Tests open a tab with
+`showDockTab` from `tests/helpers/editor.ts`, as the owner would.
 
 - `lint.ts` and `model-core.ts` are free of node imports on purpose: **the browser editor
   imports the same compiler, linter and YAML writer the CLI uses.** There is one
@@ -144,7 +255,8 @@ This repo follows the `nothingfortune/base` conventions.
 - Everything is TypeScript except three files, and `allowJs`/`checkJs` type-check two of
   them anyway: `scripts/check-env.mjs` stays JavaScript because it runs before anything
   is compiled (a guard that needs a build is no guard), `eslint.config.js` is ESLint's own
-  config, and `bin/azeron` is a nine-line npm bin shim. Build tooling under `scripts/` is
+  config, and `bin/azeron` is the npm bin shim, which has to run the environment guard
+  and check for a build before it can load anything compiled. Build tooling under `scripts/` is
   TypeScript, compiled by `tsconfig.scripts.json` into `build/scripts/`.
 
 ## Hard-won constraints — do not relearn these
@@ -153,7 +265,10 @@ These came from real play sessions; each one is a lint rule now.
 
 1. **No thumbstick in gamepad/analog mode for Everspace 2.** It caused frame-rate stutter
    (the game flip-flopped between gamepad and KB/M input). Keyboard mode fixed it. Stick
-   _mouse_ mode is untested. → `stick-not-keyboard` (error)
+   _mouse_ mode was tried 2026-09-30 and **spins**: the game steers by where the pointer
+   is, a stick moves it at a rate, and letting go leaves it off centre, so the ship keeps
+   turning with no way back. Keyboard mode with the game's `Yaw`/`Pitch` keys is the
+   stick's rate control. → `stick-not-keyboard` (error)
 2. Everspace 2 in KB/M mode reads **only two analog axes** (mouse X/Y). Everything else is
    digital, and no remapper can add axes without a virtual gamepad — which re-triggers
    constraint 1.
@@ -177,10 +292,12 @@ These came from real play sessions; each one is a lint rule now.
    180° on the right unit, while the finger columns and side keys match. Never infer one
    unit's map from the other. A device carries `verified: true` only once it has been
    press-tested with `azeron probe`; anything else raises `unverified-device`.
-   How the rotation is absorbed is unsettled: the working profiles use the direction
-   assignment plus `invertXAxis`/`invertYAxis`, not a rotation value. `stick_angle` and
-   `stick_directions` both exist as corrections but neither is in use; they are
-   alternatives, and `stick-double-correction` errors if both are set.
+   The rotation is absorbed by `analogSettings.angle`, which the right unit's own export
+   carries as 176 against the left unit's -1 — a half turn, in degrees, written by the app
+   itself. `stick_angle` and `stick_directions` exist as corrections for a unit whose
+   template does not already carry one; neither is in use, they are alternatives, and
+   `stick-double-correction` errors if both are set.
+   The right unit also reads a **different direction block**: see the export format rules.
 
 See `docs/guides/analog-input.md` for the standing question of how to get real analog axes
 into Everspace 2 without the gamepad-mode stutter.
@@ -204,16 +321,31 @@ array of per-key records.
   numeric JS keyCodes (arrows as `"37"`–`"40"`, Shift as `"16"`). `keys.ts` records which
   encoding the app actually uses per key; a token that does not survive name→token→name
   is kept raw rather than rewritten.
-- Mouse buttons: `"2"` is middle, confirmed in the app UI. Codes `"1"` and `"3"` have been
-  seen in app-edited profiles but which physical button each is has not been confirmed, so
-  they stay raw. The compiler refuses to emit a button it cannot confirm.
-- Keyboard-mode stick directions live in `analogSettings.analogKeys.left.<direction>[0]`
+- Mouse buttons: `"1"` left, `"2"` middle, `"3"` right. Middle was confirmed in the app
+  UI; left and right on 2026-09-29, from a profile labelled "Fire Primary" / "Fire
+  Secondary" sending 1 and 3 against the game binding those to the left and right
+  buttons. The compiler refuses to emit a button outside that table.
+- Keyboard-mode stick directions live in `analogSettings.analogKeys.<block>.<direction>[0]`
   as **integer** JS keyCodes in the v5 export, and as `KeyboardEvent.code` strings in a
   profile edited by 2.0.2; both are read, and integers are emitted.
-  `analogSettings.angle` is **not** understood. Working profiles carry -1 and 11 with
-  `invertXAxis`/`invertYAxis` both true, so the right unit's half turn is absorbed by the
-  direction assignment and the inversion, and `angle` looks like a small trim. It is only
-  written when a device sets `stick_angle`, which no device currently does.
+  **Which block is `<block>` is decided by `isRightAnalog`.** A right-hand unit exports
+  `true` and reads `analogKeys.right`; the left-handed software the format was designed
+  around reads `analogKeys.left`. `activeAnalogKeys` in `types/azeron.ts` is the one place
+  that chooses, and every reader and writer goes through it — writing the wrong block
+  compiles, lints clean and does nothing on the hardware, which is exactly what happened
+  to the akimbo right unit's stick. The other block is left as the template had it: it is
+  inert, and the left unit's template holds string zeros there that the byte-for-byte
+  contract depends on.
+  `analogSettings.angle` is in **degrees**, absolute: the right unit's export carries 176
+  and the left unit's -1, which is the 180° mount rotation plus a small trim. It is only
+  overwritten when a device sets `stick_angle`, which no device currently does — the
+  templates already carry the right value.
+- `profileSettings` passes through from the template, except `isSensorOn` and the
+  sensitivity step, which a profile sets with `sensor:` and `dpi:`. **The Cyborg II has no
+  optical sensor**: its device maps say `sensor: false`, and the editor then offers no
+  sensor or DPI setting and the write bar says nothing of them. Its exports carry
+  `isSensorOn` all the same, so the fields still pass through. For a keypad with a sensor,
+  two units running theirs drive the same pointer, so a pair wants one on.
 - Keep profile `id` (UUID) **stable in YAML**. Note that the app assigns a fresh UUID on
   import, so an id only survives when a profile is written into the store by
   `azeron install`.
@@ -225,12 +357,136 @@ array of per-key records.
 Everspace 2 keeps its bindings in `Input.ini` under `[/Script/ES2.CustomPlayerInput]`,
 one `KeybindingsConfig=(...)` line per action per input group (Keyboard, Gamepad,
 **Joystick** — the game does support joysticks natively). `ingame_config` in `game.yaml`
-points at it and `azeron ingame` compares it against `actions.yaml`.
+points at it.
 
-Matching is by **key**, not by name: an action id is ours, the game's action names are
-its own, and the key is the only thing the two sides share. Parsing is lossless and only
-`Key1` on a keyboard row would ever be rewritten — the file belongs to the game and most
-of its fields are not understood here.
+**The direction of truth is one way: `actions.yaml` → the game.** Each action names its
+game row with `ingame:` (the `Action=` field) and, for one half of a two-row axis,
+`ingame_scale:`. `azeron ingame --apply` writes every keyboard row in the categories
+`game.yaml` owns (`ingame_owned_categories` — for Everspace 2, 0–3: everything live while
+flying) from those references, clears `Key2` on them, and leaves every other line alone.
+A layout then changes on the keypads alone; the in-game half is never edited by hand.
+
+- Every owned row must be named by an action, or applying refuses — the vocabulary covers
+  the whole flying layer, so nothing sits on a key the repo does not know about. An action
+  with no key leaves its row unbound.
+- Rows in other categories (menu navigation, menu actions, photo-mode camera) reuse
+  flight keys on purpose and are never touched.
+- `dist/<game>/Input.ini` is the committed copy of what the game was given, gated like the
+  compiled JSON: it must be a fixed point of `actions.yaml`. Generating starts from the
+  game's own file when it is installed, and from that copy when it is not.
+- The game's file is copied aside before being replaced, and the game must be closed —
+  it rewrites the file on exit.
+
+`azeron ingame` without `--apply` reports rows that **differ** — the game has the row on
+another key — which is what key matching alone could not see: it found _a_ binding for A
+and called it agreement, while the game had A on "Strafe right".
+
+### The Joystick group, for the pedals
+
+The Joystick group's flight rows are axes (`bIsAxis=True`, `Key1=None`) waiting for a
+device. `game.yaml`'s `ingame_set` names the layout whose pedals `--apply` writes into them
+(the game has one file, so one layout's control scheme at a time). The guarantees are the
+keyboard side's:
+
+- **Owned rows only**: the six flight axis rows (every axis in `stick-modes.yaml`). `Key1`
+  (and `Key2` for a `shared` pair) gets the pedal's game name; `bInvert` / `DeadZone` /
+  `Scale` / `Sensitivity` / `Exponent` are written only where the layout says. Every other
+  line — the T.16000M button bindings above all — is byte-identical, CRLF is kept, and
+  generating twice is generating once. A known pedal name left on an owned row the layout
+  no longer uses is cleared; a binding that is not a pedal's is never overwritten, it is a
+  refusal that names the axis.
+- **Names are read or reasoned, never invented, and say how far to trust them.** The game
+  reads joysticks through SDL and names an input `JS<index>_<Device>_<Input>` —
+  `JS0_SaitekProFlightRudderPedals_Axis2`. The index is SDL's joystick index and **can be
+  negative** (`JS-1_T16000M_Button0` is a stick that is not plugged in), so compare the
+  device part, never the index; the device is the product string with its spaces removed
+  and axes are numbered from zero. The game's own log lists the three inputs it registers
+  for the pedals — those names are confirmed (`inputs`). Which is which was recorded
+  through SDL's DirectInput backend while each pedal was moved: the rudder is `Axis2`, the
+  left toe `Axis0` and the right `Axis1`. That is the backend the game uses and not the game,
+  so all three stay `inferred` until flown. Generation writes any
+  status and says which it used; a pedal axis with no name writes nothing and is reported
+  as waiting; `--require-pedals` turns that into a refusal. The rest of the layout generates
+  regardless.
+- **`azeron ingame --capture-pedals`** reads a file the user has bound the pedals in, finds
+  the Joystick axis rows bound to a device that has no buttons in the file (so not the
+  flight stick), and records each new name as `bound`. What a capture proves is what the
+  _game_ wrote, not which pedal moved: **a toe brake rests at the end of its travel, so
+  touching it wins a capture meant for the rudder** — the owner's own file has Yaw on
+  `Axis1`, a toe, for exactly that reason. So it places a name by the row the layout says
+  that pedal drives only when that is unambiguous, checks a name already recorded against
+  where the file has it and reports a disagreement as a conflict without changing either,
+  and reports anything else unplaced (`--assign NAME=axis` says which, and can move a
+  name). Partly named is ordinary and reported as such.
+- **Candidates.** The game's own controls screen would not take the toes, so a name can be
+  written by hand (`--candidate axis=NAME`, or the file). It is a `candidate`, generated
+  like any other name and flagged by status wherever it is reported. The repo never
+  chooses one.
+- **A toe brake rests at the end of its travel, and a Windows calibration is what makes it
+  usable.** Uncalibrated, a toe reads -1.0 at rest and +1.0 fully pressed, so on any game
+  axis read about a centre (all six flight axes) it is a **full deflection with the foot
+  off**, and `invert`, `scale`, `dead_zone`, `sensitivity` and `exponent` — the fields the
+  game's row offers — cannot re-centre it. `pedal-rest-on-centred` warns on that. A
+  DirectInput calibration with the minimum _below_ the rest position, the centre at it and
+  the maximum at full press makes rest read 0.0 and a press +1.0 (measured 2026-10-01; a
+  minimum _equal_ to the rest position reads -1.0 at rest). `calibrated_rest: centre` on
+  the axis in the device file records that it is set and was seen to work, and stops the
+  warning. The calibration lives in the machine's registry, not the repo; the values are
+  in `docs/guides/analog-input.md`.
+- **A toe drives one direction of an axis** (`end: up|down` on its assignment in
+  `sets.yaml`), and is then written onto the game's own row for that direction — the
+  Joystick group keeps a `Scale=1` and a `Scale=-1` row beside each axis row, called
+  `MoveUp+` and `MoveUp-` here — so two toes can be hover up and hover down. An assignment
+  with an `end` has no `invert` or `scale`: the end is the direction. Whether the game reads
+  a pedal in proportion on those rows, or as a button, is not yet flown. A pedal that
+  drives an axis carries its actions as far as `missing-required` is concerned.
+- The game's `MoveForward` Joystick row ships with `bInvert=True`. The editor writes
+  `invert` outright for an axis assigned in the Pedals panel, so its box shows what the
+  game is given; an assignment with no `invert` leaves the row as the game has it.
+- **Never send the pedals a HID `GET_REPORT`** (`HidD_GetInputReport`). It hung them until
+  they were replugged. Listening to the reports they send is safe.
+
+### Elite Dangerous's `.binds`
+
+`ingame_format: elite-binds` in `game.yaml` makes the game's file Elite's
+`Custom.4.1.binds` rather than an Unreal ini. It is XML, one element per control, each
+button control with a `Primary` and a `Secondary` slot (a device, a key, optional
+`Modifier` and `Hold` children). `src/lib/elite.ts` reads it keeping every line, names,
+groups and gives a mode of play to every control (`describeControl`), and writes it.
+
+- Each action's `ingame` is the control's tag; `key`, `meta` and `mouse` are its binding. A
+  lone `meta` is the modifier key on its own. Elite numbers its mouse buttons left, right,
+  middle (`Mouse_1`–`Mouse_3`), which is not the Azeron's order.
+- **Writing starts from `ingame_preset`**, a preset the game ships (KeyboardMouseOnly),
+  never the player's own file, which may hold bindings to devices long gone.
+- The repo owns the **keyboard and mouse** slots of every control an action names: they are
+  cleared and the action's binding goes in the first free slot. Slots on other devices
+  (a stick, the pedals), axis controls, and every other line are kept byte for byte, BOM
+  and CRLF included. A binding the keypad cannot send — two modifiers held, the mouse
+  wheel — is cleared with the rest; the action is then unbound until a layout uses it.
+- The presets do not all list the same controls, and the vocabulary is the union of all
+  of them and the owner's old file. A control the base lacks is **added before `</Root>`**
+  in the game's own shape, so the file says what every control does.
+- `--apply` also rewrites `StartPreset.4.start` so every category reads `Custom` — the
+  game ignores `Custom.4.1.binds` otherwise — and copies both files aside first. The game
+  must be closed. `dist/<Genre>/<game>/Custom.4.1.binds` is the committed copy and must be
+  a fixed point, as `Input.ini` is.
+- `games/SpaceSims/eliteDangerous/actions.yaml` was made from the installed presets by a
+  one-off script: every button control, its tag, mode and role, and the preset's key
+  where the keypad can send it. 358 actions. Regenerating it would re-deal keys the
+  layouts depend on, so it is edited, not regenerated.
+
+### Modes of play
+
+A game like Elite is played in modes — the ship, the buggy, on foot — and one key is meant
+to be a different thing in each. An action may carry `mode:`, and a layout's entry in
+`sets.yaml` may list the `modes:` it plays. Two modes are **live together** when some
+layout plays both (`src/lib/modes.ts`); a game whose layouts list none (Everspace 2) has
+everything live at once. `key-collision` is only between actions live together, the
+editor lists a layout only its modes' actions and wires a key free among those live with
+the one being placed, and `missing-required` asks a layout only for the required actions
+of the modes it plays. Elite has a layout per mode, switched on the keypads with the
+profile button.
 
 ## Detecting the units
 
@@ -238,8 +494,8 @@ The editor's press test reports what is connected over WebHID (Chrome and Edge o
 Both Cyborg II units report product id `0x12f7` — 4855 in decimal, which is the
 `DevicesStorage` folder holding the profiles filed before the units were told apart — so
 a single connection cannot be attributed to one unit from USB alone, and the UI says so
-rather than guessing. Detection reports only; writing profiles still goes through the
-Azeron software.
+rather than guessing. **Write to units** tells them apart another way: it asks each unit
+for its id over the configuration channel (see below).
 
 ## The Azeron app's own profile store
 
@@ -255,7 +511,87 @@ refuses to run rather than guess:
   wrote, when there is one to copy the shape from;
 - the app rewrites that directory as it pleases, so it must be closed first.
 
-Importing through the app stays the supported path.
+A layout reaches the units by **Write to units** (below) or an import through the app;
+`install` is neither.
+
+**Reading the store is how the repo knows what an import put on the units.** Before Write
+to units, a layout reached a unit only through an import, and the page's own list of files a save changed did not survive a
+reload: the units went on with an old layout while the board showed the new one, and a
+key labelled Ultimate opened the inventory. `unitsReport` in `tasks.ts` finds the app's
+copy of each profile by name (the app gives an import a new id but keeps its name; the
+newest copy wins), and `compareUnit` in `src/lib/units.ts` compares it with the compiled
+file control by control, both read the same way so a key the app spells another way is the
+same key. Only the pins the compiler writes are compared. It only ever reads. The CLI is
+`azeron units`; the served page asks `/api/units` when it opens a layout, after a save, and
+when the window regains focus, and only when the payload says the store is on this
+computer (`appStore`). Tests set `AZERON_STORE` to a folder that is not there, so none of
+them reads the owner's store; one that wants a store makes its own.
+
+**A direct write counts too.** Write to units does not touch the app's store, so after one
+the app's copy would go on saying "re-import". A write that reads back clean is recorded
+(`POST /api/units/written`, into `logs/units-written.json`: per unit and slot, the layout,
+the name and when) with a fingerprint of exactly what went onto the unit --
+`layoutFingerprint` in `src/lib/written.ts`, the encoded records of the writable inputs
+with the slot byte zeroed, so a label or a slot changes nothing. `unitsReport` calls a unit
+`written` when its newest recorded write has the fingerprint of the layout as compiled now,
+before it looks at the app's store; a layout edited since falls back to the store as
+before.
+
+**What a unit runs is not on disk.** Each unit holds onboard profiles (OBM, up to six) and
+runs the one its profile button picked. The app reads and writes them over a private HID
+protocol, shipped as compiled V8 bytecode (`out/main` in its `app.asar`). On 2026-10-14 the
+protocol was recovered by watching the app do it (`docs/guides/unit-protocol.md`), and the
+repo now speaks the part the app was seen to use: `src/lib/unitproto.ts` builds and reads
+the reports, `src/lib/unitsession.ts` runs the exchanges, and the header's **Write to units**
+(`src/editor/unit-write.ts`, WebHID) writes the layout into both units and reads it back.
+It finds the units the page has been given, and knows which is which by the id each one
+reports; each hand goes into the slot that already has the layout's name.
+
+- `hostReports` sends only the eleven commands the app was seen to send, in the shapes it sent
+  them. Reset, DFU, the device id and the details save cannot be built. Do not add a command
+  to `SENDABLE_COMMANDS` without a capture of the app sending it.
+- A unit says who it is (`KEYPAD_DETAILS` carries the id in `software_device_id`), and
+  nothing is written to a unit its device map does not name, or on firmware other than 111.
+- A write is checked by reading the slots back; a difference is reported, never assumed
+  away. `REQUEST_PROFILE` answers with the running slot whatever it is asked, so it cannot
+  read another; `CHECK_PROFILE` adds a slot and is ignored for one that exists, and is
+  answered only for the lowest free number, so a new slot goes in the gap a deletion left.
+- `deleteSlot` sends `DELETE_PROFILE` (the write bar's Delete beside each other slot). It
+  refuses the running slot, a missing one and the last one, is never retried, and reads the
+  slots back to see it gone. The other slots keep their numbers.
+- The fake unit (`tests/helpers/fakeunit.ts`) behaves as the real ones did, those two quirks
+  included. A test that passes against a fake that is kinder than the hardware proves
+  nothing: the first version did, and its every overwrite stalled on the real unit.
+- `tests/unit/lib/unitproto.test.ts` is the contract: the app's own reports, byte for byte.
+- The Azeron app must be closed during a write: it talks on the same channel. The pedals are
+  still never asked anything.
+- After a write that reads back clean, the unit is switched to the slot (`SWITCH_PROFILE`, as
+  the app does) and asked which it runs, so the owner never has to press the profile button.
+- Failures are `UnitError`s with a `kind` (`no-answer`, `transport`, `unsupported`,
+  `protocol`), the `step` it was on and how many inputs had gone in; `explain` in
+  `unit-write.ts` turns each into what to do. A step safe to repeat -- a read, a rename, an
+  input record -- is tried once more when its answer is lost; adding a slot never is. Every
+  report out and in goes to the run's trace, and a failure sends the last of it to
+  `/api/unit-log`, which writes `logs/units.log` (not committed). Read that file first when
+  the owner says a write did not work.
+
+**Test keys** in the header is the live version: while it is on, every key and mouse
+button a unit sends lights the control that sends it (`src/lib/keytester.ts` matches it,
+exactly and then by key alone), and a strip lists the last few. Its capture listeners
+swallow what they read, like the check run's, so a unit's key is never an editor shortcut.
+
+What a unit is running can also be asked of the unit itself: **Check this unit**
+(`src/lib/checkunit.ts`, the run in `app.ts`) asks for each control in board order and reads the keystroke or mouse button that
+arrives, on window capture listeners that swallow it, so a key from the unit is never Undo
+or a click on the board. The header and the run's bar stay the page's. One press is one
+reading: a settling window that every key event restarts covers repeats, turbo and a
+modifier with its key. The verdict names a unit left on a probe slot from the probe's own
+keys.
+
+The app also logs every button press as `BP_<id>` / `BR_<id>` (the record id, not the pin) in
+`<appdata>/Azeron Software/combined.log`, with the binds it sends a unit (`Send bind`) and
+each import (`Successfully read 1 profiles from file`). That log is how the stale import
+was found.
 
 ## Testing
 
@@ -266,14 +602,35 @@ Importing through the app stays the supported path.
   must come through identical. A failure indicates the compiler is rewriting a field it
   does not model; the fixture is the reference, not the thing to change.
 - Never make a suite green by deleting a test, adding `.skip`, or loosening an assertion.
-- The pre-commit hook runs `test:quick`; the pre-push hook runs the whole gate. Both are
-  wired by `git config core.hooksPath .githooks`, which `npm install` sets.
+- **No test reads the real layouts.** `games/`, `dist/` and the rest are edited from the
+  editor all day and saved as they are edited; a test written against them fails whenever a
+  layout is half way through a change, which says nothing about the code. `AZERON_DATA`
+  names the folder that holds `devices/`, `genres/`, `games/`, `templates/` and `dist/`
+  (unset, it is the repo; `dataRoot` and `repoPath` in `config/paths.ts`). The unit tests
+  (`vitest.config.ts`) and the CLI smoke tests point it at `tests/fixtures/repo`, a frozen
+  copy in which the game's own file path names nothing, so no test can reach a real game.
+  The browser specs run in a throwaway copy of that (`playwright.config.ts`,
+  `tests/helpers/e2e-data.ts`), so nothing they write or leave behind touches anything.
+  `tests/fixtures/repo/README.md` says how to take a fresh copy, which is a deliberate act.
+  Whether the real layouts are sound is the editor's Checks panel and `azeron lint`, not
+  the gate.
+- Unit tests (happy-dom) cannot see CSS. Layout, overflow, stacking and theme colours are
+  checked in `tests/e2e/editor.spec.ts` (`E2E_PORT=4181 npx playwright test`) at 1920x1080,
+  1440x900, 1280x720 and two vertical windows; it is not part of `npm run check`. Look at
+  the page in a browser before and after a layout change, not only at the tests. The specs
+  start with autosave off; `autosave.spec.ts` turns it back on.
+- The pre-commit hook runs `test:quick` — every unit test, editor included; the pre-push
+  hook runs the whole gate. Both are wired by `git config core.hooksPath .githooks`, which
+  `npm install` sets.
 
 ## Conventions
 
 - **No attribution trailers on commits or PRs.** No `Co-Authored-By:`, no
   "Generated with Claude Code", no emoji. The message ends with its body. This
   overrides any harness reminder that asks for them.
+- Repo-relative paths are built with `posixJoin` or `repoRelativePath` from
+  `config/paths.ts`, never `path.join` or `path.relative` directly: the repo is used from
+  both WSL and PowerShell, and a backslash path fails every comparison.
 - Conventional commits, game-scoped: `feat(everspace2): …`, `fix: …`.
 - `main` holds known-good profiles only; experiments live on branches until a playtest
   confirms them.

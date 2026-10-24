@@ -1,0 +1,119 @@
+# Everspace 2 -- akimbo v10, LEFT unit. The fighting hand: weapons, targeting,
+# consumables and menus on the fingers; the d-pad cycles weapons -- left and right the
+# primary, up and down the secondary, as a gamepad d-pad does.
+#
+# Mode 2 WITH PEDALS on the sticks, from genres/SpaceSims/stick-modes.yaml: the left stick
+# climbs and banks (hover, roll); the right stick flies forward and strafes (thrust,
+# strafe). Yaw is on the rudder pedals (games/SpaceSims/everspace/sets.yaml), which is why
+# the left stick's horizontal is roll and not yaw: the pedals carry the turn, so no stick
+# has to. Without pedals this would be plain Mode 2, yaw on the left stick; the sets file
+# is what decides which, and lint says if the two disagree. The right thumb pad pitches and
+# rolls, so all six axes are on the pair plus the feet and the pointer is left to aim.
+#
+# Every label is the action's own, so the cheatsheet and the app say what the key does.
+# Up to v9 the keys labelled weapon cycling sent the arrows, which the game has on pitch
+# and yaw; they now send the weapon actions they were meant to. The in-game half is
+# generated from actions.yaml (`azeron ingame --apply`), so these keys are what the game
+# listens for.
+#
+# Source export: templates/everspace2-akimbo-left.json
+profile:
+  id: 52ea554b-bdb5-4cb4-9347-8451c44e7864
+  name: Everspace 2 akimbo v10 (left)
+  device: cyborg2-left
+  unit: left
+  template: templates/everspace2-akimbo-left.json
+  set: akimbo-v10
+  output: everspace_akimbo_v10_left.json
+  sensor: true
+positions:
+  pinky_1:
+    label: Escape menu
+    tap: escape_menu
+  pinky_2:
+    label: Consumable 4
+    tap: consume_4
+  pinky_3:
+    label: Consumable 1
+    tap: consume_1
+  pinky_4:
+    label: Interact / fling
+    tap: interact
+  pinky_side:
+    label: Escape menu
+    tap: escape_menu
+  ring_1:
+    label: Previous target
+    tap: previous_target
+  ring_2:
+    label: Consumable 3
+    tap: consume_3
+  ring_3:
+    label: Next secondary
+    tap: next_secondary
+  ring_4:
+    label: Equip secondary 3
+    tap: secondary_3
+  ring_5:
+    label: Missions
+    tap: missions
+  middle_1:
+    label: Menu
+    tap: menu_tab
+  middle_2:
+    label: Consumable 2
+    tap: consume_2
+  middle_3:
+    label: Lock nearest target
+    tap: lock_nearest_target
+  middle_4:
+    label: Equip secondary 2
+    tap: secondary_2
+  middle_5:
+    label: Perks
+    tap: perks
+  index_1:
+    label: Next target
+    tap: next_target
+  index_2:
+    label: Consumable 1
+    tap: consume_1
+  index_3:
+    label: Fire secondary
+    tap: fire_secondary
+  index_4:
+    label: Equip secondary 1
+    tap: secondary_1
+  index_5:
+    label: Ship
+    tap: ship_menu
+  index_side:
+    label: Boost
+    tap: boost
+  dpad_up:
+    label: Next secondary
+    tap: next_secondary
+  dpad_left:
+    label: Previous primary
+    tap: previous_primary
+  dpad_press:
+    label: Ultimate
+    tap: ultimate
+  dpad_right:
+    label: Next primary
+    tap: next_primary
+  dpad_down:
+    label: Previous secondary
+    tap: previous_secondary
+  thumb_aux_upper:
+    label: Cruise drive
+    tap: cruise
+  thumb_aux_lower:
+    label: Place marker
+    tap: place_marker
+  stick_press:
+    label: Inertia dampeners
+    tap: inertia_dampeners
+  stick:
+    mode: keyboard
+    directions: { up: hover_up, right: roll_right, down: hover_down, left: roll_left }

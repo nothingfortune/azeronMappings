@@ -7,17 +7,18 @@
  * inferred from the left-handed layout.
  */
 
-import type { ExportDocument, InputRecord, StickDirection, StickSector } from "../types/azeron.js";
+import type { ExportDocument, StickDirection, StickSector } from "../types/azeron.js";
 import {
+  isRebindableRecord,
   SECTOR_DEGREES,
   STICK_DIRECTIONS,
   STICK_SECTORS,
   TYPE_KEYBOARD,
-  TYPE_MOUSE,
-  TYPE_NONE,
   TYPE_STICK_KEYBOARD,
+  activeAnalogKeys,
 } from "../types/azeron.js";
 import type { DeviceData, DevicePosition } from "../types/profile.js";
+import { blankRecord } from "./binding.js";
 import * as keys from "./keys.js";
 
 /**
@@ -49,43 +50,6 @@ export interface ProbeProfile {
 export class ProbeError extends Error {}
 
 /**
- * Whether a record is an ordinary key that may be rebound.
- *
- * Pin 0 carries type "2", which the Azeron software repairs if it is overwritten: it is
- * the profile switch, not a key. Rebinding it produced a profile the app had to fix on
- * import. Anything whose type is not a plain key, mouse button or stick is left exactly
- * as the template has it.
- */
-function isRebindable(record: InputRecord): boolean {
-  const type = String(record.types[0]);
-  return (
-    type === TYPE_KEYBOARD ||
-    type === TYPE_NONE ||
-    type === TYPE_MOUSE ||
-    type === TYPE_STICK_KEYBOARD
-  );
-}
-
-function clearSlots(record: InputRecord): void {
-  record.types = [TYPE_NONE, TYPE_NONE, TYPE_NONE];
-  for (const field of [
-    "keyValues",
-    "metaValues",
-    "keyValuesLong",
-    "metaValuesLong",
-    "keyValuesDouble",
-    "metaValuesDouble",
-  ] as const) {
-    record[field][0] = keys.NONE_TOKEN;
-  }
-  record.isHold = false;
-  record.isHoldLong = false;
-  record.isHoldDouble = false;
-  record.featureDelay = 500;
-  record.doubleDelay = 150;
-}
-
-/**
  * Build a profile where every pin sends its own key.
  *
  * Unknown pins go last in the key pool so the least reliable probe keys land on the
@@ -103,7 +67,9 @@ export function buildProbeProfile(
   target.name = options.name;
 
   const unknown = new Set(options.unknownPins ?? []);
-  const records = target.inputs.filter((record) => record.pinOne !== 255 && isRebindable(record));
+  const records = target.inputs.filter(
+    (record) => record.pinOne !== 255 && isRebindableRecord(record),
+  );
   const ordered = [
     ...records.filter((record) => !unknown.has(record.pinOne)),
     ...records.filter((record) => unknown.has(record.pinOne)),
@@ -134,15 +100,16 @@ export function buildProbeProfile(
     const isStick =
       record.types[0] === TYPE_STICK_KEYBOARD ||
       (record.pinTwo !== 255 && record.pinTwo !== record.pinOne);
-    clearSlots(record);
+    blankRecord(record);
     if (isStick) {
       record.types[0] = TYPE_STICK_KEYBOARD;
-      const left = record.analogSettings?.analogKeys.left;
+      const settings = record.analogSettings;
+      const live = settings ? activeAnalogKeys(settings) : undefined;
       for (const direction of STICK_DIRECTIONS) {
         const key = takeKey(true);
         const code = keys.nameToAnalog(key);
         if (code === null) throw new ProbeError(`no analog keycode for probe key ${key}`);
-        if (left) left[direction][0] = code;
+        if (live) live[direction][0] = code;
         assignments.push({ key, pin: record.pinOne, inputId: record.id, kind: "stick", direction });
       }
       record.label = `PROBE stick ${String(record.pinOne)}`;
@@ -172,16 +139,21 @@ export interface ProbeResult {
 
 /** Rebuild a device map from what the press test observed. */
 export function deviceFromProbe(assumed: DeviceData, result: ProbeResult): DeviceData {
+  // Every position comes through. One that was pressed takes the pin that fired; one that
+  // was skipped, or never reached, keeps the pin the map already had. Dropping the unseen
+  // ones turned a five-key capture into a five-key device -- and every profile that used
+  // any other position stopped compiling. A stick is measured by deflection, not by a
+  // press, so it is never in the pin sweep either.
   const positions: Record<string, DevicePosition> = {};
+  let unseen = 0;
   for (const [name, position] of Object.entries(assumed.positions)) {
     const pin = result.pins[name];
     if (pin !== undefined) {
       positions[name] = { ...position, pin };
       continue;
     }
-    // A stick is measured by deflection, not by a press, so it never appears in the pin
-    // sweep. It is carried over so the map can still compile profiles that bind it.
-    if (position.kind === "stick") positions[name] = { ...position };
+    positions[name] = { ...position };
+    if (position.kind !== "stick") unseen += 1;
   }
 
   const seen = new Set(Object.values(result.pins));
@@ -191,18 +163,24 @@ export function deviceFromProbe(assumed: DeviceData, result: ProbeResult): Devic
     (direction) => (result.stick[direction] ?? direction) === direction,
   );
 
+  // Verified means every position was pressed. A partial capture does not earn it, and
+  // does not take it away from a map that already had it.
   const next: DeviceData = {
     ...assumed,
     positions,
     unknown_pins: stillUnknown,
-    verified: true,
+    verified: unseen === 0 || assumed.verified === true,
   };
   if (!identity) next.stick_directions = { ...result.stick };
 
   if (result.sectors && Object.keys(result.sectors).length > 0) {
     const zero = stickZeroFrom(result.sectors);
     if (zero.zeroPush) next.stick_zero = zero.zeroPush;
-    if (zero.offsetDegrees !== 0) next.stick_angle = zero.offsetDegrees;
+    // One correction, not two. The direction sweep and the zero pass measure the same
+    // rotation; writing both applies it twice, which `stick-double-correction` rejects --
+    // so the probe produced maps its own linter would not accept. The sweep is exact for a
+    // quarter turn and remaps at compile time, so it wins when it found anything.
+    if (zero.offsetDegrees !== 0 && identity) next.stick_angle = zero.offsetDegrees;
   }
   return next;
 }
@@ -278,8 +256,8 @@ export function buildStickCalibrationProfile(
     const isStick =
       record.types[0] === TYPE_STICK_KEYBOARD ||
       (record.pinOne !== 255 && record.pinTwo !== 255 && record.pinTwo !== record.pinOne);
-    if (!isRebindable(record)) continue;
-    clearSlots(record);
+    if (!isRebindableRecord(record)) continue;
+    blankRecord(record);
     if (!isStick) continue;
     found = true;
 
@@ -294,9 +272,11 @@ export function buildStickCalibrationProfile(
       const code = keys.nameToAnalog(key);
       if (code === null) throw new ProbeError(`no analog keycode for ${key}`);
       if (isCardinal(sector)) {
-        analog.analogKeys.left[sector][0] = code;
+        activeAnalogKeys(analog)[sector][0] = code;
       } else if (analog.diagonalKeys) {
-        analog.diagonalKeys.left[sector][0] = code;
+        const diagonals =
+          analog.isRightAnalog === true ? analog.diagonalKeys.right : analog.diagonalKeys.left;
+        diagonals[sector][0] = code;
       } else {
         throw new ProbeError("stick record has no diagonalKeys to bind");
       }

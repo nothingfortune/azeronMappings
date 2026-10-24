@@ -1,0 +1,37 @@
+# Ace Combat 7 -- default pair, RIGHT unit. The stick hand.
+#
+# Mode 2: pitch and roll on the stick, nose down with the stick pushed up. Missiles on the
+# index finger, mirroring the gun on the left; the target beside them, and the weapon
+# change above. The thumb pad looks around.
+#
+# The right unit's template is its own export, which carries `isRightAnalog` and the 176°
+# stick angle, so the stick reads the right way up on the rotated thumb cluster.
+#
+# Not flown. See playtests.md.
+profile:
+  id: 15c50673-5275-4eca-be6f-0cd4d6f96e9e
+  name: Ace Combat 7 default (right)
+  device: cyborg2-right
+  unit: right
+  template: templates/everspace2-akimbo-right.json
+  set: default
+  output: aceCombat7_default_right.json
+  sensor: false
+positions:
+  stick:
+    mode: keyboard
+    directions: { up: pitch_down, right: roll_right, down: pitch_up, left: roll_left }
+
+  # Index: missiles on the resting row, the weapon change above.
+  index_2: {label: Change weapon, tap: weapon_change}
+  index_3: {label: Fire missile, tap: fire_missile}
+
+  # Middle: the target, beside the missiles.
+  middle_3: {label: Change target, tap: target_change}
+
+  # Thumb pad: the camera, and the view in the middle.
+  dpad_up:    {label: Look up, tap: camera_up}
+  dpad_down:  {label: Look down, tap: camera_down}
+  dpad_left:  {label: Look left, tap: camera_left}
+  dpad_right: {label: Look right, tap: camera_right}
+  dpad_press: {label: Change view, tap: view_change}

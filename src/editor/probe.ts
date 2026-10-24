@@ -8,7 +8,7 @@
 
 import { deviceFromProbe, PHYSICAL_PUSHES, probeDiff, stickZeroFrom } from "../lib/probe.js";
 import type { ProbeResult } from "../lib/probe.js";
-import { handLayout, probeOrder } from "../lib/layout.js";
+import { handLayout, positionLabel, probeOrder, unitLabel } from "../lib/layout.js";
 import { Device } from "../lib/model-core.js";
 import { dumpYaml } from "../lib/yaml.js";
 import { STICK_DIRECTIONS } from "../types/azeron.js";
@@ -38,6 +38,15 @@ const STICK_PROMPTS: Record<StickDirection, string> = {
 };
 
 type Mode = "pins" | "zero";
+
+/**
+ * A probe written to a unit stays in its on-board memory after the test, and the unit's
+ * profile button cycles through it like any other profile: a press then sends a probe key,
+ * which looks like a broken layout. Two units carried two each for a week.
+ */
+export const REMOVE_PROBES =
+  "Then, in the Azeron app, delete PROBE 1 pins and PROBE 2 stick zero from the unit's " +
+  "on-board profiles, or its profile button will land on them.";
 
 interface State {
   payload: ProbePayload;
@@ -111,7 +120,9 @@ function currentPrompt(): {
 } {
   const buttons = steps();
   const button = buttons[state.step];
-  if (button) return { label: button.position, position: button.position, direction: null };
+  if (button) {
+    return { label: positionLabel(button.position), position: button.position, direction: null };
+  }
   const direction = STICK_DIRECTIONS[state.step - buttons.length];
   if (direction) return { label: `stick ${direction}`, position: "stick", direction };
   return { label: "done", position: null, direction: null };
@@ -314,6 +325,11 @@ function exportDevice(hand: string): void {
     `# Every pin below is an observation, not an inheritance from the left-hand map.\n` +
     `# Save this over devices/${unit.device}.yaml.\n`;
 
+  if (saveDevice !== null) {
+    saveDevice(`devices/${unit.device}.yaml`, dumpYaml(next, header));
+    return;
+  }
+
   // The two passes produce different files for the same unit, so the name says which
   // passes are in it and when -- otherwise the second download is just "(1)".
   download(
@@ -339,7 +355,7 @@ function renderDiagram(unitIndex: number): HTMLElement {
       .filter(Boolean)
       .join(" ");
     return el("div", { class: classes }, [
-      el("span", { class: "pos" }, [position]),
+      el("span", { class: "pos" }, [positionLabel(position)]),
       el("span", { class: "pin" }, [done === undefined ? "" : `pin ${String(done)}`]),
     ]);
   };
@@ -367,11 +383,21 @@ function renderDiagram(unitIndex: number): HTMLElement {
       cell.append(el("span", { class: "pin" }, [mapped ?? ""]));
       dial.append(cell);
     }
+    const pressPin = layout.stickPress === null ? undefined : capture.pins[layout.stickPress];
+    const pressActive = isActive && prompt.position === layout.stickPress;
     dial.append(
-      el("div", { class: "dir hub" }, [
-        el("span", { class: "pos" }, ["stick"]),
-        el("span", { class: "pin" }, [String(device.positions[layout.stick]?.pin ?? "")]),
-      ]),
+      el(
+        "div",
+        {
+          class: `dir hub${pressPin === undefined ? "" : " done"}${pressActive ? " active" : ""}`,
+        },
+        [
+          el("span", { class: "pos" }, [positionLabel(layout.stickPress ?? "stick")]),
+          el("span", { class: "pin" }, [
+            pressPin === undefined ? "click" : `pin ${String(pressPin)}`,
+          ]),
+        ],
+      ),
     );
     thumb.append(dial);
   }
@@ -392,8 +418,8 @@ function renderDiagram(unitIndex: number): HTMLElement {
   const total = Object.keys(device.positions).length - (layout.stick ? 1 : 0);
   const wrap = el("div", { class: `hand ${isActive ? "active-hand" : ""}` }, [
     el("div", { class: "hand-title" }, [
-      el("b", {}, [`${unit.hand} unit`]),
-      el("span", {}, [`${device.name} -- ${String(done)}/${String(total)} captured`]),
+      el("b", {}, [`${unitLabel(unit.hand)} unit`]),
+      el("span", {}, [`${String(done)} of ${String(total)} captured`]),
       isActive ? el("span", { class: "badge" }, ["testing this one"]) : el("span", {}),
     ]),
     body,
@@ -473,10 +499,12 @@ function renderSummary(): HTMLElement {
     const count = capture ? Object.keys(capture.pins).length : 0;
     const row = el("div", { class: "summary-row" });
     row.append(
-      el("b", {}, [`${unit.hand} hand`]),
-      el("span", {}, [`${String(count)} position(s)`]),
+      el("b", {}, [`${unitLabel(unit.hand)} unit`]),
+      el("span", {}, [`${String(count)} captured`]),
     );
-    const button = el("button", { class: "btn", type: "button" }, [`Export ${unit.device}`]);
+    const button = el("button", { class: "btn", type: "button" }, [
+      saveDevice === null ? "Download its map" : "Save its map",
+    ]);
     button.addEventListener("click", () => {
       exportDevice(unit.hand);
     });
@@ -514,7 +542,7 @@ function renderSummary(): HTMLElement {
         el("div", { class: "note" }, [
           differing.length === 0
             ? "Every position captured on both units reports the same pin."
-            : `${String(differing.length)} position(s) report different pins: ${differing.join(", ")}`,
+            : `${String(differing.length)} position(s) report different pins: ${differing.map(positionLabel).join(", ")}`,
         ]),
       );
     }
@@ -524,16 +552,51 @@ function renderSummary(): HTMLElement {
 
 let mountPoint: HTMLElement | null = null;
 
+/**
+ * Where a measured device map goes when there is somewhere better than Downloads.
+ *
+ * The editor sets this when it is served, so the map lands in `devices/` directly instead
+ * of as a timestamped file to rename and copy over by hand.
+ */
+let saveDevice: ((path: string, content: string) => void) | null = null;
+
+/** The key the probe profile binds to whatever is being asked for. */
+function expectedKey(): string | null {
+  if (state.mode === "zero") {
+    const push = PHYSICAL_PUSHES[state.zeroStep];
+    if (!push) return null;
+    return state.payload.stickAssignments.find((entry) => entry.sector === push.id)?.key ?? null;
+  }
+  const prompt = currentPrompt();
+  if (prompt.direction) {
+    return (
+      state.payload.assignments.find(
+        (entry) => entry.kind === "stick" && entry.direction === prompt.direction,
+      )?.key ?? null
+    );
+  }
+  if (prompt.position === null) return null;
+  const device = deviceOf(currentUnit().device);
+  const pin = device.positions[prompt.position]?.pin;
+  if (pin === undefined) return null;
+  return (
+    state.payload.assignments.find((entry) => entry.kind === "button" && entry.pin === pin)?.key ??
+    null
+  );
+}
+
 function render(): void {
   const root = mountPoint;
   if (!root) return;
   root.replaceChildren();
 
-  const header = el("header");
-  header.append(el("h1", {}, ["Press test"]));
+  // A toolbar, not a <header>: inside the editor a header picked up the editor's own --
+  // sticky, full-width -- and sat over the page as a second one.
+  const header = el("div", { class: "probe-bar" });
+  header.append(el("h2", {}, ["Press test"]));
   const unitSelect = el("select", {});
   state.payload.units.forEach((unit, index) => {
-    const option = el("option", { value: String(index) }, [`${unit.hand} unit (${unit.device})`]);
+    const option = el("option", { value: String(index) }, [`${unitLabel(unit.hand)} unit`]);
     if (index === state.unitIndex) option.setAttribute("selected", "selected");
     unitSelect.append(option);
   });
@@ -600,29 +663,42 @@ function render(): void {
         el("span", {}, [`${String(state.zeroStep + 1)} / ${String(PHYSICAL_PUSHES.length)}`]),
       );
     } else {
-      banner.append(el("b", {}, ["Zero measured."]), el("span", {}, ["Export the map below."]));
+      banner.append(
+        el("b", {}, ["Zero measured."]),
+        el("span", {}, [`Export the map below. ${REMOVE_PROBES}`]),
+      );
     }
   } else {
     const prompt = currentPrompt();
     if (state.step >= totalSteps()) {
-      banner.append(el("b", {}, ["Done."]), el("span", {}, ["Export the map below."]));
+      banner.append(
+        el("b", {}, ["Done."]),
+        el("span", {}, [`Export the map below. ${REMOVE_PROBES}`]),
+      );
     } else {
       banner.append(
-        el("b", {}, [prompt.direction ? STICK_PROMPTS[prompt.direction] : `press ${prompt.label}`]),
+        el("b", {}, [prompt.direction ? STICK_PROMPTS[prompt.direction] : `Press ${prompt.label}`]),
         el("span", {}, [`${String(state.step + 1)} / ${String(totalSteps())}`]),
       );
     }
   }
   const sampling = Object.values(state.burstVotes).reduce((sum, count) => sum + count, 0);
+  const expected = expectedKey();
+  if (expected !== null) {
+    banner.append(el("span", { class: "muted" }, [`expecting ${expected}`]));
+  }
+  if (state.lastKey !== null) {
+    banner.append(el("span", { class: "muted" }, [`last key seen: ${state.lastKey}`]));
+  }
   if (state.message) banner.append(el("span", { class: "bad" }, [state.message]));
   else if (sampling > 0)
     banner.append(
-      el("span", { class: "muted" }, [`sampling... ${String(sampling)} reading(s), hold it`]),
+      el("span", { class: "muted sampling" }, [
+        `sampling... ${String(sampling)} reading(s), hold it`,
+      ]),
     );
   else if (state.burstNote)
-    banner.append(el("span", { class: "muted" }, [`read ${state.burstNote}`]));
-  else if (state.lastKey)
-    banner.append(el("span", { class: "muted" }, [`last key: ${state.lastKey}`]));
+    banner.append(el("span", { class: "muted read" }, [`read ${state.burstNote}`]));
   root.append(banner);
 
   const workspace = el("div", { class: "workspace" });
@@ -642,8 +718,13 @@ function render(): void {
 }
 
 /** Mount the press test into a container. Exported so tests can drive it directly. */
-export function start(payload = window.AZERON_PROBE, root?: HTMLElement): void {
+export function start(
+  payload = window.AZERON_PROBE,
+  root?: HTMLElement,
+  options: { save?: (path: string, content: string) => void } = {},
+): void {
   if (!payload) throw new Error("no probe payload embedded in the page");
+  saveDevice = options.save ?? null;
   if (!document.getElementById("azeron-probe-styles")) {
     const style = document.createElement("style");
     style.id = "azeron-probe-styles";
@@ -651,6 +732,7 @@ export function start(payload = window.AZERON_PROBE, root?: HTMLElement): void {
     document.head.append(style);
   }
   mountPoint = root ?? document.getElementById("app");
+  mountPoint?.classList.add("probe");
 
   state = {
     payload,
@@ -676,4 +758,5 @@ export function stop(): void {
   document.removeEventListener("keydown", onKey);
   clearBurst();
   mountPoint = null;
+  saveDevice = null;
 }

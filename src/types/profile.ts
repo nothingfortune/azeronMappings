@@ -7,6 +7,13 @@ export interface RawSlotSpec {
   meta_raw?: string;
 }
 
+/**
+ * A stick direction written inline: a key, a mouse button, or -- for a keycode this repo
+ * cannot name -- the token verbatim. Every field is optional, so reading one never needs
+ * a narrowing check.
+ */
+export type DirectionSpec = KeySlotSpec & RawSlotSpec;
+
 /** A slot spec written as a key, a modifier, or a mouse button. */
 export interface KeySlotSpec {
   key?: string | null;
@@ -25,8 +32,26 @@ export interface ActionSpec {
   tags?: string[];
   /** Bound somewhere other than a keypad key (the unit's mouse sensor, the mouse). */
   provided_by?: string;
+  /**
+   * The mode of play the action belongs to, for a game that has them -- Elite Dangerous's
+   * ship, buggy and on foot. Actions in modes that are never live together may share a key,
+   * and a layout shows only the modes it plays (`modes:` on its entry in sets.yaml).
+   * Absent means the action is live whenever the game is.
+   */
+  mode?: string;
   axis?: string;
   note?: string;
+  /**
+   * The game's own name for this action -- the `Action=` field of its row in the game's
+   * binding file -- so the game can be made to agree with this file rather than the two
+   * being kept in step by hand.
+   */
+  ingame?: string;
+  /**
+   * Which half of an axis this action is, for a game action with two rows (Everspace 2's
+   * `MoveRight` is one action: -1 strafes left, +1 right). Omitted for a single row.
+   */
+  ingame_scale?: number;
 }
 
 export interface DuplicateKeyAllowance {
@@ -50,7 +75,11 @@ export interface PositionSpec {
   double?: SlotSpec;
   /** Stick only. */
   mode?: string;
-  directions?: Partial<Record<StickDirection, string | KeySlotSpec>>;
+  /**
+   * An action id, an inline key, or -- for a direction whose keycode this repo does not
+   * understand -- the token verbatim, so a build does not write 0 over it.
+   */
+  directions?: Partial<Record<StickDirection, string | DirectionSpec>>;
   feature_delay?: number;
   double_delay?: number;
   hold?: boolean;
@@ -66,7 +95,14 @@ export interface PositionSpec {
   turbo?: boolean;
   turbo_long?: boolean;
   turbo_double?: boolean;
+  /**
+   * The interval, per slot. The export carries one for each, so a single field silently
+   * collapsed a record that set two of them to whichever was read last.
+   * `turbo_interval` is the tap's.
+   */
   turbo_interval?: number;
+  turbo_interval_long?: number;
+  turbo_interval_double?: number;
   /** Type codes we cannot derive, preserved verbatim. */
   raw?: { types?: string[] };
 }
@@ -89,6 +125,11 @@ export interface DeviceData {
   verified?: boolean;
   /** The id the Azeron software files this unit under in DevicesStorage. */
   software_device_id?: string;
+  /**
+   * False for a unit with no optical sensor (the Cyborg II): it has no sensor or DPI to set,
+   * so the editor offers neither. Absent means the unit may have one.
+   */
+  sensor?: boolean;
   /**
    * Physical stick direction -> the direction field it drives in the export.
    *
@@ -118,6 +159,15 @@ export interface ProfileMeta {
   output?: string;
   /** True when this profile is a faithful decompile of its template. */
   golden?: boolean;
+  /**
+   * The unit's own optical sensor, which moves the system pointer.
+   *
+   * Two units both running their sensors drive the same pointer at once, so a pair
+   * normally wants exactly one of them on. Inherited from the template when unset.
+   */
+  sensor?: boolean;
+  /** One of the profile's sensitivity steps, in DPI. */
+  dpi?: number;
   template_profile?: number;
 }
 
@@ -153,6 +203,27 @@ export interface GameConfig {
   export_to?: string;
   /** The game's own binding file, e.g. Everspace 2's Input.ini. */
   ingame_config?: string;
+  /**
+   * What `ingame_config` is: Everspace 2's Unreal `Input.ini` (the default) or Elite
+   * Dangerous's `.binds` file.
+   */
+  ingame_format?: "unreal-ini" | "elite-binds";
+  /**
+   * Elite only: a preset the game ships. Every write starts from it, never from the
+   * player's own file, which may hold bindings to devices that are long gone.
+   */
+  ingame_preset?: string;
+  /**
+   * The binding-file categories whose keyboard rows this repo owns outright -- the ones
+   * live while flying. Every row in them must have an action in `actions.yaml`, and
+   * generating writes their keys from it. The others (menus, photo mode) are left alone.
+   */
+  ingame_owned_categories?: number[];
+  /**
+   * The layout whose pedals are written into the game's Joystick axis rows. The game has
+   * one binding file, so one layout's control scheme is what it holds at a time.
+   */
+  ingame_set?: string;
   lint?: LintConfig;
 }
 

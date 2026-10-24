@@ -1,0 +1,102 @@
+# Stick modes, after the convention RC transmitters use (DJI Mode 1/2/3).
+#
+# A mode says which pair of actions each stick axis drives, across BOTH units: the left
+# stick's vertical and horizontal, and the right stick's. Applying one rewrites the two
+# `stick.directions` blocks and nothing else.
+#
+# An RC transmitter has four axes on two gimbals. On a quadcopter they are: throttle
+# (climb), pitch (tilt forward, which moves it forward), roll (tilt sideways, which moves
+# it sideways) and yaw (turn). Translated to a ship that is:
+#
+#   RC throttle  ->  vertical   MoveUp      hover up / down
+#   RC pitch     ->  thrust     MoveForward forward / backward
+#   RC roll      ->  strafe     MoveRight   left / right
+#   RC yaw       ->  yaw        Yaw         turn left / right
+#
+# A ship has six axes -- those four, plus pitch and roll as rotations -- and two thumbs.
+# The d-pad sits under the same thumb as the stick, so it adds room but not a third hand:
+# at any instant each thumb drives one of the two. Which four go on the sticks is the
+# choice a mode makes, and it depends on what the pointer does in flight. If moving the
+# pointer turns the ship, pitch and yaw are already covered and roll wants a stick; if it
+# only aims, yaw does. `mode2_roll` is there to fly the two against each other.
+#
+# Earlier versions of this file put roll where yaw belongs in every mode and said roll
+# "stands in for" yaw. It does not -- one turns the nose, the other banks the ship -- and
+# the reason given, that yaw is on the sensor, was never checked.
+#
+# PEDALS ARE A MODIFIER ON THE MODE. Rudder pedals carry yaw: a rudder that springs back to
+# centre is the proportional, self-centring turn that neither the pointer nor a
+# keyboard-mode stick can give. A stick that still sends yaw then duplicates it, and the
+# stick axis that carried it is free. `pedals.takes` says which axes the pedals carry, and
+# each mode's `with_pedals` says what its sticks do with the slot that frees -- only the
+# slots to replace, nothing else. In every mode the slot goes to roll, the one axis the
+# plain modes leave off the sticks, so a ship that has yaw on its feet can bank on a stick.
+# A layout with pedals uses the with-pedals variant; one without uses the mode as written,
+# and every mode below behaves exactly as it did before pedals existed.
+#
+# Mode 2 with pedals has the same eight directions as `mode2_roll`. The sticks cannot say
+# which they are -- the layout can, by whether it has pedals -- and `detectStickModes`
+# reports both.
+genre: SpaceSims
+
+pedals:
+  takes: [yaw]
+
+modes:
+  mode1:
+    label: Mode 1
+    note: Left stick flies forward and turns; right stick climbs and strafes.
+    left: { vertical: thrust, horizontal: yaw }
+    right: { vertical: vertical, horizontal: strafe }
+    with_pedals:
+      left: { horizontal: roll }
+
+  mode2:
+    label: Mode 2 (RC default)
+    note: Left stick climbs and turns; right stick flies forward and strafes.
+    left: { vertical: vertical, horizontal: yaw }
+    right: { vertical: thrust, horizontal: strafe }
+    with_pedals:
+      left: { horizontal: roll }
+
+  mode3:
+    label: Mode 3
+    note: Left stick flies forward and strafes; right stick climbs and turns.
+    left: { vertical: thrust, horizontal: strafe }
+    right: { vertical: vertical, horizontal: yaw }
+    with_pedals:
+      right: { horizontal: roll }
+
+  mode2_roll:
+    label: Mode 2, roll for yaw
+    note: >-
+      Mode 2 with roll where yaw would be -- for when the pointer already turns the ship.
+      Akimbo v9 was written for this, though it never flew.
+    left: { vertical: vertical, horizontal: roll }
+    right: { vertical: thrust, horizontal: strafe }
+
+  twin_stick:
+    label: Twin-stick (the game's gamepad layout)
+    note: >-
+      Not an RC mode. Everspace 2's own gamepad layout: the left stick moves the ship and
+      the right stick turns it. The game puts yaw and roll on the same gamepad axis; a
+      keyboard-mode stick sends one key per direction, so this takes yaw.
+    left: { vertical: thrust, horizontal: strafe }
+    right: { vertical: pitch, horizontal: yaw }
+    with_pedals:
+      right: { horizontal: roll }
+
+# Which action each axis sends at each end. `up` is the stick pushed up for a vertical
+# axis and pushed right for a horizontal one.
+#
+# `centred` says the game reads the axis as -1..+1 about a middle. All six flight axes do,
+# which is why a pedal that rests at one end (a toe brake) bound to one is a lint warning:
+# at rest it reads as a full deflection one way. Which game row an axis lands on is not
+# written here -- it is the `ingame` row of the action at the `up` end, in actions.yaml.
+axes:
+  thrust: { up: throttle_up, down: throttle_down, centred: true }
+  vertical: { up: hover_up, down: hover_down, centred: true }
+  strafe: { up: strafe_right, down: strafe_left, centred: true }
+  yaw: { up: yaw_right, down: yaw_left, centred: true }
+  pitch: { up: pitch_up, down: pitch_down, centred: true }
+  roll: { up: roll_right, down: roll_left, centred: true }

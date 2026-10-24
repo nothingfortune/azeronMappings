@@ -8,8 +8,8 @@
  */
 
 import { SLOTS } from "../types/azeron.js";
-import type { ActionSpec, KeySlotSpec, RawSlotSpec } from "../types/profile.js";
-import { iterBindings, ROLE_TAGS } from "./lint.js";
+import type { ActionSpec } from "../types/profile.js";
+import { actionsByEmittedKey, emittedKey, iterBindings, ROLE_TAGS } from "./lint.js";
 import type { ActionSet, Profile } from "./model-core.js";
 
 export interface BindingRow {
@@ -44,17 +44,6 @@ function role(spec: ActionSpec): string {
   return ROLE_TAGS.find((tag) => tags.has(tag)) ?? "other";
 }
 
-function rawKeyOf(raw: KeySlotSpec & RawSlotSpec): string | null {
-  const mouse = raw.mouse;
-  if (typeof mouse === "string") return `mouse ${mouse}`;
-  const key = raw.key ?? raw.key_raw;
-  const meta = raw.meta ?? raw.meta_raw;
-  const parts = [meta, key].filter(
-    (part): part is string => typeof part === "string" && part !== "0",
-  );
-  return parts.length > 0 ? parts.join(" + ") : null;
-}
-
 export function bindingSheet(
   gameName: string,
   actions: ActionSet,
@@ -62,6 +51,7 @@ export function bindingSheet(
 ): BindingSheet {
   const sentFrom = new Map<string, string[]>();
   const undeclared = new Map<string, string[]>();
+  const actionByKey = actionsByEmittedKey(actions);
 
   for (const profile of profiles) {
     const unit = profile.unit ?? profile.slug;
@@ -69,14 +59,19 @@ export function bindingSheet(
       const where = SLOTS.includes(slot as never)
         ? `${unit}:${position}`
         : `${unit}:${position}.${slot.replace("stick_", "")}`;
-      if (action) {
-        const list = sentFrom.get(action) ?? [];
+      // A slot edited in the app holds a key rather than an action id. It is still that
+      // action being sent, and the linter already resolves it, so the sheet must agree:
+      // only a key no action declares belongs under `undeclared`.
+      const sends =
+        action ?? (raw ? actionByKey.get(emittedKey(actions, null, raw) ?? "") : undefined);
+      if (sends) {
+        const list = sentFrom.get(sends) ?? [];
         if (!list.includes(where)) list.push(where);
-        sentFrom.set(action, list);
+        sentFrom.set(sends, list);
         continue;
       }
       if (!raw) continue;
-      const key = rawKeyOf(raw);
+      const key = emittedKey(actions, null, raw);
       if (key === null) continue;
       const list = undeclared.get(key) ?? [];
       if (!list.includes(where)) list.push(where);
@@ -93,8 +88,11 @@ export function bindingSheet(
     note: spec.note,
   }));
 
-  const order = (row: BindingRow): number =>
-    ROLE_TAGS.indexOf(role(actions.actions[row.action] ?? {}) as never);
+  const order = (row: BindingRow): number => {
+    const index = ROLE_TAGS.indexOf(role(actions.actions[row.action] ?? {}) as never);
+    // An untagged action has no role, and belongs after the ones that do.
+    return index === -1 ? ROLE_TAGS.length : index;
+  };
   all.sort((a, b) => order(a) - order(b) || a.label.localeCompare(b.label));
 
   return {

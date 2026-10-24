@@ -46,8 +46,19 @@ const NAME_TO_LEGACY: Record<string, string> = Object.fromEntries(
   Object.entries(LEGACY_KEY_TOKENS).map(([token, name]) => [name, token]),
 );
 
-/** "2" = middle click is confirmed in the app UI. The rest are not, so they are absent. */
-export const MOUSE_BUTTONS: Record<string, string> = { "2": "middle" };
+/**
+ * Mouse button codes.
+ *
+ * All three confirmed 2026-09-29 from two sides at once: a profile labelled "Fire
+ * Primary" sends 1 and "Fire Secondary" sends 3, and Everspace 2's own config binds
+ * FirePrimary to LeftMouseButton and FireSecondary to RightMouseButton. 2 was already
+ * confirmed as middle in the app UI.
+ */
+export const MOUSE_BUTTONS: Record<string, string> = {
+  "1": "left",
+  "2": "middle",
+  "3": "right",
+};
 const MOUSE_BY_NAME: Record<string, string> = Object.fromEntries(
   Object.entries(MOUSE_BUTTONS).map(([code, name]) => [name, code]),
 );
@@ -101,6 +112,56 @@ export const ANALOG_KEYCODES: Record<string, number> = {
   ShiftLeft: 16,
   ControlLeft: 17,
   AltLeft: 18,
+  // F1-F12 are 112-123. The function keys are verified as ordinary bindings (v5 sends
+  // F1, F2, F4, F9 and F10); whether the firmware accepts one in a stick direction is
+  // not. Without them an action like hover -- F9 and F10 in Everspace 2 -- could never
+  // sit on a stick at all.
+  F1: 112,
+  F2: 113,
+  F3: 114,
+  F4: 115,
+  F5: 116,
+  F6: 117,
+  F7: 118,
+  F8: 119,
+  F9: 120,
+  F10: 121,
+  F11: 122,
+  F12: 123,
+  // The keys the editor hands out when it wires an action (WIRE_POOL in wiring.ts), with
+  // their standard keyCodes, so an action given one can sit on a stick direction as well as
+  // on a key. Like the function keys, not yet seen in a stick direction of a real export.
+  Insert: 45,
+  Home: 36,
+  PageUp: 33,
+  Delete: 46,
+  End: 35,
+  PageDown: 34,
+  NumpadAdd: 107,
+  NumpadSubtract: 109,
+  NumpadMultiply: 106,
+  NumpadDivide: 111,
+  BracketLeft: 219,
+  BracketRight: 221,
+  Semicolon: 186,
+  Quote: 222,
+  Comma: 188,
+  Period: 190,
+  Slash: 191,
+  Backslash: 220,
+  Minus: 189,
+  Numpad0: 96,
+  Numpad1: 97,
+  Numpad2: 98,
+  Numpad3: 99,
+  Numpad4: 100,
+  Numpad5: 101,
+  Numpad6: 102,
+  Numpad7: 103,
+  Numpad8: 104,
+  Numpad9: 105,
+  NumpadDecimal: 110,
+  Backquote: 192,
 };
 
 const ANALOG_BY_CODE: Record<number, string> = Object.fromEntries(
@@ -171,4 +232,82 @@ export function keyRoundTrips(token: string | number | null | undefined): boolea
 export function metaRoundTrips(token: string | number | null | undefined): boolean {
   const expected = isEmpty(token) ? NONE_TOKEN : String(token);
   return nameToMeta(metaToName(token)) === expected;
+}
+
+/** Names for keys whose code does not say what is printed on them. */
+const KEY_LABELS: Record<string, string> = {
+  ShiftLeft: "Left Shift",
+  ShiftRight: "Right Shift",
+  ControlLeft: "Left Ctrl",
+  ControlRight: "Right Ctrl",
+  AltLeft: "Left Alt",
+  AltRight: "Right Alt",
+  ArrowUp: "↑ Up",
+  ArrowDown: "↓ Down",
+  ArrowLeft: "← Left",
+  ArrowRight: "→ Right",
+  Space: "Space",
+  Enter: "Enter",
+  Escape: "Esc",
+  Tab: "Tab",
+  Backspace: "Backspace",
+  CapsLock: "Caps Lock",
+  Equal: "=",
+  Minus: "-",
+  Backquote: "`",
+  BracketLeft: "[",
+  BracketRight: "]",
+  Semicolon: ";",
+  Quote: "'",
+  Comma: ",",
+  Period: ".",
+  Slash: "/",
+  Backslash: "\\",
+  Insert: "Insert",
+  Delete: "Delete",
+  Home: "Home",
+  End: "End",
+  PageUp: "Page Up",
+  PageDown: "Page Down",
+  NumpadAdd: "Num +",
+  NumpadSubtract: "Num -",
+  NumpadMultiply: "Num *",
+  NumpadDivide: "Num /",
+  NumpadDecimal: "Num .",
+  NumpadEnter: "Num Enter",
+};
+
+/**
+ * A key the way it is printed on the keyboard, for a person to read.
+ *
+ * The names this repo stores are `KeyboardEvent.code` -- `KeyW`, `Digit5`, `ShiftLeft` --
+ * which is right for a file and wrong for a screen. Anything not recognised is shown as
+ * stored rather than guessed at.
+ */
+export function keyLabel(name: string): string {
+  const known = KEY_LABELS[name];
+  if (known !== undefined) return known;
+  const letter = /^Key([A-Z])$/.exec(name);
+  if (letter?.[1]) return letter[1];
+  const digit = /^Digit([0-9])$/.exec(name);
+  if (digit?.[1]) return digit[1];
+  const numpad = /^Numpad([0-9])$/.exec(name);
+  if (numpad?.[1]) return `Num ${numpad[1]}`;
+  return name;
+}
+
+/** Whether a key is a modifier, which the game and the app treat as a key of its own. */
+export function isModifier(name: string): boolean {
+  return /^(Shift|Control|Alt|Meta)(Left|Right)$/.test(name);
+}
+
+/** What a binding sends, for a person: "W", "Left Shift", "Left mouse button". */
+export function bindingLabel(spec: {
+  key?: string | null;
+  meta?: string | null;
+  mouse?: string | null;
+}): string | null {
+  if (spec.mouse) return `${spec.mouse[0]?.toUpperCase() ?? ""}${spec.mouse.slice(1)} mouse button`;
+  const parts = [spec.meta, spec.key].filter((part): part is string => Boolean(part));
+  return parts.length > 0 ? parts.map(keyLabel).join(" + ") : null;
 }

@@ -1,13 +1,31 @@
 /** Repo-aware discovery: games, genres, and the loaders that read them from disk. */
 
 import { existsSync, readdirSync, statSync } from "node:fs";
-import { basename, join, relative } from "node:path";
+import { basename } from "node:path";
 
-import { dataDirs, repoPath, repoRoot } from "../config/paths.js";
+// Every path built here is a repo-relative identifier, so `join` is the forward-slash one.
+import {
+  dataDirs,
+  posixJoin as join,
+  repoPath,
+  repoRelativePath,
+  dataRoot,
+} from "../config/paths.js";
+import { messageOf } from "./object.js";
+import type { SetsData } from "../types/pedals.js";
 import type { GameConfig, LintConfig, ProfileData } from "../types/profile.js";
-import { loadActionSet, loadProfile, loadProfileData } from "./io.js";
+import {
+  loadActionSet,
+  loadPedalsDevice,
+  loadProfile,
+  loadProfileData,
+  loadSets,
+  loadStickModes,
+} from "./io.js";
+import type { LoadedPedals } from "./io.js";
 import type { ActionSet, GameLike } from "./model-core.js";
 import { Profile } from "./model-core.js";
+import type { StickModeSet } from "./stickmodes.js";
 import { loadYaml } from "./yaml-io.js";
 
 export { ActionSet, Device, Profile } from "./model-core.js";
@@ -22,15 +40,29 @@ export class Game implements GameLike {
   readonly name: string;
   readonly actions: ActionSet;
   readonly lintConfig: LintConfig;
+  /** The parts of a layout that belong to no single profile: today, its pedals. */
+  readonly sets: SetsData;
 
   constructor(dir: string) {
-    this.rel = relative(repoRoot, repoPath(dir));
+    this.rel = repoRelativePath(dataRoot, repoPath(dir));
     const configPath = join(this.rel, "game.yaml");
     this.config = existsSync(repoPath(configPath)) ? (loadYaml(configPath) as GameConfig) : {};
     this.slug = this.config.slug ?? basename(this.rel);
     this.name = this.config.name ?? this.slug;
     this.actions = loadActionSet(join(this.rel, "actions.yaml"));
     this.lintConfig = this.config.lint ?? {};
+    this.sets = loadSets(this.rel);
+  }
+
+  /** The stick modes of this game's genre, which also name the axes pedals can drive. */
+  get stickModes(): StickModeSet | undefined {
+    const genre = this.rel.split("/")[1];
+    return genre === undefined ? undefined : loadStickModes(join(dataDirs.genres, genre));
+  }
+
+  /** A pedals device by name, or null when no such file exists. */
+  pedalsDevice(name: string): LoadedPedals | null {
+    return loadPedalsDevice(name);
   }
 
   profilePaths(): string[] {
@@ -52,22 +84,51 @@ export class Game implements GameLike {
   }
 
   distDir(): string {
-    return join(dataDirs.dist, relative(dataDirs.games, this.rel));
+    return join(dataDirs.dist, repoRelativePath(dataDirs.games, this.rel));
   }
 
-  static discover(): Game[] {
+  /**
+   * Every game under `root` (the repo's games/ by default).
+   *
+   * A folder that is half made -- it has a game.yaml or profiles but no actions.yaml, or an
+   * actions.yaml that will not load -- is skipped and named once on stderr. It used to
+   * throw, and one unfinished folder then broke every command and the served editor.
+   */
+  static discover(root: string = dataDirs.games): Game[] {
     const found: string[] = [];
     const walk = (dir: string): void => {
       for (const entry of readdirSync(repoPath(dir))) {
         const child = join(dir, entry);
         if (!statSync(repoPath(child)).isDirectory()) continue;
         if (existsSync(repoPath(join(child, "actions.yaml")))) found.push(child);
-        else walk(child);
+        else if (
+          existsSync(repoPath(join(child, "game.yaml"))) ||
+          existsSync(repoPath(join(child, "profiles")))
+        ) {
+          reportSkipped(child, "it has no actions.yaml");
+        } else walk(child);
       }
     };
-    if (existsSync(repoPath(dataDirs.games))) walk(dataDirs.games);
-    return found.sort().map((dir) => new Game(dir));
+    if (existsSync(repoPath(root))) walk(root);
+    const games: Game[] = [];
+    for (const dir of found.sort()) {
+      try {
+        games.push(new Game(dir));
+      } catch (error) {
+        reportSkipped(dir, messageOf(error));
+      }
+    }
+    return games;
   }
+}
+
+const skippedReported = new Set<string>();
+
+/** Name a skipped game folder on stderr, the first time only: discovery runs per request. */
+function reportSkipped(dir: string, why: string): void {
+  if (skippedReported.has(dir)) return;
+  skippedReported.add(dir);
+  process.stderr.write(`warning: skipping ${dir}: ${why}\n`);
 }
 
 /**
@@ -85,7 +146,7 @@ export class Genre {
   readonly lintConfig: LintConfig;
 
   constructor(dir: string) {
-    this.rel = relative(repoRoot, repoPath(dir));
+    this.rel = repoRelativePath(dataRoot, repoPath(dir));
     this.name = basename(this.rel);
     this.actions = loadActionSet(join(this.rel, "actions.yaml"));
     this.defaultPath = join(this.rel, "default.yaml");

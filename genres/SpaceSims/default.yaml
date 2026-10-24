@@ -37,8 +37,8 @@ positions:
   ring_4: {label: Device 4, tap: device_4}
 
   # Middle: guns and the thing you press to pick something up.
-  middle_1: {label: Primary 1, tap: primary_1}
-  middle_2: {label: Primary 2, tap: primary_2}
+  middle_1: {label: Equip primary 1, tap: equip_primary_1}
+  middle_2: {label: Equip primary 2, tap: equip_primary_2}
   middle_3: {label: Interact, tap: interact}
   middle_4: {label: Next target, tap: next_target}
 
@@ -54,10 +54,10 @@ positions:
 
   # Thumb pad: weapon cycling and the ultimate. Tap only -- this is the pad that cost v5
   # a 1000 ms delay on every one of these.
-  dpad_up:     {label: Cycle up, tap: weapon_cycle_up}
-  dpad_left:   {label: Cycle left, tap: weapon_cycle_left}
-  dpad_right:  {label: Cycle right, tap: weapon_cycle_right}
-  dpad_down:   {label: Cycle down, tap: weapon_cycle_down}
+  dpad_up:     {label: Next secondary, tap: next_secondary}
+  dpad_left:   {label: Previous primary, tap: previous_primary}
+  dpad_right:  {label: Next primary, tap: next_primary}
+  dpad_down:   {label: Previous secondary, tap: previous_secondary}
   dpad_press: {label: Ultimate, tap: ultimate}
 
   # Thumb aux: travel and flight assist.

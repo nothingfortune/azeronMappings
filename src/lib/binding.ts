@@ -1,7 +1,25 @@
 /** Translation between a YAML slot spec and the export's (type, key, meta) triple. */
 
-import { TYPE_KEYBOARD, TYPE_MOUSE, TYPE_NONE } from "../types/azeron.js";
-import type { ActionSpec, KeySlotSpec, RawSlotSpec, SlotSpec } from "../types/profile.js";
+import type { InputRecord } from "../types/azeron.js";
+import {
+  DEFAULT_DOUBLE_DELAY,
+  DEFAULT_FEATURE_DELAY,
+  HOLD_FIELDS,
+  SLOTS,
+  SLOT_FIELDS,
+  TURBO_FIELDS,
+  TURBO_INTERVAL_FIELDS,
+  TYPE_KEYBOARD,
+  TYPE_MOUSE,
+  TYPE_NONE,
+} from "../types/azeron.js";
+import type {
+  ActionSpec,
+  DirectionSpec,
+  KeySlotSpec,
+  RawSlotSpec,
+  SlotSpec,
+} from "../types/profile.js";
 import * as keys from "./keys.js";
 
 export type Triple = readonly [type: string, key: string, meta: string];
@@ -155,4 +173,45 @@ export function matchAction(
     return diff !== 0 ? diff : a.localeCompare(b);
   });
   return scored[0] ?? first;
+}
+
+/**
+ * How a stick direction reads on a diagram.
+ *
+ * A direction is an action id, an inline key, or a token decompiling could not name. Every
+ * surface that draws a stick needs the same answer, so it is decided once here.
+ */
+export function describeDirection(
+  label: (id: string) => string,
+  value: string | DirectionSpec | undefined,
+): string | null {
+  if (value === undefined) return null;
+  if (typeof value === "string") return label(value);
+  if (typeof value.key === "string") return value.key;
+  if (typeof value.mouse === "string") return `mouse ${value.mouse}`;
+  if (typeof value.key_raw === "string") return `raw ${value.key_raw}`;
+  return null;
+}
+
+/**
+ * Clear every slot of an input record: no key, no modifier, no latch, no repeat, default
+ * waits. `label` is left in place -- deleting and re-adding it would move it to the end of
+ * the record and churn the JSON.
+ *
+ * The compiler and the probe each had their own copy of this, and they had already
+ * drifted: the probe's did not clear a repeat, so a probe built from a template with one
+ * sent a stream of keys for every press.
+ */
+export function blankRecord(record: InputRecord): void {
+  record.types = [TYPE_NONE, TYPE_NONE, TYPE_NONE];
+  for (const slot of SLOTS) {
+    const [keyField, metaField] = SLOT_FIELDS[slot];
+    (record[keyField] as string[])[0] = keys.NONE_TOKEN;
+    (record[metaField] as string[])[0] = keys.NONE_TOKEN;
+    record[HOLD_FIELDS[slot]] = false;
+    record[TURBO_FIELDS[slot]] = false;
+    record[TURBO_INTERVAL_FIELDS[slot]] = 0;
+  }
+  record.featureDelay = DEFAULT_FEATURE_DELAY;
+  record.doubleDelay = DEFAULT_DOUBLE_DELAY;
 }

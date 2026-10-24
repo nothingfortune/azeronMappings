@@ -1,0 +1,110 @@
+# Everspace 2 -- the in-game key behind each action in the SpaceSims vocabulary.
+#
+# This file is the in-game half of the mapping, and it is the source of truth for it:
+# `azeron ingame --apply` writes these keys into the game's Input.ini, so the game is made
+# to agree with this file rather than the two being kept in step by hand. Change a layout
+# on the keypads alone; change a key here, apply, and every profile follows.
+#
+# `ingame` names the game's own row -- its `Action=` field -- and `ingame_scale` says which
+# half of a two-row axis. Every keyboard row in the categories game.yaml owns (everything
+# live while flying) has an action here, so nothing is left bound to a key the repo does
+# not know about. An action with no key leaves its row unbound.
+#
+# Keys are the ones the profiles were built with wherever the game allowed it. Where the
+# game had put two live actions on one key, the system action moved rather than the flight
+# one: the keypads never need re-importing to fix a collision.
+extends: genres/SpaceSims/actions.yaml
+game: Everspace 2
+
+actions:
+  # --- flight (category 0) -------------------------------------------------------
+  throttle_up:        {key: KeyW,       ingame: MoveForward, ingame_scale: 1}
+  throttle_down:      {key: KeyS,       ingame: MoveForward, ingame_scale: -1}
+  # The game had these the other way round -- A on "Strafe right" -- which made every
+  # label, the stick modes and the d-pad disagree about which way was which.
+  strafe_left:        {key: KeyA,       ingame: MoveRight,   ingame_scale: -1}
+  strafe_right:       {key: KeyD,       ingame: MoveRight,   ingame_scale: 1}
+  hover_up:           {key: F9,         ingame: MoveUp,      ingame_scale: 1, label: Hover up}
+  hover_down:         {key: F10,        ingame: MoveUp,      ingame_scale: -1, label: Hover down}
+  # The arrows. These were called weapon cycling in every profile up to v9, and they have
+  # been pitch and yaw in the game the whole time -- the game has no weapon cycling on
+  # four keys at all.
+  pitch_up:           {key: ArrowUp,    ingame: Pitch,       ingame_scale: 1}
+  pitch_down:         {key: ArrowDown,  ingame: Pitch,       ingame_scale: -1}
+  yaw_left:           {key: ArrowLeft,  ingame: Yaw,         ingame_scale: -1}
+  yaw_right:          {key: ArrowRight, ingame: Yaw,         ingame_scale: 1}
+  roll_left:          {key: KeyQ,       ingame: Roll,        ingame_scale: -1}
+  roll_right:         {key: KeyE,       ingame: Roll,        ingame_scale: 1}
+  boost:              {meta: ShiftLeft, ingame: Boost}
+  cruise:             {key: KeyF,       ingame: ChargeCruiseMode, label: Cruise drive}
+  supralight:         {key: KeyC,       ingame: ChargeTravelMode}
+
+  # --- combat and ship (category 1) ----------------------------------------------
+  inertia_dampeners:  {meta: AltLeft,   ingame: InertiaDampeners}
+  fire_primary:       {mouse: left,     ingame: FirePrimary}
+  fire_secondary:     {mouse: right,    ingame: FireSecondary}
+  next_primary:       {key: F1,         ingame: NextPrimary}
+  previous_primary:   {key: F2,         ingame: PreviousPrimary}
+  equip_primary_1:    {key: Digit9,     ingame: Primary1}
+  equip_primary_2:    {key: Digit0,     ingame: Primary2}
+  equip_primary_3:    {key: F3,         ingame: Primary3}
+  next_secondary:     {key: KeyR,       ingame: NextSecondary}
+  previous_secondary: {key: KeyX,       ingame: PreviousSecondary}
+  secondary_1:        {key: F4,         ingame: Secondary1}
+  secondary_2:        {key: F5,         ingame: Secondary2}
+  secondary_3:        {key: F6,         ingame: Secondary3}
+  ultimate:           {key: KeyG,       ingame: UseShipAbility}
+  lock_target:        {mouse: middle,   ingame: LockTarget}
+  next_target:        {key: KeyT,       ingame: NextTarget}
+  previous_target:    {key: KeyY,       ingame: PreviousTarget}
+  lock_nearest_target: {key: KeyN,      ingame: LockNearestTarget}
+  device_1:           {key: Digit1,     ingame: Device1}
+  device_2:           {key: Digit2,     ingame: Device2}
+  device_3:           {key: Digit3,     ingame: Device3}
+  device_4:           {key: Digit4,     ingame: Device4}
+  use_device_hold:    {ingame: UseDevice}
+  consume_1:          {key: Digit5,     ingame: Consumable1}
+  consume_2:          {key: Digit6,     ingame: Consumable2}
+  consume_3:          {key: Digit7,     ingame: Consumable3}
+  consume_4:          {key: Digit8,     ingame: Consumable4}
+  use_consumable_hold: {ingame: UseConsumable}
+  # The game's Interact and FlingObjects share F, and cruise charges on it when held. The
+  # label keeps "fling" so decompiling an export picks this action for a key labelled
+  # "Interact / Fling" rather than the separate fling action.
+  interact:           {key: KeyF,       ingame: Interact, label: Interact / fling}
+  fling:              {key: KeyF,       ingame: FlingObjects}
+  view_ship:          {key: KeyV,       ingame: SwitchCamera}
+  free_look:          {ingame: FreeLook}
+  headlight:          {key: KeyB,       ingame: Headlight}
+  # The game had Pin on numpad +, which no profile ever sent; the profiles send =.
+  place_marker:       {key: Equal,      ingame: Pin}
+
+  # --- menus (category 2) ----------------------------------------------------------
+  menu_tab:           {key: Tab,        ingame: IngameMenu}
+  pause:              {key: KeyP,       ingame: Pause}
+  ship_menu:          {key: KeyO,       ingame: OpenTabShip}
+  inventory:          {key: KeyI,       ingame: OpenTabInventory}
+  missions:           {key: KeyK,       ingame: OpenTabMissions}
+  map:                {key: KeyM,       ingame: OpenTabMap}
+  crafting:           {key: KeyU,       ingame: OpenTabCrafting}
+  data_logs:          {key: KeyL,       ingame: OpenTabData}
+  perks:              {key: KeyJ,       ingame: OpenTabPerks}
+
+  # --- system (category 3) ---------------------------------------------------------
+  # Quick save was on F5 with Equip secondary 2, and quick load on F9 with hover up:
+  # climbing reloaded the game. Both move to keys no profile sends.
+  quick_save:         {key: F7,         ingame: QuickSave}
+  quick_load:         {key: F11,        ingame: QuickLoad}
+  load_recent_save:   {key: F8,         ingame: LoadMostRecentSave}
+  photo_mode:         {key: KeyZ,       ingame: ActionFreeze}
+  toggle_hud:         {key: KeyH,       ingame: ToggleHUD}
+
+  # Escape has no row in a flight category -- the game's own `Cancel` is a menu action --
+  # so it is sent but not managed here.
+  escape_menu:        {key: Escape}
+
+# Two actions may deliberately send the same key in game.
+duplicate_key_allowlist:
+  - {key: KeyF, actions: [interact, fling, cruise],
+     reason: "Everspace 2 puts all three on F and picks by context: interact or fling
+              near something, cruise when held."}

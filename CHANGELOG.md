@@ -1,84 +1,439 @@
 # Changelog
 
-Every profile change, and why.
+Every profile change, and why. `playtests.md` records what each layout felt like.
 
 ## Unreleased
 
 ### Added
 
-- Toolchain in strict TypeScript, following the `nothingfortune/base` conventions:
-  `npm run check` is the gate (build, typecheck, lint, format, Vitest, CLI smoke tests),
-  CI runs exactly that, and `.githooks` wires a quick pre-commit gate plus a full
-  pre-push one.
-- `bin/azeron` with `build`, `lint`, `roundtrip`, `cheatsheet`, `decompile`, `editor` and
-  `install`.
-- **Side-by-side editor** (`azeron editor`): both units at once, click-to-edit, live
-  coverage and constraint checks, and export to either profile YAML or import JSON. It
-  imports the same compiler and linter the CLI uses, so there is no second implementation
-  to drift.
-- **`azeron install`**: writes a compiled profile into the Azeron app's own profile store
-  (`Storage/DevicesStorage/<deviceId>/ProfileStorage/`). Refuses while the app is running,
-  backs up what it would overwrite, and projects the profile onto the shape the app itself
-  writes, because the stored schema is a strict subset of the export schema.
-- `devices/cyborg2-left.yaml` and `devices/cyborg2-right.yaml`. Both units export the same
-  pin numbers; the right map is flagged `mirrored` with a TODO to press-test the thumb-pad
-  directions.
-- Genre layer: `genres/SpaceSims/` and `genres/FPS/`, each with an action vocabulary and a
-  default layout. Both lint clean with zero acknowledgements. Games inherit with
-  `extends:` and supply only keys.
-- `games/SpaceSims/everspace/`: `actions.yaml` (keys only, vocabulary inherited),
-  `single-v5.yaml` decompiled from the known-good export, and the **akimbo v6 draft** for
-  both hands.
-- `templates/everspace2-v5.json`, the known-good export from Azeron software 2.0.2, committed
-  untouched as both the compiler template and the golden test fixture.
+- **Helldivers 2 and Ace Combat 7, with a default layout each; and a Flight genre.** Neither
+  has been played on the units yet.
+  - `genres/Flight/`: the four axes of a plane, weapons, view and menus, a single-unit
+    default, and DJI Modes 1–3 as stick modes, which translate one for one for a plane.
+  - `games/FPS/hellDivers/`: one left unit and a mouse. Aiming needs the mouse: the Cyborg
+    II has no sensor and a stick can only be written in keyboard mode, so a right-hand unit
+    would have nothing to aim with. Keys are the game's defaults, from Arrowhead's list; the
+    owner's settings file has not changed any. The stratagem input is held on the pinky
+    and the code entered on the movement stick, which sends the same W A S D the game
+    reads for both.
+  - `games/Flight/aceCombat7/`: a pair in Mode 2, throttle and yaw on the left stick and
+    pitch and roll on the right. Keys are the game's published defaults, not checked
+    against an installed copy. A second decelerate key makes the high-G turn (both throttle
+    keys held) reachable.
 
-### Added (press test)
+- **Deleting a unit's slots from the write bar.** Each unit's other slots are listed with a
+  Delete beside each, which sends `DELETE_PROFILE` -- seen on 2026-10-17 when a slot was
+  deleted in the app -- and reads the slots back to see it gone. It will not delete the slot
+  the unit is running, one it does not have, or the last one. The other slots keep their
+  numbers, so a deletion leaves a gap; the unit adds a new slot only at the lowest free
+  number, so a new slot now goes there instead of after the last, which the unit ignored.
+- **Writing to the units, hardened after a review:**
+  - A write checks the layout is still the one it planned for when Write is pressed, and
+    plans again if it changed. Before, an edit while the bar waited could have put an old
+    copy on the units and called it read back as written. Choosing another layout ends a
+    write that has not started.
+  - When the page cannot tell whether the Azeron app is running, it asks instead of
+    taking that for closed.
+  - Cancel while the units are being found lets go of them once they answer.
+  - A unit's answer to an input record is matched by the sequence number it echoes, so a
+    late answer is not taken for the next one.
+  - A report the page cannot read is passed over rather than ending the write.
+  - A slot added and then left empty by a write that stopped no longer makes the unit
+    unreadable.
+  - The stick's hold type and hold keys are part of the read-back.
+  - A read-back that fails after every input went in says so.
+  - Two overlapping waits for the unit can no longer lose a report.
+  - The key tester's Stop answers Enter, and a key let go of while the window was
+    elsewhere is forgotten.
 
-- **`azeron probe`**: a generated profile where every pin sends a distinguishable key,
-  plus a guided capture page. It prompts for one position at a time on a diagram of the
-  unit, records which pin actually fired, handles both units separately, diffs each
-  against the assumed map and the two against each other, and exports corrected device
-  YAML. The least reliable probe keys (F13+) are reserved for the pins nobody has
-  identified, so a firmware limitation cannot cost a known position.
-- **Stick zero calibration**: a second, stick-only probe profile with all eight sectors
-  bound and eight-directional mode on, plus a calibration pass in the page that asks for
-  eight physical pushes and derives the rotation by majority vote. Writes `stick_zero`
-  and `stick_angle` onto the device; the compiler writes `analogSettings.angle` only when
-  a device has been measured, because that field's units are unverified.
-- `verified` on a device map, and the `unverified-device` lint warning for any profile
-  built on a map that has not been press-tested.
-- `stick_directions` on a device map: redirects a physical stick direction onto the
-  export field it actually drives, for a unit that does not match the left-handed
-  software's assumption.
-- `docs/guides/analog-input.md`: what is actually known about getting analog axes into
-  Everspace 2, the three untested ways it might work, and the one dead end.
+- **The write bar says what it leaves alone.** Each unit's row says the sensor state and DPI
+  step the layout wants, which are not written yet, and -- read from the slot's own
+  settings, now decoded as far as the evidence goes -- the DPI steps the slot holds when
+  they are not the layout's. The slot's current step and sensor state are not decoded: every
+  slot seen holds the same values in bytes that cannot be told apart.
+- **A layout written straight to the units counts as on the units.** After Write to units,
+  the header's Re-import and `azeron units` went on asking for an import the units no
+  longer needed, because they judged by the Azeron app's copy. A write that reads back
+  clean is now recorded with a fingerprint of what went onto the unit
+  (`logs/units-written.json`), and a unit whose last such write is the layout as it is now
+  is reported as written directly, on that date, into that slot.
+
+- **Test keys**, in the header: press anything on a unit and the control that sends it
+  lights up on the board while it is held, with a strip of what arrived and which action it
+  is. Free-form, unlike Check this unit; the page's own shortcuts are off while it runs.
+- **The Edit screen's checks have a tab of their own**, beside one for the sticks and
+  pedals, so the page is not one long scroll. The tab says how many checks there are.
+- **Writing to the units says more and gives up less.** A lost answer to a read, a rename or
+  an input record is asked again once; adding a slot never is. A failure says the step it
+  was on and how many inputs had gone in, a unit pulled out mid-run is said at once, and the
+  page asks before it is closed during a write. Each unit is left running the slot it was
+  just given. Every step and, on a failure, the reports that led to it go into
+  `logs/units.log`, with page errors.
+
+- **Write to units**, in the header: the editor writes the layout straight into the units'
+  onboard slots over WebHID, then reads each slot back and says whether it holds what was
+  written. No Azeron app, no export, no import. It finds the units the page has been given,
+  knows which is which from the id each one reports, puts each hand into the slot that
+  already has the layout's name, and says beforehand how many controls each slot will
+  change -- warning when a stick's inversion does. It saves first, can close the Azeron app
+  when that is in the way, and says in plain words what went wrong. The protocol was
+  recovered on 2026-10-14 by watching the app write a profile
+  (`docs/guides/unit-protocol.md`) and checked on both units on 2026-10-15; the repo sends
+  only what the app was seen to send. Sensor, DPI and lights are not written yet. The first
+  version stalled on every overwrite, before writing anything: it asked the unit to add a
+  slot that was already there.
+- The right unit's akimbo slot, as the Azeron app wrote it on 5 October, inverts the stick's
+  Y axis where the layout inverts X. Writing the layout from the editor changes that, and
+  the editor says so before it does.
+
+- **`azeron hidcap`**, for reading what the Azeron app says to a unit. It reads a USBPcap
+  capture (pcap or pcapng) and prints the HID conversation -- reports set and asked for,
+  reports the unit sent, the descriptors it was asked for -- and `diff` names the byte
+  offsets that moved between two captures made with one setting changed. The units'
+  configuration protocol is in the app's compiled main process, so a capture is the only
+  way to read it without sending a unit a guess. It only reads files; nothing in it can
+  talk to a device. `docs/guides/hid-capture.md` is the procedure. The reader is tested
+  against files built to USBPcap's documented layout, not yet against a real capture.
+
+- **Check this unit**, on each unit on the board: the page lights up one control at a time,
+  reads the key or mouse button the unit sends when it is pressed, marks each key, and says
+  whether the unit is running the layout, which controls are not, and what to do. What a
+  unit runs is in its own memory, which only the Azeron app can read, so pressing it is how
+  the unit answers for itself -- whichever of its three onboard profiles it is on. Two of
+  those still hold the press-test probe, and a run on one says so.
+- The press test says, when it is done, to delete the probe profiles from the unit's
+  on-board memory, as does `azeron probe`. Both units carried two of them in their three
+  on-board slots from 28 September to 4 October, one press of the profile button away.
+- **The editor knows what is on the units.** It reads the Azeron app's own copy of each
+  profile and compares it with the layout control by control. The header's **Re-import N**
+  now comes from that rather than from the saves this page made, which a reload forgot:
+  the right unit was still on the 2 October import while the board had moved on, so Ring
+  4, labelled Ultimate, sent I and opened the inventory. The report names each key the unit
+  does otherwise and the file to import; those keys are marked on the board; coming back
+  to the page checks again. `azeron units` is the same from the terminal. It only reads.
+- **Renaming an action renames the keys named after it.** A key's label is what the unit
+  shows, and it is compiled as written, so a rename on the In-game tab left the keys and
+  the unit showing the old name. A key given its own name keeps it.
+  `label-names-other-action` warns on a key labelled with another action's name.
+
+- **A new game from the Setup tab.** A name, a kind of game, the export, which unit it
+  came from and a layout name; the game is created, selected and editable. `createGame` in
+  `tasks.ts` is the one operation, shared with `azeron import`, and it now validates every
+  name that becomes a path (the CLI accepted `--game "Deep Rock"` and wrote a folder with a
+  space in it, and any genre or device string), refuses to replace a game or layout without
+  confirmation, and removes what it wrote if it fails part way.
+- **Pedals are part of a layout.** `devices/logitech-pro-flight-pedals.yaml` describes the
+  Logitech Pro Flight rudder pedals (three axes: the rudder centres, the toe brakes rest
+  at an end), and a game's `sets.yaml` says what a layout's pedals do -- which game axis
+  each drives, with `invert`, `dead_zone`, `scale`, `sensitivity`, `exponent` -- keyed by
+  the same set name as the profiles, so one layout name selects keypads and pedals
+  together. A game axis is named in the genre's vocabulary (`yaw`) and reaches the game's
+  row (`Yaw`) through the action vocabulary.
+- **Pedals are a modifier on the stick mode.** `stick-modes.yaml` says which axes pedals
+  take (`pedals.takes: [yaw]`) and each mode's `with_pedals` says what its sticks do with
+  the slot that frees (roll). `directionsFor`, `applyMode` and `detectMode` take a
+  `withPedals` flag, `detectStickModes` lists every reading, and every mode is unchanged
+  without pedals.
+- **The game's Joystick axis rows are generated too.** `azeron ingame --apply` writes a
+  layout's pedal assignments into the Joystick group's axis rows (`Key1`, and `bInvert`,
+  `DeadZone`, `Scale`, ... where the layout says), under the keyboard side's guarantees:
+  only owned rows, every other line byte-identical (the flight stick's buttons survive),
+  line endings kept, a fixed point. A pedal axis with no game name writes nothing and is
+  reported as waiting; `--require-pedals` makes that a refusal.
+- **Names are read or reasoned, and say how far to trust them.** Each pedal axis's game name
+  in the device file carries a status: `confirmed` (flown; none yet), `inferred`,
+  `unconfirmed`, `bound` (recorded by a capture) or `candidate` (by hand), and generation
+  says which it used. The game registers three inputs for the pedals, which its own log
+  confirms (`JS0_SaitekProFlightRudderPedals_Axis0` to `_Axis2`; the index is SDL's and can
+  be negative, as in the flight stick's `JS-1_T16000M_Button0`); which is which is inferred:
+  the rudder is `Axis2`, the toes `Axis0` and `Axis1` in an order that is less certain.
+- `azeron ingame --capture-pedals` reads a file the pedals were bound in and records new
+  names as `bound`. A capture shows what the game wrote, not which pedal moved -- a toe
+  rests at the end of its travel and wins a bind meant for the rudder, which is how the
+  owner's file came to have Yaw on a toe -- so it places a name only when the layout makes
+  that unambiguous, reports a recorded name found on the wrong row as a conflict without
+  changing either, and leaves the rest. `--candidate pedal_axis=NAME` writes a hand-made
+  name as a `candidate`; the repo never picks one.
+- Lint: `pedal-axis-assigned-twice`, `pedal-shared-mismatch`, `pedal-unknown-game-axis`,
+  `pedal-unknown-axis`, `pedals-no-device`, `pedals-set-unknown`, `pedal-duplicates-stick`,
+  `pedals-mode-without-pedals`, and `pedal-rest-on-centred`, which warns that a toe brake
+  (rests at one end) bound to a game axis read about a centre is a full deflection with the
+  foot off -- measured: -1.0 at rest, +1.0 pressed, and no field of the game's row can
+  re-centre it. The editor payload carries the pedals device and each layout's assignments.
+- **The editor is the interface.** `npm start` builds and serves it: both units side by
+  side, click a key and an action, Save writes the profile into the repo, rebuilds
+  `dist/` and returns the linter's verdict. It imports the same compiler and linter as the
+  CLI, so there is one implementation of each rule. `azeron editor` writes the same page
+  as one offline file that can only download.
+- **The game's bindings are generated.** Each action in `actions.yaml` names its row in
+  Everspace 2's `Input.ini`, and `azeron ingame --apply` writes every keyboard row live
+  while flying from it, keeping the previous file. A layout changes on the keypads alone;
+  the game's controls screen is never edited by hand. `dist/.../Input.ini` records what
+  the game was given and is gated like the compiled JSON.
+- **Stick modes**: DJI Mode 1/2/3 translated to a ship, the game's own twin-stick layout,
+  and Mode 2 with roll for yaw. Applied to both sticks in one click.
+- **Press test**: a profile where every pin sends a distinguishable key, captured in the
+  editor's Press test tab, which exports a measured `devices/<unit>.yaml`. Both units are
+  press-tested and `verified: true`; `unverified-device` warns on any map that is not.
+- Import an app export from the editor to start a game or bring an app-side edit home;
+  unit detection over WebHID; `azeron bindings` for the list to check the game against;
+  `azeron install` to write into the app's own store (unsupported, and it says so).
+- Turbo (`turbo`, `turbo_interval` per slot) and the sensor (`sensor`, `dpi`) are
+  expressible in a profile.
+
+- **Pedals in the editor.** The Edit tab shows a layout's pedals beside the checks: what
+  each axis drives, invert, the tuning behind Details, and how far the game's name for
+  the axis is trusted. They save with the one Save, which patches `sets.yaml` line by line
+  so its comments and the other layouts survive. The stick-mode panel reads and applies a
+  mode's with-pedals variant while the pedals carry yaw, and says when a pedal edit has
+  changed how the sticks read; it never rewrites the sticks on its own. The pedal lint
+  rules run on unsaved edits.
+
+- **Name a new game's actions in the editor.** On the In-game tab an action's name is
+  edited in place and its roles are switches, saved by the one Save; `/api/actions`
+  carries `label` and `tags` and patches them line by line like keys. A game started from
+  an export seeds an action per mouse button as well as per key, and names its layout
+  after the game, layout and unit rather than after the export it came from.
+- The Checks panel shows the required actions that are on no key as one entry that opens
+  to the list, and counts it once. The linter and the CLI report them as before.
+- The In-game and Setup tabs say what is missing when a game's own key settings are not
+  connected, and withhold the buttons that could not work.
+
+- **The toe brakes can drive a game axis.** A Windows calibration makes a toe read zero at
+  rest and full when pressed, and `calibrated_rest: centre` on the axis in the pedals'
+  device file records that it is set, which stops `pedal-rest-on-centred` from warning.
+  Both toes are calibrated on the owner's machine and recorded.
+  An axis assigned in the Pedals panel now has `invert` written outright, because the
+  game's thrust row is inverted as it ships and an unticked box over it would not mean
+  what it shows. Which pedal is which game axis was recorded rather than reasoned: the
+  rudder is `Axis2`, the left toe `Axis0`, the right `Axis1`; none is flown.
+
+- **Drag and drop on the Edit tab.** An action is dragged from the list under the units
+  onto a key, or onto one of a stick's four directions; a key is dragged onto another to
+  swap them, across units too, or back onto the list to clear it. The list is no longer
+  switched off when no key is selected. Clicking a key and then an action still works.
+- **Every key on the board is one size.** A key grew with its label and pushed the ones
+  under it out of line. The name takes up to two lines; a key with more on it than its
+  name shows the rest on one line, and the whole of it in its tooltip.
+
+- **The editor does the wiring.** A control reaches the game on a key, and which key is no
+  longer the owner's to pick. An action with no key is given one when it is first put on a
+  control, from a pool that stays out of a game's way; it is saved in `actions.yaml` with
+  the layout and written into the game by Update the game's keys…. A key once given is
+  kept. The In-game tab hides the keys while there is a game file to write them into
+  ("Show the wiring" brings them back) and shows them for a game that has none, where they
+  have to be set by hand. `action-sends-nothing` is a new lint error for a control whose
+  action has no key. The unsaved marker calls the in-game half "Wiring".
+
+- **Changes save themselves.** On the served page an edit is saved about a second after
+  the last one; the header shows what is left to do (files to re-import, the game to
+  update) in place of a report after every save. **Undo**, a header button and Ctrl+Z,
+  takes one change back at a time. The menu turns autosave off.
+- **Clear all keys** empties every key and stick direction on both units, after asking.
+- **A toe brake drives one direction of an axis**: hover up on one toe, hover down on the
+  other. It is written onto the game's own row for that direction. Not flown: whether the
+  game reads a pedal in proportion there, or as a button, is to be seen. An action dragged
+  onto a pedal sets what it drives.
+- The page is centred in a wide window.
+- **Elite Dangerous**, with every control the game has. `src/lib/elite.ts` reads its
+  bindings files and names, groups and gives a mode of play to each control; the action
+  list is every button control in every installed preset and in the owner's old file, 358
+  in all, each starting on the key the game's KeyboardMouseOnly preset gives it where the
+  keypad can send that key.
+- **Modes of play.** An action can carry a mode and a layout can list the modes it plays.
+  Actions in modes no layout plays together may share a key; the editor shows a layout only
+  its modes' actions, and `missing-required` asks only for theirs. Elite has three
+  layouts -- the ship, the buggy, on foot -- each also playing the maps, menus, camera and
+  general controls.
+- **Elite's keys are written too.** Update the game's keys… (and `azeron ingame --apply`)
+  for a game with `ingame_format: elite-binds` starts from the installed preset
+  (`ingame_preset`), takes over the keyboard and mouse slots of every control an action
+  names, adds the controls the preset lacks, and writes `Custom.4.1.binds` -- the committed
+  copy, and with `--apply` the game's, after pointing `StartPreset.4.start` at `Custom`
+  and copying both files aside. Bindings the keypad cannot send (Ctrl+Alt+Space for the
+  camera suite, the mouse wheel for weapons on foot) are cleared with the rest. Not yet
+  flown. The bindings reader skips XML comments.
+
+### Layouts
+
+- Actions already on a key somewhere in the layout are greyed in the list on the Edit tab,
+  so what is still to place stands out. They can still be dragged: one action may sit on
+  more than one key.
+
+- **akimbo v10** now has pedals: the rudder on yaw, and its sticks are Mode 2 _with pedals_
+  -- roll, not yaw, on the left stick, since the pedals carry the turn. The right toe is on
+  thrust, as an analog throttle, now that a calibration makes it rest at zero; the stick's
+  thrust keys stay for full thrust and reverse. The left toe is on nothing. The names are
+  inferred, not flown. Not yet flown.
+- **akimbo v10** is the live pair: stick mode 2 with yaw on the left stick (now roll, with
+  the pedals; see above), pitch and roll
+  on the right thumb pad, weapons and targeting on the left hand, every label the
+  action's own. Not yet flown. v6 to v9 are in git history; none was flown, and none did
+  what its files said — see below.
+- `single-v5` is the known-good export, kept as the compiler's golden fixture.
+
+### Removed
+
+- **`azeron cheatsheet`, `lib/cheatsheet.ts` and `dist/.../cheatsheets/*.html`.** Nothing
+  read the generated pages once the Sheet tab went; the editor's board is the reference
+  and prints itself. No HTML is tracked now; `dist/editor.html` is generated by
+  `azeron editor` and gitignored.
 
 ### Changed
 
-- **`devices/cyborg2-right.yaml` no longer claims the right unit mirrors the left.** It
-  did, on the strength of an earlier note. The two are not 1:1, particularly the
-  directions. Every position in it is now flagged as an inherited guess
-  and the file is `verified: false` until the press test says otherwise. The akimbo v6
-  right-hand draft carries an acknowledgement saying it must not be flashed before then.
+- **A reload opens where the page was.** The game, the layout and the tab are kept in the
+  browser and restored, instead of the page opening on the first game every time. A game
+  or layout that has gone since falls back to the first; a reload on the press test opens
+  Edit. Unit tests start each with empty storage, so none opens where another left off.
+- **No sensor on the Cyborg II.** It has no optical sensor, so its device maps say
+  `sensor: false`, the editor's Key panel no longer offers a sensor checkbox, a DPI step or
+  the "both sensors are on" warning for it, and the write bar says nothing of a sensor or
+  DPI. The pointer actions (`pointer_x`/`_y`, FPS `look`) are `provided_by: mouse` now. The
+  compiled layouts are unchanged: the app's own exports carry `isSensorOn` either way.
+- **`required` means you cannot play without it.** It had come to mean whatever one layout
+  happened to have: every device and consumable slot, both weapon cycles and roll were
+  required, in space sims; 25 actions in a shooter. It is now moving, boost, the two drives
+  and interact, and their like in a shooter. A pedal that drives an axis carries its
+  actions, so they are not called missing for want of a key.
+- **No test reads the real layouts.** The unit tests, the CLI smoke tests and the browser
+  specs run against a frozen copy of the data. A layout half way through a change used to
+  fail 19 tests and block every commit, and the browser specs wrote into the layout files
+  while the editor might have them open.
 
-- The compiler now reproduces the golden export **byte for byte**, not merely field for
-  field: `label` is overwritten in place instead of being deleted and re-appended, so key
-  order and therefore the `dist/` diff stay stable.
+- **The board fits the window instead of shrinking into it.** Two hands side by side were
+  scaled to whatever width was left: at 1080x1920 that was 0.69 and the labels came out
+  at six pixels. The keys narrow first (84 to 100px) and the type keeps its size; a
+  portrait window stacks the hands, each at full size; nothing renders under 9px at any
+  of the five sizes checked.
+- **The Edit tab wastes no space.** At 1920x1080 the page was 1,246px tall with a scroll
+  region inside it: it is 1,080 now, and the board, key inspector, actions and checks are
+  on one screen. The key inspector sits beside the board and the checks beside the actions
+  on a wide window; the action list is columns of one-line chips with no height cap (where
+  an action is bound is on its tooltip and the board); the inspector's slots, toggles and
+  stick directions are compact rows; the header is one row. At 1440x900 the page is about
+  1,040px instead of 1,250.
+- **Saving is one thing.** A layout is one control scheme, so the header's Save writes
+  everything that changed in it -- both keypad profiles and the in-game keys -- and
+  reports once; the unsaved marker names what it would write. The In-game tab lost its own
+  Save buttons, and the menu's per-unit downloads became "Download the import files".
+  Telling the game stays an explicit step that asks whether it is closed, offered from the
+  save's report and from the menu. New parts of the scheme join the same Save through
+  `schemeParts()` in the editor.
+- **The Sheet tab is gone.** It was a cheatsheet in an iframe, a tall page inside a wide
+  one, for learning a layout away from the screen. The Edit board is readable now and is
+  that reference; the header's menu has **Print layout**, which prints the board itself
+  with print CSS, in the light palette whatever the screen is on.
+- **The vocabulary says what each key does in the game.** `weapon_cycle_*` sent the
+  arrows, which Everspace 2 binds to pitch and yaw — it has no weapon cycling on four
+  keys — so they are `pitch_*` and `yaw_*`. `primary_1`/`_2` are `next_primary` and
+  `previous_primary`; `next_target` was equip secondary 1 and is now the game's own
+  NextTarget. The sensor's axes are `pointer_x`/`_y`: they move the pointer, which is not
+  the same as pitching or yawing the ship.
+- `combat-tap-delayed` and `menu-with-combat` cover flight actions as well as combat.
+  They missed boost, which constraint 4 names, and a menu on a held flight key.
+- `next_target` is no longer `required`: no layout has ever bound it.
 
-### Findings from linting the v5 baseline
+### Fixed
 
-Acknowledged in `game.yaml` rather than silenced, and the agenda for v6:
+- **The units are asked which slot they run, not remembered.** The profile button moves a
+  unit without telling the page, so a slot remembered from connecting could be wrong:
+  Delete could reach the slot the unit was running, and a write into the slot remembered
+  as running reported it running without asking. Both now ask the unit first, and a write
+  switches only when the unit is on another slot.
+- **A deleted slot no longer counts as holding its layout.** Deleting a slot left its
+  record in `logs/units-written.json`, so the header went on calling the layout on the
+  unit. The page now tells the server (`POST /api/units/deleted`), which drops it.
+- **The editor writes where it is to storage only when that changes**, not on every
+  render, which the key tester and the check run do on every key.
+- **Stale notes.** The Everspace `sets.yaml` header still said the sticks use the
+  with-pedals mode (the rudder is on roll, so they do not); the Flight default said pitch
+  and roll were left to a mouse, though it puts them on keys; CLAUDE.md's `install` row
+  had lost `--device-id` and `--store`. Helldivers 2 and Ace Combat 7 now say which
+  Windows shortcuts their default modifier keys can make (Alt+Shift, Alt+Tab, Ctrl+Shift,
+  Ctrl+Space), and why Ace Combat's second S key is not for braking.
+- **Deleting a slot after the unit was switched.** A session went on taking the slot the
+  unit ran when it was first asked for the running one, so after a write switched the unit
+  it refused to delete the slot left behind and would have deleted the one now running.
+  Switching now updates it. Found while clearing the left unit's probe slots.
+- **The stick's hold key is encoded as the app encodes it.** The app writes the export's
+  `"16"` as `0xE002` (left Shift) and `"17"` as `0x0011`; the page wrote `0x0010`, so a
+  slot the app had written read back as different and one the page wrote held another key.
+- Undo all unsaved edits left the in-game keys edited, and switching game carried them
+  to the next game.
+- **The right unit's stick never did what its profile said.** A right-hand unit reads
+  `analogKeys.right`; the compiler wrote `.left`. `activeAnalogKeys` chooses now.
+- The compiler rewrote any pin the device map named, whatever its type; the profile
+  switch was safe only by accident. Records it does not understand pass through.
+- Decompiling dropped a stick direction whose keycode it could not name, and collapsed
+  per-slot turbo intervals into one. Both are kept.
+- In the game: A and D were swapped, hover up shared F9 with quick load, equip secondary
+  2 shared F5 with quick save, and place marker was on a key no profile sent.
+- In the editor: rebinding a key left the old action's name on it and in the export; the
+  armed slot was invisible and never reset; unsaved edits were lost without asking;
+  importing over an existing set destroyed its committed template.
+- The binding sheet and the linter disagreed about raw keys from app edits.
+- **The light/dark switch did nothing on a dark system.** With no choice made the page
+  follows the OS, and the toggle set `dark` unless it already said `dark`, so the first
+  click on a dark OS "switched" a page that was already dark. It now flips from what is
+  on screen, in both directions, remembers the choice, and the press test and the text
+  boxes take the theme too (the press test's banner and badge were unreadable in it).
 
-- The five thumb-pad keys carry a 1000 ms `featureDelay`, so the ULT tap and all four
-  weapon-cycle taps wait a full second before firing (constraint 4).
-- Those same five keys pair a combat tap with a menu long-press (constraint 5's shape,
-  though Tab is not Escape).
-- `Tab` and `KeyI` are each sent from two positions; both are deliberate.
+- **The editor's server answered anyone.** It listened on every interface and its routes
+  write into the repo and the game's config, so another device on the network, or any web
+  page open in the browser, could call them. It now listens on 127.0.0.1 only (`--host`
+  opts out), answers only a loopback `Host` on its own port, and takes a state-changing
+  request only as `application/json` from its own origin.
+- A malformed save could be written and then break every command; saves are parsed as the
+  file their path names first. A handler that throws returns an error instead of ending
+  the server. A request body split in the middle of a character is no longer corrupted.
+- The server showed a file as it was when it last wrote something, not as it is on disk.
+- An import that failed to decompile left its template behind. Writing the game's bindings
+  reported success when the game's file was missing, and silently unbound a row whose key
+  the game has no name for; both are refusals now.
+- Lint: a stick sent in another mode through `raw.types` passed `stick-not-keyboard`; a
+  sensor-provided action could be put on a key (`provided-action-bound`); `--strict` did
+  not fail on a stale acknowledgement.
+- A half-made game folder broke every command; it is skipped and named once. Paths built
+  on Windows used backslashes and failed comparisons.
+- Exporting a partial press test deleted every key it had not reached and marked the map
+  verified.
+
+- A game started from an export could not have a key changed from the page at all: its
+  `actions.yaml` was written four lines to an action, which the line patcher refuses. It
+  is written one action to a line.
+- `/api/actions` answered "not saved" for a file it had written when the check after the
+  write failed, and accepted a key that was not a string.
+- In the editor: looking at an empty key marked the page unsaved; opening a data file
+  discarded unsaved edits without asking; a key capture or the press test could outlive
+  the game or tab it was started on.
+
+- **Adding a layout from the Azeron app's exports did nothing.** Choosing a file imported
+  on the spot, was refused when the name was still empty, and said so at the top of the
+  tab, out of sight of the form. The form now keeps its name, takes an export for each
+  unit, imports when **Add layout** is pressed, and opens the result on the board. The
+  Setup tab's message stays in view while the tab scrolls.
+- Writing the game's keys had two names, "Write the game's bindings" on the Setup tab and
+  "Update the game's keys" everywhere else, and two code paths. It is one of each, and its
+  report now lists what the pedals changed as well as the keys.
+
+- A stick that was cleared and given a direction again was saved without its mode, and
+  compiled as no stick at all. A stick with directions and no mode is read as the keyboard
+  stick it can only be, and the editor writes the mode.
 
 ### Known gaps
 
-- `primary_3` (F3) is not bound in the single-unit baseline, so it is not `required`.
-- Mouse button codes other than middle-click are unverified, as are the type codes for a
-  stick in mouse or gamepad mode; the compiler refuses to invent them.
-- The akimbo draft is **not playtested**. Its two sticks deliberately do different jobs,
-  which is the first thing to judge in a session.
+- Whether moving the pointer turns the ship in flight, or only aims, is untested — and it
+  decides whether yaw or roll belongs on the left stick.
+- Whether the right unit's stick, mounted rotated with `invertXAxis`, strafes the right
+  way is untested.
+- The pulsed-thrust keys on v10's right unit are unflown; what they do depends on the
+  inertia dampener state. See `docs/guides/analog-input.md`.
+- A keyboard-mode stick sends one direction at a time, so thrust and strafe on one stick
+  cannot be held together. Eight-directional mode exists in the export but is unverified.
+- Type codes `"6"`, `"0"`, `"29"`, `"30"` and `subType` `"29"`/`"31"` are not understood;
+  they are preserved, never written.
+- A game started from an export with the genre's vocabulary has about 80 actions, and its
+  Edit tab does not fit one screen at 1920x1080.
+- Lint findings name keys and positions by their ids (`KeyF`, `middle_3.tap`), not the
+  way the rest of the page says them.
+- Writing keys into a game's own settings is built for Everspace 2's `Input.ini` only.

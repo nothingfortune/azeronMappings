@@ -1,0 +1,89 @@
+# Everspace 2 -- akimbo v10, LEFT unit. The fighting hand: weapons, targeting,
+# consumables and menus on the fingers; the d-pad cycles weapons -- left and right the
+# primary, up and down the secondary, as a gamepad d-pad does.
+#
+# Mode 2 WITH PEDALS on the sticks, from genres/SpaceSims/stick-modes.yaml: the left stick
+# climbs and banks (hover, roll); the right stick flies forward and strafes (thrust,
+# strafe). Yaw is on the rudder pedals (games/SpaceSims/everspace/sets.yaml), which is why
+# the left stick's horizontal is roll and not yaw: the pedals carry the turn, so no stick
+# has to. Without pedals this would be plain Mode 2, yaw on the left stick; the sets file
+# is what decides which, and lint says if the two disagree. The right thumb pad pitches and
+# rolls, so all six axes are on the pair plus the feet and the pointer is left to aim.
+#
+# Every label is the action's own, so the cheatsheet and the app say what the key does.
+# Up to v9 the keys labelled weapon cycling sent the arrows, which the game has on pitch
+# and yaw; they now send the weapon actions they were meant to. The in-game half is
+# generated from actions.yaml (`azeron ingame --apply`), so these keys are what the game
+# listens for.
+#
+# Source export: templates/everspace2-akimbo-left.json
+profile:
+  id: 52ea554b-bdb5-4cb4-9347-8451c44e7864
+  name: Everspace 2 akimbo v10 (left)
+  device: cyborg2-left
+  unit: left
+  template: templates/everspace2-akimbo-left.json
+  set: akimbo-v10
+  output: everspace_akimbo_v10_left.json
+  sensor: true
+positions:
+  pinky_side:
+    label: Escape menu
+    tap: escape_menu
+  ring_5:
+    label: Missions
+    tap: missions
+  middle_5:
+    label: Perks
+    tap: perks
+  index_5:
+    label: Ship
+    tap: ship_menu
+  stick:
+    directions: { up: throttle_up, down: throttle_down, right: strafe_right, left: strafe_left }
+    mode: keyboard
+  pinky_5:
+    tap: menu_tab
+    label: Menu
+  index_4:
+    tap: boost
+    label: Boost
+  middle_4:
+    label: Inertia dampeners
+    tap: inertia_dampeners
+  ring_4:
+    tap: device_1
+    label: Device 1
+  dpad_up:
+    tap: consume_1
+    label: Consumable 1
+  dpad_right:
+    tap: consume_2
+    label: Consumable 2
+  dpad_down:
+    tap: consume_3
+    label: Consumable 3
+  dpad_left:
+    tap: consume_4
+    label: Consumable 4
+  pinky_4:
+    tap: device_3
+    label: Device 3
+  middle_3:
+    tap: use_consumable_hold
+    label: Consumable wheel (hold)
+  ring_3:
+    tap: device_2
+    label: Device 2
+  pinky_3:
+    tap: device_4
+    label: Device 4
+  index_side:
+    tap: fling
+    label: Fling objects
+  middle_2:
+    tap: cruise
+    label: Cruise drive
+  index_2:
+    tap: supralight
+    label: Jump / supralight drive

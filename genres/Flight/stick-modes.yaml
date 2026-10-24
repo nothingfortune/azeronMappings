@@ -1,0 +1,44 @@
+# Stick modes for flight games, after the convention RC transmitters use (DJI Mode 1/2/3).
+#
+# A mode says which pair of actions each stick axis drives, across BOTH units: the left
+# stick's vertical and horizontal, and the right stick's. Applying one rewrites the two
+# `stick.directions` blocks and nothing else.
+#
+# An RC transmitter has four axes on two gimbals, and a plane has the same four, so here
+# the modes translate one for one, with no ship-style stand-ins: RC throttle is throttle,
+# pitch is pitch, roll is roll and yaw is yaw.
+#
+# Pitch follows the aircraft convention: a stick pushed up (away from you) puts the nose
+# down. A game set to inverted pitch wants the opposite, and that is a setting in the game,
+# not a different mode.
+#
+# No pedals section: rudder pedals for a flight game would carry yaw, and no flight game's
+# binding file is written by the repo yet.
+genre: Flight
+
+modes:
+  mode1:
+    label: Mode 1
+    note: Left stick pitches and yaws; right stick throttles and rolls.
+    left: { vertical: pitch, horizontal: yaw }
+    right: { vertical: throttle, horizontal: roll }
+
+  mode2:
+    label: Mode 2 (RC default)
+    note: Left stick throttles and yaws; right stick pitches and rolls, like a flight stick.
+    left: { vertical: throttle, horizontal: yaw }
+    right: { vertical: pitch, horizontal: roll }
+
+  mode3:
+    label: Mode 3
+    note: Left stick pitches and rolls; right stick throttles and yaws.
+    left: { vertical: pitch, horizontal: roll }
+    right: { vertical: throttle, horizontal: yaw }
+
+# Which action each axis sends at each end. `up` is the stick pushed up for a vertical
+# axis and pushed right for a horizontal one.
+axes:
+  throttle: { up: throttle_up, down: throttle_down, centred: true }
+  pitch: { up: pitch_down, down: pitch_up, centred: true }
+  roll: { up: roll_right, down: roll_left, centred: true }
+  yaw: { up: yaw_right, down: yaw_left, centred: true }

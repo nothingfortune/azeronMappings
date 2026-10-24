@@ -44,8 +44,21 @@ describe("seedActions", () => {
 
   it("names nothing it cannot read off the export", () => {
     const actions = seedActions(template());
-    // Mouse buttons are not keyboard keys, so no action is invented for them.
-    expect(Object.values(actions).some((spec) => spec.mouse)).toBe(false);
+    // Every action stands for something the export sends: a key it presses or a mouse
+    // button it clicks, and nothing is invented beyond those.
+    for (const spec of Object.values(actions)) {
+      expect(Boolean(spec.key) !== Boolean(spec.mouse)).toBe(true);
+    }
+  });
+
+  it("seeds an action for each mouse button the export sends", () => {
+    // It used to seed keys only, so every new game had an `unbound-key` error for the
+    // button its export sends, and nothing in the editor could clear it.
+    const actions = seedActions(template());
+    const mouse = Object.entries(actions).filter(([, spec]) => spec.mouse);
+    expect(mouse.map(([id, spec]) => [id, spec.mouse])).toEqual([["mouse_middle", "middle"]]);
+    expect(actions.mouse_middle?.label).toBe("Middle mouse button (unnamed)");
+    expect(actions.mouse_middle?.key).toBeUndefined();
   });
 
   it("lets the whole export decompile to named actions", () => {
@@ -53,8 +66,9 @@ describe("seedActions", () => {
     const device = loadDevice("cyborg2-left");
     const actions = new ActionSet({ actions: seedActions(exported) });
     const profile = decompile(exported, device, { actions });
-    // Only the mouse button and the two unexplained pins stay raw.
-    expect(unnamedPositions(profile, device.data)).toEqual(["index_2", "index_3", "stick_press"]);
+    // The mouse button is named now; only the two unexplained pins and the stick click are
+    // still raw.
+    expect(unnamedPositions(profile, device.data)).toEqual(["index_3", "stick_press"]);
   });
 });
 

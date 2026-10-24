@@ -33,6 +33,7 @@ export function renderPage(options: PageOptions): string {
 <script>
   window.${options.globalName} = JSON.parse(document.getElementById("payload").textContent);
   window.AZERON_SERVED = ${String(options.served === true)};
+  window.AZERON_AUTOSAVE = ${String(options.served === true)};
 </script>
 <script>
 ${options.bundle}

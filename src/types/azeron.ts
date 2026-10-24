@@ -25,6 +25,12 @@ export interface AnalogDiagonals {
 export interface AnalogSettings {
   analogKeys: { left: AnalogDirections; right: AnalogDirections };
   diagonalKeys?: { left: AnalogDiagonals; right: AnalogDiagonals };
+  /**
+   * Which of the two `analogKeys` blocks the unit actually reads. A right-hand unit
+   * exports `true` and drives `analogKeys.right`; the left-handed software the format was
+   * designed around exports `false` and drives `analogKeys.left`.
+   */
+  isRightAnalog?: boolean;
   /** Rotation of the stick's zero. Semantics unverified -- only written when measured. */
   angle?: number;
   isEightDirectionalTrigger?: boolean;
@@ -52,10 +58,21 @@ export interface InputRecord {
   [key: string]: unknown;
 }
 
+export interface ProfileSettings {
+  /** The unit's optical sensor: whether it drives the system pointer. */
+  isSensorOn?: boolean;
+  profileSensitivitySettings?: {
+    currentSensitivityIndex: number;
+    sensitivityValues: number[];
+  };
+  [key: string]: unknown;
+}
+
 export interface ExportProfile {
   id: string;
   name: string;
   inputs: InputRecord[];
+  profileSettings?: ProfileSettings;
   [key: string]: unknown;
 }
 
@@ -134,3 +151,35 @@ export const TURBO_INTERVAL_FIELDS: Record<
  */
 export const STICK_MODES: Record<string, string> = { [TYPE_STICK_KEYBOARD]: "keyboard" };
 export const STICK_MODE_CODES: Record<string, string> = { keyboard: TYPE_STICK_KEYBOARD };
+
+/**
+ * The `analogKeys` block the unit actually reads.
+ *
+ * A right-hand unit exports `isRightAnalog: true` and drives `analogKeys.right`; the
+ * left-handed software the format was designed around drives `analogKeys.left`. Writing
+ * the wrong one compiles and lints cleanly and does nothing on the hardware, which is
+ * what happened to the akimbo right unit's stick. The other block is left exactly as the
+ * template had it -- it is inert, and rewriting it would churn the export for no reason.
+ */
+export function activeAnalogKeys(settings: AnalogSettings): AnalogDirections {
+  return settings.isRightAnalog === true ? settings.analogKeys.right : settings.analogKeys.left;
+}
+
+/**
+ * Whether a record is an ordinary input the compiler may rewrite.
+ *
+ * Pin 0 carries type `"2"`, the profile switch, which the Azeron software repairs if it is
+ * overwritten -- a probe that rebound it produced a profile the app had to fix on import.
+ * The codes `"6"`, `"29"` and `"30"` are not understood at all. Anything whose type is not
+ * a plain key, an empty slot, a mouse button or a stick is left exactly as the template
+ * has it, however the device map names its pin.
+ */
+export function isRebindableRecord(record: InputRecord): boolean {
+  const type = String(record.types[0]);
+  return (
+    type === TYPE_KEYBOARD ||
+    type === TYPE_NONE ||
+    type === TYPE_MOUSE ||
+    type === TYPE_STICK_KEYBOARD
+  );
+}

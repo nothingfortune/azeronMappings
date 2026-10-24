@@ -5,7 +5,8 @@
 
 import { describe, expect, it } from "vitest";
 
-import { loadDevice, loadProfile, loadTemplate } from "../../../src/lib/io.js";
+import { decompile } from "../../../src/lib/decompile.js";
+import { loadDevice, loadTemplate } from "../../../src/lib/io.js";
 import { Game } from "../../../src/lib/model.js";
 import type { DeviceData } from "../../../src/types/profile.js";
 import {
@@ -41,6 +42,28 @@ describe("buildProbeProfile", () => {
     const used = assignments.map((entry) => entry.key);
     expect(new Set(used).size).toBe(used.length);
     expect(used.every((key) => PROBE_KEYS.includes(key))).toBe(true);
+  });
+
+  it("sends one key per press, even from a template that repeats", () => {
+    // The probe blanked records with its own copy of the compiler's function, and that
+    // copy did not clear a repeat -- so a template with one made every press a stream,
+    // which the capture page reads as several presses.
+    const template = loadTemplate(TEMPLATE);
+    for (const record of template.profiles[0]?.inputs ?? []) {
+      record.isTurbo = true;
+      record.turboInterval = 40;
+    }
+    const device = loadDevice("cyborg2-left");
+    const { doc, assignments } = buildProbeProfile(template, {
+      id: "00000000-0000-4000-8000-000000000000",
+      name: "PROBE",
+      unknownPins: [...device.unknownPins],
+    });
+    const probed = new Set(assignments.map((entry) => entry.inputId));
+    for (const record of doc.profiles[0]?.inputs ?? []) {
+      if (!probed.has(record.id)) continue;
+      expect(record.isTurbo, `pin ${String(record.pinOne)}`).toBe(false);
+    }
   });
 
   it("covers every input that has a real pin and is an ordinary key", () => {
@@ -95,6 +118,40 @@ describe("buildProbeProfile", () => {
   });
 });
 
+describe("deviceFromProbe with a partial capture", () => {
+  // Press a few keys, skip the rest, export. It kept only what was pressed, marked the map
+  // verified, and -- once the press test could save straight into devices/ -- would have
+  // replaced a measured map with a fragment of one.
+  const assumed = loadDevice("cyborg2-left").data;
+  const all = Object.keys(assumed.positions);
+
+  it("keeps the positions that were not pressed, with the pins they already had", () => {
+    const next = deviceFromProbe(assumed, { pins: { pinky_1: 99 }, stick: {} });
+    expect(Object.keys(next.positions).sort()).toEqual([...all].sort());
+    expect(next.positions.pinky_1?.pin).toBe(99);
+    expect(next.positions.ring_3?.pin).toBe(assumed.positions.ring_3?.pin);
+  });
+
+  it("does not call an unverified map verified for a handful of presses", () => {
+    const unverified = { ...assumed, verified: false };
+    expect(deviceFromProbe(unverified, { pins: { pinky_1: 5 }, stick: {} }).verified).toBe(false);
+  });
+
+  it("does not take verified away from a map that had it", () => {
+    expect(deviceFromProbe(assumed, { pins: { pinky_1: 5 }, stick: {} }).verified).toBe(true);
+  });
+
+  it("calls a map verified once every pressable position has been pressed", () => {
+    const pins = Object.fromEntries(
+      Object.entries(assumed.positions)
+        .filter(([, position]) => position.kind !== "stick")
+        .map(([name, position]) => [name, position.pin]),
+    );
+    const unverified = { ...assumed, verified: false };
+    expect(deviceFromProbe(unverified, { pins, stick: {} }).verified).toBe(true);
+  });
+});
+
 describe("deviceFromProbe", () => {
   /**
    * A synthetic map, not a checked-in device file: these assertions cover the
@@ -132,9 +189,12 @@ describe("deviceFromProbe", () => {
   });
 
   it("keeps the stick, which a pin sweep can never press", () => {
-    const next = deviceFromProbe(assumedMap(), { pins: { pinky_1: 1 }, stick: {} });
+    const assumed = assumedMap();
+    const next = deviceFromProbe(assumed, { pins: { pinky_1: 1 }, stick: {} });
     expect(next.positions.stick?.pin).toBe(31);
-    expect(next.positions.pinky_5).toBeUndefined();
+    // This used to assert the opposite -- that a position nobody pressed was dropped. That
+    // was the bug: the map lost every key the test did not reach.
+    expect(next.positions.pinky_5).toEqual(assumed.positions.pinky_5);
   });
 
   it("omits a stick remap when the unit matches the left-handed assumption", () => {
@@ -240,6 +300,28 @@ describe("stick zero calibration", () => {
     expect(next.stick_angle).toBe(90);
     expect(next.stick_zero).toBe("left");
   });
+
+  it("writes one stick correction, never both, so its own linter accepts the map", () => {
+    // The direction sweep and the zero pass measure the same rotation. Writing both
+    // applies it twice, and `stick-double-correction` rejects the result.
+    const assumed = loadDevice("cyborg2-right");
+    const pins = Object.fromEntries(
+      Object.entries(assumed.positions).map(([name, position]) => [name, position.pin]),
+    );
+    const turned = Object.fromEntries(
+      STICK_SECTORS.map((sector, index) => [
+        sector,
+        STICK_SECTORS[(index + 4) % STICK_SECTORS.length],
+      ]),
+    );
+    const next = deviceFromProbe(assumed.data, {
+      pins,
+      stick: { up: "down", right: "left", down: "up", left: "right" },
+      sectors: turned,
+    });
+    expect(next.stick_directions).toBeDefined();
+    expect(next.stick_angle).toBeUndefined();
+  });
 });
 
 describe("device identity", () => {
@@ -258,14 +340,13 @@ describe("stick key encodings", () => {
   });
 
   it("keeps the stick bindings from an app-edited export", () => {
-    // These were silently dropped when only integer keycodes were understood.
+    // These were silently dropped when only integer keycodes were understood. Read from the
+    // committed export, which holds the code-string encoding -- not from a live profile,
+    // whose stick changes whenever a mode is applied.
     const game = new Game("games/SpaceSims/everspace");
-    const profile = loadProfile("games/SpaceSims/everspace/profiles/akimbo-v7-left.yaml", game);
-    expect(profile.positions.stick?.directions).toEqual({
-      up: "weapon_cycle_up",
-      right: "roll_right",
-      down: "weapon_cycle_down",
-      left: "roll_left",
-    });
+    const exported = loadTemplate("templates/everspace2-akimbo-left.json");
+    const data = decompile(exported, loadDevice("cyborg2-left"), { actions: game.actions });
+    const directions = data.positions.stick?.directions ?? {};
+    expect(Object.keys(directions).sort()).toEqual(["down", "left", "right", "up"]);
   });
 });

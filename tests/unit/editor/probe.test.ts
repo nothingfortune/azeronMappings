@@ -10,7 +10,7 @@ import { loadDevice, loadTemplate } from "../../../src/lib/io.js";
 import { buildProbeProfile, buildStickCalibrationProfile } from "../../../src/lib/probe.js";
 import type { ProbePayload } from "../../../src/types/probe.js";
 
-function payload(): ProbePayload {
+function buildPayloadOnce(): ProbePayload {
   const left = loadDevice("cyborg2-left");
   const right = loadDevice("cyborg2-right");
   const template = loadTemplate("templates/everspace2-v5.json");
@@ -39,6 +39,10 @@ function payload(): ProbePayload {
   };
 }
 
+// Two device loads, a template and two generated profiles -- built once, cloned per test.
+const PAYLOAD = buildPayloadOnce();
+const payload = (): ProbePayload => structuredClone(PAYLOAD);
+
 let probePayload: ProbePayload;
 
 function press(code: string): void {
@@ -60,7 +64,7 @@ describe("the press test", () => {
   });
 
   it("asks for one position at a time, sweeping the unit left to right", () => {
-    expect(document.querySelector(".prompt b")?.textContent).toBe("press pinky_side");
+    expect(document.querySelector(".prompt b")?.textContent).toBe("Press Pinky side");
     expect(document.querySelectorAll(".cell.active").length).toBe(1);
   });
 
@@ -68,7 +72,7 @@ describe("the press test", () => {
     expect(document.querySelectorAll(".hand").length).toBe(2);
     expect(document.querySelectorAll(".hand.active-hand").length).toBe(1);
     expect(document.querySelector(".hand.active-hand .hand-title b")?.textContent).toBe(
-      "left unit",
+      "Left unit",
     );
   });
 
@@ -77,7 +81,7 @@ describe("the press test", () => {
     press(keyForPin(1));
     const recorded = document.querySelector(".cell.done .pin")?.textContent;
     expect(recorded).toBe("pin 1");
-    expect(document.querySelector(".prompt b")?.textContent).toBe("press pinky_1");
+    expect(document.querySelector(".prompt b")?.textContent).toBe("Press Pinky 1");
   });
 
   it("refuses a key that is not part of the probe profile", () => {
@@ -85,7 +89,7 @@ describe("the press test", () => {
     expect(document.querySelector(".prompt .bad")?.textContent).toContain(
       "not one of the probe keys",
     );
-    expect(document.querySelector(".prompt b")?.textContent).toBe("press pinky_side");
+    expect(document.querySelector(".prompt b")?.textContent).toBe("Press Pinky side");
   });
 
   it("rejects a button press when it asked for the stick", () => {
@@ -98,15 +102,28 @@ describe("the press test", () => {
     expect(document.querySelector(".prompt .bad")?.textContent).toContain("not the stick");
   });
 
+  it("says, once it is done, to take the probes off the unit", () => {
+    for (let i = 0; i < 60; i += 1) {
+      const skip = [...document.querySelectorAll("button")].find((b) => b.textContent === "Skip");
+      if (!skip || document.querySelector(".prompt b")?.textContent === "Done.") break;
+      skip.click();
+    }
+    expect(document.querySelector(".prompt b")?.textContent).toBe("Done.");
+    // Left on the unit, the profile button cycles onto them and every key sends a probe key.
+    expect(document.querySelector(".prompt")?.textContent).toContain(
+      "delete PROBE 1 pins and PROBE 2 stick zero from the unit's on-board profiles",
+    );
+  });
+
   it("keeps the two units' captures apart", () => {
     press(keyForPin(1));
-    const unitSelect = document.querySelector<HTMLSelectElement>("header select");
+    const unitSelect = document.querySelector<HTMLSelectElement>(".probe-bar select");
     if (!unitSelect) throw new Error("no unit selector");
     unitSelect.value = "1";
     unitSelect.dispatchEvent(new Event("change"));
     expect(document.querySelectorAll(".hand.active-hand .cell.done").length).toBe(0);
     // The mirrored unit sweeps from its own outer edge, which is the other side.
-    expect(document.querySelector(".prompt b")?.textContent).toBe("press index_side");
+    expect(document.querySelector(".prompt b")?.textContent).toBe("Press Index side");
   });
 });
 
@@ -221,13 +238,13 @@ describe("stick bursts", () => {
   it("says it is still sampling while the stick is held", () => {
     press(sectorKey("right"));
     press(sectorKey("right"));
-    expect(document.querySelector(".prompt .muted")?.textContent).toContain("2 reading(s)");
+    expect(document.querySelector(".prompt .sampling")?.textContent).toContain("2 reading(s)");
   });
 
   it("reports how many readings the committed one won from", () => {
     for (const sector of ["down", "down", "down_left"]) press(sectorKey(sector));
     vi.advanceTimersByTime(500);
-    expect(document.querySelector(".prompt .muted")?.textContent).toContain("best of 3");
+    expect(document.querySelector(".prompt .read")?.textContent).toContain("best of 3");
   });
 
   it("ignores the tail of a burst that has already been committed", () => {
@@ -264,7 +281,7 @@ describe("button presses", () => {
     );
     vi.advanceTimersByTime(400);
     expect(document.querySelectorAll(".hand.active-hand .cell.done").length).toBe(1);
-    expect(document.querySelector(".prompt b")?.textContent).toBe("press pinky_1");
+    expect(document.querySelector(".prompt b")?.textContent).toBe("Press Pinky 1");
   });
 });
 
@@ -275,25 +292,25 @@ describe("unit detection", () => {
     probePayload = payload();
   });
 
-  function openPressTest(): void {
+  function openRepo(): void {
     startEditor(buildEditorPayload());
     const tab = [...document.querySelectorAll("header button")].find(
-      (button) => button.textContent === "Press test",
+      (button) => button.textContent === "Setup",
     );
     (tab as HTMLButtonElement).click();
   }
 
   it("does not claim anything before it has been asked", () => {
-    openPressTest();
+    openRepo();
     const panel = [...document.querySelectorAll(".panel")].find(
-      (node) => node.querySelector("h2")?.textContent === "Units",
+      (node) => node.querySelector("h2")?.textContent === "Units connected",
     );
     expect(panel?.textContent).toContain("Not checked yet");
     expect([...(panel?.querySelectorAll("button") ?? [])][0]?.textContent).toBe("Detect units");
   });
 
   it("says plainly when the browser cannot do it", async () => {
-    openPressTest();
+    openRepo();
     const button = [...document.querySelectorAll("button")].find(
       (node) => node.textContent === "Detect units",
     );
@@ -301,8 +318,41 @@ describe("unit detection", () => {
     button?.click();
     await new Promise((resolve) => setTimeout(resolve, 0));
     const panel = [...document.querySelectorAll(".panel")].find(
-      (node) => node.querySelector("h2")?.textContent === "Units",
+      (node) => node.querySelector("h2")?.textContent === "Units connected",
     );
     expect(panel?.textContent).toContain("no WebHID");
+  });
+});
+
+describe("diagnosing a direction that does nothing", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    localStorage.clear();
+    document.body.innerHTML = '<div id="app"></div>';
+    probePayload = payload();
+    start(probePayload, document.getElementById("app") ?? undefined);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("says which key it is waiting for, so silence is diagnosable", () => {
+    // A direction that sends nothing is otherwise indistinguishable from a bug here.
+    const banner = document.querySelector(".prompt")?.textContent ?? "";
+    expect(banner).toContain("expecting");
+  });
+
+  it("echoes whatever key did arrive, even a wrong one", () => {
+    document.dispatchEvent(
+      new KeyboardEvent("keydown", { code: "Backquote", bubbles: true, cancelable: true }),
+    );
+    expect(document.querySelector(".prompt")?.textContent).toContain("last key seen: Backquote");
+  });
+
+  it("draws the stick click, which is prompted for like any other key", () => {
+    const hub = document.querySelector(".stick-dial .hub");
+    expect(hub?.querySelector(".pos")?.textContent).toBe("Stick press");
+    expect(hub?.querySelector(".pin")?.textContent).toBe("click");
   });
 });

@@ -44,16 +44,16 @@ positions:
     double: menu_tab
   middle_1:
     label: Primary 1
-    tap: primary_1
+    tap: next_primary
   middle_2:
     label: Primary 2
-    tap: primary_2
+    tap: previous_primary
   middle_3:
     label: Interact / Fling
     tap: interact
   middle_4:
     label: Next Target (F4)
-    tap: next_target
+    tap: secondary_1
   middle_5:
     label: Ship / Inventory
     tap: ship_menu
@@ -85,14 +85,14 @@ positions:
     tap: roll_right
   dpad_up:
     label: Next Sec / Craft Menu
-    tap: weapon_cycle_up
+    tap: pitch_up
     long: crafting
     feature_delay: 1000
     double_delay: 200
     raw: { types: [ "1", "1", "6" ] }
   dpad_left:
     label: Previous Sec / Map
-    tap: weapon_cycle_left
+    tap: yaw_left
     long: map
     feature_delay: 1000
     double_delay: 200
@@ -106,14 +106,14 @@ positions:
     raw: { types: [ "1", "1", "6" ] }
   dpad_right:
     label: Next Primary / Data
-    tap: weapon_cycle_right
+    tap: yaw_right
     long: data_logs
     feature_delay: 1000
     double_delay: 200
     raw: { types: [ "1", "1", "6" ] }
   dpad_down:
     label: Previous Sec / Inventory
-    tap: weapon_cycle_down
+    tap: pitch_down
     long: inventory
     feature_delay: 1000
     double_delay: 200

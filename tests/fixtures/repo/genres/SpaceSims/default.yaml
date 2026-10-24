@@ -1,0 +1,73 @@
+# Default single-unit layout for a space sim.
+#
+# This is Everspace 2 v5 with its two known problems designed out:
+#   * no long-press or double-tap on any key whose tap is a combat action, so nothing
+#     waits on featureDelay before firing (constraint 4);
+#   * menus live on the bottom row, never on the thumb pad next to the ULT (constraint 5).
+# It lints clean with zero acknowledgements. Start a new sim from it with:
+#
+#   extends: genres/SpaceSims/default.yaml
+#
+# and override only the positions the game needs differently.
+profile:
+  name: SpaceSims default (left)
+  device: cyborg2-left
+  unit: left
+  set: SpaceSims-default
+
+lint:
+  require_keyboard_stick: true
+
+positions:
+  # Flight axes on the stick, in keyboard mode -- never gamepad mode (constraint 1).
+  stick:
+    mode: keyboard
+    directions: {up: throttle_up, right: strafe_right, down: throttle_down, left: strafe_left}
+
+  # Pinky bank: consumables, tap only.
+  pinky_1: {label: Consumable 1, tap: consume_1}
+  pinky_2: {label: Consumable 2, tap: consume_2}
+  pinky_3: {label: Consumable 3, tap: consume_3}
+  pinky_4: {label: Consumable 4, tap: consume_4}
+
+  # Ring bank: devices, tap only.
+  ring_1: {label: Device 1, tap: device_1}
+  ring_2: {label: Device 2, tap: device_2}
+  ring_3: {label: Device 3, tap: device_3}
+  ring_4: {label: Device 4, tap: device_4}
+
+  # Middle: guns and the thing you press to pick something up.
+  middle_1: {label: Equip primary 1, tap: equip_primary_1}
+  middle_2: {label: Equip primary 2, tap: equip_primary_2}
+  middle_3: {label: Interact, tap: interact}
+  middle_4: {label: Next target, tap: next_target}
+
+  # Index: vertical thrust, target lock, and boost on the resting row.
+  index_1: {label: Vertical up, tap: hover_up}
+  index_2: {label: Lock target, tap: lock_target}
+  index_3: {label: Boost, tap: boost}
+  index_4: {label: Vertical down, tap: hover_down}
+
+  # Side keys: roll.
+  pinky_side: {label: Roll left, tap: roll_left}
+  index_side: {label: Roll right, tap: roll_right}
+
+  # Thumb pad: weapon cycling and the ultimate. Tap only -- this is the pad that cost v5
+  # a 1000 ms delay on every one of these.
+  dpad_up:     {label: Next secondary, tap: next_secondary}
+  dpad_left:   {label: Previous primary, tap: previous_primary}
+  dpad_right:  {label: Next primary, tap: next_primary}
+  dpad_down:   {label: Previous secondary, tap: previous_secondary}
+  dpad_press: {label: Ultimate, tap: ultimate}
+
+  # Thumb aux: travel and flight assist.
+  thumb_aux_upper: {label: Travel drive, tap: cruise}
+  thumb_aux_lower: {label: Jump drive, tap: supralight}
+  stick_press: {label: Inertia dampeners, tap: inertia_dampeners}
+
+  # Bottom row: menus only. Long-press is safe here because nothing on this row is a
+  # combat action.
+  pinky_5: {label: Missions / map, tap: missions, long: map}
+  ring_5:  {label: Perks / crafting, tap: perks, long: crafting}
+  middle_5: {label: Ship / inventory, tap: ship_menu, long: inventory}
+  index_5: {label: Menu / data, tap: menu_tab, long: data_logs}

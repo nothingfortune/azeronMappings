@@ -1,0 +1,15 @@
+name: Elite Dangerous
+slug: eliteDangerous
+genre: SpaceSims
+template: templates/everspace2-akimbo-left.json
+
+# The game's own bindings. Elite reads Custom.4.1.binds when its presets are set to Custom;
+# applying writes that file from the installed KeyboardMouseOnly preset and the keys in
+# actions.yaml, sets the presets to Custom, and keeps both previous files beside them.
+# Close the game first: it rewrites its bindings when it exits.
+ingame_format: elite-binds
+ingame_config: "/mnt/c/Users/there/AppData/Local/Frontier Developments/Elite Dangerous/Options/Bindings/Custom.4.1.binds"
+ingame_preset: "/mnt/d/SteamLibrary/steamapps/common/Elite Dangerous/Products/elite-dangerous-odyssey-64/ControlSchemes/KeyboardMouseOnly.binds"
+
+lint:
+  require_keyboard_stick: true

@@ -8,12 +8,67 @@
  * action visibly needing a real name rather than silently inventing one.
  */
 
-import { SLOTS, STICK_DIRECTIONS } from "../types/azeron.js";
+import { activeAnalogKeys, SLOTS, STICK_DIRECTIONS } from "../types/azeron.js";
 import type { ExportDocument } from "../types/azeron.js";
 import type { ActionSpec, DeviceData, GameConfig, ProfileData } from "../types/profile.js";
+import { yamlScalar } from "./actionfile.js";
 import * as keys from "./keys.js";
+import { dumpYaml } from "./yaml.js";
 
 export class ScaffoldError extends Error {}
+
+/**
+ * A name that becomes one component of a path: a game's folder, a layout's file name.
+ *
+ * Letters, digits, dots, dashes and underscores, starting and ending on something that is
+ * not a dot. Nothing with a separator can match, so no spelling of `..` or an absolute
+ * path gets through -- and the repo lives on Windows, which silently drops a trailing dot
+ * and refuses names like `con`.
+ */
+const FILE_NAME = /^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9_-])?$/;
+const RESERVED_NAME = /^(con|prn|aux|nul|com\d|lpt\d)(\..*)?$/i;
+
+export function isFileName(value: string): boolean {
+  return FILE_NAME.test(value) && !RESERVED_NAME.test(value);
+}
+
+/** Return `value` if it is safe to use in a path, otherwise say what is wrong with it. */
+export function checkFileName(kind: string, value: unknown): string {
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new ScaffoldError(`${kind} is required`);
+  }
+  if (!isFileName(value)) {
+    throw new ScaffoldError(
+      `'${value}' cannot be a ${kind}: letters, digits, dots, dashes and underscores only, ` +
+        "starting with a letter or digit and not ending in a dot",
+    );
+  }
+  return value;
+}
+
+/** The name a person types for a game, tidied. Free text, but not a way to break a file. */
+export function checkGameName(value: unknown): string {
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new ScaffoldError("the game needs a name");
+  }
+  const name = value.trim();
+  // eslint-disable-next-line no-control-regex
+  if (name.length > 80 || /[\u0000-\u001f\u007f]/.test(name)) {
+    throw new ScaffoldError("a game name is one line of at most 80 characters");
+  }
+  return name;
+}
+
+/** `Deep Rock Galactic` -> `deepRockGalactic`, the folder-and-file spelling games use. */
+export function slugFromName(name: string): string {
+  const words = name.split(/[^A-Za-z0-9]+/).filter((word) => word !== "");
+  const slug = words
+    .map((word, index) =>
+      index === 0 ? word.toLowerCase() : `${word.charAt(0).toUpperCase()}${word.slice(1)}`,
+    )
+    .join("");
+  return slug;
+}
 
 /** `KeyF` -> `key_f`, `Digit5` -> `digit_5`, `ShiftLeft` -> `shift_left`. */
 export function actionIdForKey(name: string): string {
@@ -23,11 +78,16 @@ export function actionIdForKey(name: string): string {
     .toLowerCase();
 }
 
-function keyNamesIn(exported: ExportDocument, profileIndex: number): string[] {
+/** What an export sends: the keyboard keys, and the mouse buttons. */
+function sentBy(
+  exported: ExportDocument,
+  profileIndex: number,
+): { keys: string[]; mouse: string[] } {
   const profile = exported.profiles[profileIndex];
   if (!profile) throw new ScaffoldError(`export has no profile at index ${String(profileIndex)}`);
 
   const found = new Set<string>();
+  const buttons = new Set<string>();
   const slotFields = [
     ["keyValues", "metaValues"],
     ["keyValuesLong", "metaValuesLong"],
@@ -36,36 +96,87 @@ function keyNamesIn(exported: ExportDocument, profileIndex: number): string[] {
 
   for (const record of profile.inputs) {
     slotFields.forEach(([keyField, metaField], index) => {
+      if (record.types[index] === "15") {
+        const button = keys.mouseToName(record[keyField][0]);
+        if (button !== null) buttons.add(button);
+        return;
+      }
       if (record.types[index] !== "1") return;
       const key = keys.keyToName(record[keyField][0]);
       const meta = keys.metaToName(record[metaField][0]);
       if (key !== null) found.add(key);
       else if (meta !== null) found.add(meta);
     });
-    const left = record.analogSettings?.analogKeys.left;
-    if (!left) continue;
+    const settings = record.analogSettings;
+    if (!settings) continue;
+    const live = activeAnalogKeys(settings);
     for (const direction of STICK_DIRECTIONS) {
-      const name = keys.analogToName(left[direction][0]);
+      const name = keys.analogToName(live[direction][0]);
       if (name !== null) found.add(name);
     }
   }
-  return [...found].sort();
+  return { keys: [...found].sort(), mouse: [...buttons].sort() };
 }
 
-/** An action per distinct key the export sends, each marked as needing a real name. */
+/**
+ * An action per distinct key or mouse button the export sends, each marked as needing a
+ * real name.
+ *
+ * Mouse buttons are seeded too: a profile that sends one with no action to name it fails
+ * `unbound-key` on a game that has only just been started, and the page's only way out was
+ * a text editor.
+ */
 export function seedActions(
   exported: ExportDocument,
   profileIndex = 0,
 ): Record<string, ActionSpec> {
   const actions: Record<string, ActionSpec> = {};
-  for (const name of keyNamesIn(exported, profileIndex)) {
+  const sent = sentBy(exported, profileIndex);
+  for (const name of sent.keys) {
     actions[actionIdForKey(name)] = {
-      label: `${name} (unnamed)`,
+      label: `${keys.keyLabel(name)} (unnamed)`,
       key: name,
       note: "Seeded by `azeron import`. Rename it and tag it once its in-game job is known.",
     };
   }
+  for (const button of sent.mouse) {
+    actions[`mouse_${button}`] = {
+      label: `${keys.bindingLabel({ mouse: button }) ?? button} (unnamed)`,
+      mouse: button,
+      note: "Seeded by `azeron import`. Rename it and tag it once its in-game job is known.",
+    };
+  }
   return actions;
+}
+
+/**
+ * The text of a new game's actions.yaml: the genre it extends, then one line per action.
+ *
+ * One line each, in the flow style the hand-written files use, because that is the shape
+ * the editor's save can patch in place. Generic YAML output puts every action on four
+ * lines, and a save then refused with "spans more than one line" -- a new game could not
+ * have a key changed from the page at all. The seeded `note` is left out of the file: it
+ * would still say "rename it" after the action had been renamed, and the label already
+ * says "(unnamed)" for as long as that is true.
+ */
+export function actionsYaml(
+  game: string,
+  extendsPath: string,
+  actions: Readonly<Record<string, ActionSpec>>,
+  header: string,
+): string {
+  const ids = Object.keys(actions);
+  const width = Math.max(0, ...ids.map((id) => id.length));
+  const lines = ids.map((id) => {
+    const spec = actions[id] ?? {};
+    const fields: string[] = [];
+    if (spec.label !== undefined) fields.push(`label: ${yamlScalar(spec.label)}`);
+    if (spec.key) fields.push(`key: ${spec.key}`);
+    if (spec.meta) fields.push(`meta: ${spec.meta}`);
+    if (spec.mouse) fields.push(`mouse: ${spec.mouse}`);
+    return `  ${`${id}:`.padEnd(width + 1)} {${fields.join(", ")}}`;
+  });
+  return `${dumpYaml({ extends: extendsPath, game }, header)}actions:\n${lines.join("\n")}\n`;
 }
 
 export interface ScaffoldOptions {

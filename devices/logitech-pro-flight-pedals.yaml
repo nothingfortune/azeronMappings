@@ -1,0 +1,101 @@
+# Logitech Pro Flight rudder pedals -- three analog axes, no pins.
+#
+# This is not an Azeron and has no positions. It sits beside the keypad maps because it is
+# a device in the same sense, and `kind: pedals` is what tells the loaders to read it as
+# one. Everything that walks this directory for keypads skips it.
+#
+# They are sold as Logitech but report as Saitek (the product line Logitech bought): USB
+# vendor 0x06a3, product 0x0763. The HID report has three values, and the driver labels
+# them: usage 0x30 (X, 7 bits) "Left Toe", usage 0x31 (Y, 7 bits) "Right Toe", usage 0x35
+# (Rz, 9 bits) "Rudder".
+#
+# `rest` says where an axis sits with nothing touching it:
+#
+#   centre   springs back to the middle of its travel -- the rudder.
+#   end      rests at one end and is pressed towards the other -- each toe brake.
+#            `rest_end` says which, as measured: with no Windows calibration stored, a toe
+#            reads -1.0 at rest and +1.0 fully pressed.
+#
+# THE TOE-BRAKE PROBLEM, and what answers it. Uncalibrated, a toe at rest is a FULL
+# DEFLECTION on any game axis read about a centre (thrust, yaw, ...), and invert, scale and
+# dead_zone cannot re-centre it; `pedal-rest-on-centred` warns if such an axis is bound to a
+# two-sided game axis. A Windows calibration can re-centre it, and `calibrated_rest: centre`
+# records that one is set on the owner's machine and was seen to work: measured 2026-10-01
+# through SDL's DirectInput backend, each toe reads 0 at rest and the top of the range fully
+# pressed -- half an axis, which is what a throttle is. The calibration is in the registry,
+# not in this repo (the values are in docs/guides/analog-input.md, option D); if it is lost,
+# a toe goes back to a full deflection at rest and this line is wrong until it is put back.
+# Pressing a toe also wins a capture meant for any other pedal, which is how the rudder came
+# to be recorded on the wrong name once.
+#
+# DO NOT ASK THE PEDALS FOR THEIR STATE. A HID GET_REPORT request (HidD_GetInputReport)
+# hung them on 2026-09-30: they answered once, then sent nothing to anything until they were
+# unplugged and plugged back in. Reading the reports they send on their own is safe.
+#
+# THE GAME'S NAMES FOR THE AXES. Everspace 2 reads joysticks through SDL and registers one
+# key per axis (and one per button and hat, of which these pedals have none), named
+# `JS<index>_<Device>_Axis<n>`: the index is SDL's joystick index (0 here) and can be
+# negative -- the flight stick's presets read `JS-1_T16000M_Button0`, a stick that is not
+# plugged in -- the device is the product string with its spaces removed, and the axes are
+# numbered from zero. The game's own log (LogJoystickPlugin_*.log) lists exactly the three
+# registered for these pedals, which is `inputs` below: those three names are CONFIRMED.
+#
+# WHICH NAME IS WHICH AXIS is not, and each entry in `names` says how far to trust it:
+#
+#   confirmed    flown, and does what it says. Nothing is yet.
+#   inferred     reasoned from evidence, not flown.
+#   unconfirmed  the name is real; which pedal axis it is has not been established.
+#   bound        recorded by `azeron ingame --capture-pedals` from a file where the axis
+#                was bound in the game's own screen. What the game wrote, not proof that
+#                the right pedal was moved.
+#   candidate    hand-written guess (`--candidate pedal_axis=NAME`) with nothing behind it.
+#
+# Generation writes any of them into the game's file and says which it was using. An axis
+# with no entry has nothing written for it and is reported as waiting.
+#
+# WHAT IS KNOWN, from the game's log, the driver and a recording, and what is inferred:
+#
+#   - Recorded 2026-10-01 through SDL 2.30.6's DirectInput backend while each pedal was
+#     moved: the axis that rests at centre and swings both ways is Axis2 (the device's Rz),
+#     Axis0 follows the device's X and Axis1 its Y. The game reads the pedals through its
+#     own, older SDL, so this is the same backend but not the game itself: not flown.
+#   - The driver labels X "Left Toe" and Y "Right Toe", and X was the toe pressed first
+#     when the left was asked for first. So Axis0 is the left toe and Axis1 the right.
+#   - The owner's own Input.ini has Yaw on Axis1. That is a toe: the game's bind screen
+#     takes whatever moves first, and a toe at the end of its travel reads as full
+#     deflection from the start. It was a mis-capture, not a fact about the rudder, and
+#     `azeron ingame --apply` moves it (Yaw takes Axis2).
+
+device: logitech-pro-flight-pedals
+kind: pedals
+name: Logitech Pro Flight rudder pedals
+reports_as: Saitek Pro Flight Rudder Pedals
+usb: {vendor_id: "0x06a3", product_id: "0x0763"}
+
+# The inputs the game registers for this device: confirmed, from its own log.
+inputs:
+  everspace:
+    - JS0_SaitekProFlightRudderPedals_Axis0
+    - JS0_SaitekProFlightRudderPedals_Axis1
+    - JS0_SaitekProFlightRudderPedals_Axis2
+
+axes:
+  rudder:
+    label: Rudder
+    rest: centre
+    names:
+      everspace: {name: "JS0_SaitekProFlightRudderPedals_Axis2", status: inferred, note: "recorded through SDL's DirectInput backend as the axis that centres and swings both ways; not flown"}
+  left_toe:
+    label: Left toe brake
+    rest: end
+    rest_end: min
+    calibrated_rest: centre
+    names:
+      everspace: {name: "JS0_SaitekProFlightRudderPedals_Axis0", status: inferred, note: "recorded through SDL's DirectInput backend following the device's X, which the driver labels Left Toe; not flown"}
+  right_toe:
+    label: Right toe brake
+    rest: end
+    rest_end: min
+    calibrated_rest: centre
+    names:
+      everspace: {name: "JS0_SaitekProFlightRudderPedals_Axis1", status: inferred, note: "recorded through SDL's DirectInput backend following the device's Y, which the driver labels Right Toe; not flown"}

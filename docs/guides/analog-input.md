@@ -37,20 +37,48 @@ impulse: 0% or 100%, nothing between. A stick in keyboard mode does not change t
 is a four-way switch, not an axis, so deflecting it half way sends the same key as
 deflecting it fully.
 
-The layout change: v5 and v6 put throttle on the left stick's up/down. v7 moved it to the
-right thumb pad as two buttons (`thumb_up`, `thumb_down`). Both are digital, so neither
-gives proportional thrust, but a thumb deflection reads as a throttle in a way a button
-press does not — which is the likely reason it feels worse now than it did.
+**There is no throttle in the game to bind.** Checked in `Input.ini` since: Everspace 2
+has no throttle steps or presets. `MoveForward` is a thrust axis — its display name is
+"Thrust axis" — with W at +1 and S at -1, and nothing accumulates. So what a W press
+does depends on **inertia dampeners**, which is a toggle:
 
-**Check the controls screen before anything else.** If Everspace 2 offers throttle steps
-or presets — "increase/decrease throttle", or "throttle 25/50/75/100%" — then discrete
-keys are exactly the right shape for it, the thumb pad is a good home for a four-way
-preset bank, and this problem is solved without touching the analog question. Whether the
-game has those bindings is not recorded here and has not been checked.
+- **Dampeners on**: releasing W brakes the ship. A key that is down part of the time
+  alternates thrust and braking, and should average to a lower speed.
+- **Dampeners off**: releasing W coasts. The ship holds whatever speed it reached, so W
+  and S already behave as a throttle — tap to add speed, tap S to shed it — and a pulsed
+  key only reaches the same top speed more slowly.
 
-If it does not, there is no proportional throttle without an analog axis, and the options
-below are the only ones. Note that cruise and boost already give a crude three-notch
-speed (normal, cruise, boost), which may be as close as the game allows.
+That makes the dampener state the thing to control for in any test, and it suggests the
+throttle asked for may already exist: dampeners off, tap W. It is the first thing on the
+akimbo v10 playtest list.
+
+Cruise and boost give a crude three-notch speed on top (normal, cruise, boost).
+
+## What "mouse" means on a Cyborg II
+
+Four separate things, worth keeping apart:
+
+1. **An optical sensor — which the Cyborg II does not have.** The export format carries
+   `profileSettings.isSensorOn` and five DPI steps in `sensitivityValues` for the Azeron
+   keypads that have one, and the Cyborg II's exports carry them too, but its device maps
+   say `sensor: false`. The pointer is a real mouse's, and the pointer actions are
+   `provided_by: mouse`, never sent from a key.
+2. **A stick in mouse mode.** The stick drives the pointer instead of sending keys;
+   `analogSettings.mouseSensitivity` shapes it. The type code for this mode has never
+   been captured, so the compiler refuses to emit it.
+3. **Mouse buttons on keys.** Type `"15"`: 1 is left, 2 middle, 3 right, all confirmed —
+   2 in the app's UI, 1 and 3 from a profile labelled "Fire Primary"/"Fire Secondary"
+   against the game's own bindings for those.
+4. **Scroll.** `scrollSpeed`, `scrollThreshold`, `isSmoothScroll` per input.
+
+The mouse cannot throttle either. In Everspace 2's binding file the mouse axes reach
+only `CameraPitch` and `CameraYaw`, and those sit with the photo-mode controls — so what
+the pointer does in flight is not in the file at all. Whether moving it turns the ship or
+only aims is untested, and it decides whether a stick should carry yaw or roll. `MoveForward`'s axis row is `Key1=None` in the
+Keyboard group, and the only keyboard bindings it has are W and S at scale +1 and -1.
+Whether `MouseY` can be bound to `MoveFwd` instead has not been tried; it would cost the
+aim axis, which is probably a bad trade, but it is the one untested way to get a
+proportional thrust axis without another device.
 
 ## Option 0 — duty cycling, which needs nothing new
 
@@ -86,27 +114,32 @@ there is nothing to flip between.
 
 - **Cost:** you lose mouse aiming, and the game applies its gamepad flight handling and
   aim assist. For a twitchy space sim that is a real downgrade.
-- **Cost:** the repo's `require_keyboard_stick` lint rule exists to stop exactly this, so
-  it would have to be turned off for the game deliberately in `game.yaml` — not quietly.
+- **Cost:** the repo's `stick-not-keyboard` lint rule exists to stop exactly this, so the
+  finding would have to be acknowledged deliberately in `game.yaml`, with a reason — not
+  quietly.
 - **Untested.** Worth one session if full-analog flight matters more than mouse aim.
 
-## Option B — stick in mouse mode (most promising, least explored)
+## Option B — stick in mouse mode: tried, and it spins
 
-The Azeron stick has a mouse mode. Mouse X/Y are the only analog axes the game reads in
-KB/M mode, so a stick driving the mouse is **analog input that the game never sees as a
-gamepad**. No device ever contradicts another, so there is nothing to flip between.
+Tried 2026-09-30. **The ship turns and does not stop, and there is no way to bring it
+back to centre.** It is not a tuning problem.
 
-- It gives _rate_ control (a deflected stick moves the pointer continuously), which is
-  what you want for pitch and yaw in a space sim anyway.
-- You get two axes total, and they are the same two the mouse uses — so it is stick aim
-  _instead of_ mouse aim, not as well.
-- It cannot drive an absolute axis such as a throttle.
-- **The export format for a mouse-mode stick is unknown.** The compiler refuses to emit a
-  mode it has not seen. To unblock it: set a stick to mouse mode in the Azeron app, export
-  the profile, and run `azeron decompile` on it — the unknown fields come back as `raw`
-  values and we can add the mode properly.
-- **Untested for stutter.** It should be immune by the reasoning above, but that is a
-  prediction, not a result.
+The reasoning for it was that a deflected stick moves the pointer continuously, which is
+rate control. It is — rate control _of the pointer_. But Everspace 2 steers by where the
+pointer _is_: off centre, the ship turns, and it keeps turning until the pointer comes
+back. So the stick sets how fast the pointer moves, the pointer's position sets how fast
+the ship turns, and letting go leaves the pointer wherever it got to. Stopping means
+counter-deflecting for exactly as long as it took to get there. A mouse does not have
+this problem because it is a position device: you move it back to where it was.
+
+One thing would change this reading: if, after letting go, the ship creeps slowly rather
+than holding the turn it had, the stick is drifting at rest and a larger deadzone in the
+app would fix it. Holding the same turn is the steering model, and no setting fixes that.
+
+What the stick _can_ give is rate control of the ship directly, in keyboard mode: the
+game's own `Yaw` and `Pitch` actions are on keys, and a stick sending them turns the ship
+while it is held and stops when it is released. That is the `twin_stick` stick mode, and
+yaw on the left stick in Mode 2. It is digital — full rate or nothing — but it centres.
 
 ## Option C — translate the gamepad to mouse outside the game
 
@@ -115,36 +148,141 @@ mouse movement. The game is launched through Steam and only ever sees keyboard a
 
 - Same no-mixing property as option B, with more moving parts and another layer to
   configure.
-- Worth trying only if option B's mouse mode turns out to be unusable.
+- **Ruled out by option B.** It still ends in the pointer, so it spins for the same reason.
 
 ## Option D — a real joystick, neither gamepad nor keyboard
 
-The appealing idea: stop pretending to be either device and present as a flight stick.
-Whether that is possible turns on one fact nobody here has checked yet.
+**Checked 2026-09-30: Everspace 2 reads DirectInput joysticks natively.** Its `Input.ini`
+has a Joystick group alongside Keyboard and Gamepad, and already holds 24 bindings to a
+Thrustmaster T.16000M, named `JS-1_T16000M_Button0` and so on — the game names each input
+`JS<index>_<Device>_<Input>`, and the index is its own count of devices, negative for a
+stick that is not plugged in. `GameUserSettings.ini` carries `InputMethod=MouseAndJoystick`: mouse
+and joystick together is a mode the game is built for, not a mix it flips between. The
+stutter in constraint 1 was gamepad against keyboard and mouse; this is not that.
 
-**Everspace 2 is Unreal Engine, and Unreal reads XInput gamepads and keyboard/mouse.** A
-generic HID joystick — the DirectInput class a HOTAS uses — is not something a UE game
-reads unless the developer wired it up deliberately. Plenty of space sims do; plenty of
-UE ones do not.
+The Joystick group's flight rows are axes waiting for one: `MoveForward`, `MoveRight`,
+`MoveUp`, `Pitch`, `Yaw` and `Roll`, each `bIsAxis=True` with `Key1=None`, a 0.1 dead zone
+and, for `MoveForward` alone, `bInvert=True` — the shape of a throttle lever.
 
-**Check this before spending an evening on it.** Plug in any joystick, open Settings >
-Input > Customize Controls, and see whether the game offers joystick axes at all, or
-lists the device. Two minutes, and it decides everything below.
+**This is the route being taken.** Logitech Pro Flight rudder pedals, bought 2026-09-30,
+give three axes: the rudder, which springs back to centre, and two toe brakes, which rest
+at one end and are pressed towards the other.
 
-- **If the game does read joysticks natively:** this is the best available answer. A
-  virtual joystick (vJoy) fed from the Azerons gives real analog axes in a device class
-  the game reads directly, with no gamepad to flip to and no mouse to share. Worth doing
-  properly if it works.
-- **If it does not:** "joystick" has to be translated into something the game does read,
-  and there are only two targets — an XInput gamepad, which _is_ a controller and brings
-  back the mixing problem, or keyboard and mouse, which is where we already are. The
-  third option is not actually a third option.
+- **Rudder to yaw** is the natural fit: proportional, and it centres itself — what neither
+  the pointer (a position you have to return) nor a keyboard-mode stick (full rate or
+  nothing) can give.
+- **A toe brake to thrust** looked like the proportional throttle this whole guide has been
+  looking for, with one question first: `MoveForward` expects a centred axis, −1 to +1, and
+  a toe brake rests at an end. **That question now has a measured answer, and it is no.**
+  With no Windows calibration stored, each toe reads −1.0 at rest and +1.0 fully pressed. On
+  any game axis read about a centre — all six flight axes — a toe is therefore a full
+  deflection with the foot off, and the fields the game's row offers (`bInvert`, `Scale`,
+  `DeadZone`, `Sensitivity`, `Exponent`) cannot re-centre it: none of them is an offset.
+  Uncalibrated, a toe is unusable on any of them.
 
-One thing we cannot do either way: the Azeron itself cannot be made to present as a
-joystick. It exposes a fixed set of USB HID interfaces, with configuration over hidraw on
-interface 4 in a proprietary protocol; the profile JSON this repo compiles chooses what
-the existing keyboard, mouse and gamepad endpoints send, not which endpoints exist. Adding
-a joystick device class would be firmware work, not profile work.
+**A Windows calibration makes a toe rest at zero — set and measured 2026-10-01.** The game
+reads the pedals through SDL's DirectInput backend, and DirectInput applies the calibration
+`joy.cpl` stores: a minimum, a centre and a maximum per axis, with everything from the
+centre up mapped onto the top half of the range. A toe reports 0 at rest and 127 fully
+pressed, so a centre at 0 and a maximum at 127 make it read 0.0 at rest and +1.0 pressed:
+half an axis, which is what a throttle is. The Logitech driver replaces the page that has
+the Calibrate button, so the values are written directly:
+
+```
+HKCU\System\CurrentControlSet\Control\MediaProperties\PrivateProperties\DirectInput\
+  VID_06A3&PID_0763\Calibration\0\Type\Axes\0   Calibration = 81ffffff 00000000 7f000000
+  VID_06A3&PID_0763\Calibration\0\Type\Axes\1   Calibration = 81ffffff 00000000 7f000000
+```
+
+Three little-endian numbers: minimum −127, centre 0, maximum 127. Axis 0 is X, the left
+toe, and axis 1 is Y, the right; the rudder (axis 5) is left alone. Deleting the two `Axes`
+keys puts the toes back as they were.
+
+- **The minimum has to be below the rest position, not equal to it.** The first attempt
+  was minimum 0, centre 0, maximum 127. A pressed toe then read correctly, but at rest it
+  read −1.0 — a value at the minimum is the minimum, whatever the centre — and jumped to
+  the positive half at the first touch. With the minimum at −127, which the toe never
+  reaches, rest is the centre.
+- **Measured** by reading the pedals through SDL 2.30.6's DirectInput backend while each
+  toe was pressed: both rest at 0, rise in proportion and reach the top of the range fully
+  pressed. That is the same backend the game uses, in a newer SDL; it is not the game.
+  `calibrated_rest: centre` on each toe in the device file records it, and is what stops
+  `pedal-rest-on-centred` from warning.
+- A program reads a device with the calibration it had when it opened it, so the game has
+  to be started after the values are written.
+- The calibration belongs to the machine, not the repo. A driver reinstall, another
+  Windows user or another computer has none, and a toe is then a full deflection at rest
+  again. The registry key is filed under the device's instance (`Calibration\0`); whether a
+  different USB port counts as another instance has not been checked.
+
+**The game's thrust row is inverted as it ships.** `MoveForward` in the Joystick group has
+`bInvert=True`, the shape of a throttle lever pushed away from you. A toe put on thrust
+needs `invert: false`, or pressing it reverses. The editor writes `invert` outright for an
+axis assigned in the Pedals panel, so its box shows what the game is given.
+
+**Do not ask the pedals for their state.** A HID `GET_REPORT` request
+(`HidD_GetInputReport`), sent as a diagnostic on 2026-09-30, hung them: they answered once,
+then sent nothing to anything — the game and `joy.cpl` included — until they were unplugged
+and plugged back in. Listening to the reports they send on their own is safe.
+
+**A toe can drive one direction of an axis.** The game's Joystick group keeps a `Scale=1`
+and a `Scale=-1` row beside each axis row, so a toe written onto one of those (`end: up` or
+`end: down` in `sets.yaml`) is half an axis, which is what a toe is. Whether the game reads
+a pedal in proportion on those rows, or as a button, has not been flown.
+
+**This has a home in the repo.** The pedals are a device (`devices/logitech-pro-flight-
+pedals.yaml`), what a layout does with them is in the game's `sets.yaml` beside its profiles
+(`akimbo-v10`: the rudder on roll, the right toe on hover up and the left toe on hover
+down), and the stick mode has a with-pedals variant for a layout whose pedals take yaw. `azeron ingame --apply` writes the layout's
+pedals into the Joystick group's axis rows, under the keyboard side's guarantees; see "The
+game's own binding file" in `CLAUDE.md`.
+
+**What is known about the names, and what is not.** The pedals are sold as Logitech and
+report as Saitek (USB 06a3:0763); Windows lists three axes, X, Y and Rz, which the driver
+labels "Left Toe", "Right Toe" and "Rudder". The game reads joysticks through SDL and its own
+log (`LogJoystickPlugin_*.log`) registers exactly three inputs for them, zero-based:
+`JS0_SaitekProFlightRudderPedals_Axis0`, `_Axis1`, `_Axis2`. Those three names are
+confirmed. Which is which is not:
+
+- Recorded 2026-10-01 through SDL's DirectInput backend while each pedal was moved: the
+  axis that rests at centre and swings both ways is **`Axis2`**, so that is the rudder.
+  Measured in the backend the game uses, and not flown.
+- `Axis0` follows the device's X and `Axis1` its Y. The driver labels X "Left Toe" and Y
+  "Right Toe", and X was the toe pressed first when the left was asked for first.
+- The owner's own `Input.ini` had Yaw on `Axis1`. That is a toe: the game's bind screen
+  takes whatever moves first, and a toe reads full deflection from the start, so it won a
+  capture meant for the rudder. It was a mis-capture, not a fact about the rudder, and it
+  is the reason a capture is recorded as `bound` (what the game wrote) and never as
+  confirmed. `azeron ingame --apply` rewrites the rows from the layout, so the mis-capture
+  does not survive it.
+
+Each name in the device file carries a status — `confirmed` (flown; none yet), `inferred`,
+`unconfirmed`, `bound`, `candidate` — and generation says which it used, so a name that is
+not yet flown is never mistaken for one that is.
+
+**What to do next.** Apply, then fly the rudder: `akimbo-v10` has it on roll. Does the ship
+roll in proportion to the pedal, and stop when it centres? If it rolls on its own or the
+wrong way, the inference is wrong and `azeron ingame --capture-pedals` will say where the
+file and the device data disagree. Then the toes, the right on hover up and the left on
+hover down: does the ship rise and sink with the pedal, in proportion or all at once, and
+stop when the foot comes off? If it moves on its own, the calibration is not reaching the
+game.
+
+The Azeron exposes a fixed set of USB HID interfaces, with configuration on a
+vendor-defined one in a proprietary protocol (`docs/guides/unit-protocol.md`); the profile
+this repo compiles chooses what the existing keyboard, mouse and gamepad endpoints send,
+not which endpoints exist. Adding a device class would be firmware work, not profile work.
+
+**An untested lead: the units already enumerate as DirectInput joysticks.** Measured
+2026-10-01 with SDL 2.30.6 on the owner's machine, both units plugged in: SDL's DirectInput
+backend lists four devices named `Azeron Keypad - DirectInput` (two with 6 axes and 32
+buttons, two with 5 axes and 10 buttons), and its XInput backend lists two named
+`Controller (Azeron Keypad - XInput)`. The game's own joystick log, the same day, listed
+only the pedals. Why it leaves the Azerons out is not known — it may skip anything XInput
+also claims, which is what a stick in gamepad mode is, and that mode is constraint 1's
+stutter. Whether a unit can be made to send its stick on the DirectInput interface alone,
+and whether the game would then read it in the Joystick group without the flip, has not
+been tried.
 
 ## The dead end — a virtual gamepad
 
@@ -156,5 +294,4 @@ analog axes without a virtual gamepad, and a virtual gamepad re-triggers constra
 ## If you test one of these
 
 Capture the result here and in `playtests.md`, and say which option, for how long, and
-whether the stutter returned. If option B works, it is the best outcome available: analog
-pitch and yaw, no gamepad, no mode switching, and the rest of the layout unchanged.
+whether the stutter returned.

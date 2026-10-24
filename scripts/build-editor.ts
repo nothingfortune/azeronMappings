@@ -13,10 +13,8 @@ interface Bundle {
   outfile: string;
 }
 
-const bundles: Bundle[] = [
-  { entry: "src/editor/main.ts", outfile: "build/editor-app.js" },
-  { entry: "src/editor/probe-main.ts", outfile: "build/probe-app.js" },
-];
+// One page. The press test used to be a second one; it is a tab of the editor now.
+const bundles: Bundle[] = [{ entry: "src/editor/main.ts", outfile: "build/editor-app.js" }];
 
 for (const { entry, outfile } of bundles) {
   const result = await build({

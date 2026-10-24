@@ -1,0 +1,46 @@
+# Ace Combat 7: Skies Unknown -- the in-game key behind each action in the Flight vocabulary.
+#
+# These are the game's DEFAULT keyboard keys, from published lists (StrategyWiki's
+# controls page, archived 2024-12, and two key lists that agree with it on the flight
+# keys). They have not been checked against an installed copy: confirm them in the game's
+# Options > Keyboard before the first flight, and change a key here if the game has it on
+# another.
+#
+# The game puts pitch on 1 and 3 rather than on W and S, which hold the throttle.
+# A high-G turn is both throttle keys at once (accelerate and decelerate held together)
+# with pitch up; there is no key of its own.
+extends: genres/Flight/actions.yaml
+game: Ace Combat 7
+
+actions:
+  # --- flight --------------------------------------------------------------------
+  throttle_up:    {key: KeyW}
+  throttle_down:  {key: KeyS}
+  pitch_down:     {key: Digit1}
+  pitch_up:       {key: Digit3}
+  roll_left:      {key: KeyA}
+  roll_right:     {key: KeyD}
+  yaw_left:       {key: KeyQ}
+  yaw_right:      {key: KeyE}
+
+  # --- weapons -------------------------------------------------------------------
+  # The game also fires on the left and right mouse buttons; the keys are used here because
+  # a pair of keypads has no mouse.
+  # Ctrl held with Space sends Ctrl+Space, which switches an input method (IME) on a
+  # machine that has one: gun and missiles together could then lose the missile key.
+  fire_gun:       {meta: ControlLeft}
+  fire_missile:   {key: Space}
+  weapon_change:  {key: KeyC}
+  target_change:  {key: Tab}
+  flare:          {key: KeyG}
+
+  # --- view ----------------------------------------------------------------------
+  view_change:    {key: KeyV}
+  camera_up:      {key: Numpad8}
+  camera_down:    {key: Numpad2}
+  camera_left:    {key: Numpad4}
+  camera_right:   {key: Numpad6}
+  radar_map:      {key: KeyR}
+
+  # --- menus ---------------------------------------------------------------------
+  menu_main:      {key: Escape, note: "Ctrl+Escape is the Windows Start menu: let go of the gun before pausing."}

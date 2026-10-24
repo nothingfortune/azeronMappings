@@ -14,8 +14,8 @@ import type {
   Slot,
 } from "../types/azeron.js";
 import {
-  DEFAULT_DOUBLE_DELAY,
-  DEFAULT_FEATURE_DELAY,
+  activeAnalogKeys,
+  isRebindableRecord,
   HOLD_FIELDS,
   SLOTS,
   TURBO_FIELDS,
@@ -23,12 +23,12 @@ import {
   SLOT_FIELDS,
   STICK_DIRECTIONS,
   STICK_MODE_CODES,
-  TYPE_NONE,
 } from "../types/azeron.js";
 import type { ActionSpec, PositionSpec } from "../types/profile.js";
-import { resolveSlot } from "./binding.js";
+import { blankRecord, resolveSlot } from "./binding.js";
 import * as keys from "./keys.js";
 import type { Device, Profile } from "./model-core.js";
+import { messageOf } from "./object.js";
 
 export class CompileError extends Error {}
 
@@ -37,25 +37,13 @@ function tokens(record: InputRecord, field: keyof InputRecord): string[] {
 }
 
 function neutralize(record: InputRecord, isStick: boolean): void {
-  record.types = [TYPE_NONE, TYPE_NONE, TYPE_NONE];
-  for (const slot of SLOTS) {
-    const [keyField, metaField] = SLOT_FIELDS[slot];
-    tokens(record, keyField)[0] = keys.NONE_TOKEN;
-    tokens(record, metaField)[0] = keys.NONE_TOKEN;
-    record[HOLD_FIELDS[slot]] = false;
-  }
-  for (const slot of SLOTS) {
-    record[TURBO_FIELDS[slot]] = false;
-    record[TURBO_INTERVAL_FIELDS[slot]] = 0;
-  }
-  record.featureDelay = DEFAULT_FEATURE_DELAY;
-  record.doubleDelay = DEFAULT_DOUBLE_DELAY;
+  blankRecord(record);
   // `label` is deliberately left alone here. Deleting and re-adding it would move the
   // key to the end of the record and churn the JSON for no reason; the caller clears it
   // for positions the profile does not mention, and applyPosition overwrites it in place.
   if (isStick && record.analogSettings) {
-    const left = record.analogSettings.analogKeys.left;
-    for (const direction of STICK_DIRECTIONS) left[direction][0] = 0;
+    const live = activeAnalogKeys(record.analogSettings);
+    for (const direction of STICK_DIRECTIONS) live[direction][0] = 0;
   }
 }
 
@@ -85,7 +73,7 @@ function applyStick(
   // unverified, so an unmeasured device leaves whatever the template had.
   if (analogSettings && device.stickAngle !== undefined) analogSettings.angle = device.stickAngle;
   if (!analogSettings) throw new CompileError(`${position}: template record has no analogSettings`);
-  const left: AnalogDirections = analogSettings.analogKeys.left;
+  const live: AnalogDirections = activeAnalogKeys(analogSettings);
 
   for (const direction of STICK_DIRECTIONS) {
     // A mirrored unit may not drive the same field the left-handed software expects,
@@ -93,7 +81,7 @@ function applyStick(
     const field = device.stickDirections[direction] ?? direction;
     const ref = spec.directions?.[direction];
     if (ref === undefined) {
-      left[field][0] = 0;
+      live[field][0] = 0;
       continue;
     }
     let name: string | null;
@@ -104,16 +92,21 @@ function applyStick(
       if (name === null) {
         throw new CompileError(`${position}: stick ${direction} -> action '${ref}' sends no key`);
       }
+    } else if (typeof ref.key_raw === "string") {
+      // A token decompiling could not name. Written back exactly as it came.
+      live[field][0] = ref.key_raw;
+      continue;
     } else {
       name = ref.key ?? null;
+      if (name === null) {
+        throw new CompileError(`${position}: stick ${direction} names no key`);
+      }
     }
     const analog = keys.nameToAnalog(name);
     if (analog === null) {
-      throw new CompileError(
-        `${position}: stick ${direction} -> no analog keycode for '${String(name)}'`,
-      );
+      throw new CompileError(`${position}: stick ${direction} -> no analog keycode for '${name}'`);
     }
-    left[field][0] = analog;
+    live[field][0] = analog;
   }
 }
 
@@ -136,7 +129,7 @@ function applyPosition(
       try {
         triple = resolveSlot(spec[slot], actions);
       } catch (error) {
-        throw new CompileError(`${position}.${slot}: ${(error as Error).message}`);
+        throw new CompileError(`${position}.${slot}: ${messageOf(error)}`);
       }
       record.types[index] = triple[0];
       const [keyField, metaField] = SLOT_FIELDS[slot];
@@ -159,9 +152,12 @@ function applyPosition(
     const turboField = slot === "tap" ? "turbo" : (`turbo_${slot}` as const);
     if (spec[turboField]) {
       record[TURBO_FIELDS[slot]] = true;
-      if (spec.turbo_interval !== undefined) {
-        record[TURBO_INTERVAL_FIELDS[slot]] = spec.turbo_interval;
-      }
+      // Per slot, because the export carries three. A slot with no interval of its own
+      // falls back to the tap's, which is what a profile setting only `turbo_interval`
+      // means.
+      const intervalField = slot === "tap" ? "turbo_interval" : (`turbo_interval_${slot}` as const);
+      const interval = spec[intervalField] ?? spec.turbo_interval;
+      if (interval !== undefined) record[TURBO_INTERVAL_FIELDS[slot]] = interval;
     }
   }
 }
@@ -197,6 +193,25 @@ export function compileProfile(profile: Profile, options: CompileOptions = {}): 
   if (profile.id) target.id = profile.id;
   if (profile.name) target.name = profile.name;
 
+  // For a unit with an optical sensor: two running theirs drive the same pointer, so a
+  // pair normally wants one on. Left alone unless the profile says. The Cyborg II has no
+  // sensor; its exports carry the field all the same, and it does nothing there.
+  const settings = target.profileSettings;
+  if (settings !== undefined) {
+    if (profile.meta.sensor !== undefined) settings.isSensorOn = profile.meta.sensor;
+    if (profile.meta.dpi !== undefined) {
+      const steps = settings.profileSensitivitySettings;
+      const index = steps?.sensitivityValues.indexOf(profile.meta.dpi) ?? -1;
+      if (steps === undefined || index === -1) {
+        throw new CompileError(
+          `${profile.path}: dpi ${String(profile.meta.dpi)} is not one of this profile's ` +
+            `steps (${steps?.sensitivityValues.join(", ") ?? "none"})`,
+        );
+      }
+      steps.currentSensitivityIndex = index;
+    }
+  }
+
   const byPin = new Map<number, InputRecord>();
   for (const record of target.inputs) {
     if (!byPin.has(record.pinOne)) byPin.set(record.pinOne, record);
@@ -208,6 +223,9 @@ export function compileProfile(profile: Profile, options: CompileOptions = {}): 
     if (device.unknownPins.has(position.pin)) continue;
     const record = byPin.get(position.pin);
     if (!record) continue;
+    // A named pin is not automatically a key. The profile switch and the codes nobody has
+    // identified pass through, or the app repairs the profile on import.
+    if (!isRebindableRecord(record)) continue;
     neutralize(record, device.isStick(name));
     if (!(name in profile.positions)) delete record.label;
   }
@@ -221,6 +239,13 @@ export function compileProfile(profile: Profile, options: CompileOptions = {}): 
     if (!record) {
       throw new CompileError(
         `${profile.template ?? "template"}: no input for pin ${String(position.pin)} (${name})`,
+      );
+    }
+    if (!isRebindableRecord(record)) {
+      throw new CompileError(
+        `${profile.path}: position '${name}' is pin ${String(position.pin)}, whose record ` +
+          `carries type '${String(record.types[0])}' -- not a key, a mouse button or a ` +
+          "stick. Binding it would write over something the app owns.",
       );
     }
     applyPosition(record, spec, actions, name, device.isStick(name), device);

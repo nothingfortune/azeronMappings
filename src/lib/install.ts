@@ -16,13 +16,14 @@
  * refuses to run rather than guess.
  */
 
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import {
   copyFileSync,
   existsSync,
   mkdirSync,
   readFileSync,
   readdirSync,
+  statSync,
   writeFileSync,
 } from "node:fs";
 import { homedir, platform } from "node:os";
@@ -101,6 +102,56 @@ export function listStoredProfiles(store: string, deviceId: string): StoredProfi
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
+export interface StoredProfile {
+  deviceId: string;
+  /** The file, under the store. */
+  path: string;
+  /** When the app last wrote it. */
+  modified: Date;
+  profile: ExportProfile;
+}
+
+/**
+ * Every copy of a profile the app holds under `name`, newest first. The app gives an
+ * imported profile a new id but keeps its name, so the name is what finds it; importing
+ * the same file twice leaves two. A file that does not parse is passed over: the app owns
+ * the directory, and a half-written file is its business.
+ */
+export function findStoredProfiles(store: string, name: string): StoredProfile[] {
+  const found: StoredProfile[] = [];
+  for (const deviceId of listDeviceIds(store)) {
+    const dir = join(store, deviceId, "ProfileStorage");
+    for (const file of readdirSync(dir).filter((entry) => entry.endsWith(".json"))) {
+      const path = join(dir, file);
+      let profile: ExportProfile;
+      try {
+        profile = JSON.parse(readFileSync(path, "utf8")) as ExportProfile;
+      } catch {
+        continue;
+      }
+      if (profile.name !== name || !Array.isArray(profile.inputs)) continue;
+      found.push({ deviceId, path, modified: statSync(path).mtime, profile });
+    }
+  }
+  return found.sort((a, b) => b.modified.getTime() - a.modified.getTime());
+}
+
+/**
+ * Whether the Azeron app is running: true, false, or null when the check itself could not
+ * be made. A write to the units asks this, and must not take "could not tell" for "closed".
+ */
+export function appRunningState(): boolean | null {
+  const isWindowsish = platform() === "win32" || wslWindowsHome() !== null;
+  const run = isWindowsish
+    ? spawnSync("tasklist.exe", ["/FI", "IMAGENAME eq Azeron Software.exe"], { encoding: "utf8" })
+    : spawnSync("pgrep", ["-f", "Azeron Software"], { encoding: "utf8" });
+  if (run.error !== undefined) return null;
+  if (isWindowsish) return run.status === 0 ? run.stdout.includes("Azeron Software.exe") : null;
+  // pgrep: 0 found, 1 none, anything else a failure to look.
+  if (run.status === 0) return true;
+  return run.status === 1 ? false : null;
+}
+
 /** True when the Azeron app looks like it is running. */
 export function appIsRunning(): boolean {
   const isWindowsish = platform() === "win32" || wslWindowsHome() !== null;
@@ -121,6 +172,34 @@ export function appIsRunning(): boolean {
     // pgrep exits non-zero when nothing matches, and tasklist may not exist at all.
     return false;
   }
+}
+
+/**
+ * Close the Azeron app, so something else can talk to the units. Asks it to close first,
+ * then makes it, and says whether it is still running.
+ */
+export async function closeApp(): Promise<boolean> {
+  const isWindowsish = platform() === "win32" || wslWindowsHome() !== null;
+  for (const force of [false, true]) {
+    if (!appIsRunning()) return false;
+    try {
+      if (isWindowsish) {
+        const args = ["/IM", "Azeron Software.exe", "/T", ...(force ? ["/F"] : [])];
+        execFileSync("taskkill.exe", args, { stdio: "ignore" });
+      } else {
+        execFileSync("pkill", [force ? "-KILL" : "-TERM", "-f", "Azeron Software"], {
+          stdio: "ignore",
+        });
+      }
+    } catch {
+      // Not running by the time it was asked, or not allowed: the check below says which.
+    }
+    const until = Date.now() + 3000;
+    while (Date.now() < until && appIsRunning()) {
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+  }
+  return appIsRunning();
 }
 
 /**

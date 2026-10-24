@@ -26,6 +26,8 @@ export class Device {
   /** False until someone has pressed every key on the real unit. */
   readonly verified: boolean;
   readonly softwareDeviceId: string | undefined;
+  /** False for a unit with no optical sensor, such as the Cyborg II. */
+  readonly hasSensor: boolean;
   readonly stickDirections: Partial<Record<StickDirection, StickDirection>>;
   readonly stickAngle: number | undefined;
   readonly unknownPins: ReadonlySet<number>;
@@ -42,6 +44,7 @@ export class Device {
     this.mirrored = Boolean(data.mirrored);
     this.verified = data.verified === true;
     this.softwareDeviceId = data.software_device_id;
+    this.hasSensor = data.sensor !== false;
     this.stickDirections = data.stick_directions ?? {};
     this.stickAngle = data.stick_angle;
     this.unknownPins = new Set(data.unknown_pins ?? []);
