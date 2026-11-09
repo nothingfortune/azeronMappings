@@ -60,6 +60,8 @@ import {
 import {
   buildAll,
   createGame,
+  startGame,
+  startLayout,
   deviceNames,
   ImportCollision,
   importExport,
@@ -267,6 +269,85 @@ interface ImportFlags {
 }
 
 /** Start a game folder from an Azeron export. */
+/**
+ * `azeron new`: a game with no export, from its genre. `--units` takes hands (left, right)
+ * or device map names, comma separated; both hands by default.
+ */
+function cmdNew(
+  name: string,
+  flags: {
+    genre: string;
+    units: string | undefined;
+    set: string | undefined;
+    game: string | undefined;
+  },
+): number {
+  const maps = deviceNames().map((device) => ({ device, hand: loadDevice(device).hand }));
+  const devices = (flags.units ?? "left,right")
+    .split(",")
+    .map((unit) => unit.trim())
+    .filter((unit) => unit !== "")
+    .map((unit) => {
+      if (maps.some((entry) => entry.device === unit)) return unit;
+      const byHand = maps.filter((entry) => entry.hand === unit);
+      const only = byHand[0];
+      if (only === undefined || byHand.length > 1) {
+        throw new Error(
+          `--units ${unit}: name a hand (left, right) or a device map (${maps
+            .map((entry) => entry.device)
+            .join(", ")})`,
+        );
+      }
+      return only.device;
+    });
+  const result = startGame({
+    name,
+    slug: flags.game,
+    genre: flags.genre,
+    devices,
+    set: flags.set ?? "v1",
+  });
+  out(`Started ${result.name} in ${result.gameDir}`);
+  for (const profile of result.profiles) {
+    out(`  ${profile.path}  (${profile.device}, ${String(profile.positions)} control(s) set)`);
+  }
+  out(`  ${String(result.wired)} action(s) given a key to be sent on`);
+  if (result.leftOff.length > 0) {
+    out(
+      `  ${String(result.leftOff.length)} control(s) of the genre's layout left empty, with no ` +
+        `free key to send on: ${result.leftOff.join(", ")}`,
+    );
+  }
+  out("");
+  out("  Next: `azeron serve` and lay it out on the Edit tab, or `azeron build` as it is.");
+  return 0;
+}
+
+/** `azeron layout`: a new layout for a game, empty or copied from another, no export. */
+function cmdLayout(
+  game: string,
+  set: string,
+  flags: { units: string | undefined; copyOf: string | undefined },
+): number {
+  const maps = deviceNames().map((device) => ({ device, hand: loadDevice(device).hand }));
+  const devices = (flags.units ?? (flags.copyOf === undefined ? "left,right" : ""))
+    .split(",")
+    .map((unit) => unit.trim())
+    .filter((unit) => unit !== "")
+    .map(
+      (unit) => maps.find((entry) => entry.device === unit || entry.hand === unit)?.device ?? unit,
+    );
+  const result = startLayout({ game, set, devices, copyOf: flags.copyOf });
+  out(
+    `Started layout ${result.set}${flags.copyOf === undefined ? "" : ` as a copy of ${flags.copyOf}`}`,
+  );
+  for (const profile of result.profiles) {
+    out(`  ${profile.path}  (${profile.device}, ${String(profile.positions)} control(s) set)`);
+  }
+  if (result.pedals) out("  its pedals too, in sets.yaml");
+  return 0;
+}
+
 function cmdImport(exportPath: string, flags: ImportFlags): number {
   const result = createGame({
     exported: loadTemplate(exportPath),
@@ -666,13 +747,37 @@ function cmdServe(port: number, host: string): number {
     }
     if (
       request.method === "POST" &&
-      (url === "/api/build" || url === "/api/import" || url === "/api/game")
+      (url === "/api/build" ||
+        url === "/api/import" ||
+        url === "/api/game" ||
+        url === "/api/layout")
     ) {
       readBody(request, response, 20_000_000, (body) => {
         try {
           if (url === "/api/build") {
             const result = buildAll(Game.discover());
             send(200, JSON.stringify({ ok: result.errors.length === 0, ...result }));
+            return;
+          }
+          if (url === "/api/layout") {
+            // A new layout with no export: empty, or a copy of one the game has.
+            const asked = JSON.parse(body) as {
+              game?: string;
+              set?: string;
+              devices?: unknown;
+              copyOf?: string;
+              overwrite?: boolean;
+            };
+            const result = startLayout({
+              game: asked.game ?? "",
+              set: asked.set ?? "",
+              devices: Array.isArray(asked.devices)
+                ? asked.devices.filter((entry): entry is string => typeof entry === "string")
+                : [],
+              copyOf: typeof asked.copyOf === "string" ? asked.copyOf : undefined,
+              ...(asked.overwrite === true ? { overwrite: true } : {}),
+            });
+            send(200, JSON.stringify({ ok: true, ...result }));
             return;
           }
           if (url === "/api/game") {
@@ -684,9 +789,24 @@ function cmdServe(port: number, host: string): number {
               device?: string;
               set?: string;
               exported?: ExportDocument;
+              /** The units, when there is no export: the game starts from the genre. */
+              devices?: unknown;
               overwrite?: boolean;
             };
-            if (!fresh.exported) throw new Error("a new game needs the export");
+            if (!fresh.exported) {
+              const devices = Array.isArray(fresh.devices)
+                ? fresh.devices.filter((entry): entry is string => typeof entry === "string")
+                : [];
+              const started = startGame({
+                name: fresh.name ?? "",
+                genre: fresh.genre ?? "",
+                devices,
+                set: fresh.set ?? "",
+                ...(fresh.overwrite === true ? { overwrite: true } : {}),
+              });
+              send(200, JSON.stringify({ ok: true, ...started }));
+              return;
+            }
             const result = createGame({
               exported: fresh.exported,
               name: fresh.name ?? "",
@@ -1149,8 +1269,14 @@ function usage(): void {
   serve [--port N] [--host H]     the same editor, able to save back into the repo; it
                                   listens on 127.0.0.1 only unless --host names another
   probe [--device D]              press-test profiles; capture them in the editor's Press test tab
+  new <name> --genre G [--units left,right] [--set S] [--game SLUG]
+                                  start a game with no export: the genre's actions and
+                                  default layout, each unit built on its own stock export
+  layout <game> <name> [--copy-of LAYOUT] [--units left,right]
+                                  a new layout with no export: a copy of one the game
+                                  has (pedals included), or empty
   import <export.json> --genre G --game SLUG [--name N] [--device D] [--set S]
-         [--export-to DIR]      start a game folder from an export
+         [--export-to DIR]      start a game folder from an Azeron app export instead
   decompile <export.json> [--device D] [--game G] [--set S] [--template T]
             [--output-name N] [--profile-index N] [--golden] [-o OUT]
   install [game] [--store PATH] [--yes] [--dry-run] [--device-id ID]
@@ -1207,6 +1333,8 @@ export function main(argv: string[]): number {
       store: { type: "string" },
       "device-id": { type: "string" },
       genre: { type: "string" },
+      units: { type: "string" },
+      "copy-of": { type: "string" },
       name: { type: "string" },
       "export-to": { type: "string" },
       config: { type: "string" },
@@ -1267,6 +1395,22 @@ export function main(argv: string[]): number {
         golden: values.golden,
         out: values.out,
       });
+    }
+    case "new": {
+      const name = positionals.join(" ").trim();
+      if (name === "" || !values.genre) throw new Error("new needs a name and --genre");
+      return cmdNew(name, {
+        genre: values.genre,
+        units: values.units,
+        set: values.set,
+        game: values.game,
+      });
+    }
+    case "layout": {
+      const [game, set] = positionals;
+      if (game === undefined || set === undefined)
+        throw new Error("layout needs a game and a name");
+      return cmdLayout(game, set, { units: values.units, copyOf: values["copy-of"] });
     }
     case "import": {
       const target = positionals[0];

@@ -4973,8 +4973,8 @@ function renderDetection(): HTMLElement {
   panel.append(
     el("div", { class: "muted" }, [
       el("small", {}, [
-        "Detection only reports what is connected. Writing profiles still goes through " +
-          "the Azeron software, which speaks its own protocol on one of these interfaces.",
+        "Detection only reports what is connected. To put a layout on the units, use Write " +
+          "to units in the header: it writes straight to them, with no Azeron app.",
       ]),
     ]),
   );
@@ -5131,11 +5131,82 @@ function exportPicker(onChosen: (fileName: string, exported: unknown) => void): 
   return { upload, drop, file };
 }
 
-/** What the add-a-layout form holds: its name, and the export chosen for each unit. */
+/**
+ * What the add-a-layout form holds: its name, what it starts from (a layout of the game to
+ * copy, "" for empty, null for the open one), its units, and any export chosen per unit.
+ */
 const addLayout: {
   name: string;
+  from: string | null;
+  units: string[] | null;
   files: Record<string, { name: string; exported: unknown }>;
-} = { name: "", files: {} };
+} = { name: "", from: null, units: null, files: {} };
+
+/** A new layout with no export: a copy of one of the game's, or empty. */
+async function addLayoutFromScratch(name: string): Promise<void> {
+  const from = addLayout.from ?? state.setName;
+  const units = addLayout.units ?? keypads().map((pad) => pad.device);
+  const say = (text: string): void => {
+    repoNote = text;
+    render();
+  };
+  if (from === "" && units.length === 0) {
+    say("Choose at least one unit.");
+    return;
+  }
+  // The copy is made on the server, from what is saved: unsaved edits would not be in it.
+  if (from !== "" && isDirty()) {
+    say("Save your changes first: the copy is made from the layout as it is saved.");
+    return;
+  }
+  say(`adding ${name}...`);
+  const send = (overwrite: boolean): Promise<Record<string, unknown>> =>
+    post("/api/layout", {
+      game: currentGame().slug,
+      set: name,
+      devices: from === "" ? units : [],
+      ...(from === "" ? {} : { copyOf: from }),
+      ...(overwrite ? { overwrite: true } : {}),
+    });
+  let result = await send(false);
+  if (result.ok !== true && result.status === 409) {
+    if (
+      !window.confirm(`${String(result.error)}
+
+Replace it?`)
+    ) {
+      say("cancelled -- nothing was written.");
+      return;
+    }
+    result = await send(true);
+  }
+  if (result.ok !== true) {
+    say(`not added: ${String(result.error)}`);
+    return;
+  }
+  addLayout.name = "";
+  const done =
+    from === ""
+      ? `Added ${name}, empty: drag actions onto it.`
+      : `Added ${name} as a copy of ${from}` +
+        (result.pedals === true && result.modes === true
+          ? ", its pedals and modes included."
+          : result.pedals === true
+            ? ", pedals included."
+            : result.modes === true
+              ? ", the modes it plays included."
+              : ".");
+  if (await refreshPayload()) {
+    state.setName = name;
+    state.selected = null;
+    state.mode = "edit";
+    repoNote = `${done} It is the selected layout now.`;
+    saveNote = repoNote;
+  } else {
+    repoNote = `${done} Reload the page to open it.`;
+  }
+  render();
+}
 
 /** Turn the chosen exports into a layout of the current game, one profile per unit. */
 async function addLayoutFromExports(): Promise<void> {
@@ -5153,8 +5224,9 @@ async function addLayoutFromExports(): Promise<void> {
     );
     return;
   }
+  // No export chosen: the layout is made here, from a copy or empty.
   if (chosen.length === 0) {
-    say("Choose the export for at least one unit first.");
+    await addLayoutFromScratch(name);
     return;
   }
   say(`adding ${name}...`);
@@ -5211,30 +5283,51 @@ async function addLayoutFromExports(): Promise<void> {
 const newGame: {
   name: string;
   genre: string;
+  /** The units the first layout is for, by device map name. Null until first drawn. */
+  units: string[] | null;
+  /** The unit an export came from, when the game is started from one. */
   device: string;
   set: string;
   file: { name: string; exported: unknown } | null;
-} = { name: "", genre: "", device: "", set: "v1", file: null };
+} = { name: "", genre: "", units: null, device: "", set: "v1", file: null };
+
+/** The keypads a layout can be for, left hand first. */
+function keypads(): { device: string; label: string }[] {
+  return Object.values(state.payload.devices)
+    .map((device) => ({
+      device: device.device,
+      hand: device.hand ?? "",
+      label: `${unitLabel(device.hand ?? device.device)} unit`,
+    }))
+    .sort((a, b) =>
+      a.hand === b.hand ? a.device.localeCompare(b.device) : a.hand === "left" ? -1 : 1,
+    )
+    .map(({ device, label }) => ({ device, label }));
+}
 
 /**
- * Starting a game that is not in the repo: a name, its genre, the export, which unit it
- * came from and what to call the layout. The server makes the folder, seeds the actions
- * from the keys the export sends, and the page selects the result.
+ * Starting a game that is not in the repo: a name, its genre, the units and what to call
+ * the layout. No Azeron app is involved: each unit's layout is built on that unit's own
+ * stock export, the genre's default layout goes on the unit it was written for, and its
+ * actions are given keys. An Azeron export is still taken, as an option, for a profile
+ * already made in the app.
  */
 function renderNewGame(): HTMLElement {
   const box = el("div", { class: "field new-game" });
   box.append(
     section(
       "Add a new game",
-      "For a game that is not in the Game selector. Export a profile for it from the Azeron " +
-        "app, choose it below, and the editor starts the game from it. Every key the export " +
-        "sends becomes an action named after the key -- rename them as you learn what they do.",
+      "For a game that is not in the Game selector. Name it and say what kind of game it is: " +
+        "it starts with that kind's actions and its default layout, ready to rearrange on " +
+        "the Edit tab. No Azeron app needed.",
     ),
   );
 
   const genres = state.payload.genres.map((genre) => genre.name);
   if (newGame.genre === "" || !genres.includes(newGame.genre)) newGame.genre = genres[0] ?? "";
-  const firstDevice = Object.values(state.payload.devices)[0]?.device ?? "";
+  const pads = keypads();
+  newGame.units ??= pads.map((pad) => pad.device);
+  const firstDevice = pads[0]?.device ?? "";
   if (newGame.device === "") newGame.device = firstDevice;
 
   const name = el("input", {
@@ -5264,11 +5357,16 @@ function renderNewGame(): HTMLElement {
     showWhere();
   });
 
-  const unit = unitSelect(newGame.device);
-  unit.setAttribute("data-new-game", "unit");
-  unit.addEventListener("change", () => {
-    newGame.device = unit.value;
-  });
+  const units = el("div", { class: "new-game-units" });
+  for (const pad of pads) {
+    const tick = el("input", { type: "checkbox", "data-new-game-unit": pad.device });
+    tick.checked = newGame.units.includes(pad.device);
+    tick.addEventListener("change", () => {
+      const others = (newGame.units ?? []).filter((device) => device !== pad.device);
+      newGame.units = tick.checked ? [...others, pad.device] : others;
+    });
+    units.append(el("div", { class: "field check" }, [el("label", {}, [pad.label]), tick]));
+  }
 
   const layout = el("input", {
     type: "text",
@@ -5281,19 +5379,51 @@ function renderNewGame(): HTMLElement {
   });
   showWhere();
 
+  // The other way in: a profile already made in the Azeron app.
+  const unit = unitSelect(newGame.device);
+  unit.setAttribute("data-new-game", "unit");
+  unit.addEventListener("change", () => {
+    newGame.device = unit.value;
+  });
   const picker = exportPicker((chosen, exported) => {
     newGame.file = { name: chosen, exported };
-    repoNote = `${chosen} chosen. Press "Create game" when the rest is filled in.`;
+    repoNote =
+      `${chosen} chosen: the game will start from it. ` +
+      'Press "Create game" when the rest is filled in.';
     render();
   });
   const chosen = el("div", { class: "muted new-game-file" }, [
-    newGame.file === null ? "No export chosen yet." : `Export: ${newGame.file.name}`,
+    newGame.file === null
+      ? "No export chosen: the game starts from its genre."
+      : `Export: ${newGame.file.name}`,
   ]);
+  const forget = el("button", { class: "btn", type: "button" }, ["Don't use the export"]);
+  forget.addEventListener("click", () => {
+    newGame.file = null;
+    render();
+  });
+  const fromApp = el("details", { class: "new-game-export" }, [
+    el("summary", {}, ["…or start it from an Azeron app export"]),
+    el("div", { class: "muted" }, [
+      "Every key the export sends becomes an action named after the key; rename them as you " +
+        "learn what they do. The layout is for the one unit the export came from.",
+    ]),
+    el("div", { class: "row2" }, [
+      el("div", { class: "field" }, [el("label", {}, ["Exported from"]), unit]),
+      picker.upload,
+    ]),
+    chosen,
+    ...(newGame.file === null ? [] : [forget]),
+    picker.drop,
+    picker.file,
+  ]);
+  if (newGame.file !== null) fromApp.setAttribute("open", "open");
 
   const create = el("button", { class: "btn primary", type: "button" }, ["Create game"]);
   create.addEventListener("click", () => {
     const gameName = newGame.name.trim();
     const layoutName = newGame.set.trim();
+    const chosenUnits = newGame.units ?? [];
     const problem =
       gameName === ""
         ? "Give the game a name first."
@@ -5301,24 +5431,25 @@ function renderNewGame(): HTMLElement {
           ? `"${gameName}" has no letters or digits to name a folder after.`
           : !isFileName(layoutName)
             ? `"${layoutName}" cannot be a layout name: letters, digits, dots and dashes only.`
-            : newGame.file === null
-              ? "Choose the export file for the game first."
+            : newGame.file === null && chosenUnits.length === 0
+              ? "Choose at least one unit."
               : null;
-    if (problem !== null || newGame.file === null) {
-      repoNote = problem ?? "Choose the export file for the game first.";
+    if (problem !== null) {
+      repoNote = problem;
       render();
       return;
     }
-    const exported = newGame.file.exported;
+    const file = newGame.file;
     repoNote = `creating ${gameName}...`;
     render();
     const send = (overwrite: boolean): void => {
       void post("/api/game", {
         name: gameName,
         genre: newGame.genre,
-        device: newGame.device,
         set: layoutName,
-        exported,
+        ...(file === null
+          ? { devices: chosenUnits }
+          : { device: newGame.device, exported: file.exported }),
         ...(overwrite ? { overwrite: true } : {}),
       }).then((result) => {
         // The game is already there. Starting it again discards its actions.yaml, so it
@@ -5337,14 +5468,30 @@ function renderNewGame(): HTMLElement {
           render();
           return;
         }
-        const unnamed = result.unnamed as string[];
-        const done =
-          `Created ${String(result.name)} from ${newGame.file?.name ?? "the export"}: ` +
-          `${String(result.actions)} action(s) named after the keys they send` +
-          (unnamed.length > 0
-            ? `, ${String(unnamed.length)} position(s) left raw (${unnamed.join(", ")})`
-            : "") +
-          ". Rename the actions as you learn what they do.";
+        let done: string;
+        if (file === null) {
+          const leftOff = (result.leftOff as string[] | undefined) ?? [];
+          // The genre's layout is for one unit; a game without that unit starts empty.
+          const seeded = typeof result.wired === "number" && result.wired > 0;
+          done =
+            (seeded
+              ? `Created ${String(result.name)} from the ${newGame.genre} layout`
+              : `Created ${String(result.name)}, empty: drag actions onto it`) +
+            (leftOff.length > 0
+              ? `. ${String(leftOff.length)} of its controls are empty, with no free key to ` +
+                `send on (${leftOff.join(", ")}). Every out-of-the-way key is in use, so ` +
+                "placing one of those means taking another action off first."
+              : ".");
+        } else {
+          const unnamed = result.unnamed as string[];
+          done =
+            `Created ${String(result.name)} from ${file.name}: ` +
+            `${String(result.actions)} action(s) named after the keys they send` +
+            (unnamed.length > 0
+              ? `, ${String(unnamed.length)} position(s) left raw (${unnamed.join(", ")})`
+              : "") +
+            ". Rename the actions as you learn what they do.";
+        }
         newGame.name = "";
         newGame.file = null;
         void refreshPayload(String(result.slug)).then((refreshed) => {
@@ -5368,13 +5515,11 @@ function renderNewGame(): HTMLElement {
     ]),
     where,
     el("div", { class: "row2" }, [
-      el("div", { class: "field" }, [el("label", {}, ["Exported from"]), unit]),
+      el("div", { class: "field" }, [el("label", {}, ["Units"]), units]),
       el("div", { class: "field" }, [el("label", {}, ["Name for the first layout"]), layout]),
     ]),
-    el("div", { class: "row2" }, [picker.upload, create]),
-    chosen,
-    picker.drop,
-    picker.file,
+    el("div", { class: "row2" }, [create]),
+    fromApp,
   );
   return box;
 }
@@ -5415,11 +5560,43 @@ function renderRepo(): HTMLElement {
   importRow.append(
     section(
       `Add a layout to ${currentGame().name}`,
-      `Export it in the Azeron app, then drop it here. It becomes another layout of ` +
-        `${currentGame().name} that you can edit, and the export is kept as what the ` +
-        "compiler builds on. For a game that is not in the Game selector, add the game above.",
+      `Another layout of ${currentGame().name}: a copy of one it has, to change into the next ` +
+        "version, or an empty one to lay out from scratch. For a game that is not in the " +
+        "Game selector, add the game above.",
     ),
   );
+
+  // What it starts from: a copy of a layout the game has (the open one first), or empty.
+  const layouts = [...setsOf(currentGame()).keys()];
+  const fromValue = addLayout.from ?? state.setName;
+  const from = el("select", { "data-add-layout": "from" });
+  for (const layout of [state.setName, ...layouts.filter((entry) => entry !== state.setName)]) {
+    if (!layouts.includes(layout)) continue;
+    const option = el("option", { value: layout }, [`A copy of ${layout}`]);
+    if (layout === fromValue) option.setAttribute("selected", "selected");
+    from.append(option);
+  }
+  const empty = el("option", { value: "" }, ["Empty"]);
+  if (fromValue === "") empty.setAttribute("selected", "selected");
+  from.append(empty);
+  from.addEventListener("change", () => {
+    addLayout.from = from.value;
+    render();
+  });
+
+  // The units, for an empty layout; a copy has the units its layout has.
+  const pads = keypads();
+  addLayout.units ??= pads.map((pad) => pad.device);
+  const layoutUnits = el("div", { class: "new-game-units" });
+  for (const pad of pads) {
+    const tick = el("input", { type: "checkbox", "data-add-layout-unit": pad.device });
+    tick.checked = addLayout.units.includes(pad.device);
+    tick.addEventListener("change", () => {
+      const others = (addLayout.units ?? []).filter((device) => device !== pad.device);
+      addLayout.units = tick.checked ? [...others, pad.device] : others;
+    });
+    layoutUnits.append(el("div", { class: "field check" }, [el("label", {}, [pad.label]), tick]));
+  }
 
   // A name and an export per unit -- a layout is a pair, and either half alone is one too.
   // The name and the chosen files are kept across redraws: the form used to import the
@@ -5465,12 +5642,26 @@ function renderRepo(): HTMLElement {
     void addLayoutFromExports();
   });
 
+  const fromApp = el("details", { class: "add-layout-export" }, [
+    el("summary", {}, ["…or from Azeron app exports"]),
+    el("div", { class: "muted" }, [
+      "Export each unit's profile in the Azeron app and drop it here; either half alone is a " +
+        "layout too. The export is kept as what the compiler builds on.",
+    ]),
+    exports,
+  ]);
+  if (Object.keys(addLayout.files).length > 0) fromApp.setAttribute("open", "open");
+
   importRow.append(
     el("div", { class: "row2" }, [
       el("div", { class: "field" }, [el("label", {}, ["Name for this layout"]), setName]),
+      el("div", { class: "field" }, [el("label", {}, ["Start from"]), from]),
     ]),
-    exports,
+    ...(fromValue === ""
+      ? [el("div", { class: "field" }, [el("label", {}, ["Units"]), layoutUnits])]
+      : []),
     el("div", { class: "row2" }, [add]),
+    fromApp,
   );
   panel.append(importRow);
 

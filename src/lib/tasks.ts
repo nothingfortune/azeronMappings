@@ -6,12 +6,14 @@
  * printing, because one caller has a terminal and the other has a page.
  */
 
+import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { dataDirs, hostPath, posixJoin, repoPath } from "../config/paths.js";
 import type { ExportDocument } from "../types/azeron.js";
-import type { ProfileMeta } from "../types/profile.js";
+import type { ActionSpec, ProfileData, ProfileMeta } from "../types/profile.js";
+import { SLOTS } from "../types/azeron.js";
 import { compileProfile, dumps } from "./compile.js";
 import { decompile, dumpProfile } from "./decompile.js";
 import {
@@ -48,9 +50,11 @@ import {
   slugFromName,
   unnamedPositions,
 } from "./scaffold.js";
+import { addSetEntry } from "./setsfile.js";
+import { needsWire, wireAction } from "./wiring.js";
 import { dumpYaml } from "./yaml.js";
 import { loadInherited } from "./yaml-io.js";
-import { messageOf } from "./object.js";
+import { messageOf, removeKey } from "./object.js";
 import { findStore, findStoredProfiles } from "./install.js";
 import { compareUnit } from "./units.js";
 import type { UnitCheck, UnitDifference, UnitsReport } from "./units.js";
@@ -430,6 +434,373 @@ export function createGame(request: NewGameRequest): NewGameResult {
   } catch (error) {
     // Half a game is worse than none: it would be discovered, and fail every build.
     if (madeDir) rmSync(repoPath(gameDir), { recursive: true, force: true });
+    for (const { path, text } of touched) {
+      if (text === null) rmSync(repoPath(path), { force: true });
+      else writeFileSync(repoPath(path), text, "utf8");
+    }
+    throw error;
+  }
+}
+
+export interface StartGameRequest {
+  /** What the game is called, as a person says it. */
+  name: string;
+  /** The folder and file spelling. Derived from the name when left out. */
+  slug?: string | undefined;
+  /** One of the folders under genres/. */
+  genre: string;
+  /** The units the first layout is for: one device map name, or a pair. */
+  devices: readonly string[];
+  /** What the first layout is called. */
+  set: string;
+  /** Replace a game already on disk. Refused by default. */
+  overwrite?: boolean;
+}
+
+export interface StartGameResult {
+  slug: string;
+  name: string;
+  gameDir: string;
+  /** Each unit's new profile. */
+  profiles: { device: string; path: string; positions: number }[];
+  /** Actions the genre's default layout placed, each given a key to be sent on. */
+  wired: number;
+  /** Controls of the default layout left empty: no free key to send their action on. */
+  leftOff: string[];
+}
+
+/** Every action a profile's controls carry: each key's presses and each stick direction. */
+function actionsPlaced(data: ProfileData): string[] {
+  const found: string[] = [];
+  for (const spec of Object.values(data.positions)) {
+    for (const slot of SLOTS) {
+      const value = spec[slot];
+      if (typeof value === "string") found.push(value);
+    }
+    for (const value of Object.values(spec.directions ?? {})) {
+      if (typeof value === "string") found.push(value);
+    }
+  }
+  return [...new Set(found)];
+}
+
+/**
+ * Start a game with no export: no Azeron app involved at all.
+ *
+ * Each unit's layout is built on that unit's own real export (`template:` in its device
+ * map), which carries what the repo does not model. The genre's default layout goes on the
+ * unit it was written for, and any other unit starts empty. The game's vocabulary is the
+ * genre's, and every action the default layout places is given a key now, with the same
+ * wiring the editor uses when an action is dropped on a control, so the game builds and
+ * lints with nothing sent on no key.
+ *
+ * The same checks as `createGame`, and the same undo on a failure part way.
+ */
+export function startGame(request: StartGameRequest): StartGameResult {
+  const name = checkGameName(request.name);
+  const slug = checkFileName("game folder name", request.slug ?? slugFromName(name));
+  const set = checkFileName("layout name", request.set);
+  const genre = Genre.discover().find((entry) => entry.name === request.genre);
+  if (genre === undefined) {
+    const have = Genre.discover().map((entry) => entry.name);
+    throw new ScaffoldError(`'${request.genre}' is not a genre here (have: ${have.join(", ")})`);
+  }
+  const names = [...new Set(request.devices)];
+  if (names.length === 0) throw new ScaffoldError("choose at least one unit");
+  const known = deviceNames();
+  const devices = names.map((deviceName) => {
+    if (!known.includes(deviceName)) {
+      throw new ScaffoldError(`'${deviceName}' is not a device map (have: ${known.join(", ")})`);
+    }
+    const device = loadDevice(deviceName);
+    if (device.template === undefined) {
+      throw new ScaffoldError(
+        `${deviceName} names no template: a game with no export of its own needs one, as ` +
+          "`template:` in the device map",
+      );
+    }
+    if (!existsSync(repoPath(device.template))) {
+      throw new ScaffoldError(`${deviceName}'s template ${device.template} does not exist`);
+    }
+    return device;
+  });
+  const units = devices.map((device) => device.hand ?? "left");
+  if (new Set(units).size !== units.length) {
+    throw new ScaffoldError("a layout has one unit per hand: choose a left unit and a right one");
+  }
+
+  const gameDir = posixJoin(dataDirs.games, request.genre, slug);
+  const profilePaths = units.map((unit) => posixJoin(gameDir, "profiles", `${set}-${unit}.yaml`));
+
+  for (const existing of Game.discover()) {
+    if (existing.rel === gameDir) continue;
+    if (existing.slug.toLowerCase() === slug.toLowerCase()) {
+      throw new ScaffoldError(
+        `a game with the folder name '${slug}' already exists: ${existing.rel}`,
+      );
+    }
+    if (existing.name.toLowerCase() === name.toLowerCase()) {
+      throw new ScaffoldError(`a game called '${existing.name}' already exists: ${existing.rel}`);
+    }
+  }
+  const owned = [
+    posixJoin(gameDir, "game.yaml"),
+    posixJoin(gameDir, "actions.yaml"),
+    ...profilePaths,
+  ];
+  if (request.overwrite !== true) {
+    const taken = owned.filter((path) => existsSync(repoPath(path)));
+    if (taken.length > 0) {
+      throw new ImportCollision(
+        taken,
+        `${name} already exists: ${taken.join(", ")}. Starting it again would replace its ` +
+          "actions.yaml, which holds every action you have named.",
+      );
+    }
+  }
+
+  // The first layout: the genre's default on the unit it was written for, the rest empty.
+  const layouts = devices.map((device, index): ProfileData => {
+    const unit = units[index] ?? "left";
+    const seeded = genre.config.profile.device === device.name;
+    return {
+      profile: {
+        id: randomUUID(),
+        name: `${name} ${set} ${unit}`,
+        device: device.name,
+        unit,
+        ...(device.template === undefined ? {} : { template: device.template }),
+        set,
+        output: `${slug}_${set}_${unit}.json`,
+      },
+      positions: seeded ? structuredClone(genre.config.positions) : {},
+    };
+  });
+
+  // Give each placed action a key, as dropping it on a control in the editor would.
+  const vocabulary = structuredClone(genre.actions.actions);
+  const keys: Record<string, ActionSpec> = {};
+  const unsendable = new Set<string>();
+  // Required actions first, so if the pool runs short it is something optional left off.
+  const required = (id: string): number =>
+    (vocabulary[id]?.tags ?? []).includes("required") ? 0 : 1;
+  const placed = [...new Set(layouts.flatMap(actionsPlaced))].sort(
+    (a, b) => required(a) - required(b),
+  );
+  for (const id of placed) {
+    const key = wireAction(vocabulary, id);
+    if (key !== null) keys[id] = { key };
+    else if (needsWire(vocabulary[id])) unsendable.add(id);
+  }
+  // The pool of out-of-the-way keys is smaller than a whole default layout. An action left
+  // without one is taken off its control rather than placed sending nothing, so the game
+  // starts clean; the editor lists it, to place once a key is freed.
+  const leftOff: string[] = [];
+  for (const data of layouts) {
+    for (const [position, spec] of Object.entries(data.positions)) {
+      for (const slot of SLOTS) {
+        const value = spec[slot];
+        if (typeof value === "string" && unsendable.has(value)) {
+          leftOff.push(`${position} ${slot}: ${value}`);
+          removeKey(spec, slot);
+        }
+      }
+      for (const [direction, value] of Object.entries(spec.directions ?? {})) {
+        if (typeof value === "string" && unsendable.has(value) && spec.directions) {
+          leftOff.push(`${position} ${direction}: ${value}`);
+          removeKey(spec.directions, direction);
+        }
+      }
+      if (
+        !SLOTS.some((slot) => spec[slot] !== undefined) &&
+        Object.keys(spec.directions ?? {}).length === 0
+      ) {
+        removeKey(data.positions, position);
+      }
+    }
+  }
+
+  const madeDir = !existsSync(repoPath(gameDir));
+  const touched = owned.map((path) => ({
+    path,
+    text: existsSync(repoPath(path)) ? readFileSync(repoPath(path), "utf8") : null,
+  }));
+  try {
+    writeText(
+      posixJoin(gameDir, "actions.yaml"),
+      actionsYaml(
+        name,
+        posixJoin(dataDirs.genres, request.genre, "actions.yaml"),
+        keys,
+        `# ${name} -- the in-game key each action is sent on.\n` +
+          "#\n# The actions themselves are the genre's, inherited above. Each one placed on a\n" +
+          "# control is given a key nothing else is on; Update the game's keys… tells the\n" +
+          "# game, or set the same key in the game's own controls screen.\n",
+      ),
+    );
+    const firstTemplate = devices[0]?.template;
+    writeText(
+      posixJoin(gameDir, "game.yaml"),
+      dumpYaml(
+        gameConfig({ name, slug, genre: request.genre, template: firstTemplate ?? "" }),
+        `# ${name}\n`,
+      ),
+    );
+    const profiles = layouts.map((data, index) => {
+      const path = profilePaths[index] ?? "";
+      writeText(path, dumpProfile(data, `# ${name} -- ${set}, ${units[index] ?? "left"} unit.\n`));
+      return {
+        device: data.profile.device,
+        path,
+        positions: Object.keys(data.positions).length,
+      };
+    });
+    if (!existsSync(repoPath(posixJoin(gameDir, "playtests.md")))) {
+      writeText(posixJoin(gameDir, "playtests.md"), `# ${name} playtests\n`);
+    }
+    return { slug, name, gameDir, profiles, wired: Object.keys(keys).length, leftOff };
+  } catch (error) {
+    if (madeDir) rmSync(repoPath(gameDir), { recursive: true, force: true });
+    for (const { path, text } of touched) {
+      if (text === null) rmSync(repoPath(path), { force: true });
+      else writeFileSync(repoPath(path), text, "utf8");
+    }
+    throw error;
+  }
+}
+
+export interface StartLayoutRequest {
+  /** The game's slug. */
+  game: string;
+  /** What the new layout is called. */
+  set: string;
+  /** The units it is for. Empty with `copyOf` means the units that layout has. */
+  devices: readonly string[];
+  /** An existing layout of the game to start as a copy of, pedals included. */
+  copyOf?: string | undefined;
+  /** Replace a layout of that name. Refused by default. */
+  overwrite?: boolean;
+}
+
+export interface StartLayoutResult {
+  set: string;
+  profiles: { device: string; path: string; positions: number }[];
+  /** Whether the copied layout's pedals came with it. */
+  pedals: boolean;
+  /** Whether the copied layout's modes of play came with it. */
+  modes: boolean;
+}
+
+/**
+ * A new layout for a game that exists, with no export: empty, or a copy of one of the
+ * game's layouts to change from (the next version, say). Each unit's profile is built on
+ * the export its layout already uses, or the unit's own stock export when empty. A copy
+ * brings its pedals, in sets.yaml, since the pedals are part of a layout.
+ */
+export function startLayout(request: StartLayoutRequest): StartLayoutResult {
+  const game = Game.discover().find((entry) => entry.slug === request.game);
+  if (game === undefined) throw new ScaffoldError(`no game '${request.game}'`);
+  const set = checkFileName("layout name", request.set);
+
+  const sources = new Map<string, ProfileData>();
+  if (request.copyOf !== undefined && request.copyOf !== "") {
+    for (const path of game.profilePaths()) {
+      const data = loadProfileData(path);
+      if (data.profile.set === request.copyOf) sources.set(data.profile.device, data);
+    }
+    if (sources.size === 0) {
+      throw new ScaffoldError(`${game.name} has no layout called '${request.copyOf}' to copy`);
+    }
+  }
+  const names = [...new Set(request.devices.length > 0 ? request.devices : [...sources.keys()])];
+  if (names.length === 0) throw new ScaffoldError("choose at least one unit");
+  const known = deviceNames();
+  const devices = names.map((deviceName) => {
+    if (!known.includes(deviceName)) {
+      throw new ScaffoldError(`'${deviceName}' is not a device map (have: ${known.join(", ")})`);
+    }
+    const device = loadDevice(deviceName);
+    if (!sources.has(deviceName) && device.template === undefined) {
+      throw new ScaffoldError(
+        `${deviceName} names no template to build an empty layout on (\`template:\` in its device map)`,
+      );
+    }
+    return device;
+  });
+  const units = devices.map((device) => device.hand ?? "left");
+  if (new Set(units).size !== units.length) {
+    throw new ScaffoldError("a layout has one unit per hand: choose a left unit and a right one");
+  }
+
+  const paths = units.map((unit) => profilePathFor(game, set, unit));
+  const taken = game.profilePaths().filter((path) => loadProfileData(path).profile.set === set);
+  if (request.overwrite !== true) {
+    const clash = [...new Set([...taken, ...paths.filter((path) => existsSync(repoPath(path)))])];
+    if (clash.length > 0) {
+      throw new ImportCollision(clash, `${game.name} already has a layout called '${set}'.`);
+    }
+  }
+
+  const layouts = devices.map((device, index): ProfileData => {
+    const unit = units[index] ?? "left";
+    const meta = {
+      id: randomUUID(),
+      name: `${game.name} ${set} ${unit}`,
+      device: device.name,
+      unit,
+      set,
+      output: `${game.slug}_${set}_${unit}.json`,
+    };
+    const source = sources.get(device.name);
+    if (source !== undefined) {
+      const copy = structuredClone(source);
+      // A copy is not the golden fixture, whatever its source was.
+      removeKey(copy.profile, "golden");
+      return { ...copy, profile: { ...copy.profile, ...meta } };
+    }
+    return {
+      profile: { ...meta, ...(device.template === undefined ? {} : { template: device.template }) },
+      positions: {},
+    };
+  });
+
+  // What the layout is beyond its profiles -- its pedals and the modes it plays -- comes
+  // with a copy, as one entry in sets.yaml.
+  const extra =
+    request.copyOf === undefined || request.copyOf === ""
+      ? undefined
+      : game.sets.sets[request.copyOf];
+  const carried = {
+    ...(extra?.pedals === undefined ? {} : { pedals: extra.pedals }),
+    ...(extra?.modes === undefined ? {} : { modes: extra.modes }),
+  };
+  const hasExtra = Object.keys(carried).length > 0;
+  const setsPath = posixJoin(game.rel, "sets.yaml");
+  const touched = [...paths, ...(hasExtra ? [setsPath] : [])].map((path) => ({
+    path,
+    text: existsSync(repoPath(path)) ? readFileSync(repoPath(path), "utf8") : null,
+  }));
+  try {
+    const profiles = layouts.map((data, index) => {
+      const path = paths[index] ?? "";
+      const from = sources.has(data.profile.device) ? ` Copied from ${request.copyOf ?? ""}.` : "";
+      writeText(
+        path,
+        dumpProfile(data, `# ${game.name} -- ${set}, ${units[index] ?? "left"} unit.${from}\n`),
+      );
+      return { device: data.profile.device, path, positions: Object.keys(data.positions).length };
+    });
+    if (hasExtra) {
+      const text = touched.find((entry) => entry.path === setsPath)?.text ?? "";
+      writeText(setsPath, addSetEntry(text, set, carried));
+    }
+    return {
+      set,
+      profiles,
+      pedals: carried.pedals !== undefined,
+      modes: carried.modes !== undefined,
+    };
+  } catch (error) {
     for (const { path, text } of touched) {
       if (text === null) rmSync(repoPath(path), { force: true });
       else writeFileSync(repoPath(path), text, "utf8");

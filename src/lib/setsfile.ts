@@ -13,7 +13,7 @@
 
 import { parse } from "yaml";
 
-import type { PedalAssignment, SetPedals } from "../types/pedals.js";
+import type { PedalAssignment, SetLayout, SetPedals } from "../types/pedals.js";
 import { parseSets } from "./pedals.js";
 
 export class SetsFileError extends Error {}
@@ -332,4 +332,56 @@ function readAssign(lines: readonly string[], assignAt: number): Record<string, 
       ? (parsed as Record<string, unknown>).assign
       : undefined;
   return assign !== null && typeof assign === "object" ? (assign as Record<string, unknown>) : {};
+}
+
+/**
+ * Add a whole new layout's entry to the text of a sets.yaml -- its modes and its pedals --
+ * a line at a time, for a layout started as a copy of another. A copy that kept the pedals
+ * and lost `modes:` would be checked against every action of the game instead of its own,
+ * so both go together. The name must be new. The result is parsed back: the new set must
+ * read as given and every other set as it did.
+ */
+export function addSetEntry(text: string, setName: string, layout: SetLayout): string {
+  const before = parseSets(text.trim() === "" ? {} : (parse(text) as unknown), "sets.yaml");
+  if (setName in before.sets) throw new SetsFileError(`sets.yaml already has ${setName}`);
+  const entry = [
+    `${spaces(SET_INDENT)}${scalar(setName)}:`,
+    ...(layout.modes === undefined
+      ? []
+      : [`${spaces(PEDALS_INDENT)}modes: [${layout.modes.map(scalar).join(", ")}]`]),
+    ...(layout.pedals === undefined ? [] : pedalsLines(layout.pedals)),
+  ];
+  if (entry.length === 1) return text;
+
+  const eol = text.includes("\r\n") ? "\r\n" : "\n";
+  const lines = text.split(/\r?\n/);
+  const setsAt = lines.findIndex((line) => line.startsWith("sets:"));
+  if (setsAt === -1) {
+    if ((lines[lines.length - 1] ?? "") === "") lines.pop();
+    if (lines.length > 0) lines.push("");
+    lines.push("sets:", ...entry, "");
+  } else {
+    const header = lines[setsAt] ?? "";
+    if (/^sets:\s*(\{\s*\})?\s*(#.*)?$/.test(header)) {
+      const comment = /(#.*)$/.exec(header)?.[1];
+      lines[setsAt] = comment === undefined ? "sets:" : `sets: ${comment}`;
+    } else if (!/^sets:\s*(#.*)?$/.test(header)) {
+      throw new SetsFileError("`sets:` is not a block mapping; edit sets.yaml by hand");
+    }
+    const sectionEnd = blockEnd(lines, setsAt, 0);
+    if (isData(lines[sectionEnd - 1] ?? "") && sectionEnd - 1 !== setsAt) entry.unshift("");
+    lines.splice(sectionEnd, 0, ...entry);
+  }
+
+  const patched = lines.join(eol);
+  const after = parseSets(parse(patched) as unknown, "the patched sets.yaml");
+  if (canonical(after.sets[setName]) !== canonical(layout)) {
+    throw new SetsFileError(`adding ${setName} did not take; edit sets.yaml by hand`);
+  }
+  for (const [name, kept] of Object.entries(before.sets)) {
+    if (canonical(kept) !== canonical(after.sets[name])) {
+      throw new SetsFileError(`adding ${setName} would have changed ${name}`);
+    }
+  }
+  return patched;
 }

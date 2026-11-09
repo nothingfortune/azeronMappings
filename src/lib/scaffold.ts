@@ -176,7 +176,10 @@ export function actionsYaml(
     if (spec.mouse) fields.push(`mouse: ${spec.mouse}`);
     return `  ${`${id}:`.padEnd(width + 1)} {${fields.join(", ")}}`;
   });
-  return `${dumpYaml({ extends: extendsPath, game }, header)}actions:\n${lines.join("\n")}\n`;
+  // No actions of its own (a game started with nothing placed) is an empty mapping: a bare
+  // `actions:` would read as null.
+  const body = lines.length === 0 ? "actions: {}\n" : `actions:\n${lines.join("\n")}\n`;
+  return `${dumpYaml({ extends: extendsPath, game }, header)}${body}`;
 }
 
 export interface ScaffoldOptions {

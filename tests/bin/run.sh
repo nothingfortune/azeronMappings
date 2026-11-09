@@ -59,6 +59,11 @@ check_fails "unknown command exits non-zero" ./bin/azeron nonsense
 check_fails "the cheatsheet command is gone" ./bin/azeron cheatsheet
 check "no generated HTML is tracked" bash -c '[ -z "$(git ls-files "*.html")" ]'
 check_fails "unknown game exits non-zero" ./bin/azeron lint no-such-game
+# Refusals only: a game or layout that was made would be written into the frozen fixture.
+says "new needs a genre" "new needs a name and --genre" ./bin/azeron new Some Game
+says "new refuses a genre that is not there" "not a genre" ./bin/azeron new Some Game --genre Nope
+says "layout refuses a name already in use" "already has a layout called" \
+  ./bin/azeron layout everspace single-v5 --units left
 says "units says when the app has no copy of a layout" 'has no profile named "Everspace 2 akimbo v10 \(right\)"' \
   ./bin/azeron units everspace --set akimbo-v10
 check_fails "units exits non-zero while the app is behind" ./bin/azeron units everspace --set akimbo-v10

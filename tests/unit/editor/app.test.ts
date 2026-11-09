@@ -305,8 +305,12 @@ describe("the setup tab", () => {
       expect(labels).toEqual([
         "Name of the game",
         "Kind of game",
-        "Exported from",
+        "Units",
+        "Left unit",
+        "Right unit",
         "Name for the first layout",
+        // The Azeron app export is an option, folded away below the rest.
+        "Exported from",
       ]);
       const genres = [...(form?.querySelectorAll('[data-new-game="genre"] option') ?? [])].map(
         (o) => o.textContent,

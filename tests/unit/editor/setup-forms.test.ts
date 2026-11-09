@@ -171,9 +171,6 @@ describe("adding a layout from the Azeron app's exports", () => {
     mount();
     button("Add layout").click();
     expect(note()).toBe("Give the layout a name first.");
-    type("pair-test");
-    button("Add layout").click();
-    expect(note()).toBe("Choose the export for at least one unit first.");
     type("../escape");
     await choose("cyborg2-left", "left.json");
     button("Add layout").click();
@@ -234,5 +231,145 @@ describe("adding a layout from the Azeron app's exports", () => {
       expect(note()).toContain("not added: that export has no stick");
     });
     expect(note()).toContain("profiles/pair-test-left.yaml was written");
+  });
+});
+
+describe("starting a new game", () => {
+  const form = (): HTMLElement => {
+    const found = document.querySelector<HTMLElement>(".new-game");
+    if (!found) throw new Error("no new-game form");
+    return found;
+  };
+  function fill(name: string): void {
+    const field = form().querySelector<HTMLInputElement>('[data-new-game="name"]');
+    if (!field) throw new Error("no name field");
+    field.value = name;
+    field.dispatchEvent(new Event("input"));
+  }
+  const create = (): void => {
+    const found = [...form().querySelectorAll<HTMLButtonElement>("button")].find(
+      (node) => node.textContent === "Create game",
+    );
+    if (!found) throw new Error("no Create game");
+    found.click();
+  };
+
+  it("needs no export: it sends the units ticked, both by default", async () => {
+    const calls = served(() => ({ ok: true, slug: "everspace", name: "Deep Rock", leftOff: [] }));
+    mount();
+    expect(form().querySelectorAll("[data-new-game-unit]")).toHaveLength(2);
+    fill("Deep Rock");
+    create();
+    await vi.waitFor(() => {
+      expect(calls.some((call) => call.path === "/api/game")).toBe(true);
+    });
+    const body = calls.find((call) => call.path === "/api/game")?.body ?? {};
+    expect(body.devices).toEqual(["cyborg2-left", "cyborg2-right"]);
+    expect(body).not.toHaveProperty("exported");
+    // Made, the page reloads its data and opens the game on the Edit tab.
+    await vi.waitFor(() => {
+      expect(document.querySelector(".workspace.board")).not.toBeNull();
+    });
+  });
+
+  it("sends only the units left ticked, and says so when none is", () => {
+    const calls = served(() => ({ ok: true }));
+    mount();
+    for (const tick of form().querySelectorAll<HTMLInputElement>("[data-new-game-unit]")) {
+      tick.checked = false;
+      tick.dispatchEvent(new Event("change"));
+    }
+    fill("Deep Rock");
+    create();
+    expect(note()).toContain("Choose at least one unit");
+    expect(calls.some((call) => call.path === "/api/game")).toBe(false);
+  });
+
+  it("keeps the Azeron app export as an option, folded away", () => {
+    served(() => ({ ok: true }));
+    mount();
+    const details = form().querySelector("details.new-game-export");
+    expect(details?.querySelector("summary")?.textContent).toContain("Azeron app export");
+    expect(details?.hasAttribute("open")).toBe(false);
+    expect(form().querySelector(".new-game-file")?.textContent).toContain(
+      "the game starts from its genre",
+    );
+  });
+});
+
+describe("adding a layout with no export", () => {
+  /** The live pair, renamed: what the server hands back once the new layout exists. */
+  function afterAdding(name: string): typeof PAYLOAD {
+    const after = structuredClone(PAYLOAD);
+    for (const game of after.games) {
+      for (const profile of game.profiles) {
+        if (profile.data.profile.set === LIVE_SET) profile.data.profile.set = name;
+      }
+    }
+    return after;
+  }
+  function type(text: string): void {
+    const field = document.querySelector<HTMLInputElement>('[data-add-layout="name"]');
+    if (!field) throw new Error("no name field");
+    field.value = text;
+    field.dispatchEvent(new Event("input"));
+  }
+
+  it("copies the open layout by default, and opens the copy", async () => {
+    const calls = served(
+      () => ({ ok: true, set: "next", profiles: [], pedals: true }),
+      afterAdding("next"),
+    );
+    mount();
+    const from = document.querySelector<HTMLSelectElement>('[data-add-layout="from"]');
+    expect(from?.value).toBe(LIVE_SET);
+    // A copy has the units its layout has: no unit boxes to tick.
+    expect(document.querySelector("[data-add-layout-unit]")).toBeNull();
+    type("next");
+    button("Add layout").click();
+    await vi.waitFor(() => {
+      expect(document.querySelector(".save-note")?.textContent).toContain(
+        `Added next as a copy of ${LIVE_SET}, pedals included`,
+      );
+    });
+    expect(calls.map((call) => [call.path, call.body])).toEqual([
+      ["/api/layout", { game: PAYLOAD.games[0]?.slug, set: "next", devices: [], copyOf: LIVE_SET }],
+    ]);
+  });
+
+  it("starts an empty one for the units ticked", async () => {
+    const calls = served(
+      () => ({ ok: true, set: "blank", profiles: [], pedals: false }),
+      afterAdding("blank"),
+    );
+    mount();
+    const from = document.querySelector<HTMLSelectElement>('[data-add-layout="from"]');
+    if (!from) throw new Error("no start-from select");
+    from.value = "";
+    from.dispatchEvent(new Event("change"));
+    const ticks = document.querySelectorAll<HTMLInputElement>("[data-add-layout-unit]");
+    expect(ticks).toHaveLength(2);
+    const right = ticks[1];
+    if (!right) throw new Error("no right unit box");
+    right.checked = false;
+    right.dispatchEvent(new Event("change"));
+    type("blank");
+    button("Add layout").click();
+    await vi.waitFor(() => {
+      expect(document.querySelector(".save-note")?.textContent).toContain("Added blank, empty");
+    });
+    expect(calls[0]?.body).toEqual({
+      game: PAYLOAD.games[0]?.slug,
+      set: "blank",
+      devices: ["cyborg2-left"],
+    });
+  });
+
+  it("keeps the exports as an option, folded away", () => {
+    served(() => ({ ok: true }));
+    mount();
+    const details = document.querySelector("details.add-layout-export");
+    expect(details?.querySelector("summary")?.textContent).toContain("Azeron app exports");
+    expect(details?.hasAttribute("open")).toBe(false);
   });
 });
