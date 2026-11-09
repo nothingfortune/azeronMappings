@@ -9,9 +9,11 @@ import {
   posixJoin as join,
   repoPath,
   repoRelativePath,
-  dataRoot,
+  dataRelativePath,
 } from "../config/paths.js";
-import { messageOf } from "./object.js";
+import { locate, loadLocal, machineContext, MACHINE_PATHS } from "./machine.js";
+import type { Located, MachinePathField } from "./machine.js";
+import { messageOf, removeKey } from "./object.js";
 import type { SetsData } from "../types/pedals.js";
 import type { GameConfig, LintConfig, ProfileData } from "../types/profile.js";
 import {
@@ -42,12 +44,29 @@ export class Game implements GameLike {
   readonly lintConfig: LintConfig;
   /** The parts of a layout that belong to no single profile: today, its pedals. */
   readonly sets: SetsData;
+  /**
+   * Where each of game.yaml's outside paths led on this machine. `config` holds the place
+   * found (or, when none was, the first place looked), so every reader sees one path.
+   */
+  readonly places: Record<MachinePathField, Located>;
 
   constructor(dir: string) {
-    this.rel = repoRelativePath(dataRoot, repoPath(dir));
+    this.rel = dataRelativePath(dir);
     const configPath = join(this.rel, "game.yaml");
-    this.config = existsSync(repoPath(configPath)) ? (loadYaml(configPath) as GameConfig) : {};
-    this.slug = this.config.slug ?? basename(this.rel);
+    const raw = existsSync(repoPath(configPath)) ? (loadYaml(configPath) as GameConfig) : {};
+    this.slug = raw.slug ?? basename(this.rel);
+    const mine = loadLocal().games[this.slug] ?? {};
+    const ctx = machineContext();
+    const config: GameConfig = { ...raw };
+    const places = {} as Record<MachinePathField, Located>;
+    for (const field of MACHINE_PATHS) {
+      const place = locate(mine[field], raw[field], ctx);
+      places[field] = place;
+      if (place.path === undefined) removeKey(config, field);
+      else config[field] = place.path;
+    }
+    this.places = places;
+    this.config = config;
     this.name = this.config.name ?? this.slug;
     this.actions = loadActionSet(join(this.rel, "actions.yaml"));
     this.lintConfig = this.config.lint ?? {};
@@ -146,7 +165,7 @@ export class Genre {
   readonly lintConfig: LintConfig;
 
   constructor(dir: string) {
-    this.rel = repoRelativePath(dataRoot, repoPath(dir));
+    this.rel = dataRelativePath(dir);
     this.name = basename(this.rel);
     this.actions = loadActionSet(join(this.rel, "actions.yaml"));
     this.defaultPath = join(this.rel, "default.yaml");

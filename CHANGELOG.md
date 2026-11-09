@@ -4,6 +4,34 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ## Unreleased
 
+### Fixed
+
+- **The repo works from PowerShell again, and still from WSL.** The gate failed four unit
+  tests on Windows. A game folder outside the data root was named by a `..` path from the
+  data root and then looked up from the repo root, three folders higher; on Linux the extra
+  steps stop at `/` and hid it, on Windows they land elsewhere. Such a folder is now named
+  by its absolute path (`dataRelativePath`). The other three were the tests' own Unix
+  spellings: a fixture path built with `path.join`, and save paths expected as `/repo/...`.
+  `bin/azeron.cmd` lets `.\bin\azeron` run in PowerShell. `.gitattributes` pins LF, so
+  Git for Windows' `autocrlf` cannot check out CRLF scripts that bash under WSL would choke on.
+- **The repo runs on anyone's computer without editing it.** `game.yaml` named the games'
+  files by the owner's own folders (`/mnt/c/Users/there/...`, `/mnt/d/SteamLibrary/...`),
+  in WSL's spelling. From PowerShell that meant `azeron ingame` quietly compared against
+  the committed copy instead of the game's `Input.ini`, and `--apply` refused. On anyone
+  else's computer it pointed at nothing. It now names them by where every install puts
+  them. `${LOCALAPPDATA}` is found from PowerShell or WSL, and `${steam:Elite Dangerous}`
+  in every Steam library Steam lists, so Elite's preset was found on `D:` with nothing
+  configured (`src/lib/machine.ts`).
+- **`local.yaml`**, gitignored, holds what is one computer's own: a game installed
+  somewhere unusual, an export folder (`azeron import --export-to` now writes it there
+  rather than into the committed `game.yaml`), and the ids of that person's units. Their
+  ids are not the owner's, so Write to units used to refuse them with no way round. It now
+  lists units it does not know, with their ids and the lines to add. A file not found
+  says where it was looked for and which line to set. `local.example.yaml` documents it.
+- **Setup docs cover both shells**: the README's first run, reinstalling `node_modules`,
+  the hooks and smoke tests' bash, Playwright, refreshing the test fixture, and the
+  environment guard's own advice, which gave cmd's `rmdir /s /q` as the PowerShell command.
+
 ### Added
 
 - **Helldivers 2 and Ace Combat 7, with a default layout each; and a Flight genre.** Neither

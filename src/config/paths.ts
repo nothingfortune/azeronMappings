@@ -62,6 +62,21 @@ export function repoRelativePath(root: string, target: string, api: PathApi = no
   return toPosix(api.relative(root, target));
 }
 
+/**
+ * A folder as the data root names it: repo-relative when it is inside the data root, and
+ * its absolute path, in forward slashes, when it is not.
+ *
+ * A relative path from the data root that starts with `..` would later be resolved against
+ * the repo root by `repoPath`, which is a different folder when `AZERON_DATA` is set. On
+ * Linux the extra `..` steps stop at `/` and hide that; on Windows they land elsewhere.
+ */
+export function dataRelativePath(dir: string): string {
+  const full = repoPath(dir);
+  const rel = repoRelativePath(dataRoot, full);
+  if (rel === ".." || rel.startsWith("../") || isAbsolute(rel)) return toPosix(full);
+  return rel;
+}
+
 /** `path.join`, in forward slashes whatever the platform. */
 export function posixJoin(...parts: readonly string[]): string {
   return toPosix(join(...parts));
@@ -97,4 +112,20 @@ export function hostPath(path: string): string {
   if (!mounted) return path;
   const [, drive = "c", rest = ""] = mounted;
   return `${drive.toUpperCase()}:\\${rest.replace(/\//g, "\\")}`;
+}
+
+/**
+ * A path on a Windows drive, spelled so this process can open it.
+ *
+ * game.yaml names files outside the repo (the game's bindings, a preset, an export folder),
+ * and the repo is run from both WSL and PowerShell. Written either way, the path works from
+ * either: on Windows `/mnt/c/...` becomes `C:\...`, and under Linux `C:\...` (or `C:/...`)
+ * becomes `/mnt/c/...`. Anything else passes through.
+ */
+export function localPath(path: string, platform: NodeJS.Platform = process.platform): string {
+  if (platform === "win32") return hostPath(path);
+  const drive = /^([A-Za-z]):[\\/](.*)$/.exec(path);
+  if (!drive) return path;
+  const [, letter = "c", rest = ""] = drive;
+  return `/mnt/${letter.toLowerCase()}/${rest.replace(/\\/g, "/")}`;
 }

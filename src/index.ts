@@ -285,7 +285,11 @@ function cmdImport(exportPath: string, flags: ImportFlags): number {
   if (result.unnamed.length > 0) {
     out(`  ${String(result.unnamed.length)} position(s) still raw: ${result.unnamed.join(", ")}`);
   }
-  if (flags.exportTo) out(`  builds will also be written to ${flags.exportTo}`);
+  if (flags.exportTo) {
+    out(
+      `  builds will also be written to ${flags.exportTo} (saved in local.yaml, this computer only)`,
+    );
+  }
   out("");
   out("  Next: name the actions in actions.yaml, then `azeron build` and `azeron lint`.");
   return 0;

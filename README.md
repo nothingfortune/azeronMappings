@@ -9,22 +9,65 @@ Everything below is done from one page, the editor. The terminal is only for sta
 
 ## First run
 
+You need Node 22 or newer and Git. The repo works from PowerShell or from WSL; the
+commands are the same in both:
+
 ```sh
 npm install
 npm start          # builds, then serves the editor at http://localhost:4173
 ```
 
+Open the editor in Chrome or Edge on Windows. Write to units and the press test talk to the
+units over WebHID, which only those browsers have. From WSL, Windows reaches the editor on
+`localhost` as usual.
+
 > **Pick one shell and stay in it.** The repo sits on a Windows drive that WSL also
-> mounts, and one `node_modules` cannot serve both. If you switch between WSL and
-> PowerShell, delete `node_modules` and run `npm install` again in the one you mean to
-> use. Every command checks for this and says so.
+> mounts, and one `node_modules` cannot serve both. If you switch shells, reinstall in
+> the one you mean to use. Every command checks for this and says so.
+>
+> ```powershell
+> Remove-Item -Recurse -Force node_modules; npm install   # PowerShell
+> ```
+>
+> ```sh
+> rm -rf node_modules && npm install                      # WSL
+> ```
+
+Nothing in the repo needs editing for your computer. Each game's own files, and the Azeron
+app's profile store, are found on their own (see
+[Your computer and your units](#your-computer-and-your-units)).
 
 The editor answers only this computer: it listens on `localhost` and refuses requests
 from other devices and from other web pages. `npm run azeron -- serve --host <address>`
 opens it to a network you trust.
 
-The CLI is `npm run azeron -- <command>`, which works in either shell (`./bin/azeron`
-works in bash only). `npm run azeron -- help` lists everything.
+The CLI is `npm run azeron -- <command>`, which works in either shell, or `bin/azeron`
+directly: `./bin/azeron` in bash, `.\bin\azeron` in PowerShell (through `bin/azeron.cmd`).
+`npm run azeron -- help` lists everything.
+
+## Your computer and your units
+
+The repo finds what it needs on whatever computer runs it, from PowerShell or WSL:
+
+- **The games' key settings files** are under your Windows user's `AppData\Local`, which is
+  where every copy of Everspace 2 and Elite Dangerous keeps them. `game.yaml` names them
+  that way (`${LOCALAPPDATA}/ES2/...`), never by one person's folder.
+- **Games installed through Steam**, in any of your Steam libraries: the list Steam keeps
+  of them is read. Elite's control-scheme preset is found this way.
+- **The Azeron app's profile store**, under `AppData\Roaming`.
+
+Two things are yours to tell it, in a file called `local.yaml` at the top of the repo. Git
+ignores it, so it never gets committed or overwritten by an update. Copy
+`local.example.yaml` to start one.
+
+- **Your keypads.** Each unit reports an id, and **Write to units** writes only to a unit
+  whose id it knows. The ids in `devices/` belong to the repo owner's units. The first time
+  you write, it lists the units it found but does not know, with their ids and the lines to
+  put in `local.yaml`. Unplug one unit to see which id belongs to which hand.
+- **Anything installed somewhere unusual**, like a game from another store or a settings
+  file that has been moved. When a file is not found, the page and the CLI say where they
+  looked and which line of `local.yaml` would point them at it. Until then, comparing keys
+  uses the repo's own copy, so nothing breaks.
 
 ## Getting a pair onto the units
 
@@ -147,6 +190,7 @@ from the list onto a pedal does the same. A layout with no pedals offers
 | `templates/`            | Real exports from the app, which the compiler builds on                                   |
 | `dist/`                 | **What you import.** Compiled JSON and the game's bindings. Committed.                    |
 | `build/`                | Compiled TypeScript. Throwaway, not committed — nothing here is for you.                  |
+| `local.yaml`            | Your computer's own settings, if any. Not committed; copy `local.example.yaml` to start   |
 
 ## When it refuses
 
@@ -221,6 +265,23 @@ get a layout onto the units.
 
 `npm run check` is the gate: build, typecheck, lint, format, unit tests and CLI smoke
 tests. The pre-commit hook runs every unit test; pre-push runs the whole gate.
-`npm run test:e2e` drives the served editor in a browser. Every test runs against a frozen
+`npm install` wires the hooks (`core.hooksPath .githooks`).
+
+The smoke tests and the hooks are bash scripts. WSL has bash. On Windows, Git for Windows
+supplies it: Git runs the hooks in it, and `npm run test:bin` finds it in
+`C:\Program Files\Git\bin` even when bash is not on PATH.
+
+`npm run test:e2e` drives the served editor in a browser. It needs Playwright's Chromium
+once per shell (`npx playwright install chromium`), and a free port:
+
+```powershell
+$env:E2E_PORT = 4181; npm run test:e2e   # PowerShell
+```
+
+```sh
+E2E_PORT=4181 npm run test:e2e           # WSL
+```
+
+Every test runs against a frozen
 copy of the data (`tests/fixtures/repo`), never the layouts you are editing, so a layout
 half way through a change fails nothing. See [CLAUDE.md](CLAUDE.md).

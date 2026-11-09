@@ -3,6 +3,8 @@
  * accept is defined narrowly and checked on the resolved path, not the requested string.
  */
 
+import { resolve } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import { messageOf } from "../../../src/lib/object.js";
@@ -15,25 +17,27 @@ import {
 } from "../../../src/lib/serve.js";
 
 const ROOT = "/repo";
+/** Where a save lands: a native absolute path, so C:\repo\... on Windows. */
+const at = (path: string): string => resolve(ROOT, path);
 
 describe("resolveSavePath", () => {
   it("accepts the data the editor owns", () => {
     // A path, not a file: nothing here reads the disk, so no real profile is needed.
     expect(resolveSavePath(ROOT, "games/SpaceSims/everspace/profiles/example-left.yaml")).toBe(
-      "/repo/games/SpaceSims/everspace/profiles/example-left.yaml",
+      at("games/SpaceSims/everspace/profiles/example-left.yaml"),
     );
     expect(resolveSavePath(ROOT, "games/SpaceSims/everspace/actions.yaml")).toBe(
-      "/repo/games/SpaceSims/everspace/actions.yaml",
+      at("games/SpaceSims/everspace/actions.yaml"),
     );
     expect(resolveSavePath(ROOT, "devices/cyborg2-left.yaml")).toBe(
-      "/repo/devices/cyborg2-left.yaml",
+      at("devices/cyborg2-left.yaml"),
     );
     // A layout's pedals are saved with the layout, in the game's sets.yaml.
     expect(resolveSavePath(ROOT, "games/SpaceSims/everspace/sets.yaml")).toBe(
-      "/repo/games/SpaceSims/everspace/sets.yaml",
+      at("games/SpaceSims/everspace/sets.yaml"),
     );
     expect(resolveSavePath(ROOT, "devices/logitech-pro-flight-pedals.yaml")).toBe(
-      "/repo/devices/logitech-pro-flight-pedals.yaml",
+      at("devices/logitech-pro-flight-pedals.yaml"),
     );
   });
 

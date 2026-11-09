@@ -30,21 +30,16 @@ import { homedir, platform } from "node:os";
 import { join } from "node:path";
 
 import type { ExportProfile } from "../types/azeron.js";
+import { windowsHomes } from "./machine.js";
 
 export class InstallError extends Error {}
 
 const STORE_TAIL = join("Azeron Software", "Storage", "DevicesStorage");
 
+/** The store under a Windows user's folder, seen from WSL; null anywhere else. */
 function wslWindowsHome(): string | null {
-  try {
-    if (!readFileSync("/proc/version", "utf8").toLowerCase().includes("microsoft")) return null;
-  } catch {
-    return null;
-  }
-  const users = "/mnt/c/Users";
-  if (!existsSync(users)) return null;
-  for (const user of readdirSync(users)) {
-    const candidate = join(users, user, "AppData", "Roaming", STORE_TAIL);
+  for (const home of windowsHomes()) {
+    const candidate = join(home, "AppData", "Roaming", STORE_TAIL);
     if (existsSync(candidate)) return candidate;
   }
   return null;

@@ -1,0 +1,34 @@
+# This computer's own settings. Copy this file to local.yaml, next to it, and keep only what
+# you need. Git ignores local.yaml, so nothing in it is shared and no one else's is used.
+#
+# Most people need none of it. Each game's files are found on their own, on any computer
+# and from PowerShell or WSL: settings files under your Windows user's AppData, and games
+# in every Steam library Steam knows about. local.yaml is for what that cannot find.
+#
+# Paths may be written for Windows (C:\Games\...) or for WSL (/mnt/c/Games/...); both shells
+# read either.
+
+# A game's files, by the game's folder name under games/. Each one replaces what the game's
+# game.yaml says, on this computer only.
+games:
+  # Everspace 2's key settings, if they are not under your user's AppData\Local.
+  everspace:
+    ingame_config: 'C:\Users\you\AppData\Local\ES2\Saved\Config\Windows\Input.ini'
+
+  # Elite Dangerous from a store other than Steam, or a Steam library Steam does not list.
+  # ingame_preset is a control scheme the game ships, which every write starts from.
+  eliteDangerous:
+    ingame_preset: 'E:\Games\Elite Dangerous\Products\elite-dangerous-odyssey-64\ControlSchemes\KeyboardMouseOnly.binds'
+
+    # A folder every build of this game's layouts is also copied to (azeron import
+    # --export-to writes this for you).
+    # export_to: 'C:\Users\you\Documents\Azeron exports'
+
+# Your keypads. Each unit reports an id, and Write to units only writes to a unit whose id
+# it knows. The ids in devices/ are the repo owner's units; yours are different. When Write
+# to units finds a unit it does not know, it shows that unit's id and the lines to put here.
+devices:
+  cyborg2-left:
+    software_device_id: "12345"
+  cyborg2-right:
+    software_device_id: "67890"

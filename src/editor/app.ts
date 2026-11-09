@@ -3387,6 +3387,33 @@ function watchUnplugging(hid: ConfigHid): void {
   });
 }
 
+/**
+ * Units the page can reach that no device map names: someone else's keypads, whose ids
+ * are not the repo owner's. A unit is known by the id it reports, and that id is this
+ * computer's to give, in local.yaml, so the note says exactly what to put there.
+ */
+function unnamedUnits(run: WriteRun): HTMLElement | null {
+  const named = new Set(run.plans.map((plan) => plan.target.softwareDeviceId));
+  const strangers = run.units.filter((unit) => !named.has(String(unit.identity.deviceId)));
+  const missing = run.plans.filter((plan) => plan.found === null);
+  if (strangers.length === 0 || missing.length === 0) return null;
+  const lines = ["devices:"];
+  missing.forEach((plan, index) => {
+    const unit = strangers[index] ?? strangers[0];
+    lines.push(
+      `  ${profileFor(plan.target.slug).device.name}:`,
+      `    software_device_id: "${String(unit?.identity.deviceId ?? "")}"`,
+    );
+  });
+  return el("div", { class: "check-note" }, [
+    `Connected, but not a unit this layout names: ${strangers
+      .map((unit) => `unit ${String(unit.identity.deviceId)}`)
+      .join(", ")}. Tell this computer which hand each is in local.yaml at the repo's top ` +
+      "(with one unit unplugged, only the other's id shows), then reload:",
+    el("pre", {}, [lines.join("\n")]),
+  ]);
+}
+
 function deviceNameFor(deviceId: number): string | null {
   const device = Object.values(state.payload.devices).find(
     (entry) => entry.software_device_id === String(deviceId),
@@ -4056,6 +4083,8 @@ function renderWriteBar(run: WriteRun): HTMLElement {
           "either; the page works out which it is and remembers it.",
       ]),
     );
+    const strangers = unnamedUnits(run);
+    if (strangers !== null) bar.append(strangers);
   }
   const writable = run.plans.filter(
     (plan) => plan.found !== null && plan.slot !== null && !upToDate(plan),
@@ -4651,6 +4680,24 @@ function gameFileStatus(game: EditorGame): HTMLElement | null {
     ]),
   );
   return box;
+}
+
+/**
+ * Says so when a game that is set up has no settings file on this computer. Not a gap:
+ * comparing still works against the repo's own copy, and the game may simply not be
+ * installed here. Null when the file is found, or the game is not set up for one.
+ */
+function gameFileMissing(game: EditorGame): HTMLElement | null {
+  if (game.ingameFile?.configured !== true || game.ingameFile.found !== false) return null;
+  return el("div", { class: "note game-file-missing" }, [
+    el("b", {}, [`${game.name}'s key settings file is not on this computer`]),
+    el("div", {}, [
+      "Compare uses the repo's own copy until it is. If the game is installed, run it once " +
+        "so it writes the file. If it keeps its settings somewhere unusual, name the file in " +
+        `local.yaml as games.${game.slug}.ingame_config (local.example.yaml shows how), ` +
+        "then reload.",
+    ]),
+  ]);
 }
 
 /** The action whose name is being typed, if any. */
@@ -5439,6 +5486,8 @@ function renderRepo(): HTMLElement {
     ),
   );
   if (fileStatus !== null) panel.append(fileStatus);
+  const missing = gameFileMissing(currentGame());
+  if (missing !== null) panel.append(missing);
   const ingameRow = el("div", { class: "field" });
   const check = el("button", { class: "btn", type: "button" }, ["Compare with the game's keys"]);
   check.addEventListener("click", () => {

@@ -17,6 +17,8 @@ import type { PedalsDeviceData, SetsData } from "../types/pedals.js";
 import type { DeviceData, ProfileData } from "../types/profile.js";
 import type { GameLike } from "./model-core.js";
 import { ActionSet, Device, Profile } from "./model-core.js";
+import { loadLocal } from "./machine.js";
+import type { LocalSettings } from "./machine.js";
 import { normalizeProfileData } from "./normalize.js";
 import { forgetSlot, parseDirectWrites, recordWrite } from "./written.js";
 import type { DirectWrite, DirectWrites } from "./written.js";
@@ -31,12 +33,15 @@ export function loadTemplate(path: string): ExportDocument {
 
 export const loadExport = loadTemplate;
 
-export function loadDevice(nameOrPath: string): Device {
+export function loadDevice(nameOrPath: string, local: LocalSettings = loadLocal()): Device {
   const path =
     nameOrPath.includes(sep) || nameOrPath.includes("/") || nameOrPath.endsWith(".yaml")
       ? nameOrPath
       : join(dataDirs.devices, `${nameOrPath}.yaml`);
-  return new Device(loadYaml(path) as DeviceData, path);
+  const data = loadYaml(path) as DeviceData;
+  // A unit's id is this person's, not the repo's: local.yaml can give it.
+  const id = local.devices[data.device]?.software_device_id;
+  return new Device(id === undefined ? data : { ...data, software_device_id: id }, path);
 }
 
 export function loadActionSet(path: string): ActionSet {
