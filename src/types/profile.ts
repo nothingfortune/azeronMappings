@@ -126,6 +126,12 @@ export interface DeviceData {
   /** The id the Azeron software files this unit under in DevicesStorage. */
   software_device_id?: string;
   /**
+   * A real export from this unit, which a layout for it is built on when its game has none
+   * of its own. It carries what the repo does not model -- the unit's stick rotation, the
+   * records for unidentified pins -- so a game can start with no export at all.
+   */
+  template?: string;
+  /**
    * False for a unit with no optical sensor (the Cyborg II): it has no sensor or DPI to set,
    * so the editor offers neither. Absent means the unit may have one.
    */

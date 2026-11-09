@@ -41,6 +41,20 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Added
 
+- **A new game, or a new layout, with no Azeron app.** Starting a game used to need an
+  export from the app, and so did every new layout, the next version of one included.
+  - **Add a new game** (`azeron new`) takes a name, a genre and the units. Each unit's
+    profile is built on that unit's own real export, now named in its device map
+    (`template:`), so the right unit keeps its rotated stick. The genre's default layout
+    goes on its unit, and every action it places is given a key. The pool of keys kept out
+    of a game's way (31) is smaller than a whole space-sim layout (38), so required actions
+    are served first and what is left is reported and left empty, never placed sending
+    nothing.
+  - **Add a layout** (`azeron layout`) starts from a copy of one of the game's layouts,
+    with its pedals and the modes it plays, or empty.
+  - The export is still taken by both, folded away as an option. The Setup tab no longer
+    says that writing to the units goes through the Azeron software.
+
 - **Helldivers 2 and Ace Combat 7, with a default layout each; and a Flight genre.** Neither
   has been played on the units yet.
   - `genres/Flight/`: the four axes of a plane, weapons, view and menus, a single-unit

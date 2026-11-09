@@ -8,6 +8,9 @@ The real layouts are edited from the editor all day and saved as they are edited
 written against them fails whenever a layout is half way through a change, which says
 nothing about the code. This copy only changes when someone changes it on purpose.
 
+The device maps carry `template:` as the real ones do (added 2026-11-09, when a game could
+first be started with no export), so the tests can start one.
+
 Two things differ from the real data: `games/SpaceSims/everspace/game.yaml` points
 `ingame_config` at a path that does not exist, so no test can read or write a real game's
 files, and this note.

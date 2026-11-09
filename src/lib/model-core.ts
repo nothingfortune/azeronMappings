@@ -28,6 +28,8 @@ export class Device {
   readonly softwareDeviceId: string | undefined;
   /** False for a unit with no optical sensor, such as the Cyborg II. */
   readonly hasSensor: boolean;
+  /** The export a layout for this unit starts from when its game has none of its own. */
+  readonly template: string | undefined;
   readonly stickDirections: Partial<Record<StickDirection, StickDirection>>;
   readonly stickAngle: number | undefined;
   readonly unknownPins: ReadonlySet<number>;
@@ -44,6 +46,7 @@ export class Device {
     this.mirrored = Boolean(data.mirrored);
     this.verified = data.verified === true;
     this.softwareDeviceId = data.software_device_id;
+    this.template = data.template;
     this.hasSensor = data.sensor !== false;
     this.stickDirections = data.stick_directions ?? {};
     this.stickAngle = data.stick_angle;

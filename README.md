@@ -240,20 +240,35 @@ a corrected `devices/<unit>.yaml`. Then delete **PROBE 1 pins** and **PROBE 2 st
 from the unit's onboard slots, from the Write to units bar or in the Azeron app: left
 there, the unit's profile button cycles onto them and every key sends a probe key.
 
-**Bringing a layout from the Azeron app.** In the Setup tab, **Add a layout**: a name, the
-export for the left unit and the export for the right (either alone will do), then **Add
-layout**. The pair opens on the board under that name. Anything that will not round-trip
-is kept raw rather than guessed at. (`npm run azeron -- decompile` does one file from the
-terminal.)
-
 **Starting a new game.** In the Setup tab, **Add a new game**: its name, the kind of game,
-an export from the Azeron app and which unit it came from. Each distinct key the export
-sends becomes an action named after the key — an export says which keys are pressed, not
-what they do — so the first job is the **In-game** tab: click a name to rename it, and
-switch on the roles it plays. The Checks panel lists the genre's required actions that are
-on no key yet as one entry. Writing keys into the game itself is built for Everspace 2's
-`Input.ini` and Elite Dangerous's `.binds` only; for another game, set the keys in its own
-controls screen to match.
+which units, and a name for the first layout. No Azeron app is involved. The game starts
+with that kind of game's actions, and its default layout on the unit it was written for;
+any other unit starts empty. Every action placed is given a key straight away, so the game
+opens with nothing on the board sending nothing. (`npm run azeron -- new "Deep Rock
+Galactic" --genre FPS --units left` does the same from the terminal.)
+
+The keys handed out come from a pool of 31 chosen to stay out of a game's way, and an
+action keeps its key on both hands. A whole default layout can need more than that: the
+space-sim one places 38. When it does, the optional controls are left empty (required
+actions get their keys first) and the page lists them. On a new game every key in the pool
+is then in use, so putting a new action on the other unit means taking one off first.
+
+Writing keys into the game itself is built for Everspace 2's `Input.ini` and Elite
+Dangerous's `.binds` only. For another game, set the keys in its own controls screen to
+match the In-game tab.
+
+**Adding a layout.** In the Setup tab, **Add a layout**: a name and what it starts from,
+either a copy of one of the game's layouts (the next version of the one you are flying,
+with its pedals and modes) or an empty one for the units you choose. It opens on the board. From the
+terminal: `npm run azeron -- layout everspace akimbo-v11 --copy-of akimbo-v10`.
+Acknowledged checks belong to the layout they were accepted on, so a copy shows them again
+until you accept them for it too.
+
+**Bringing a profile from the Azeron app**, if you have one made there. Both forms above
+fold away an option for it: a game from an export (each key it sends becomes an action
+named after the key, to rename on the **In-game** tab), or a layout from each unit's export.
+Anything that will not round-trip is kept raw rather than guessed at.
+(`npm run azeron -- import` and `decompile` do the same from the terminal.)
 
 **Writing into the app's library directly.** `npm run azeron -- install everspace --yes`
 drops each profile into the app's store under its own unit (`--dry-run` first). It

@@ -167,7 +167,8 @@ export function patchActionBindings(
 ): string {
   const eol = text.includes("\r\n") ? "\r\n" : "\n";
   const lines = text.split(/\r?\n/);
-  const start = lines.findIndex((line) => /^actions:\s*(#.*)?$/.test(line));
+  // `actions: {}` is a game with no actions of its own yet (one started from its genre).
+  const start = lines.findIndex((line) => /^actions:\s*(\{\s*\})?\s*(#.*)?$/.test(line));
   if (start === -1) throw new ActionFileError("no top-level `actions:` block");
   let end = lines.findIndex(
     (line, index) => index > start && /^\S/.test(line) && !line.startsWith("#"),
@@ -229,6 +230,8 @@ export function patchActionBindings(
   }
 
   if (appended.length > 0) {
+    // The first line of its own makes an empty `actions: {}` a block.
+    lines[start] = (lines[start] ?? "").replace(/^actions:\s*\{\s*\}/, "actions:");
     // After the last entry, before any blank lines or comments that close the block.
     let at = end;
     while (at - 1 > start && /^\s*(#.*)?$/.test(lines[at - 1] ?? "")) at -= 1;

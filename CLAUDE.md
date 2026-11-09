@@ -95,7 +95,9 @@ output, so `npm run build` first:
 | `azeron serve [--port N] [--host H]`                | the editor, able to save back into the repo; this computer only unless `--host` |
 | `azeron editor`                                     | the side-by-side editor, one self-contained HTML                                |
 | `azeron probe [--device D]`                         | press-test profile + capture page for the real pin map                          |
-| `azeron import <export.json> --genre G --game SLUG` | start a game folder from an export                                              |
+| `azeron new <name> --genre G [--units left,right]`  | start a game with no export, from its genre                                     |
+| `azeron layout <game> <name> [--copy-of L]`         | a new layout with no export: a copy (pedals included) or empty                  |
+| `azeron import <export.json> --genre G --game SLUG` | start a game folder from an Azeron app export instead                           |
 | `azeron decompile <export.json> [-o ...]`           | an app export back into profile YAML                                            |
 | `azeron install [game] [--yes] [--dry-run]`         | write into the app's store; `--device-id ID` and `--store PATH` too             |
 | `azeron hidcap devices\|decode\|diff <capture>`     | read a USBPcap capture of the app talking to a unit; reads files only           |
@@ -130,7 +132,20 @@ Three inputs meet in the compiler, and are kept separate:
    `movement`, `travel`, `menu`, `utility`, `required`). The in-game bindings are part of
    the source of truth, so rebinding something in game is a one-line edit. A game
    inherits its vocabulary from its genre with `extends:` and supplies only the keys.
-   `azeron import` starts a game from an export: it stores the export in `templates/`,
+   **No Azeron app is needed to start anything.** `startGame` (`azeron new`, the Setup
+   tab's Add a new game) makes a game from its genre: each unit's profile is built on the
+   export its device map names (`template:` in `devices/*.yaml`, a real export of that
+   unit, which carries its stick rotation), the genre's `default.yaml` goes on the unit
+   it names, and every action it places is wired with the editor's own `wireAction`,
+   required actions first. What the pool cannot carry is taken off its control and
+   reported (`leftOff`), never placed sending nothing. `startLayout` (`azeron layout`, Add
+   a layout) makes a layout as a copy of another (its `sets.yaml` entry too, modes and pedals, through
+   `addSetEntry`;
+   fresh ids, `golden` dropped; acknowledgements stay with the original) or empty. Both
+   write profiles with fresh UUIDs and an explicit `output`, and undo every write on a
+   failure. A game with no actions of its own writes `actions: {}`, which
+   `patchActionBindings` turns into a block on the first key.
+   `azeron import` is the other way in, from an export: it stores the export in `templates/`,
    seeds an action per distinct key it sends (named after the key, since an export
    cannot say what a key does in game), and decompiles the profile. `export_to` in
    `game.yaml` names a directory outside the repo that builds are copied to as well;
