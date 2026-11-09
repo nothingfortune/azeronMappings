@@ -6,6 +6,13 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Fixed
 
+- **`npm audit` is clean.** happy-dom, the editor tests' browser, goes to 21.0.4 (a high
+  advisory on untrusted HTML). minimatch, inside ESLint, had a moderate one fixed only in
+  11.0.1, while every ESLint 10 still asks for 10.x. npm's own fix was to go back to
+  ESLint 9, so `overrides` in `package.json` gives ESLint minimatch 11 instead. Drop the
+  override once ESLint depends on 11 itself. Neither ships with the app, and the gate
+  passes on both.
+
 - **The repo works from PowerShell again, and still from WSL.** The gate failed four unit
   tests on Windows. A game folder outside the data root was named by a `..` path from the
   data root and then looked up from the repo root, three folders higher; on Linux the extra
