@@ -7,9 +7,13 @@ template: templates/everspace2-akimbo-left.json
 # applying writes that file from the installed KeyboardMouseOnly preset and the keys in
 # actions.yaml, sets the presets to Custom, and keeps both previous files beside them.
 # Close the game first: it rewrites its bindings when it exits.
+#
+# Both are found on whatever computer runs this: ${LOCALAPPDATA} from Windows, and
+# ${steam:...} in every Steam library Steam lists. A copy of the game from another store,
+# or installed elsewhere, is named in local.yaml (see local.example.yaml), not here.
 ingame_format: elite-binds
-ingame_config: "/mnt/c/Users/there/AppData/Local/Frontier Developments/Elite Dangerous/Options/Bindings/Custom.4.1.binds"
-ingame_preset: "/mnt/d/SteamLibrary/steamapps/common/Elite Dangerous/Products/elite-dangerous-odyssey-64/ControlSchemes/KeyboardMouseOnly.binds"
+ingame_config: "${LOCALAPPDATA}/Frontier Developments/Elite Dangerous/Options/Bindings/Custom.4.1.binds"
+ingame_preset: "${steam:Elite Dangerous}/Products/elite-dangerous-odyssey-64/ControlSchemes/KeyboardMouseOnly.binds"
 
 lint:
   require_keyboard_stick: true

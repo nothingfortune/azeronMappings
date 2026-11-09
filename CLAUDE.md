@@ -31,11 +31,53 @@ leaves open.
 
 Run one test: `npx vitest run tests/unit/lib/compile.test.ts -t "byte for byte"`.
 
-`node_modules` is platform-specific: npm writes `.cmd` shims only on Windows and esbuild
-ships a per-platform binary, so installing in WSL and running from PowerShell (or the
-reverse) fails with `'tsc' is not recognized`. `scripts/check-env.mjs` runs first in
-`build` and explains it. Fix by deleting `node_modules` and reinstalling in the shell you
-mean to work in.
+**Both shells are supported.** The owner works from PowerShell, and WSL must keep
+working. Every `npm run` command is the same in both. Where they differ:
+
+- `node_modules` is platform-specific: npm writes `.cmd` shims only on Windows and esbuild
+  and rolldown ship per-platform binaries, so installing in one shell and running from the
+  other fails (`'tsc' is not recognized`). `scripts/check-env.mjs` runs first and explains
+  it. Reinstall in the shell you mean to work in:
+  `Remove-Item -Recurse -Force node_modules; npm install` (PowerShell),
+  `rm -rf node_modules && npm install` (WSL).
+- Environment variables: `$env:E2E_PORT = 4181; npx playwright test` in PowerShell,
+  `E2E_PORT=4181 npx playwright test` in WSL.
+- `bin/azeron` is a node script with a shebang, which PowerShell and cmd cannot follow, so
+  `bin/azeron.cmd` runs it with node: `.\bin\azeron` there, `./bin/azeron` in bash.
+- The smoke tests (`tests/bin/run.sh`) and the git hooks are bash. On Windows, Git for
+  Windows supplies it; `scripts/run-bin-tests.ts` finds it off PATH.
+- A path the app's file dialog shows goes through `hostPath`, which is always the Windows
+  spelling. Any other path outside the repo goes through `localPath`, which spells it for
+  the shell running (`C:\...` ↔ `/mnt/c/...`).
+
+**Nothing per-machine is committed.** Anyone can clone this and run it, so no committed
+file names one person's folders or units. `src/lib/machine.ts` is where that lives:
+
+- `game.yaml` names a game's files by where every install puts them: a leading token,
+  `${LOCALAPPDATA}` / `${APPDATA}` / `${USERPROFILE}` / `${PROGRAMFILES}` /
+  `${PROGRAMFILES(X86)}`, or `${steam:<folder under steamapps/common>}`. `Game` resolves
+  `ingame_config`, `ingame_preset` and `export_to` on load (`locate`), and `game.places`
+  records where it looked, whether it found it, and who named it. `config` then holds
+  the found path, or the first candidate when none exists, so readers see one string.
+- On Windows the folders come from the environment, and Steam from the registry's
+  `SteamPath` and `steamapps/libraryfolders.vdf`. Under WSL they come from each
+  `/mnt/c/Users/<name>` (WSL cannot tell which Windows user is at the keyboard, so every
+  one is a candidate). Elsewhere a token names nothing. Steam and the WSL homes are worked
+  out once per process.
+- `local.yaml` at the data root (gitignored; `local.example.yaml` is the documented copy)
+  overrides a game's paths per slug and gives this person's unit ids per device map.
+  It is read fresh, so a hand edit shows on reload, and a malformed one throws.
+  `azeron import --export-to` writes it (`setLocalGamePath`, which keeps comments),
+  never `game.yaml`.
+- A file that is not found is not a failure: comparing falls back to the committed copy.
+  Every refusal about one ends with `whereLooked`, which names the `local.yaml` line to
+  set; the Setup tab says the same (`gameFileMissing`). Never "edit game.yaml".
+- The lookup is pure over a `MachineContext`; tests pass a fake one, and the fixture's
+  `game.yaml` keeps a literal dead path, so no test reads a registry, a Steam library or a
+  real game. Never put a token in the fixture's `game.yaml`.
+- `.gitattributes` pins LF (`* text=auto eol=lf`), because Git for Windows ships
+  `core.autocrlf` on and a CRLF checkout breaks bash under WSL and Prettier's check. The
+  game's own files (`*.ini`, `*.binds`) are `-text` and stay CRLF; `*.cmd` is CRLF.
 
 The CLI is `bin/azeron` (also `npm run azeron -- <command>`), and it runs the built
 output, so `npm run build` first:
@@ -74,6 +116,7 @@ output, so `npm run build` first:
 | `templates/`            | Real Azeron exports, committed untouched.                                    |
 | `dist/`                 | Compiled import JSON and the game's bindings. **Committed.**                 |
 | `build/`                | TypeScript output. Gitignored. Not to be confused with `dist/`.              |
+| `local.yaml`            | This computer's settings. Gitignored; `local.example.yaml` documents it.     |
 
 ## Architecture
 
@@ -91,7 +134,8 @@ Three inputs meet in the compiler, and are kept separate:
    seeds an action per distinct key it sends (named after the key, since an export
    cannot say what a key does in game), and decompiles the profile. `export_to` in
    `game.yaml` names a directory outside the repo that builds are copied to as well;
-   `dist/` stays the committed copy.
+   `dist/` stays the committed copy. Like every path outside the repo, it is per machine:
+   see "Nothing per-machine is committed".
 3. **`templates/*.json`** — a real export. The compiler deep-clones it and writes only the
    fields the YAML speaks about, so unknown and unverified fields (macros, turbo,
    `subType`, analog tuning, the records for unidentified pins) survive untouched.
@@ -552,6 +596,9 @@ reports; each hand goes into the slot that already has the layout's name.
   to `SENDABLE_COMMANDS` without a capture of the app sending it.
 - A unit says who it is (`KEYPAD_DETAILS` carries the id in `software_device_id`), and
   nothing is written to a unit its device map does not name, or on firmware other than 111.
+  The ids in `devices/` are the owner's units. `local.yaml` gives another person's
+  (`loadDevice` merges it), and the write bar lists any unit it does not know, with the
+  lines to put there (`unnamedUnits` in `app.ts`).
 - A write is checked by reading the slots back; a difference is reported, never assumed
   away. `REQUEST_PROFILE` answers with the running slot whatever it is asked, so it cannot
   read another; `CHECK_PROFILE` adds a slot and is ignored for one that exists, and is
@@ -615,7 +662,8 @@ was found.
   Whether the real layouts are sound is the editor's Checks panel and `azeron lint`, not
   the gate.
 - Unit tests (happy-dom) cannot see CSS. Layout, overflow, stacking and theme colours are
-  checked in `tests/e2e/editor.spec.ts` (`E2E_PORT=4181 npx playwright test`) at 1920x1080,
+  checked in `tests/e2e/editor.spec.ts` (`npx playwright test`, with `E2E_PORT` set as above,
+  after `npx playwright install chromium` once per shell) at 1920x1080,
   1440x900, 1280x720 and two vertical windows; it is not part of `npm run check`. Look at
   the page in a browser before and after a layout change, not only at the tests. The specs
   start with autosave off; `autosave.spec.ts` turns it back on.

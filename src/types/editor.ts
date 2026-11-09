@@ -37,6 +37,12 @@ export interface EditorGame {
    */
   ingameFile?: {
     configured: boolean;
+    /**
+     * Whether the file is on this computer. game.yaml names it by where every install puts
+     * it, so a game that is not installed here, or is installed somewhere unusual, is
+     * configured and not found; local.yaml is where this computer says otherwise.
+     */
+    found?: boolean;
     ownedCategories: number;
     /** Which kind of file the game keeps its keys in: Everspace's Unreal ini, or Elite's. */
     format?: "unreal-ini" | "elite-binds";

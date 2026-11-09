@@ -74,7 +74,8 @@ export function buildPayload(): EditorPayload {
         : "",
       ...(game.config.ingame_set === undefined ? {} : { ingameSet: game.config.ingame_set }),
       ingameFile: {
-        configured: game.config.ingame_config !== undefined,
+        configured: game.places.ingame_config.from !== null,
+        found: game.places.ingame_config.found,
         ownedCategories: game.config.ingame_owned_categories?.length ?? 0,
         format: game.config.ingame_format ?? "unreal-ini",
       },

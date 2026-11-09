@@ -97,6 +97,14 @@ describe("Game.discover with a half-made folder", () => {
     expect(written()).toContain("broken");
   });
 
+  it("names a game outside the data root by its absolute path", () => {
+    // Relative to the data root it would start with `..`, which repoPath resolves against
+    // the repo root instead: harmless on Linux, where the steps stop at `/`, wrong on Windows.
+    folder("outside", { "actions.yaml": "actions: {}\n" });
+    const [game] = Game.discover(root);
+    expect(game?.rel).toBe(toPosix(join(root, "G", "outside")));
+  });
+
   it("reports each skipped folder once, however often discovery runs", () => {
     folder("half", { "game.yaml": "name: Half\n" });
     Game.discover(root);

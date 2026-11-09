@@ -142,6 +142,39 @@ describe("a game whose own settings file is connected", () => {
   });
 });
 
+describe("a game whose settings file is not on this computer", () => {
+  const open = (found: boolean | undefined): void => {
+    served();
+    document.body.innerHTML = '<div id="app"></div>';
+    const payload = structuredClone(PAYLOAD);
+    const game = payload.games.find((entry) => entry.slug === "everspace");
+    if (!game?.ingameFile) throw new Error("no everspace file");
+    if (found === undefined) delete game.ingameFile.found;
+    else game.ingameFile.found = found;
+    start(payload);
+    const picker = document.querySelector<HTMLSelectElement>("header select");
+    if (!picker) throw new Error("no game selector");
+    picker.value = String(payload.games.indexOf(game));
+    picker.dispatchEvent(new Event("change"));
+    tab("Setup");
+  };
+  const note = (): string => document.querySelector(".game-file-missing")?.textContent ?? "";
+
+  it("says where to name it, and still offers Compare against the repo's copy", () => {
+    // The fixture's game.yaml names a file no computer has, which is exactly this case.
+    expect(PAYLOAD.games.find((game) => game.slug === "everspace")?.ingameFile?.found).toBe(false);
+    open(false);
+    expect(note()).toContain("not on this computer");
+    expect(note()).toContain("local.yaml as games.everspace.ingame_config");
+    expect(buttons()).toContain("Compare with the game's keys");
+  });
+
+  it("says nothing once the file is found", () => {
+    open(true);
+    expect(document.querySelector(".game-file-missing")).toBeNull();
+  });
+});
+
 describe("a game whose file is Elite's bindings", () => {
   it("is connected without categories: Elite's file is owned control by control", () => {
     served();

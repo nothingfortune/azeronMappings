@@ -5,7 +5,9 @@ template: templates/everspace2-v5.json
 
 # The game's own binding file. `azeron ingame` compares it with actions.yaml, and
 # `azeron ingame --apply` makes it agree. Close the game first: it rewrites the file on exit.
-ingame_config: "/mnt/c/Users/there/AppData/Local/ES2/Saved/Config/Windows/Input.ini"
+# ${LOCALAPPDATA} is found on whatever computer runs this, from PowerShell or WSL; a copy
+# kept somewhere else goes in local.yaml (see local.example.yaml), not here.
+ingame_config: "${LOCALAPPDATA}/ES2/Saved/Config/Windows/Input.ini"
 
 # The categories of that file this repo owns outright: 0 flight, 1 combat and ship, 2
 # opening menus, 3 system -- everything live while flying. Every keyboard row in them has

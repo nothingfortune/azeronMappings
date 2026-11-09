@@ -8,7 +8,7 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-import { hostPath, repoPath } from "../../../src/config/paths.js";
+import { hostPath, localPath, repoPath } from "../../../src/config/paths.js";
 import { loadTemplate } from "../../../src/lib/io.js";
 import {
   buildAll,
@@ -150,5 +150,26 @@ describe("hostPath", () => {
   it("leaves any other path alone", () => {
     expect(hostPath("C:\\Users\\there")).toBe("C:\\Users\\there");
     expect(hostPath("/home/alex/repo")).toBe("/home/alex/repo");
+  });
+});
+
+describe("localPath", () => {
+  // game.yaml is written from either shell, and read from either.
+  it("opens a WSL mount from PowerShell", () => {
+    expect(localPath("/mnt/c/Users/there/AppData/Local/ES2/Input.ini", "win32")).toBe(
+      "C:\\Users\\there\\AppData\\Local\\ES2\\Input.ini",
+    );
+    expect(localPath("/mnt/d/SteamLibrary/a.binds", "win32")).toBe("D:\\SteamLibrary\\a.binds");
+  });
+
+  it("opens a Windows path from WSL, either slash", () => {
+    expect(localPath("C:\\Users\\there\\Input.ini", "linux")).toBe("/mnt/c/Users/there/Input.ini");
+    expect(localPath("D:/SteamLibrary/a.binds", "linux")).toBe("/mnt/d/SteamLibrary/a.binds");
+  });
+
+  it("leaves a path already right for the shell alone", () => {
+    expect(localPath("C:\\Users\\there", "win32")).toBe("C:\\Users\\there");
+    expect(localPath("/mnt/c/Users/there", "linux")).toBe("/mnt/c/Users/there");
+    expect(localPath("/home/alex/repo", "linux")).toBe("/home/alex/repo");
   });
 });

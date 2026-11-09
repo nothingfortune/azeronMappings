@@ -1,5 +1,13 @@
+# LF everywhere, whatever core.autocrlf says. The repo is used from WSL and PowerShell:
+# Git for Windows ships autocrlf on, and a CRLF checkout breaks the bash hooks and smoke
+# tests under WSL and fails Prettier's line-ending check.
+* text=auto eol=lf
+
 # The game's binding file is CRLF, and it is written back to the game byte for byte. Git
 # must not normalise it, or the committed copy and the fixture stop being what the game
 # holds -- and the test that line endings survive would pass locally and fail on a clone.
 *.ini -text
 *.binds -text
+
+# cmd.exe needs CRLF in a batch file, whichever shell checked the repo out.
+*.cmd text eol=crlf

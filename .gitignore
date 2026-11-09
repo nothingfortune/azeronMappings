@@ -27,3 +27,6 @@ playwright-report/
 *.pcap
 *.pcapng
 logs/
+
+# This computer's own settings (local.example.yaml says what goes in it). Never shared.
+/local.yaml

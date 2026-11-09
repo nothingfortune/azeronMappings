@@ -298,6 +298,18 @@ describe("writing the layout into the units", () => {
     expect(barButton("Write")).toBeTruthy();
   });
 
+  it("shows someone else's units by id, and what to put in local.yaml", async () => {
+    // Not the owner's units: their ids are in no device map in the repo.
+    plugIn([makeUnit("left", { deviceId: 1111 }), makeUnit("right", { deviceId: 2222 })]);
+    await writeToUnits();
+    await vi.waitFor(() => {
+      expect(bar()).toContain("not a unit this layout names: unit 1111, unit 2222");
+    }, WAIT);
+    const lines = document.querySelector(".write-bar pre")?.textContent ?? "";
+    expect(lines).toContain('cyborg2-left:\n    software_device_id: "1111"');
+    expect(lines).toContain('cyborg2-right:\n    software_device_id: "2222"');
+  });
+
   it("says plainly when a unit cannot be opened, and still offers the other", async () => {
     const left = makeUnit("left");
     left.failOpen = true;

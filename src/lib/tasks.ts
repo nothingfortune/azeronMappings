@@ -34,6 +34,8 @@ import type { StickModeSet } from "./stickmodes.js";
 import type { NameStatus } from "../types/pedals.js";
 import { ERROR, WARNING, formatFinding, lintGame, lintGenre } from "./lint.js";
 import type { Finding, LintResult } from "./lint.js";
+import { setLocalGamePath } from "./machine.js";
+import type { MachinePathField } from "./machine.js";
 import { Game, Genre } from "./model.js";
 import type { Profile } from "./model-core.js";
 import {
@@ -392,7 +394,6 @@ export function createGame(request: NewGameRequest): NewGameResult {
           slug,
           genre: request.genre,
           template: templatePath,
-          exportTo: request.exportTo,
         }),
         `# ${name}\n`,
       ),
@@ -410,6 +411,11 @@ export function createGame(request: NewGameRequest): NewGameResult {
     writeText(profilePath, dumpProfile(data));
     if (!existsSync(repoPath(posixJoin(gameDir, "playtests.md")))) {
       writeText(posixJoin(gameDir, "playtests.md"), `# ${name} playtests\n`);
+    }
+    // A folder on this computer is this computer's setting, not the game's: it goes in
+    // local.yaml, which git ignores, so nobody else's builds are sent to it.
+    if (request.exportTo !== undefined && request.exportTo !== "") {
+      setLocalGamePath(slug, "export_to", request.exportTo);
     }
     return {
       slug,
@@ -532,6 +538,29 @@ export function ingameDistPath(game: Game): string {
 }
 
 /**
+ * Where a game's file was looked for on this computer, and how to point the repo at it. Every
+ * refusal about a missing game file ends with this, so the fix is never "edit game.yaml".
+ */
+export function whereLooked(game: Game, field: MachinePathField): string {
+  const place = game.places[field];
+  const looked = place.tried.length > 1 ? ` Looked in: ${place.tried.join(", ")}.` : "";
+  return (
+    `${looked} If it is somewhere else on this computer, name it in local.yaml as ` +
+    `games.${game.slug}.${field} (local.example.yaml shows how).`
+  );
+}
+
+/** Why a game has no path for one of its files here: none named, or none this computer has. */
+function noPath(game: Game, field: MachinePathField, doing: string): string {
+  const place = game.places[field];
+  // Named, but by a token that names no folder here (Linux that is not WSL, say).
+  return place.from !== null && place.path === undefined
+    ? `${game.slug}'s ${field} names a Windows folder this computer does not have ${doing}.` +
+        whereLooked(game, field)
+    : `${game.slug} has no ${field} in game.yaml ${doing}`;
+}
+
+/**
  * The binding file to start from: the game's own when it is installed here, otherwise the
  * committed copy, so generating works on a machine without the game -- or in CI.
  */
@@ -548,8 +577,9 @@ function ingameSource(game: Game, override?: string): string {
   if (existsSync(committed)) return committed;
   throw new Error(
     live === undefined
-      ? `${game.slug} has no ingame_config in game.yaml, and no committed copy to start from`
-      : `${live} does not exist, and there is no committed copy to start from`,
+      ? noPath(game, "ingame_config", "and no committed copy to start from")
+      : `${live} does not exist, and there is no committed copy to start from.` +
+          whereLooked(game, "ingame_config"),
   );
 }
 
@@ -605,12 +635,13 @@ export function applyIngame(
   if (options.write && options.toGame === true) {
     const live = game.config.ingame_config;
     if (live === undefined) {
-      throw new IngameError(`${game.slug} has no ingame_config in game.yaml to write to`);
+      throw new IngameError(noPath(game, "ingame_config", "to write to"));
     }
     if (!existsSync(live)) {
       throw new IngameError(
         `the game's binding file ${live} does not exist, so nothing can be written to it -- ` +
-          "run the game once so it writes the file, or correct ingame_config in game.yaml",
+          "run the game once so it writes the file." +
+          whereLooked(game, "ingame_config"),
       );
     }
   }
@@ -891,17 +922,23 @@ function applyElite(
   let startPath: string | null = null;
   if (toGame) {
     if (live === undefined) {
-      throw new IngameError(`${game.slug} has no ingame_config in game.yaml to write to`);
+      throw new IngameError(noPath(game, "ingame_config", "to write to"));
     }
     if (!existsSync(dirname(live))) {
       throw new IngameError(
         `the game's bindings folder ${dirname(live)} does not exist, so nothing can be ` +
-          "written to it -- run the game once so it makes the folder, or correct ingame_config",
+          "written to it -- run the game once so it makes the folder." +
+          whereLooked(game, "ingame_config"),
       );
     }
-    if (preset === undefined || !existsSync(preset)) {
+    if (preset === undefined) {
+      throw new IngameError(noPath(game, "ingame_preset", "to start from"));
+    }
+    if (!existsSync(preset)) {
       throw new IngameError(
-        `the game's preset ${String(preset)} does not exist -- correct ingame_preset in game.yaml`,
+        `the game's preset ${preset} does not exist, so the game does not seem to be ` +
+          "installed here." +
+          whereLooked(game, "ingame_preset"),
       );
     }
     startPath = join(dirname(live), START_PRESET);

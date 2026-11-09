@@ -11,7 +11,7 @@
  */
 
 import { readdirSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 
 export const GAME = "games/SpaceSims/everspace";
 export const GOLDEN_SET = "single-v5";
@@ -34,5 +34,6 @@ export const LIVE_SET = liveSet();
 
 /** A unit of the live pair, as a repo-relative path. */
 export function live(unit: "left" | "right"): string {
-  return join(GAME, "profiles", `${LIVE_SET}-${unit}.yaml`);
+  // Forward slashes, as the code spells repo-relative paths; `join` would use backslashes on Windows.
+  return `${GAME}/profiles/${LIVE_SET}-${unit}.yaml`;
 }
