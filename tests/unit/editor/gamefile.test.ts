@@ -77,13 +77,13 @@ describe("a game whose own settings file is not connected", () => {
     const note = document.querySelector(".game-file");
     expect(note).not.toBeNull();
     const text = note?.textContent ?? "";
-    expect(text).toContain("key settings are not connected");
+    expect(text).toContain("is not told its keys automatically");
     expect([...(note?.querySelectorAll("li") ?? [])]).toHaveLength(3);
     // In the owner's terms, not the file's.
     expect(text).not.toContain("ingame_config");
     expect(text).not.toContain("game.yaml");
     expect(text).toContain("controls screen");
-    expect(text).toContain("developer work");
+    expect(text).not.toContain("developer work");
     // And it does not promise what it cannot do.
     expect(document.querySelector(".panel .note")?.textContent).not.toContain("offers to update");
   });
@@ -92,7 +92,9 @@ describe("a game whose own settings file is not connected", () => {
     tab("Setup");
     expect(buttons()).not.toContain("Update the game's keys…");
     expect(buttons()).not.toContain("Compare with the game's keys");
-    expect(document.querySelector(".game-file")?.textContent).toContain("not connected");
+    expect(document.querySelector(".game-file")?.textContent).toContain(
+      "not told its keys automatically",
+    );
   });
 
   it("does not offer to update the game after saving a key, and the menu item says why", async () => {

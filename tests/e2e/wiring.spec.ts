@@ -57,7 +57,7 @@ test("an action with no key is given one when it is put on a control, and Save w
     // The keys themselves are not on show: the editor writes them into the game.
     await page.getByRole("button", { name: "In-game", exact: true }).click();
     await expect(page.locator(".key-chip")).toHaveCount(0);
-    await page.getByRole("button", { name: "Show the wiring" }).click();
+    await page.getByRole("button", { name: "Show game keys" }).click();
     await expect(
       page.locator(".ingame-row", { hasText: "Free look (toggle)" }).locator(".key-chip"),
     ).toHaveText("Insert");

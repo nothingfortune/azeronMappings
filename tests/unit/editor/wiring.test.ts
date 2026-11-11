@@ -170,11 +170,11 @@ describe("the keys on the In-game tab", () => {
     expect(document.querySelector(".ingame-row")).not.toBeNull();
     expect(document.querySelector(".key-chip")).toBeNull();
     expect(document.querySelector(".wiring-note")?.textContent).toContain(
-      "The editor picks the key",
+      "the editor picks for it",
     );
     showWiring();
     expect(document.querySelectorAll(".key-chip").length).toBeGreaterThan(10);
-    expect(document.querySelector('[data-wiring="toggle"]')?.textContent).toBe("Hide the wiring");
+    expect(document.querySelector('[data-wiring="toggle"]')?.textContent).toBe("Hide game keys");
   });
 
   it("show the key an action was given, once asked for", () => {
@@ -192,7 +192,7 @@ describe("the keys on the In-game tab", () => {
     tab("In-game");
     expect(document.querySelectorAll(".key-chip").length).toBeGreaterThan(10);
     expect(document.querySelector(".wiring-note")?.textContent).toContain(
-      "Set these same keys in the game's own controls screen",
+      "Set the same keys in the game's own controls screen",
     );
   });
 });

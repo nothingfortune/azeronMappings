@@ -67,8 +67,6 @@ import type {
 } from "../types/profile.js";
 import { messageOf, removeKey } from "../lib/object.js";
 import { dumpYaml } from "../lib/yaml.js";
-import { AZERON_PRODUCT_ID, alreadyGranted, hex4, requestUnits } from "../lib/hid.js";
-import type { DetectionState, HidLike } from "../lib/hid.js";
 import { buildProbeProfile, buildStickCalibrationProfile } from "../lib/probe.js";
 import type { ProbePayload } from "../types/probe.js";
 import { probePass, start as startProbe, stop as stopProbe } from "./probe.js";
@@ -1012,16 +1010,15 @@ function renderStickModes(): HTMLElement | null {
   );
   panel.append(
     el("div", { class: "note" }, [
-      "Sets both sticks at once, the way an RC transmitter names its modes. Nothing but " +
-        "the eight directions changes.",
+      "Sets both sticks at once. Only the eight stick directions change.",
     ]),
   );
   // Pedals are a modifier on the mode, so the panel says which variant a click applies.
   panel.append(
     el("div", { class: "note mode-pedals", "data-with-pedals": String(carry) }, [
       carry
-        ? `This layout's pedals carry ${words(takes)}, so a mode is applied in its with-pedals ` +
-          "variant, which hands that stick axis to something else."
+        ? `This layout's pedals handle ${words(takes)}, so the stick that would have done ` +
+          "it is given another job."
         : pedals === undefined
           ? "This layout has no pedals, so a mode is applied as written."
           : `This layout has pedals, but none drives ${words(missing)}, so a mode is applied as ` +
@@ -1049,7 +1046,7 @@ function renderStickModes(): HTMLElement | null {
       }
       saveNote =
         `${mode.label}${carry && mode.with_pedals !== undefined ? ", with pedals," : ""} ` +
-        "applied to both sticks. Save to keep it.";
+        `applied to both sticks.${autosaveOn() && canSave() ? "" : " Save to keep it."}`;
       render();
     });
     panel.append(row);
@@ -1332,9 +1329,11 @@ function renderInspector(): HTMLElement {
   });
   panel.append(el("div", { class: "field" }, [el("label", {}, ["Label"]), labelInput]));
 
-  if (isStick) {
+  // Sticks send keys. Only a stick set to something else, which the units cannot be given,
+  // is offered the choice, to put it back.
+  if (isStick && spec.mode !== undefined && spec.mode !== "keyboard") {
     const modeSelect = el("select", {});
-    const current = spec.mode ?? "keyboard";
+    const current = spec.mode;
     for (const mode of new Set([current, ...Object.keys(STICK_MODE_CODES)])) {
       const encodable = mode in STICK_MODE_CODES;
       const option = el("option", { value: mode }, [
@@ -1351,9 +1350,11 @@ function renderInspector(): HTMLElement {
     panel.append(
       el("div", { class: "field" }, [el("label", {}, ["Stick sends"]), modeSelect]),
       el("div", { class: "note" }, [
-        "Keyboard only: gamepad mode made Everspace 2 flip between input devices and stutter.",
+        "This stick is set to send something the units cannot be given. Choose keyboard.",
       ]),
     );
+  }
+  if (isStick) {
     const directionFields = el("div", { class: "field-grid" });
     for (const direction of STICK_DIRECTIONS) {
       const select = el("select", {});
@@ -2100,7 +2101,9 @@ function renderChecks(): HTMLElement {
   if (live.length === 0) {
     box.append(
       el("div", { class: "finding" }, [
-        `Clean. ${String(result.acknowledged.length)} acknowledged finding(s) in game.yaml.`,
+        result.acknowledged.length === 0
+          ? "Clean."
+          : `Clean. ${String(result.acknowledged.length)} accepted on purpose.`,
       ]),
     );
   }
@@ -2110,8 +2113,8 @@ function renderChecks(): HTMLElement {
     el("div", { class: "field muted" }, [
       el("small", {}, [
         canSave()
-          ? "Same rules as `azeron lint`. Saving runs them and rebuilds."
-          : "Same rules as `azeron lint`. Run it after copying the YAML back into the repo.",
+          ? "Checked again on every change and every save."
+          : "Checked again on every change.",
       ]),
     ]),
   );
@@ -2233,29 +2236,31 @@ function reportSave(path: string, result: SaveResponse, also: readonly string[] 
     return box;
   }
   const changed = check.built.filter((entry) => entry.changed);
-  box.append(el("div", {}, [`Saved ${saved}.`]));
+  box.append(el("div", {}, ["Saved."]));
   if (check.pedals !== undefined) box.append(renderPedalsVerdict(check.pedals));
-  if (changed.length > 0) {
-    box.append(
-      el("div", {}, [
-        "The units do not have this yet: Write to units, in the header, puts it on them. Built:",
-      ]),
-    );
-    for (const entry of changed) {
-      const row = el("div", { class: "import-path" }, [el("code", {}, [entry.importPath])]);
-      if (entry.mirroredTo) row.append(el("small", {}, [` also copied to ${entry.mirroredTo}`]));
-      box.append(row);
-    }
-  } else {
-    box.append(
-      el("div", { class: "muted" }, ["Nothing new for the units: the compiled file is unchanged."]),
-    );
+  box.append(
+    el("div", changed.length > 0 ? {} : { class: "muted" }, [
+      changed.length > 0
+        ? "The units do not have this yet: press Write to units to put it on them."
+        : "Nothing new for the units.",
+    ]),
+  );
+  // Where it went, for anyone who wants it, out of the way of everyone who does not.
+  const files = el("details", { class: "saved-files" }, [el("summary", {}, ["Files written"])]);
+  files.append(el("div", {}, [saved]));
+  for (const entry of changed) {
+    const row = el("div", { class: "import-path" }, [el("code", {}, [entry.importPath])]);
+    if (entry.mirroredTo) row.append(el("small", {}, [` also copied to ${entry.mirroredTo}`]));
+    files.append(row);
   }
+  box.append(files);
   for (const message of check.buildErrors) {
-    box.append(el("div", { class: "finding error" }, [`build: ${message}`]));
+    box.append(
+      el("div", { class: "finding error" }, [`The layout could not be built: ${message}`]),
+    );
   }
   if (check.findings.length === 0) {
-    box.append(el("div", { class: "finding" }, ["Lint clean."]));
+    box.append(el("div", { class: "finding" }, ["Checks: clean."]));
   }
   appendFindings(box, check.findings);
   return box;
@@ -3082,8 +3087,8 @@ function renderCheckBar(run: CheckRun): HTMLElement {
     if (run.unsaved) {
       bar.append(
         el("div", { class: "check-note" }, [
-          "This layout has changes that are not saved yet. A unit can only have what was " +
-            "saved and imported.",
+          "This layout has changes the units do not have yet. Write to units first, then " +
+            "check.",
         ]),
       );
     }
@@ -3457,8 +3462,7 @@ function compiledFor(slug: string): ExportProfile {
   const profile = profileFor(slug);
   const templatePath = profile.template ?? game.template;
   const template = state.payload.templates[templatePath];
-  if (!template)
-    throw new Error(`No template embedded for ${templatePath}. Re-run \`azeron editor\`.`);
+  if (!template) throw new Error(`The export ${templatePath} is not in the page. Reload it.`);
   const compiled = compileProfile(profile, { template, actions: actionSetFor(game).actions })
     .profiles[0];
   if (!compiled) throw new Error("the compiler produced no profile");
@@ -3547,9 +3551,8 @@ function namingNote(
   const note = el("div", { class: "check-note naming" }, [
     `Connected, but ${why}: ${strangers
       .map((unit) => `unit ${String(unit.identity.deviceId)}`)
-      .join(", ")}. Say which hand each is` +
-      (canSave() ? "" : " in local.yaml at the repo's top, then reload") +
-      " (with one unit unplugged, only the other's id shows).",
+      .join(", ")}. Which hand is each? Unplug one if unsure: only the other shows.` +
+      (canSave() ? "" : " Open the editor with npm start to name them here."),
   ]);
   if (canSave()) {
     for (const unit of strangers) {
@@ -3576,9 +3579,7 @@ function namingNote(
       }
       note.append(row);
     }
-    note.append(
-      el("div", { class: "muted" }, ["It goes in local.yaml, which is this computer's alone."]),
-    );
+    note.append(el("div", { class: "muted" }, ["This computer remembers it."]));
   } else {
     note.append(el("pre", {}, [lines.join("\n")]));
   }
@@ -4461,7 +4462,7 @@ function exportJson(slug: string): void {
   const templatePath = profile.template ?? game.template;
   const template = state.payload.templates[templatePath];
   if (!template) {
-    window.alert(`No template embedded for ${templatePath}. Re-run \`azeron editor\`.`);
+    window.alert(`The export ${templatePath} is not in the page. Reload it.`);
     return;
   }
   const doc = compileProfile(profile, { template, actions: actionSetFor(game).actions });
@@ -4547,11 +4548,8 @@ function renderHeader(): HTMLElement {
   header.append(el("span", { class: "spacer" }));
 
   header.append(renderLintChip());
-  header.append(
-    el("span", { class: `pill mode ${canSave() ? "ok" : ""}` }, [
-      canSave() ? "saves to repo" : "downloads only",
-    ]),
-  );
+  // Opened as a file, the page cannot save; served, saving is simply what it does.
+  if (!canSave()) header.append(el("span", { class: "pill mode" }, ["read-only copy"]));
 
   // One main action. Served, that is saving -- it rebuilds and says what to import, and it
   // reads Saved when there is nothing to save, which is the page's unsaved marker. Opened
@@ -4681,14 +4679,17 @@ function renderHeader(): HTMLElement {
     });
   }
   item("Print layout", printLayout);
-  item("Undo all unsaved edits", () => {
-    if (!confirmDiscard("Undoing them")) return;
-    state.working.clear();
-    state.workingActions = null;
-    state.workingSets = null;
-    state.selected = null;
-    render();
-  });
+  // Only while there is something unsaved: with autosave on there usually is not.
+  if (isDirty()) {
+    item("Undo all unsaved edits", () => {
+      if (!confirmDiscard("Undoing them")) return;
+      state.working.clear();
+      state.workingActions = null;
+      state.workingSets = null;
+      state.selected = null;
+      render();
+    });
+  }
 
   const picker = el("input", { type: "file", accept: "application/json,.json" });
   picker.style.display = "none";
@@ -4711,9 +4712,12 @@ function renderHeader(): HTMLElement {
     });
     reader.readAsText(file);
   });
-  item("Open a data file…", () => {
-    picker.click();
-  });
+  // Served, the page reads the repo on every load; a data file is for a page opened as one.
+  if (!canSave()) {
+    item("Open a data file…", () => {
+      picker.click();
+    });
+  }
   item(`Use the ${currentTheme() === "dark" ? "light" : "dark"} theme`, () => {
     toggleTheme();
     render();
@@ -4898,27 +4902,17 @@ function gameFileStatus(game: EditorGame): HTMLElement | null {
   const gaps = gameFileGaps(game);
   if (gaps.length === 0) return null;
   const box = el("div", { class: "note game-file" }, [
-    el("b", {}, [`${game.name}'s own key settings are not connected`]),
+    el("b", {}, [`${game.name} is not told its keys automatically`]),
     el("div", {}, [
-      "The keys below record what each action is bound to inside the game, and the checks " +
-        "use them. Writing them into the game for you is not set up for this game: " +
-        (gaps.length === 1
-          ? (gaps[0] ?? "")
-          : `${gaps.length === 2 ? "two" : "three"} things are missing:`),
+      "Set each key below in the game's own controls screen. Everspace 2 and Elite " +
+        "Dangerous are told for you; other games are not yet.",
     ]),
   ]);
-  if (gaps.length > 1) {
-    const list = el("ul", {});
-    for (const gap of gaps) list.append(el("li", {}, [gap]));
-    box.append(list);
-  }
-  box.append(
-    el("div", {}, [
-      "Until it is, set each key in the game's own controls screen to match this list. " +
-        "Only Everspace 2's settings file is understood so far; connecting another game's " +
-        "file is developer work, not something this page can do.",
-    ]),
-  );
+  const why = el("details", {}, [el("summary", {}, ["Why not this game?"])]);
+  const list = el("ul", {});
+  for (const gap of gaps) list.append(el("li", {}, [gap]));
+  why.append(list);
+  box.append(why);
   return box;
 }
 
@@ -5160,15 +5154,12 @@ function renderInGame(): HTMLElement {
   panel.append(el("h2", {}, [`${game.name} — actions`]));
   panel.append(
     el("div", { class: "note" }, [
-      "Click a name to rename the action, and switch its roles on or off: the checks use " +
-        "the roles, for instance to keep a menu off a combat key. " +
-        (canSave()
-          ? "Save, top right, writes these with both keypads."
-          : "The menu's Download the layout as YAML includes actions.yaml."),
+      "Click a name to rename it. The role switches tell the checks what each action is " +
+        "for, so a menu never lands on a combat key.",
     ]),
   );
   const toggle = el("button", { class: "btn small", type: "button", "data-wiring": "toggle" }, [
-    wiring ? "Hide the wiring" : "Show the wiring",
+    wiring ? "Hide game keys" : "Show game keys",
   ]);
   toggle.addEventListener("click", () => {
     wiringShown = !wiring;
@@ -5177,14 +5168,13 @@ function renderInGame(): HTMLElement {
   panel.append(
     el("div", { class: "note wiring-note" }, [
       wiring
-        ? "The wiring: the key each action is sent on. Click a key and press another to " +
-          "move it; a clash shows up straight away. " +
+        ? "The key each action reaches the game on. Click one and press another key to " +
+          "change it; a clash shows straight away. " +
           (connected
-            ? "Saving offers to update the game's own file to match. "
-            : "Set these same keys in the game's own controls screen. ")
-        : "Each action is sent to the game on a key. The editor picks the key when an " +
-          "action is first put on a control, and Update the game's keys… tells the game, so " +
-          "there is nothing to set here. ",
+            ? "Saving offers to update the game to match. "
+            : "Set the same keys in the game's own controls screen. ")
+        : "Each action reaches the game on a key the editor picks for it, and Update the " +
+          "game's keys… tells the game, so there is nothing to set here. ",
       toggle,
     ]),
   );
@@ -5236,104 +5226,6 @@ function renderInGame(): HTMLElement {
   }
   panel.append(table);
 
-  return panel;
-}
-
-let detection: DetectionState | null = null;
-let detectionChecked = false;
-
-function hidApi(): HidLike | undefined {
-  return (navigator as unknown as { hid?: HidLike }).hid;
-}
-
-/** What is plugged in, as the browser sees it. */
-function renderDetection(): HTMLElement {
-  const panel = el("div", { class: "panel inset" });
-  panel.append(el("h2", {}, ["Units connected"]));
-
-  // Devices already granted can be listed without prompting; only the picker needs a
-  // click. Checked once, so rendering does not loop.
-  if (!detectionChecked) {
-    detectionChecked = true;
-    void alreadyGranted(hidApi()).then((result) => {
-      if (result.status === "found") {
-        detection = result;
-        render();
-      }
-    });
-  }
-
-  const body = el("div", { class: "note" });
-  if (detection === null) {
-    body.append(
-      document.createTextNode(
-        "Not checked yet. The browser will only list devices you have granted it, so " +
-          "this needs a click and a pick from the dialog.",
-      ),
-    );
-  } else if (detection.status === "unsupported") {
-    body.append(document.createTextNode(detection.reason));
-  } else if (detection.status === "none") {
-    body.append(
-      document.createTextNode(
-        "Nothing granted. Either the dialog was dismissed, or nothing is plugged in -- " +
-          "the browser does not say which.",
-      ),
-    );
-  } else {
-    for (const found of detection.units) {
-      body.append(
-        el("div", { class: found.isAzeron ? "" : "muted" }, [
-          `${found.productName || "(unnamed)"} — vid ${hex4(found.vendorId)} ` +
-            `pid ${hex4(found.productId)}, ${String(found.collections)} interface(s)` +
-            (found.isAzeron ? "  ← Cyborg II" : ""),
-        ]),
-      );
-    }
-    const azerons = detection.units.filter((found) => found.isAzeron);
-    if (azerons.length === 1) {
-      body.append(
-        el("div", { class: "muted" }, [
-          "Both units report the same product id, so one connection cannot be told apart " +
-            "from the other by USB alone.",
-        ]),
-      );
-    }
-    if (azerons.length === 0) {
-      body.append(
-        el("div", { class: "muted" }, [
-          `Nothing here reports product id ${hex4(AZERON_PRODUCT_ID)}.`,
-        ]),
-      );
-    }
-  }
-  panel.append(body);
-
-  if (window.location.protocol === "file:") {
-    panel.append(
-      el("div", { class: "note" }, [
-        "Opened as a file. WebHID needs a secure context, so this usually only works " +
-          "from `azeron serve`.",
-      ]),
-    );
-  }
-
-  const check = el("button", { class: "btn", type: "button" }, ["Detect units"]);
-  check.addEventListener("click", () => {
-    void requestUnits(hidApi()).then((result) => {
-      detection = result;
-      render();
-    });
-  });
-  panel.append(check);
-  panel.append(
-    el("div", { class: "muted" }, [
-      el("small", {}, [
-        "Detection only reports what is connected. To put a layout on the units, use Write " +
-          "to units in the header: it writes straight to them, with no Azeron app.",
-      ]),
-    ]),
-  );
   return panel;
 }
 
@@ -5702,14 +5594,8 @@ function renderNewGame(): HTMLElement {
     placeholder: "e.g. Deep Rock Galactic",
     "data-new-game": "name",
   });
-  const where = el("div", { class: "muted new-game-where" });
-  const showWhere = (): void => {
-    const slug = slugFromName(newGame.name.trim());
-    where.textContent = isFileName(slug) ? `It will live in games/${newGame.genre}/${slug}/` : "";
-  };
   name.addEventListener("input", () => {
     newGame.name = name.value;
-    showWhere();
   });
 
   const genre = el("select", { "data-new-game": "genre" });
@@ -5784,7 +5670,6 @@ function renderNewGame(): HTMLElement {
   layout.addEventListener("input", () => {
     newGame.set = layout.value;
   });
-  showWhere();
 
   // The other way in: a profile already made in the Azeron app.
   const unit = unitSelect(newGame.device);
@@ -5925,7 +5810,6 @@ function renderNewGame(): HTMLElement {
       el("div", { class: "field" }, [el("label", {}, ["Name of the game"]), name]),
       el("div", { class: "field" }, [el("label", {}, ["Kind of game"]), genre]),
     ]),
-    where,
     ...(styles.length === 0
       ? []
       : [el("div", { class: "field" }, [el("label", {}, ["Lay it out"]), style])]),
@@ -6108,14 +5992,10 @@ function renderRepo(): HTMLElement {
   const panel = el("div", { class: "panel" });
   panel.append(el("h2", {}, ["Setup"]));
 
-  // Detection is the browser talking to USB, so it works either way.
-  panel.append(renderDetection());
-
   if (!canSave()) {
     panel.append(
       el("div", { class: "empty-state" }, [
-        "Building, importing and reading the game's config need a server. Run " +
-          "`azeron serve` and open the address it prints.",
+        "Adding games and layouts needs the editor running: start it with npm start.",
       ]),
     );
     return panel;
@@ -6294,34 +6174,6 @@ function renderRepo(): HTMLElement {
     ingameRow.append(check, apply);
     panel.append(ingameRow);
   }
-
-  panel.append(section("Rebuild", "Every layout's import file, from scratch."));
-  const buildRow = el("div", { class: "field" });
-  const build = el("button", { class: "btn", type: "button" }, ["Rebuild every import file"]);
-  build.addEventListener("click", () => {
-    repoNote = "building...";
-    render();
-    void post("/api/build", {}).then((result) => {
-      const built = (result.built ?? []) as { output: string; changed: boolean }[];
-      const errors = (result.errors ?? []) as string[];
-      const changed = built.filter((entry) => entry.changed);
-      repoNote =
-        errors.length > 0
-          ? `build failed: ${errors.join(" | ")}`
-          : `${String(changed.length)} of ${String(built.length)} profile(s) changed` +
-            (changed.length > 0 ? `: ${changed.map((e) => e.output).join(", ")}` : "");
-      render();
-    });
-  });
-  buildRow.append(build);
-  buildRow.append(
-    el("div", { class: "muted" }, [
-      el("small", {}, [
-        "Saving already rebuilds what changed. This rebuilds every layout, for when a template or the vocabulary changed underneath them.",
-      ]),
-    ]),
-  );
-  panel.append(buildRow);
 
   if (ingameRows !== null) {
     const list = el("div", { class: "ingame-list" });

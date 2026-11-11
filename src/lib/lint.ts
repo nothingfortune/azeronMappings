@@ -165,7 +165,7 @@ export function checkActions(actions: ActionSet, live: LiveTogether = () => true
       ...(culprit === null ? {} : { key: culprit }),
       message:
         `${culprit ?? "?"} is sent by ${String(clashing.length)} different actions ` +
-        `(${[...clashing].sort().join(", ")}); if that is deliberate add it to duplicate_key_allowlist`,
+        `(${[...clashing].sort().join(", ")}). Move one to another key, or accept this if it is on purpose.`,
     });
   }
   return findings;
@@ -246,9 +246,8 @@ export function checkProfile(profile: Profile, actions: ActionSet, config: LintC
         position,
         message:
           `${slot} -> '${action}', which has no key to be sent on, so the control would do ` +
-          "nothing. The editor gives a placed action a key while its pool of spare keys " +
-          "lasts; with none left, take another action off, or give this one a `key:` in " +
-          "actions.yaml.",
+          "nothing. Every spare key is in use: take another action off a control to free " +
+          "one, or give this action a key under Show game keys on the In-game tab.",
       });
       continue;
     }
@@ -264,7 +263,7 @@ export function checkProfile(profile: Profile, actions: ActionSet, config: LintC
           rule: "unbound-key",
           profile: name,
           position,
-          message: `${slot} sends ${emitted}, which no action in actions.yaml declares`,
+          message: `${slot} sends ${emitted}, which no action uses. Put an action on it, or clear it.`,
         });
       }
     }
@@ -286,8 +285,8 @@ export function checkProfile(profile: Profile, actions: ActionSet, config: LintC
       rule: "unverified-device",
       profile: name,
       message:
-        `device ${device.name} has not been press-tested (verified: false), so every ` +
-        "position in this profile is a guess. Run `azeron probe` and export the real map.",
+        `${device.name} has not been press-tested, so where each key is on it is a guess. ` +
+        "Run the Press test tab on it and save its map.",
     });
   }
 
@@ -336,9 +335,9 @@ export function checkProfile(profile: Profile, actions: ActionSet, config: LintC
           profile: name,
           position,
           message:
-            `raw.types sets the stick's type to '${head}', which overrides its mode, and only ` +
-            `keyboard mode ('${String(STICK_MODE_CODES.keyboard)}') is allowed. Remove raw.types ` +
-            "from the stick, or set its first entry to the keyboard code.",
+            `the stick came in from an export set to type '${head}', not keyboard ` +
+            `('${String(STICK_MODE_CODES.keyboard)}'), and only keyboard is allowed. Clear the ` +
+            "stick and put its directions back on it.",
         });
       }
     }
@@ -401,7 +400,7 @@ export function checkProfile(profile: Profile, actions: ActionSet, config: LintC
             message:
               `${slot} is bound, but raw.types keeps type '${kept}' for it and the binding ` +
               `needs '${derived}' -- the compiler would write '${kept}', and the key would ` +
-              "do nothing. Drop that entry from raw.types.",
+              "do nothing. Clear this key and put its action back on it.",
           });
         }
       });

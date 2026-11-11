@@ -188,7 +188,7 @@ describe("the sticks and the pedals", () => {
   });
 
   it("applies the with-pedals variant of a mode when the pedals carry yaw, and says so", () => {
-    expect(document.querySelector(".mode-pedals")?.textContent).toContain("with-pedals variant");
+    expect(document.querySelector(".mode-pedals")?.textContent).toContain("given another job");
     const mode1 = [...document.querySelectorAll<HTMLButtonElement>(".mode-row")].find((row) =>
       row.textContent.startsWith("Mode 1"),
     );
@@ -359,7 +359,8 @@ describe("saving the pedals with everything else", () => {
     expect(calls.length).toBe(1);
 
     const report = document.querySelector(".save-report")?.textContent ?? "";
-    expect(report).toContain("Saved games/SpaceSims/everspace/sets.yaml.");
+    expect(report).toContain("Saved.");
+    expect(report).toContain("games/SpaceSims/everspace/sets.yaml");
     expect(report).toContain("Rudder drives turn (yaw) (the game's Yaw row)");
     expect(report).toContain("inferred, not flown");
     // It was saved, so the page no longer calls it unsaved, and the game is offered the change.

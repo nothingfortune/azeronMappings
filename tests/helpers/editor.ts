@@ -7,7 +7,7 @@
  */
 export function showWiring(): void {
   const toggle = document.querySelector<HTMLButtonElement>('[data-wiring="toggle"]');
-  if (toggle?.textContent === "Show the wiring") toggle.click();
+  if (toggle?.textContent === "Show game keys") toggle.click();
 }
 
 /**
