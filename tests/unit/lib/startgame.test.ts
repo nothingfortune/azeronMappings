@@ -44,6 +44,7 @@ import { lintGame } from "../../../src/lib/lint.js";
 import { Game, Genre } from "../../../src/lib/model.js";
 import { ScaffoldError } from "../../../src/lib/scaffold.js";
 import {
+  acknowledgeFinding,
   addUnitToLayout,
   deleteGame,
   deleteLayout,
@@ -64,6 +65,54 @@ afterEach(() => {
 
 const sim = (devices: string[] = ["cyborg2-left", "cyborg2-right"]) =>
   startGame({ name: "ZZ Sim", slug: "zzSim", genre: "SpaceSims", devices, set: "v1" });
+
+describe("accepting a finding from the page", () => {
+  it("adds it to game.yaml with its reason, keeping the file's comments", () => {
+    sim();
+    const path = `${SIM}/game.yaml`;
+    writeFileSync(repoPath(path), `# kept\n${readFileSync(repoPath(path), "utf8")}`);
+    const before = (new Game(SIM).config.lint?.acknowledged ?? []).length;
+    acknowledgeFinding({
+      game: "zzSim",
+      rule: "akimbo-role-mismatch",
+      profile: "v1",
+      position: "pinky_1",
+      reason: "the pinkies do different jobs on purpose",
+    });
+    const text = readFileSync(repoPath(path), "utf8");
+    expect(text.startsWith("# kept\n")).toBe(true);
+    const acknowledged = new Game(SIM).config.lint?.acknowledged ?? [];
+    expect(acknowledged).toHaveLength(before + 1);
+    expect(acknowledged.at(-1)).toEqual({
+      rule: "akimbo-role-mismatch",
+      profile: "v1",
+      position: "pinky_1",
+      reason: "the pinkies do different jobs on purpose",
+    });
+  });
+
+  it("records the same finding once, however often it is accepted", () => {
+    sim();
+    const before = (new Game(SIM).config.lint?.acknowledged ?? []).length;
+    const once = {
+      game: "zzSim",
+      rule: "akimbo-role-mismatch",
+      profile: "v1",
+      position: "pinky_1",
+      reason: "on purpose",
+    };
+    acknowledgeFinding(once);
+    acknowledgeFinding({ ...once, reason: "again" });
+    expect(new Game(SIM).config.lint?.acknowledged ?? []).toHaveLength(before + 1);
+  });
+
+  it("refuses one with no reason", () => {
+    sim();
+    expect(() =>
+      acknowledgeFinding({ game: "zzSim", rule: "x", profile: "v1", reason: "  " }),
+    ).toThrow(/say why/);
+  });
+});
 
 describe("deleting and renaming layouts and games", () => {
   /** A space sim with pedals on v1, and v2 as its copy. */

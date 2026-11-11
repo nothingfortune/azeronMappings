@@ -143,8 +143,9 @@ describe("a game whose own settings file is connected", () => {
 });
 
 describe("a game whose settings file is not on this computer", () => {
+  let calls: { path: string; body: unknown }[] = [];
   const open = (found: boolean | undefined): void => {
-    served();
+    calls = served();
     document.body.innerHTML = '<div id="app"></div>';
     const payload = structuredClone(PAYLOAD);
     const game = payload.games.find((entry) => entry.slug === "everspace");
@@ -160,13 +161,29 @@ describe("a game whose settings file is not on this computer", () => {
   };
   const note = (): string => document.querySelector(".game-file-missing")?.textContent ?? "";
 
-  it("says where to name it, and still offers Compare against the repo's copy", () => {
+  it("asks where the file is, with no file to edit, and still offers Compare", () => {
     // The fixture's game.yaml names a file no computer has, which is exactly this case.
     expect(PAYLOAD.games.find((game) => game.slug === "everspace")?.ingameFile?.found).toBe(false);
     open(false);
-    expect(note()).toContain("not on this computer");
-    expect(note()).toContain("local.yaml as games.everspace.ingame_config");
+    expect(note()).toContain("was not found on this computer");
+    expect(note()).not.toContain("local.yaml");
+    expect(document.querySelector('[data-game-file="path"]')).not.toBeNull();
     expect(buttons()).toContain("Compare with the game's keys");
+  });
+
+  it("sends the location pasted in, for this game", async () => {
+    open(false);
+    const path = document.querySelector<HTMLInputElement>('[data-game-file="path"]');
+    if (!path) throw new Error("no location box");
+    path.value = String.raw`"D:\Games\Everspace 2\Input.ini"`;
+    document.querySelector<HTMLButtonElement>('[data-game-file="use"]')?.click();
+    await vi.waitFor(() => {
+      expect(calls.some((call) => call.path === "/api/local/game-file")).toBe(true);
+    });
+    expect(calls.find((call) => call.path === "/api/local/game-file")?.body).toEqual({
+      game: "everspace",
+      path: String.raw`"D:\Games\Everspace 2\Input.ini"`,
+    });
   });
 
   it("says nothing once the file is found", () => {

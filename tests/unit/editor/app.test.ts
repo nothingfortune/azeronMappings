@@ -576,6 +576,8 @@ describe("unsaved edits", () => {
     );
     // Findings as rows, not one joined line.
     expect(report?.querySelectorAll(".finding.warning")).toHaveLength(1);
+    // A report is a record of one save: accepting is done in the Checks panel.
+    expect(report?.querySelector(".accept-finding")).toBeNull();
   });
 
   it("saves every unit that changed in one go, and only those", async () => {

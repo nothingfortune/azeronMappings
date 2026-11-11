@@ -6,6 +6,17 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Added
 
+- **The last hand edits go.** Each of these pointed at a file before:
+  - A check that is fine in this layout has an Accept button: say why, and it goes into
+    game.yaml's `lint.acknowledged` with the reason (`acknowledgeFinding`,
+    `/api/acknowledge`), comments kept.
+  - A game whose settings file is not where it is expected takes the file's location in
+    a box on the page; it is checked to exist and written to `local.yaml`
+    (`/api/local/game-file`).
+  - The long press and double tap each have a "repeat while held" switch in the Key panel.
+  - The press test's stick result says to save the map, which applies it, rather than to
+    set `stick_angle` by hand.
+
 - **Actions, layouts and games are added, renamed and deleted from the page.** No file
   needs editing for any of them:
   - A New action box under the action list: type a name, press Enter, drag it onto a key.

@@ -3,11 +3,11 @@
 
 import { createServer } from "node:http";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { parseArgs } from "node:util";
 
-import { dataDirs, dataRoot, isEntryPoint, repoPath, repoRoot } from "./config/paths.js";
+import { dataDirs, dataRoot, isEntryPoint, localPath, repoPath, repoRoot } from "./config/paths.js";
 import { bindingSheet, renderBindingsCsv, renderBindingsMarkdown } from "./lib/bindings.js";
 import { CompileError, compileProfile, dumps } from "./lib/compile.js";
 import { decompile, dumpProfile } from "./lib/decompile.js";
@@ -47,7 +47,7 @@ import { buildProbeProfile, buildStickCalibrationProfile } from "./lib/probe.js"
 import { checkFileName } from "./lib/scaffold.js";
 import { addActions, patchActionBindings, removeActions } from "./lib/actionfile.js";
 import { openInChromium } from "./lib/browser.js";
-import { isWsl } from "./lib/machine.js";
+import { isWsl, setLocalGamePath } from "./lib/machine.js";
 import type { BindingChange } from "./lib/actionfile.js";
 import {
   CONTENT_TYPES,
@@ -65,6 +65,7 @@ import {
   createGame,
   startGame,
   startLayout,
+  acknowledgeFinding,
   addUnitToLayout,
   deleteGame,
   deleteLayout,
@@ -692,6 +693,35 @@ function cmdServe(port: number, host: string, open = false): number {
       });
       return;
     }
+    if (request.method === "POST" && url === "/api/local/game-file") {
+      // Where this computer keeps a game's key settings file, as the page was told: it goes
+      // in local.yaml, never game.yaml, and only once there is a file there to read.
+      readBody(request, response, 4_000, (body) => {
+        try {
+          const parsed = JSON.parse(body) as { game?: unknown; path?: unknown };
+          if (typeof parsed.game !== "string" || typeof parsed.path !== "string") {
+            throw new Error("send {game, path}, both strings");
+          }
+          const game = games(parsed.game)[0];
+          if (!game) throw new Error(`no game '${parsed.game}'`);
+          // Windows' "Copy as path" puts quotes round it.
+          const path = parsed.path.trim().replace(/^"(.*)"$/, "$1");
+          const found = path === "" ? null : localPath(path);
+          if (found === null || !existsSync(found)) {
+            throw new Error(`there is no file at ${path || "that path"}`);
+          }
+          // A folder passes existsSync, and reading it later would fail with no way back.
+          if (!statSync(found).isFile()) {
+            throw new Error(`${path} is a folder: paste the settings file inside it`);
+          }
+          const file = setLocalGamePath(game.slug, "ingame_config", path);
+          send(200, JSON.stringify({ ok: true, file }));
+        } catch (error) {
+          send(400, JSON.stringify({ ok: false, error: messageOf(error) }));
+        }
+      });
+      return;
+    }
     if (request.method === "POST" && url === "/api/local/unit") {
       // Which hand a unit is, as the page was told it: its id goes in local.yaml.
       readBody(request, response, 1_000, (body) => {
@@ -780,7 +810,8 @@ function cmdServe(port: number, host: string, open = false): number {
         url === "/api/layout/unit" ||
         url === "/api/layout/delete" ||
         url === "/api/layout/rename" ||
-        url === "/api/game/delete")
+        url === "/api/game/delete" ||
+        url === "/api/acknowledge")
     ) {
       readBody(request, response, 20_000_000, (body) => {
         try {
@@ -805,6 +836,21 @@ function cmdServe(port: number, host: string, open = false): number {
             // The compiled files went with the old name; build them under the new one.
             const built = buildAll(games(asked.game ?? ""));
             send(200, JSON.stringify({ ok: true, ...result, buildErrors: built.errors }));
+            return;
+          }
+          if (url === "/api/acknowledge") {
+            const asked = JSON.parse(body) as Record<string, unknown>;
+            const text = (name: string): string | undefined =>
+              typeof asked[name] === "string" ? asked[name] : undefined;
+            const entry = acknowledgeFinding({
+              game: text("game") ?? "",
+              rule: text("rule") ?? "",
+              profile: text("profile") ?? "",
+              position: text("position"),
+              key: text("key"),
+              reason: text("reason") ?? "",
+            });
+            send(200, JSON.stringify({ ok: true, entry }));
             return;
           }
           if (url === "/api/game/delete") {

@@ -224,7 +224,8 @@ describe("the stick zero pass", () => {
       .map((node) => node.textContent)
       .join(" | ");
     expect(notes).toContain("90deg");
-    expect(notes).toContain("stick_angle: 90");
+    expect(notes).toContain("map below to turn the stick 90°");
+    expect(notes).not.toContain("stick_angle");
   });
 });
 
