@@ -173,6 +173,27 @@ export function deviceChanges(before: DeviceData, after: DeviceData): string[] {
       `stick angle: ${String(before.stick_angle ?? "none")} → ${String(after.stick_angle ?? "none")}`,
     );
   }
+  if ((before.verified === true) !== (after.verified === true)) {
+    changes.push(after.verified === true ? "marked as press-tested" : "no longer press-tested");
+  }
+  // Everything else the press test can write -- the stick zero, the pins it saw fire for
+  // the first time -- and anything added to it later, so no result is called "nothing".
+  const named = new Set(["positions", "stick_directions", "stick_angle", "verified"]);
+  const rest = new Set([...Object.keys(before), ...Object.keys(after)]);
+  for (const field of [...rest].filter((key) => !named.has(key)).sort()) {
+    const value = (data: DeviceData, empty: string): string => {
+      const found: unknown = (data as unknown as Record<string, unknown>)[field];
+      return found === undefined ? empty : JSON.stringify(found);
+    };
+    if (value(before, "") === value(after, "")) continue;
+    if (field === "unknown_pins") {
+      changes.push(`unidentified pins: ${value(before, "[]")} → ${value(after, "[]")}`);
+    } else if (field === "stick_zero") {
+      changes.push(`stick zero: ${value(after, "none")}`);
+    } else {
+      changes.push(`${field}: ${value(before, "none")} → ${value(after, "none")}`);
+    }
+  }
   return changes;
 }
 
