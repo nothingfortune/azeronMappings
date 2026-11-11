@@ -325,3 +325,21 @@ export function preserveHeader(existing: string | null, incoming: string): strin
   const body = incoming.replace(/^(?:#[^\n]*\n|\s*\n)*/, "");
   return header + body;
 }
+
+const DEVICE_ID_LINE = /^software_device_id:.*$/m;
+
+/**
+ * Keep the unit id a device map already has.
+ *
+ * The page knows a unit by this person's id, which `local.yaml` gives, while the committed
+ * map keeps the repo's. A press test saved from the page carries the page's id, and
+ * writing it would commit one person's unit into a file everyone shares. Anything else in
+ * the map is the page's to change.
+ */
+export function keepDeviceId(path: string, existing: string | null, incoming: string): string {
+  const tidy = path.split(sep).join("/");
+  if (existing === null || !tidy.startsWith("devices/")) return incoming;
+  const committed = DEVICE_ID_LINE.exec(existing)?.[0];
+  if (committed === undefined) return incoming.replace(/^software_device_id:.*\n?/m, "");
+  return DEVICE_ID_LINE.test(incoming) ? incoming.replace(DEVICE_ID_LINE, committed) : incoming;
+}

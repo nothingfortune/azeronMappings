@@ -53,6 +53,7 @@ import {
   CONTENT_TYPES,
   SaveRejected,
   parseSaveRequest,
+  keepDeviceId,
   preserveHeader,
   resolveSavePath,
   guardedListener,
@@ -934,7 +935,11 @@ function cmdServe(port: number, host: string, open = false): number {
           validateSaveContent(path, content);
           mkdirSync(dirname(target), { recursive: true });
           const existing = existsSync(target) ? readFileSync(target, "utf8") : null;
-          writeFileSync(target, preserveHeader(existing, content), "utf8");
+          writeFileSync(
+            target,
+            preserveHeader(existing, keepDeviceId(path, existing, content)),
+            "utf8",
+          );
 
           // The file is written. What follows is the verdict on it, not a condition of it.
           let check: SaveCheck | { error: string };

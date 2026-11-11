@@ -13,16 +13,19 @@ import type { PedalsDeviceData } from "../../types/pedals.js";
 import type { ActionSetData, DeviceData } from "../../types/profile.js";
 import { findStore } from "../install.js";
 import { loadTemplate } from "../io.js";
+import { loadLocal } from "../machine.js";
+import type { LocalSettings } from "../machine.js";
 import { Game, Genre } from "../model.js";
 import { STYLE_ORDER } from "../styles.js";
 
 const DEFAULT_TEMPLATE = join(dataDirs.templates, "everspace2-v5.json");
 
-export function buildPayload(): EditorPayload {
+export function buildPayload(local: LocalSettings = loadLocal()): EditorPayload {
   const devices: Record<string, DeviceData> = {};
   // Pedals have axes, not pins. They are listed apart so everything that walks `devices`
   // expecting a position map keeps getting only keypads.
   const pedals: Record<string, PedalsDeviceData> = {};
+  // A unit's id is this person's: local.yaml gives it, as loadDevice does for the CLI.
   if (existsSync(repoPath(dataDirs.devices))) {
     for (const file of readdirSync(repoPath(dataDirs.devices)).sort()) {
       if (!file.endsWith(".yaml")) continue;
@@ -33,7 +36,8 @@ export function buildPayload(): EditorPayload {
         pedals[device.device] = device;
       } else {
         const keypad = data as unknown as DeviceData;
-        devices[keypad.device] = keypad;
+        const id = local.devices[keypad.device]?.software_device_id;
+        devices[keypad.device] = id === undefined ? keypad : { ...keypad, software_device_id: id };
       }
     }
   }
