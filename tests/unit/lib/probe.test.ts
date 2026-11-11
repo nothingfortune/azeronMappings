@@ -366,7 +366,7 @@ describe("deviceChanges", () => {
     const after = structuredClone(base) as DeviceData & {
       stick_directions?: Record<string, string>;
     };
-    after.positions.a = { ...after.positions.a, pin: 2 } as DeviceData["positions"][string];
+    after.positions.a = { ...after.positions.a, pin: 2 };
     after.stick_directions = { up: "up", right: "left", down: "down", left: "right" };
     expect(deviceChanges(base, after)).toEqual([
       "a: pin 1 → 2",

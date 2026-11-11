@@ -403,7 +403,7 @@ describe("saving what the press test found", () => {
 
   it("saves nothing, and asks nothing, when the map already says it", () => {
     const saved: string[] = [];
-    const confirm = vi.fn(() => true);
+    const confirm = vi.fn((_message?: string) => true);
     vi.stubGlobal("confirm", confirm);
     start(probePayload, undefined, { save: (path) => saved.push(path) });
     press(keyForPin(6));
@@ -415,7 +415,7 @@ describe("saving what the press test found", () => {
 
   it("shows what would change and saves only once the owner agrees", () => {
     const saved: string[] = [];
-    const confirm = vi.fn(() => false);
+    const confirm = vi.fn((_message?: string) => false);
     vi.stubGlobal("confirm", confirm);
     start(probePayload, undefined, { save: (path) => saved.push(path) });
     // Pinky side is pin 6; a key from the computer's keyboard that happens to be pin 26's
