@@ -66,11 +66,13 @@ export const PROBE_CSS = `
 .probe .stick-dial .hub { grid-area: 2 / 2; }
 .probe .stick-dial .right { grid-area: 2 / 3; }
 .probe .stick-dial .down { grid-area: 3 / 2; }
-.probe .thumb .up { grid-column: 2; grid-row: 2; }
-.probe .thumb .left { grid-column: 1; grid-row: 3; }
-.probe .thumb .center { grid-column: 2; grid-row: 3; }
-.probe .thumb .right { grid-column: 3; grid-row: 3; }
-.probe .thumb .down { grid-column: 2; grid-row: 4; }
+/* The d-pad's own cells, which are the thumb's children. The stick dial's cells share
+   the direction class names, and a rule reaching into the dial moves them out of its cross. */
+.probe .thumb > .up { grid-column: 2; grid-row: 2; }
+.probe .thumb > .left { grid-column: 1; grid-row: 3; }
+.probe .thumb > .center { grid-column: 2; grid-row: 3; }
+.probe .thumb > .right { grid-column: 3; grid-row: 3; }
+.probe .thumb > .down { grid-column: 2; grid-row: 4; }
 .probe .thumb .aux { grid-column: 1 / span 3; display: flex; gap: 6px; }
 .probe .zero-grid { display: grid; grid-template-columns: repeat(4, var(--cell-w)); gap: 6px;
                     margin-bottom: 10px; }

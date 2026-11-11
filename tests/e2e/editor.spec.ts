@@ -205,6 +205,31 @@ test.describe("the served editor", () => {
     expect(first && second && second.x > first.x + first.width / 2).toBe(true);
   });
 
+  test("draws the press test's stick as a cross, with the click in the middle", async ({
+    page,
+  }) => {
+    // The d-pad's placement rules reached the stick's cells, which share their class names,
+    // and drew Stick press where stick up should be.
+    await page.goto("/");
+    await page.getByRole("button", { name: "Press test", exact: true }).click();
+    const dial = page.locator(".hand").first().locator(".stick-dial");
+    const box = async (name: string): Promise<{ x: number; y: number }> => {
+      const found = await dial.locator(`.dir.${name}`).boundingBox();
+      if (!found) throw new Error(`no ${name} cell`);
+      return { x: found.x + found.width / 2, y: found.y + found.height / 2 };
+    };
+    const [up, hub, down, left, right] = await Promise.all(
+      ["up", "hub", "down", "left", "right"].map(box),
+    );
+    if (!up || !hub || !down || !left || !right) throw new Error("missing cell");
+    expect(up.y).toBeLessThan(hub.y);
+    expect(down.y).toBeGreaterThan(hub.y);
+    expect(left.x).toBeLessThan(hub.x);
+    expect(right.x).toBeGreaterThan(hub.x);
+    expect(Math.abs(left.y - hub.y)).toBeLessThan(2);
+    expect(Math.abs(up.x - hub.x)).toBeLessThan(2);
+  });
+
   test("keeps the press test inside the window", async ({ page }) => {
     // It was 2,311 pixels wide in a 1,440 window: the right unit sat off screen and the
     // Captured panel lay over it, because the board's stage rules reached it.

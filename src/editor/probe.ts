@@ -287,7 +287,21 @@ function onKey(event: KeyboardEvent): void {
   }
 
   if (assignment.kind !== "button") {
-    state.message = `${event.code} is a stick direction, not a button.`;
+    // Clicking the stick tilts it, so a stick direction arrives with the click. It is not
+    // a reading of this step, so it is passed over rather than called a mistake.
+    state.message = `Stick input ignored: the stick is tested last. Waiting for ${prompt.label}.`;
+    render();
+    return;
+  }
+  // One pin is one control. Pressing the d-pad's centre can tip it onto a side that has
+  // already been recorded; taking that reading would give two positions the same pin.
+  const holder = Object.entries(capture.pins).find(
+    ([position, pin]) => pin === assignment.pin && position !== prompt.position,
+  )?.[0];
+  if (holder !== undefined) {
+    state.message =
+      `Pin ${String(assignment.pin)} is already recorded for ${positionLabel(holder)}. ` +
+      `Waiting for ${prompt.label}.`;
     render();
     return;
   }

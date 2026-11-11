@@ -6,6 +6,20 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Fixed
 
+- **The right unit's stick sends left for left.** The press test of 2026-11-11 found its
+  left and right swapped (up and down were right), so `devices/cyborg2-right.yaml` now
+  carries `stick_directions` swapping them back, and every right-hand layout is rebuilt
+  with it. The same run recorded D-pad press on D-pad left's pin, from the centre tipping
+  as it was clicked; it stays on pin 37.
+
+- **The press test draws the stick as a cross.** The d-pad's placement rules reached the
+  stick's cells and drew Stick press where stick up should be. A stick tilting as it is
+  clicked is now passed over during a button step, and a pin already recorded for another
+  position is refused, naming that position. Its status lines are reworded.
+
+- **The unit maps' headers are one line.** They held one owner's dated test notes, which a
+  person with their own units would take as being about theirs.
+
 - **`npm audit` is clean.** happy-dom, the editor tests' browser, goes to 21.0.4 (a high
   advisory on untrusted HTML). minimatch, inside ESLint, had a moderate one fixed only in
   11.0.1, while every ESLint 10 still asks for 10.x. npm's own fix was to go back to

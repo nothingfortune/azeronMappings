@@ -6177,9 +6177,9 @@ function renderProbeBar(): HTMLElement {
   const run = probeRun;
   if (run === null) {
     say(
-      "The press test runs on profiles of its own: every control sends a key of its own, so " +
-        "the key that arrives says which pin fired. This puts them on the units over USB, and " +
-        "takes them off again when you are done.",
+      "The press test uses two dedicated profiles in which every control sends a unique key, " +
+        "identifying the pin that fired. They are installed on the units over USB and removed " +
+        "when you finish.",
       "muted",
     );
     button(
@@ -6244,15 +6244,15 @@ function renderProbeBar(): HTMLElement {
     for (const unit of known) {
       say(
         `${unitLabel(deviceForUnit(unit)?.hand ?? "")} unit: ` +
-          (holdsProbe(unit) ? "the press test is on it." : "nothing of the press test on it."),
+          (holdsProbe(unit) ? "press test installed." : "press test not installed."),
         "check-status",
       );
     }
     const anyOn = known.some(holdsProbe);
     if (anyOn) {
       say(
-        "Each unit runs the pass on screen, Pins or Stick zero. When you are done, take the " +
-          "press test off, or a unit's profile button will land on it.",
+        "Each unit runs the pass shown below (Pins or Stick zero). Remove the press test when " +
+          "you finish; until then, the profile button can still select it.",
         "muted",
       );
       button(
