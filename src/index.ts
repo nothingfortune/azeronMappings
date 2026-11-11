@@ -51,6 +51,7 @@ import {
   CONTENT_TYPES,
   SaveRejected,
   parseSaveRequest,
+  keepDeviceId,
   preserveHeader,
   resolveSavePath,
   guardedListener,
@@ -63,6 +64,7 @@ import {
   startGame,
   startLayout,
   deviceNames,
+  nameUnit,
   ImportCollision,
   importExport,
   applyIngame,
@@ -248,14 +250,10 @@ function cmdProbe(devices: string[], templatePath: string, outDir: string): numb
   out(`wrote ${profilePath}  (${String(assignments.length)} probe keys)`);
   out(`wrote ${stickPath}     (${String(calibration.assignments.length)} stick sectors)`);
   out("");
-  out("  1. Import probe-1-pins.json in the Azeron app and write it to the unit.");
-  out("  2. Close the app, open the editor, and switch to Press test.");
-  out("  3. Export the device YAML it produces over devices/<unit>.yaml.");
-  out("  4. Delete PROBE 1 pins and PROBE 2 stick zero from the unit's on-board profiles in");
-  out("     the Azeron app. Left there, the unit's profile button cycles onto them.");
-  out("");
-  out("  `azeron editor` can download both profiles itself -- this command is for");
-  out("  getting them without opening a browser.");
+  out("  These are the profiles the press test runs, as files, to read. To run the test,");
+  out("  open the editor (npm start) in Chrome or Edge, go to Press test and press");
+  out("  Put the press test on the units: it writes them into each unit over USB, and");
+  out("  Take the press test off removes them again.");
   return 0;
 }
 
@@ -682,6 +680,22 @@ function cmdServe(port: number, host: string): number {
       });
       return;
     }
+    if (request.method === "POST" && url === "/api/local/unit") {
+      // Which hand a unit is, as the page was told it: its id goes in local.yaml.
+      readBody(request, response, 1_000, (body) => {
+        try {
+          const parsed = JSON.parse(body) as { device?: unknown; id?: unknown };
+          if (typeof parsed.device !== "string" || typeof parsed.id !== "string") {
+            throw new Error("send {device, id}, both strings");
+          }
+          const file = nameUnit(parsed.device, parsed.id);
+          send(200, JSON.stringify({ ok: true, file }));
+        } catch (error) {
+          send(400, JSON.stringify({ ok: false, error: messageOf(error) }));
+        }
+      });
+      return;
+    }
     if (request.method === "POST" && url === "/api/units/written") {
       // A write the page made straight to a unit and read back clean, so the units report
       // stops asking for an import the unit no longer needs.
@@ -909,7 +923,11 @@ function cmdServe(port: number, host: string): number {
           validateSaveContent(path, content);
           mkdirSync(dirname(target), { recursive: true });
           const existing = existsSync(target) ? readFileSync(target, "utf8") : null;
-          writeFileSync(target, preserveHeader(existing, content), "utf8");
+          writeFileSync(
+            target,
+            preserveHeader(existing, keepDeviceId(path, existing, content)),
+            "utf8",
+          );
 
           // The file is written. What follows is the verdict on it, not a condition of it.
           let check: SaveCheck | { error: string };
@@ -1268,7 +1286,8 @@ function usage(): void {
   editor [--out PATH]             the editor as one self-contained HTML file
   serve [--port N] [--host H]     the same editor, able to save back into the repo; it
                                   listens on 127.0.0.1 only unless --host names another
-  probe [--device D]              press-test profiles; capture them in the editor's Press test tab
+  probe [--device D]              the press test's profiles, as files; the test itself
+                                  runs from the editor's Press test tab
   new <name> --genre G [--units left,right] [--set S] [--game SLUG]
                                   start a game with no export: the genre's actions and
                                   default layout, each unit built on its own stock export

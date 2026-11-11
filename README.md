@@ -60,10 +60,11 @@ Two things are yours to tell it, in a file called `local.yaml` at the top of the
 ignores it, so it never gets committed or overwritten by an update. Copy
 `local.example.yaml` to start one.
 
-- **Your keypads.** Each unit reports an id, and **Write to units** writes only to a unit
-  whose id it knows. The ids in `devices/` belong to the repo owner's units. The first time
-  you write, it lists the units it found but does not know, with their ids and the lines to
-  put in `local.yaml`. Unplug one unit to see which id belongs to which hand.
+- **Your keypads.** Each unit reports an id, and **Write to units** (and the press test)
+  writes only to a unit whose id it knows. The ids in `devices/` belong to the repo owner's
+  units. The first time, it lists the units it found but does not know, each with a
+  **This is the left unit** / **This is the right unit** button that puts its id in
+  `local.yaml` for you. Unplug one unit to see which id belongs to which hand.
 - **Anything installed somewhere unusual**, like a game from another store or a settings
   file that has been moved. When a file is not found, the page and the CLI say where they
   looked and which line of `local.yaml` would point them at it. Until then, comparing keys
@@ -92,9 +93,9 @@ before playing. It rewrites its own files while it is open.
 **Is what is on the units the layout?** After a write that read back clean, the editor
 knows: it keeps a fingerprint of what went onto each unit (`logs/units-written.json`). For
 a layout that came in through the app, it reads the app's own copy of each profile and
-compares it with the layout, key by key. While either is older than the layout, the header
-shows **Re-import N**: it lists each unit's file and every key the unit does something else
-on — "Ring 4: the unit has Inventory (I); the layout has Ultimate (G)" — and those keys are
+compares it with the layout, key by key. While a unit is behind, the header shows **Not on
+the units**: it lists every key the unit does something else on — "Ring 4: the unit has
+Inventory (I); the layout has Ultimate (G)" — with a **Write to units** button, and those keys are
 marked _not on unit_ on the board. Coming back to the page checks again.
 `npm run azeron -- units` says the same in the terminal.
 
@@ -150,9 +151,8 @@ turns autosave off if you would rather press Save.
   **Update the game's keys…**. The **In-game** tab is where actions are named and given
   their roles; **Show the wiring** there shows the keys, and lets one be moved by hand.
 
-What a save leaves for you to do shows in the header: **Re-import N** says the units are
-behind (Write to units brings them up to date, or import the files it lists, as paths the
-app's dialog takes), and **Update the game's keys…**
+What a save leaves for you to do shows in the header: **Not on the units** says the units
+are behind (click it to write them), and **Update the game's keys…**
 appears when the wiring or the pedals changed. That one asks whether the game is closed and
 then writes its `Input.ini`; it is the one thing saving never does on its own, because it
 writes outside the repo. **Clear all keys**, on the Actions bar, empties the board to lay a
@@ -232,13 +232,16 @@ reason. [CLAUDE.md](CLAUDE.md) has the constraint behind each rule.
 ## Less often
 
 **Press-testing a unit.** The right unit is not a mirror of the left — its thumb cluster
-is rotated half a turn — so each map is measured. `npm run azeron -- probe` writes
-`dist/probe/probe-1-pins.json`, a profile where every pin sends a different key, and
-`probe-2-stick-zero.json` for the stick. Import one onto a unit, open the editor's
-**Press test** tab, and press what it highlights; it records which pin fired and exports
-a corrected `devices/<unit>.yaml`. Then delete **PROBE 1 pins** and **PROBE 2 stick zero**
-from the unit's onboard slots, from the Write to units bar or in the Azeron app: left
-there, the unit's profile button cycles onto them and every key sends a probe key.
+is rotated half a turn — so each map is measured. Open the editor's **Press test** tab
+(`npm start`, in Chrome or Edge) and press **Put the press test on the units**. It writes
+two profiles of its own into each unit over USB, one where every pin sends a different
+key and one for the stick, and each unit runs the one for the pass on screen. Press what
+the page highlights; it records which pin fired and saves a corrected
+`devices/<unit>.yaml`. Then press **Take the press test off**: left there, a unit's
+profile button cycles onto them and every key sends a probe key. Nothing else needs to be
+installed, and any other keypad software must be closed while the page talks to the
+units. (`npm run azeron -- probe` writes the same two profiles to `dist/probe/` as files,
+for reading.)
 
 **Starting a new game.** In the Setup tab, **Add a new game**: its name, the kind of game,
 which units, and a name for the first layout. No Azeron app is involved. The game starts

@@ -8,7 +8,13 @@ export interface ProbePayload {
   /** The assumed maps, used for the diagram and for everything but the pins. */
   devices: Record<string, DeviceData>;
   /** Which device to sweep for each hand. */
-  units: { hand: string; device: string }[];
+  units: {
+    hand: string;
+    device: string;
+    /** This unit's own keys, when its probe was built on its own export. */
+    assignments?: ProbeAssignment[];
+    stickAssignments?: ProbeAssignment[];
+  }[];
   assignments: ProbeAssignment[];
   /** From the stick-only calibration profile: all eight sectors, 45-degree resolution. */
   stickAssignments: ProbeAssignment[];

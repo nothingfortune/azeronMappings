@@ -17,7 +17,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { posix, win32 } from "node:path";
 
-import { parse, parseDocument } from "yaml";
+import { parse, parseDocument, Scalar } from "yaml";
 
 import { dataRoot, localPath } from "../config/paths.js";
 import { messageOf } from "./object.js";
@@ -329,6 +329,29 @@ export function setLocalGamePath(
   parseLocal(text, file);
   const doc = parseDocument(text);
   doc.setIn(["games", slug, field], value);
+  writeFileSync(file, doc.toString(), "utf8");
+  return file;
+}
+
+/**
+ * Give a device map this computer's unit, in local.yaml, keeping whatever else and any
+ * comments it holds. The unit reports its id over USB, so the page that read it can say
+ * which hand it is without anyone opening the file. Another device map with the same id
+ * loses it: one unit cannot be both hands.
+ */
+export function setLocalDeviceId(device: string, id: string, root: string = dataRoot): string {
+  if (!/^\d+$/.test(id)) throw new LocalSettingsError(`a unit's id is a number, not "${id}"`);
+  const file = `${root}/${LOCAL_FILE}`;
+  const text = existsSync(file) ? readFileSync(file, "utf8") : LOCAL_HEADER;
+  const before = parseLocal(text, file);
+  const doc = parseDocument(text);
+  for (const [name, entry] of Object.entries(before.devices)) {
+    if (name !== device && entry.software_device_id === id) doc.deleteIn(["devices", name]);
+  }
+  // Quoted, as the device maps write it: an id is a name that happens to be digits.
+  const value = new Scalar(id);
+  value.type = Scalar.QUOTE_DOUBLE;
+  doc.setIn(["devices", device, "software_device_id"], value);
   writeFileSync(file, doc.toString(), "utf8");
   return file;
 }

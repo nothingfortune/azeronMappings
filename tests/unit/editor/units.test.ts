@@ -124,8 +124,8 @@ describe("what the Azeron app has, against the layout", () => {
   it("puts the units that are behind in the header, from the app rather than from saves", async () => {
     mount(withApp());
     await settle();
-    expect(pill()?.textContent).toBe("Re-import 1");
-    expect(pill()?.title).toContain("Azeron app's copy");
+    expect(pill()?.textContent).toBe("Not on the units");
+    expect(pill()?.title).toContain("1 unit(s) do not have this layout");
   });
 
   it("marks a key the unit does something else on, and says what", async () => {
@@ -140,16 +140,17 @@ describe("what the Azeron app has, against the layout", () => {
     expect(key(0, "ring_4").classList.contains("unit-stale")).toBe(false);
   });
 
-  it("lists every control that differs and the file to import, and checks again", async () => {
+  it("lists every control that differs, offers Write to units, and checks again", async () => {
     mount(withApp());
     await settle();
     pill()?.click();
     const report = document.querySelector(".units-report");
     const text = report?.textContent ?? "";
     expect(text).toContain("Right unit -- 2 controls differ");
-    expect(text).toContain("everspace_akimbo_v10_right.json");
+    expect(text).toContain("Write to units puts it on them");
+    expect(text).not.toContain("Import");
     expect(text).toContain('Ring 4: the unit has Inventory (I) -- labelled "Inventory"');
-    expect(text).toContain('Middle 5: the same key, named "Bag (I)" in the app');
+    expect(text).toContain('Middle 5: the same key, named "Bag (I)" on the unit');
     expect(text).not.toContain("Left unit");
 
     // Imported in the app: Check again finds it up to date, and the reminder goes.
@@ -161,7 +162,7 @@ describe("what the Azeron app has, against the layout", () => {
     await settle();
     expect(pill()).toBeNull();
     expect(document.querySelector(".units-report")?.textContent).toContain(
-      "has this layout on both units as it is now",
+      "The units have this layout as it is now.",
     );
     expect(key(1, "ring_4").classList.contains("unit-stale")).toBe(false);
   });

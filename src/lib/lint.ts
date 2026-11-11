@@ -246,7 +246,8 @@ export function checkProfile(profile: Profile, actions: ActionSet, config: LintC
         position,
         message:
           `${slot} -> '${action}', which has no key to be sent on, so the control would do ` +
-          "nothing. Placing it from the editor gives it one; by hand, give it a `key:` in " +
+          "nothing. The editor gives a placed action a key while its pool of spare keys " +
+          "lasts; with none left, take another action off, or give this one a `key:` in " +
           "actions.yaml.",
       });
       continue;

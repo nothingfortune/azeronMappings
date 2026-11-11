@@ -48,7 +48,7 @@ import {
   STICK_DIRECTIONS,
   STICK_MODE_CODES,
 } from "../types/azeron.js";
-import type { ExportProfile, Slot, StickDirection } from "../types/azeron.js";
+import type { ExportDocument, ExportProfile, Slot, StickDirection } from "../types/azeron.js";
 import type { EditorGame, EditorPayload } from "../types/editor.js";
 import type {
   NameStatus,
@@ -57,14 +57,17 @@ import type {
   SetPedals,
   SetsData,
 } from "../types/pedals.js";
-import type { ActionSpec, PositionSpec, ProfileData } from "../types/profile.js";
+import type { ActionSpec, DeviceData, PositionSpec, ProfileData } from "../types/profile.js";
 import { messageOf, removeKey } from "../lib/object.js";
 import { dumpYaml } from "../lib/yaml.js";
 import { AZERON_PRODUCT_ID, alreadyGranted, hex4, requestUnits } from "../lib/hid.js";
 import type { DetectionState, HidLike } from "../lib/hid.js";
 import { buildProbeProfile, buildStickCalibrationProfile } from "../lib/probe.js";
 import type { ProbePayload } from "../types/probe.js";
-import { start as startProbe, stop as stopProbe } from "./probe.js";
+import { probePass, start as startProbe, stop as stopProbe } from "./probe.js";
+import type { Mode as ProbePass } from "./probe.js";
+import { holdsProbe, putProbes, removeProbes, runProbe } from "./probe-units.js";
+import type { ProbeProfiles } from "./probe-units.js";
 import {
   CONFIG_FILTER,
   closeUnits,
@@ -149,12 +152,25 @@ function templateFor(game: EditorGame, profile?: Profile) {
   return template;
 }
 
-function probeProfiles() {
-  const template = templateFor(currentGame());
-  const devices = Object.values(state.payload.devices);
-  const unknown = devices[0]?.unknown_pins ?? [];
+/** The keypad device maps, each with the export its press test is built on. */
+function probeUnits(): { device: DeviceData; template: ExportDocument }[] {
+  const fallback = templateFor(currentGame());
+  return Object.values(state.payload.devices).map((device) => ({
+    device,
+    template:
+      (device.template === undefined ? undefined : state.payload.templates[device.template]) ??
+      fallback,
+  }));
+}
+
+/** One unit's two probes, built on that unit's own export so its stick reads as it will. */
+function probeProfilesFor(device: DeviceData, template: ExportDocument) {
   return {
-    pins: buildProbeProfile(template, { id: PROBE_ID, name: "PROBE 1 pins", unknownPins: unknown }),
+    pins: buildProbeProfile(template, {
+      id: PROBE_ID,
+      name: "PROBE 1 pins",
+      unknownPins: device.unknown_pins ?? [],
+    }),
     stick: buildStickCalibrationProfile(template, {
       id: PROBE_STICK_ID,
       name: "PROBE 2 stick zero",
@@ -163,18 +179,25 @@ function probeProfiles() {
 }
 
 function probePayload(): ProbePayload {
-  const built = probeProfiles();
-  const devices = state.payload.devices;
+  const units = probeUnits();
+  const first = units[0];
+  if (first === undefined) throw new Error("no keypad device maps to test");
+  const shared = probeProfilesFor(first.device, first.template);
   return {
     generatedAt: state.payload.generatedAt,
     profileName: "PROBE 1 pins",
-    devices,
-    units: Object.values(devices).map((device) => ({
-      hand: device.hand ?? device.device,
-      device: device.device,
-    })),
-    assignments: built.pins.assignments,
-    stickAssignments: built.stick.assignments,
+    devices: state.payload.devices,
+    units: units.map(({ device, template }) => {
+      const built = probeProfilesFor(device, template);
+      return {
+        hand: device.hand ?? device.device,
+        device: device.device,
+        assignments: built.pins.assignments,
+        stickAssignments: built.stick.assignments,
+      };
+    }),
+    assignments: shared.pins.assignments,
+    stickAssignments: shared.stick.assignments,
   };
 }
 
@@ -2128,7 +2151,11 @@ function reportSave(path: string, result: SaveResponse, also: readonly string[] 
   box.append(el("div", {}, [`Saved ${saved}.`]));
   if (check.pedals !== undefined) box.append(renderPedalsVerdict(check.pedals));
   if (changed.length > 0) {
-    box.append(el("div", {}, ["Import in the Azeron app, then write it to the unit:"]));
+    box.append(
+      el("div", {}, [
+        "The units do not have this yet: Write to units, in the header, puts it on them. Built:",
+      ]),
+    );
     for (const entry of changed) {
       const row = el("div", { class: "import-path" }, [el("code", {}, [entry.importPath])]);
       if (entry.mirroredTo) row.append(el("small", {}, [` also copied to ${entry.mirroredTo}`]));
@@ -2136,7 +2163,7 @@ function reportSave(path: string, result: SaveResponse, also: readonly string[] 
     }
   } else {
     box.append(
-      el("div", { class: "muted" }, ["Nothing to re-import: the compiled file is unchanged."]),
+      el("div", { class: "muted" }, ["Nothing new for the units: the compiled file is unchanged."]),
     );
   }
   for (const message of check.buildErrors) {
@@ -2523,8 +2550,8 @@ let failedSnapshot: string | null = null;
 
 /**
  * What saving has left for the owner to do, which a save that happens on its own cannot
- * hand over in a report each time: the files to import into the Azeron app, and the game
- * that has not been told about new keys or pedals.
+ * hand over in a report each time: the files built since the units were last written, and
+ * the game that has not been told about new keys or pedals.
  */
 const pendingImports = new Map<string, string>();
 let gameBehind = false;
@@ -2598,7 +2625,7 @@ function unitsReportBox(report: UnitsReport): HTMLElement {
     box.append(
       el("div", {}, [
         direct.length === 0
-          ? "The Azeron app has this layout on both units as it is now."
+          ? "The units have this layout as it is now."
           : "The units have this layout as it is now: " +
             report.units
               .map((unit) =>
@@ -2614,8 +2641,7 @@ function unitsReportBox(report: UnitsReport): HTMLElement {
   }
   box.append(
     el("div", {}, [
-      "The Azeron app does not have this layout as it is now, so the units do not either. " +
-        "Import each file below in the app, then write it to its unit:",
+      "The units do not have this layout as it is now. Write to units puts it on them:",
     ]),
   );
   for (const unit of behind) {
@@ -2624,11 +2650,10 @@ function unitsReportBox(report: UnitsReport): HTMLElement {
       el("div", { class: "unit-behind" }, [
         el("strong", {}, [`${unitLabel(unit.unit)} unit`]),
         unit.status === "missing"
-          ? ` -- the app has no profile named "${unit.name}"`
+          ? " -- not on the unit yet"
           : ` -- ${String(count)} control${count === 1 ? "" : "s"} differ`,
       ]),
     );
-    box.append(el("div", { class: "import-path" }, [el("code", {}, [unit.importPath])]));
     if (count > 0) {
       const list = el("ul", { class: "unit-differences" });
       for (const difference of unit.differences) {
@@ -2636,7 +2661,7 @@ function unitsReportBox(report: UnitsReport): HTMLElement {
           el("li", {}, [
             el("strong", {}, [difference.where]),
             difference.labelOnly
-              ? `: the same key, named "${difference.app}" in the app`
+              ? `: the same key, named "${difference.app}" on the unit`
               : `: the unit has ${difference.app}; the layout has ${difference.layout}`,
           ]),
         );
@@ -2644,11 +2669,16 @@ function unitsReportBox(report: UnitsReport): HTMLElement {
       box.append(list);
     }
   }
+  const write = el("button", { class: "btn small primary", type: "button" }, ["Write to units"]);
+  write.addEventListener("click", () => {
+    saveReport = null;
+    startWrite();
+  });
   const again = el("button", { class: "btn small", type: "button" }, ["Check again"]);
   again.addEventListener("click", () => {
     askUnits();
   });
-  box.append(again);
+  box.append(write, again);
   return box;
 }
 
@@ -2719,23 +2749,6 @@ function undo(): void {
   state.slot = "tap";
   restoring = true;
   render();
-}
-
-/** The files a save changed, for the owner to import, with a way to say it is done. */
-function importsReport(): HTMLElement {
-  const box = el("div", { class: "save-report imports" });
-  box.append(el("div", {}, ["Import in the Azeron app, then write each to its unit:"]));
-  for (const path of pendingImports.values()) {
-    box.append(el("div", { class: "import-path" }, [el("code", {}, [path])]));
-  }
-  const done = el("button", { class: "btn small", type: "button" }, ["I have imported them"]);
-  done.addEventListener("click", () => {
-    pendingImports.clear();
-    saveReport = null;
-    render();
-  });
-  box.append(done);
-  return box;
 }
 
 /**
@@ -3016,17 +3029,17 @@ function renderCheckBar(run: CheckRun): HTMLElement {
     if (result.onProbe) {
       advice =
         "Those are the press-test profile's keys: the unit is on one of its press-test " +
-        "slots. Press its profile button until it is on this layout, or pick the layout in " +
-        "the Azeron app.";
+        "slots. Press its profile button until it is on this layout, or take the press test " +
+        "off in the Press test tab.";
     } else if (app !== undefined && app.status !== "matches" && app.status !== "written") {
-      advice = `The Azeron app has an older copy too. Import ${app.importPath} there and write it to the unit.`;
+      advice =
+        "The unit has an older copy of this layout. Write to units, in the header, puts this one on it.";
     } else if (result.differing.length * 2 > result.checked) {
       advice =
         "Most controls differ, so the unit is probably on another of its onboard profiles. " +
-        "Press its profile button, or pick this layout in the Azeron app and write it to the unit.";
+        "Press its profile button, or Write to units, in the header, to put this layout on it.";
     } else {
-      advice =
-        "Import this unit's file in the Azeron app and write it to the unit, then check again.";
+      advice = "Write to units, in the header, puts this layout on it; then check again.";
     }
     bar.append(el("div", { class: "check-note" }, [advice]));
   }
@@ -3390,28 +3403,107 @@ function watchUnplugging(hid: ConfigHid): void {
 /**
  * Units the page can reach that no device map names: someone else's keypads, whose ids
  * are not the repo owner's. A unit is known by the id it reports, and that id is this
- * computer's to give, in local.yaml, so the note says exactly what to put there.
+ * computer's to give, in local.yaml. Served, a button per hand writes it there; the lines
+ * to put there by hand are shown as well, for a page that cannot save.
  */
 function unnamedUnits(run: WriteRun): HTMLElement | null {
   const named = new Set(run.plans.map((plan) => plan.target.softwareDeviceId));
   const strangers = run.units.filter((unit) => !named.has(String(unit.identity.deviceId)));
-  const missing = run.plans.filter((plan) => plan.found === null);
-  if (strangers.length === 0 || missing.length === 0) return null;
+  const missing = run.plans
+    .filter((plan) => plan.found === null)
+    .map((plan) => profileFor(plan.target.slug).device.name);
+  return namingNote(strangers, missing, "not a unit this layout names", () => {
+    endWrite(false);
+    void refreshPayload().then(() => {
+      startWrite();
+    });
+  });
+}
+
+/**
+ * The note for connected units no device map names, with what to do about each: a button
+ * per hand still unclaimed, which records the id in local.yaml, then `named` runs.
+ */
+function namingNote(
+  strangers: readonly FoundUnit[],
+  devices: readonly string[],
+  why: string,
+  named: () => void,
+): HTMLElement | null {
+  if (strangers.length === 0 || devices.length === 0) return null;
   const lines = ["devices:"];
-  missing.forEach((plan, index) => {
+  devices.forEach((device, index) => {
     const unit = strangers[index] ?? strangers[0];
     lines.push(
-      `  ${profileFor(plan.target.slug).device.name}:`,
+      `  ${device}:`,
       `    software_device_id: "${String(unit?.identity.deviceId ?? "")}"`,
     );
   });
-  return el("div", { class: "check-note" }, [
-    `Connected, but not a unit this layout names: ${strangers
+  const note = el("div", { class: "check-note naming" }, [
+    `Connected, but ${why}: ${strangers
       .map((unit) => `unit ${String(unit.identity.deviceId)}`)
-      .join(", ")}. Tell this computer which hand each is in local.yaml at the repo's top ` +
-      "(with one unit unplugged, only the other's id shows), then reload:",
-    el("pre", {}, [lines.join("\n")]),
+      .join(", ")}. Say which hand each is` +
+      (canSave() ? "" : " in local.yaml at the repo's top, then reload") +
+      " (with one unit unplugged, only the other's id shows).",
   ]);
+  if (canSave()) {
+    for (const unit of strangers) {
+      const id = String(unit.identity.deviceId);
+      const row = el("div", { class: "naming-row" }, [el("span", {}, [`Unit ${id}:`])]);
+      for (const device of devices) {
+        const data = state.payload.devices[device];
+        const hand = unitLabel(data?.hand ?? device).toLowerCase();
+        const pick = el("button", { class: "btn small", type: "button" }, [
+          `This is the ${hand} unit`,
+        ]);
+        pick.setAttribute("data-name-unit", `${id}:${device}`);
+        pick.addEventListener("click", () => {
+          pick.setAttribute("disabled", "disabled");
+          void nameUnitHere(device, id).then((error) => {
+            if (error === null) named();
+            else {
+              row.append(el("span", { class: "bad" }, [error]));
+              pick.removeAttribute("disabled");
+            }
+          });
+        });
+        row.append(pick);
+      }
+      note.append(row);
+    }
+    note.append(
+      el("div", { class: "muted" }, ["It goes in local.yaml, which is this computer's alone."]),
+    );
+  } else {
+    note.append(el("pre", {}, [lines.join("\n")]));
+  }
+  return note;
+}
+
+/** Record which hand a unit is, in local.yaml; the page's device maps follow. Null is done. */
+async function nameUnitHere(device: string, id: string): Promise<string | null> {
+  try {
+    const response = await fetch("/api/local/unit", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ device, id }),
+    });
+    const body = (await response.json()) as { ok?: boolean; error?: string };
+    if (body.ok !== true) return body.error ?? "local.yaml could not be written";
+  } catch (error) {
+    return messageOf(error);
+  }
+  // The page's own copy, so what reads the maps now sees it without a reload. One unit is
+  // one hand: an id given to another map is taken off it, as the file does.
+  for (const data of Object.values(state.payload.devices)) {
+    if (data.software_device_id === id && data.device !== device) {
+      removeKey(data, "software_device_id");
+    }
+  }
+  const data = state.payload.devices[device];
+  if (data !== undefined) data.software_device_id = id;
+  unitLog(`unit ${id} is ${device}, in local.yaml`);
+  return null;
 }
 
 function deviceNameFor(deviceId: number): string | null {
@@ -3423,8 +3515,17 @@ function deviceNameFor(deviceId: number): string | null {
     : `${unitLabel(device.hand ?? device.device).toLowerCase()} unit`;
 }
 
+/** Whether Write to units is mid-exchange with the units. */
+function writeBusy(): boolean {
+  return writeRun?.stage === "preparing" || writeRun?.stage === "writing";
+}
+
 function startWrite(): void {
   if (writeRun !== null) return;
+  // The press test may have the units open: it is ended, and the write waits for whatever
+  // it is in the middle of and for it to let go, so one session talks to a unit at a time.
+  if (probeRun !== null) endProbeRun();
+  const released = unitsReleased;
   stopTester(false);
   capturing = null;
   state.selected = null;
@@ -3442,7 +3543,10 @@ function startWrite(): void {
   };
   writeRun = run;
   render();
-  void prepareWrite(run);
+  void (async () => {
+    await released;
+    await prepareWrite(run);
+  })();
 }
 
 /** Whether the Azeron app is running: true, false, or null when that could not be told. */
@@ -3648,8 +3752,15 @@ function writeAll(run: WriteRun): void {
       }
     }
     run.stage = "done";
+    // Every unit has the layout as saved: nothing is left to put on them.
+    if (
+      run.results.length === plans.length &&
+      run.results.every((result) => result.error === null && result.report?.problems.length === 0)
+    ) {
+      pendingImports.clear();
+    }
     await closeUnits(run.units);
-    // What the units hold has changed, so the header's Re-import is asked again.
+    // What the units hold has changed, so the header's Not on the units is asked again.
     askUnits();
     if (writeRun === run) render();
   })();
@@ -3706,10 +3817,22 @@ async function forgetDeletedSlot(deviceId: string | undefined, slot: number): Pr
   askUnits();
 }
 
+/**
+ * Settles once every run that let go of the units has closed them. A run is dropped the
+ * moment it is ended, while its last exchange and its close may still be under way, so
+ * whatever opens the units next waits on this rather than on a run it can no longer see.
+ */
+let unitsReleased: Promise<void> = Promise.resolve();
+
+function releaseUnits(work: Promise<void>, units: readonly FoundUnit[]): void {
+  const closed = work.then(() => closeUnits(units)).catch(() => undefined);
+  unitsReleased = Promise.all([unitsReleased, closed]).then(() => undefined);
+}
+
 function endWrite(redraw = true): void {
   const run = writeRun;
   writeRun = null;
-  if (run) void closeUnits(run.units);
+  if (run) releaseUnits(Promise.resolve(), run.units);
   if (redraw) render();
 }
 
@@ -4338,15 +4461,21 @@ function renderHeader(): HTMLElement {
     const behind = units === null ? null : unitsBehind(units);
     const count = behind === null ? pendingImports.size : behind.length;
     if (count > 0) {
+      // Without the Azeron app's store to ask, this is what has been saved since the units
+      // were last written; the pill writes them.
       const imports = el("button", { class: "pill todo", type: "button", "data-todo": "import" }, [
-        `Re-import ${String(count)}`,
+        "Not on the units",
       ]);
       imports.title =
         behind === null
-          ? `${String(count)} file(s) for the Azeron app have changed. Click for where they are.`
-          : `The Azeron app's copy of ${String(count)} unit(s) is not this layout. Click for which keys.`;
+          ? "Saved since the units were last written. Click to write them."
+          : `${String(count)} unit(s) do not have this layout as it is now. Click for which keys.`;
       imports.addEventListener("click", () => {
-        saveReport = units === null ? importsReport() : unitsReportBox(units);
+        if (units === null) {
+          startWrite();
+          return;
+        }
+        saveReport = unitsReportBox(units);
         render();
       });
       header.append(imports);
@@ -5781,31 +5910,401 @@ function renderRepo(): HTMLElement {
   return panel;
 }
 
+/**
+ * The press test on the units themselves: both probes written into each unit the page
+ * knows, the pass on screen deciding which one it runs, and both deleted afterwards.
+ */
+interface ProbeRun {
+  stage: "busy" | "app-running" | "app-unknown" | "needs-access" | "ready" | "failed";
+  /** What the bar says while it works. */
+  status: string;
+  note: string | null;
+  units: FoundUnit[];
+  appClosedSaid: boolean;
+  /** What the run was asked to do once the units are found. */
+  then: "put" | "remove";
+  /** Every exchange the run has started, settled once the units are left alone. */
+  pending: Promise<void>;
+  /** Units whose probes did not read back as written: never switched onto them. */
+  unverified: Set<FoundUnit>;
+}
+
+let probeRun: ProbeRun | null = null;
+
+/** The device map a connected unit is, by the id it reported. */
+function deviceForUnit(unit: FoundUnit): DeviceData | undefined {
+  return Object.values(state.payload.devices).find(
+    (device) => device.software_device_id === String(unit.identity.deviceId),
+  );
+}
+
+function probeProfilesForUnit(device: DeviceData): ProbeProfiles {
+  const match = probeUnits().find((entry) => entry.device.device === device.device);
+  const built = probeProfilesFor(device, match?.template ?? templateFor(currentGame()));
+  const pins = built.pins.doc.profiles[0];
+  const zero = built.stick.doc.profiles[0];
+  if (pins === undefined || zero === undefined) throw new Error("the probe has no profile");
+  return { pins, zero, unknownPins: device.unknown_pins ?? [] };
+}
+
+function probeUnitLabel(unit: FoundUnit): string {
+  const device = deviceForUnit(unit);
+  return device === undefined
+    ? `unit ${String(unit.identity.deviceId)}`
+    : `${unitLabel(device.hand ?? device.device).toLowerCase()} unit`;
+}
+
+function startProbeRun(then: ProbeRun["then"]): void {
+  if (probeRun?.stage === "busy") return;
+  const previous = probeRun;
+  if (previous !== null) endProbeRun();
+  const run: ProbeRun = {
+    stage: "busy",
+    status: "Getting ready…",
+    note: null,
+    units: [],
+    appClosedSaid: previous?.appClosedSaid ?? false,
+    then,
+    pending: Promise.resolve(),
+    unverified: new Set(),
+  };
+  probeRun = run;
+  if (writeBusy()) {
+    // Write to units has the units open and is mid-exchange; two sessions on one unit
+    // would read each other's answers.
+    run.stage = "failed";
+    run.note = "Write to units is still working. Try again when it has finished.";
+    render();
+    return;
+  }
+  // A finished write still holds the units open: let go of them first.
+  if (writeRun !== null) endWrite(false);
+  const released = unitsReleased;
+  render();
+  run.pending = (async () => {
+    await released;
+    await connectProbeRun(run);
+  })();
+}
+
+/** Find the units, then do what the run was started for. */
+async function connectProbeRun(run: ProbeRun): Promise<void> {
+  const alive = (): boolean => probeRun === run;
+  const step = (status: string): void => {
+    run.stage = "busy";
+    run.status = status;
+    if (alive()) render();
+  };
+  try {
+    const hid = unitsApi();
+    if (!hid) {
+      throw new Error(
+        "This browser has no WebHID, which talking to the units needs. Use Chrome or Edge.",
+      );
+    }
+    step("Checking nothing else is talking to the units…");
+    const running = await azeronAppRunning();
+    if (!alive()) return;
+    if (running === true) {
+      run.stage = "app-running";
+      render();
+      return;
+    }
+    if (running === null && !run.appClosedSaid) {
+      run.stage = "app-unknown";
+      render();
+      return;
+    }
+    step("Finding the units…");
+    const { units, problems } = await findUnits(hid, { log: unitProgress });
+    if (!alive()) {
+      await closeUnits(units);
+      return;
+    }
+    run.units = units;
+    if (problems.length > 0) run.note = problems.join(" ");
+    const known = units.filter((unit) => deviceForUnit(unit) !== undefined);
+    if (known.length === 0) {
+      run.stage = "needs-access";
+      render();
+      return;
+    }
+    if (run.then === "put") {
+      const written = await putProbeOnUnits(run, known);
+      if (!alive()) return;
+      // A pass chosen while the probes went on was not followed then: follow it now.
+      await catchUpProbePass(run, written);
+    } else await removeProbeFromUnits(run, known);
+    if (!alive()) return;
+    run.stage = "ready";
+  } catch (error) {
+    run.stage = "failed";
+    run.note = explain(error, "reaching the units");
+    unitLog(`press test: ${run.note}`);
+  }
+  if (alive()) render();
+}
+
+/** Put both probes on each unit, running the pass on screen; returns the pass used. */
+async function putProbeOnUnits(run: ProbeRun, units: readonly FoundUnit[]): Promise<ProbePass> {
+  const pass = probePass();
+  const notes: string[] = [];
+  for (const unit of units) {
+    const device = deviceForUnit(unit);
+    if (device === undefined) continue;
+    run.status = `Putting the press test on the ${probeUnitLabel(unit)}…`;
+    render();
+    try {
+      const report = await putProbes(unit, probeProfilesForUnit(device), pass);
+      if (report.problems.length > 0) {
+        run.unverified.add(unit);
+        notes.push(
+          `The ${probeUnitLabel(unit)} did not read back as written: ` +
+            report.problems.slice(0, 3).join("; "),
+        );
+      }
+      unitLog(`press test on unit ${String(unit.identity.deviceId)}`);
+    } catch (error) {
+      run.unverified.add(unit);
+      notes.push(explain(error, `putting the press test on the ${probeUnitLabel(unit)}`));
+    }
+  }
+  if (notes.length > 0) run.note = notes.join(" ");
+  return pass;
+}
+
+/** The units holding the probes that may be switched onto them: they read back as written. */
+function switchableUnits(run: ProbeRun): FoundUnit[] {
+  return probeKnownUnits(run).filter((unit) => holdsProbe(unit) && !run.unverified.has(unit));
+}
+
+/** Switch every unit holding the probes to the pass on screen, until it stops changing. */
+async function catchUpProbePass(run: ProbeRun, running: ProbePass): Promise<void> {
+  let current = running;
+  for (let tries = 0; tries < 3 && probePass() !== current; tries += 1) {
+    current = probePass();
+    for (const unit of switchableUnits(run)) {
+      try {
+        await runProbe(unit, current);
+      } catch (error) {
+        run.note = explain(error, `switching the ${probeUnitLabel(unit)}`);
+      }
+    }
+  }
+}
+
+async function removeProbeFromUnits(run: ProbeRun, units: readonly FoundUnit[]): Promise<void> {
+  const notes: string[] = [];
+  for (const unit of units) {
+    if (!holdsProbe(unit)) continue;
+    run.status = `Taking the press test off the ${probeUnitLabel(unit)}…`;
+    render();
+    try {
+      const report = await removeProbes(unit);
+      for (const slot of report.removed) {
+        await forgetDeletedSlot(deviceForUnit(unit)?.software_device_id, slot);
+      }
+      unitLog(`press test off unit ${String(unit.identity.deviceId)}`);
+    } catch (error) {
+      notes.push(explain(error, `taking the press test off the ${probeUnitLabel(unit)}`));
+    }
+  }
+  if (notes.length > 0) run.note = notes.join(" ");
+}
+
+/** The units the page knows, connected now. */
+function probeKnownUnits(run: ProbeRun): FoundUnit[] {
+  return run.units.filter((unit) => deviceForUnit(unit) !== undefined);
+}
+
+/** The pass on screen changed: every unit with the press test on it runs that pass. */
+function followProbePass(pass: ProbePass): void {
+  const run = probeRun;
+  if (run?.stage !== "ready") return;
+  const units = switchableUnits(run);
+  if (units.length === 0) return;
+  // One exchange at a time: a second switch waits for the first.
+  run.pending = run.pending.then(async () => {
+    if (probeRun !== run) return;
+    const notes: string[] = [];
+    for (const unit of units) {
+      try {
+        await runProbe(unit, pass);
+      } catch (error) {
+        notes.push(explain(error, `switching the ${probeUnitLabel(unit)}`));
+      }
+    }
+    run.note = notes.length > 0 ? notes.join(" ") : null;
+    if (probeRun === run) render();
+  });
+}
+
+function endProbeRun(): void {
+  const run = probeRun;
+  probeRun = null;
+  if (run !== null) releaseUnits(run.pending, run.units);
+}
+
+/** One pick from the browser's dialog. Nothing is awaited first: it opens only from the click. */
+function grantProbeUnit(): void {
+  const hid = unitsApi();
+  if (!hid) return;
+  const then = probeRun?.then ?? "put";
+  void hid
+    .requestDevice({ filters: [CONFIG_FILTER] })
+    .then((devices) => {
+      if (devices.length > 0) startProbeRun(then);
+    })
+    .catch((error: unknown) => {
+      if (probeRun !== null) probeRun.note = explain(error, "picking a unit");
+      render();
+    });
+}
+
+function renderProbeBar(): HTMLElement {
+  const bar = el("div", { class: "check-bar probe-units" });
+  const buttons = el("div", { class: "probe-units-actions" });
+  const button = (label: string, act: () => void, primary = false): HTMLButtonElement => {
+    const node = el("button", { class: `btn small${primary ? " primary" : ""}`, type: "button" }, [
+      label,
+    ]);
+    node.addEventListener("click", act);
+    buttons.append(node);
+    return node;
+  };
+  const say = (text: string, kind = "check-note"): void => {
+    bar.append(el("div", { class: kind }, [text]));
+  };
+  if (unitsApi() === undefined) {
+    say("Putting the press test on a unit needs WebHID: open this page in Chrome or Edge.");
+    return bar;
+  }
+  const run = probeRun;
+  if (run === null) {
+    say(
+      "The press test runs on profiles of its own: every control sends a key of its own, so " +
+        "the key that arrives says which pin fired. This puts them on the units over USB, and " +
+        "takes them off again when you are done.",
+      "muted",
+    );
+    button(
+      "Put the press test on the units",
+      () => {
+        startProbeRun("put");
+      },
+      true,
+    );
+    button("Take it off the units", () => {
+      startProbeRun("remove");
+    });
+    bar.append(buttons);
+    return bar;
+  }
+  if (run.stage === "busy") {
+    say(run.status, "check-status");
+    return bar;
+  }
+  if (run.stage === "app-running") {
+    say(
+      "The Azeron app is running, and it talks to the units on the same channel. Quit it " +
+        "from its tray icon, then try again.",
+    );
+    button(
+      "Try again",
+      () => {
+        startProbeRun(run.then);
+      },
+      true,
+    );
+  } else if (run.stage === "app-unknown") {
+    say(
+      "This page cannot see what else is running. Make sure no other keypad software is " +
+        "open: it talks to the units on the same channel.",
+    );
+    button(
+      "Nothing else is open",
+      () => {
+        run.appClosedSaid = true;
+        startProbeRun(run.then);
+      },
+      true,
+    );
+  } else if (run.stage === "needs-access") {
+    say(
+      run.units.length === 0
+        ? "No unit is open to this page yet. Plug one in and choose it: the browser lists " +
+            'each as "Azeron Keypad - C0nf1gur4t0r". Once per unit.'
+        : "The page reached a unit, but does not yet know which hand it is.",
+    );
+    const strangers = run.units.filter((unit) => deviceForUnit(unit) === undefined);
+    const claimed = new Set(run.units.map((unit) => deviceForUnit(unit)?.device));
+    const free = Object.keys(state.payload.devices).filter((device) => !claimed.has(device));
+    const naming = namingNote(strangers, free, "not a unit this computer knows", () => {
+      startProbeRun(run.then);
+    });
+    if (naming !== null) bar.append(naming);
+    button("Choose a unit", grantProbeUnit, true);
+  } else if (run.stage === "ready") {
+    const known = probeKnownUnits(run);
+    for (const unit of known) {
+      say(
+        `${unitLabel(deviceForUnit(unit)?.hand ?? "")} unit: ` +
+          (holdsProbe(unit) ? "the press test is on it." : "nothing of the press test on it."),
+        "check-status",
+      );
+    }
+    const anyOn = known.some(holdsProbe);
+    if (anyOn) {
+      say(
+        "Each unit runs the pass on screen, Pins or Stick zero. When you are done, take the " +
+          "press test off, or a unit's profile button will land on it.",
+        "muted",
+      );
+      button(
+        "Take the press test off",
+        () => {
+          startProbeRun("remove");
+        },
+        true,
+      );
+    } else {
+      button(
+        "Put the press test on the units",
+        () => {
+          startProbeRun("put");
+        },
+        true,
+      );
+    }
+    const strangers = run.units.filter((unit) => deviceForUnit(unit) === undefined);
+    const claimed = new Set(known.map((unit) => deviceForUnit(unit)?.device));
+    const free = Object.keys(state.payload.devices).filter((device) => !claimed.has(device));
+    const naming = namingNote(strangers, free, "not a unit this computer knows", () => {
+      startProbeRun(run.then);
+    });
+    if (naming !== null) bar.append(naming);
+    if (free.length > 0) button("Choose the other unit", grantProbeUnit);
+  } else {
+    button(
+      "Try again",
+      () => {
+        startProbeRun(run.then);
+      },
+      true,
+    );
+  }
+  if (run.note !== null) say(run.note);
+  button("Close", () => {
+    endProbeRun();
+    render();
+  });
+  bar.append(buttons);
+  return bar;
+}
+
 function renderPressTest(): HTMLElement {
   const panel = el("div", { class: "panel" });
-  const controls = el("div", { class: "field" });
-  for (const [label, which] of [
-    ["Download pins profile", "pins"],
-    ["Download stick-zero profile", "stick"],
-  ] as const) {
-    const button = el("button", { class: "btn", type: "button" }, [label]);
-    button.addEventListener("click", () => {
-      const built = probeProfiles();
-      const doc = which === "pins" ? built.pins.doc : built.stick.doc;
-      const name = which === "pins" ? "probe-1-pins.json" : "probe-2-stick-zero.json";
-      download(name, `${JSON.stringify(doc, null, 2)}\n`, "application/json");
-    });
-    controls.append(button);
-  }
-  panel.append(
-    el("div", { class: "muted" }, [
-      "Import the pins profile onto a unit, press what the diagram asks for, then export " +
-        "the device map. The stick-zero profile measures the stick's rotation. When the test " +
-        "is done, delete both probes from the unit's on-board profiles in the Azeron app: " +
-        "left there, its profile button cycles onto them.",
-    ]),
-    controls,
-  );
+  panel.append(renderProbeBar());
 
   // Mounted once and re-attached after that. Starting it on every render put it back at
   // step one whenever anything else on the page redrew -- the Wide toggle, a selector,
@@ -5813,6 +6312,7 @@ function renderPressTest(): HTMLElement {
   if (probeHost === null) {
     probeHost = el("div", {});
     startProbe(probePayload(), probeHost, {
+      changed: followProbePass,
       ...(canSave()
         ? {
             save: (path: string, content: string) => {
@@ -5906,6 +6406,9 @@ function resetSession(): void {
     stopProbe();
     probeHost = null;
   }
+  // The units are let go; a press test left on them is still there, and the bar says so
+  // the next time the units are looked at.
+  if (probeRun !== null && probeRun.stage !== "busy") endProbeRun();
 }
 
 /**

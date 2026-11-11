@@ -94,7 +94,7 @@ output, so `npm run build` first:
 | `azeron ingame [game] --candidate axis=NAME`        | write a hand-written pedal name (a candidate)                                   |
 | `azeron serve [--port N] [--host H]`                | the editor, able to save back into the repo; this computer only unless `--host` |
 | `azeron editor`                                     | the side-by-side editor, one self-contained HTML                                |
-| `azeron probe [--device D]`                         | press-test profile + capture page for the real pin map                          |
+| `azeron probe [--device D]`                         | the press test's profiles as files; the test runs from the editor's Press test  |
 | `azeron new <name> --genre G [--units left,right]`  | start a game with no export, from its genre                                     |
 | `azeron layout <game> <name> [--copy-of L]`         | a new layout with no export: a copy (pedals included) or empty                  |
 | `azeron import <export.json> --genre G --game SLUG` | start a game folder from an Azeron app export instead                           |
@@ -350,7 +350,7 @@ These came from real play sessions; each one is a lint rule now.
    mirror of it.** Measured 2026-09-28: the thumb cluster — pad and stick — is rotated
    180° on the right unit, while the finger columns and side keys match. Never infer one
    unit's map from the other. A device carries `verified: true` only once it has been
-   press-tested with `azeron probe`; anything else raises `unverified-device`.
+   press-tested (the editor's Press test tab); anything else raises `unverified-device`.
    The rotation is absorbed by `analogSettings.angle`, which the right unit's own export
    carries as 176 against the left unit's -1 — a half turn, in degrees, written by the app
    itself. `stick_angle` and `stick_directions` exist as corrections for a unit whose
@@ -612,8 +612,10 @@ reports; each hand goes into the slot that already has the layout's name.
 - A unit says who it is (`KEYPAD_DETAILS` carries the id in `software_device_id`), and
   nothing is written to a unit its device map does not name, or on firmware other than 111.
   The ids in `devices/` are the owner's units. `local.yaml` gives another person's
-  (`loadDevice` merges it), and the write bar lists any unit it does not know, with the
-  lines to put there (`unnamedUnits` in `app.ts`).
+  (`loadDevice` merges it). The write bar and the press test list any unit they do not
+  know (`namingNote` in `app.ts`); served, a "This is the left unit" button per hand posts
+  `/api/local/unit`, which writes the id into `local.yaml` (`setLocalDeviceId`, comments
+  kept, an id given to another map taken off it), so nobody edits the file by hand.
 - A write is checked by reading the slots back; a difference is reported, never assumed
   away. `REQUEST_PROFILE` answers with the running slot whatever it is asked, so it cannot
   read another; `CHECK_PROFILE` adds a slot and is ignored for one that exists, and is
@@ -625,6 +627,13 @@ reports; each hand goes into the slot that already has the layout's name.
   included. A test that passes against a fake that is kinder than the hardware proves
   nothing: the first version did, and its every overwrite stalled on the real unit.
 - `tests/unit/lib/unitproto.test.ts` is the contract: the app's own reports, byte for byte.
+- **The press test goes the same way** (`src/editor/probe-units.ts`). Put the press test on
+  the units writes PROBE 1 pins and PROBE 2 stick zero into each known unit, each built on
+  that unit's own export (`template:` in its device map), read back like any write. The
+  pass on screen decides which one the unit runs (`runProbe`, from probe.ts's `changed`
+  hook), and Take the press test off switches a unit off a probe it runs and deletes both.
+  No file is downloaded and nothing is imported anywhere else; `azeron probe` only writes
+  the two profiles out to read.
 - The Azeron app must be closed during a write: it talks on the same channel. The pedals are
   still never asked anything.
 - After a write that reads back clean, the unit is switched to the slot (`SWITCH_PROFILE`, as

@@ -7,7 +7,7 @@
  */
 
 import { deviceFromProbe, PHYSICAL_PUSHES, probeDiff, stickZeroFrom } from "../lib/probe.js";
-import type { ProbeResult } from "../lib/probe.js";
+import type { ProbeAssignment, ProbeResult } from "../lib/probe.js";
 import { handLayout, positionLabel, probeOrder, unitLabel } from "../lib/layout.js";
 import { Device } from "../lib/model-core.js";
 import { dumpYaml } from "../lib/yaml.js";
@@ -37,7 +37,7 @@ const STICK_PROMPTS: Record<StickDirection, string> = {
   left: "hold the stick LEFT",
 };
 
-type Mode = "pins" | "zero";
+export type Mode = "pins" | "zero";
 
 /**
  * A probe written to a unit stays in its on-board memory after the test, and the unit's
@@ -45,8 +45,8 @@ type Mode = "pins" | "zero";
  * which looks like a broken layout. Two units carried two each for a week.
  */
 export const REMOVE_PROBES =
-  "Then, in the Azeron app, delete PROBE 1 pins and PROBE 2 stick zero from the unit's " +
-  "on-board profiles, or its profile button will land on them.";
+  "Then take the press test off the units with the button above, or a unit's profile " +
+  "button will land on it.";
 
 interface State {
   payload: ProbePayload;
@@ -81,10 +81,19 @@ function el<K extends keyof HTMLElementTagNameMap>(
   return node;
 }
 
-function currentUnit(): { hand: string; device: string } {
+function currentUnit(): ProbePayload["units"][number] {
   const unit = state.payload.units[state.unitIndex];
   if (!unit) throw new Error("no unit selected");
   return unit;
+}
+
+/** The keys the unit being tested sends: its own, when its probe was built on its export. */
+function pinAssignments(): ProbeAssignment[] {
+  return currentUnit().assignments ?? state.payload.assignments;
+}
+
+function stickAssignments(): ProbeAssignment[] {
+  return currentUnit().stickAssignments ?? state.payload.stickAssignments;
 }
 
 function deviceOf(name: string): Device {
@@ -223,11 +232,11 @@ function onZeroKey(event: KeyboardEvent): void {
   event.preventDefault();
   state.lastKey = event.code;
 
-  const assignment = state.payload.stickAssignments.find((entry) => entry.key === event.code);
+  const assignment = stickAssignments().find((entry) => entry.key === event.code);
   if (!assignment?.sector) {
     state.message =
       `${event.code} is not one of the stick calibration keys. ` +
-      "Is probe-2-stick-zero.json the profile currently on this unit?";
+      "Is this unit running PROBE 2 stick zero? Put the press test on it with the button above.";
     render();
     return;
   }
@@ -258,9 +267,9 @@ function onKey(event: KeyboardEvent): void {
   event.preventDefault();
 
   state.lastKey = event.code;
-  const assignment = state.payload.assignments.find((entry) => entry.key === event.code);
+  const assignment = pinAssignments().find((entry) => entry.key === event.code);
   if (!assignment) {
-    state.message = `${event.code} is not one of the probe keys. Is the probe profile loaded on this unit?`;
+    state.message = `${event.code} is not one of the probe keys. Is this unit running PROBE 1 pins? Put the press test on it with the button above.`;
     render();
     return;
   }
@@ -427,6 +436,7 @@ function renderDiagram(unitIndex: number): HTMLElement {
   if (!isActive) {
     wrap.addEventListener("click", () => {
       state.unitIndex = unitIndex;
+      tellChanged();
       state.step = 0;
       state.message = null;
       clearBurst();
@@ -443,8 +453,9 @@ function renderZero(): HTMLElement {
   panel.append(el("h2", {}, ["Stick zero"]));
   panel.append(
     el("div", { class: "note" }, [
-      "Import dist/probe/probe-2-stick-zero.json onto this unit first. It binds all eight " +
-        "sectors, so each push reports where the firmware thinks the stick is pointing.",
+      "While this pass is open, a unit with the press test on it runs PROBE 2 stick zero. " +
+        "It binds all eight sectors, so each push reports where the firmware thinks the " +
+        "stick is pointing.",
     ]),
   );
 
@@ -560,17 +571,29 @@ let mountPoint: HTMLElement | null = null;
  */
 let saveDevice: ((path: string, content: string) => void) | null = null;
 
+/** Told when the pass or the unit being tested changes, so the units can follow. */
+let changed: ((pass: Mode, unitIndex: number) => void) | null = null;
+
+function tellChanged(): void {
+  changed?.(state.mode, state.unitIndex);
+}
+
+/** The pass the test is on: which probe a unit should be running. */
+export function probePass(): Mode {
+  return state.mode;
+}
+
 /** The key the probe profile binds to whatever is being asked for. */
 function expectedKey(): string | null {
   if (state.mode === "zero") {
     const push = PHYSICAL_PUSHES[state.zeroStep];
     if (!push) return null;
-    return state.payload.stickAssignments.find((entry) => entry.sector === push.id)?.key ?? null;
+    return stickAssignments().find((entry) => entry.sector === push.id)?.key ?? null;
   }
   const prompt = currentPrompt();
   if (prompt.direction) {
     return (
-      state.payload.assignments.find(
+      pinAssignments().find(
         (entry) => entry.kind === "stick" && entry.direction === prompt.direction,
       )?.key ?? null
     );
@@ -580,8 +603,7 @@ function expectedKey(): string | null {
   const pin = device.positions[prompt.position]?.pin;
   if (pin === undefined) return null;
   return (
-    state.payload.assignments.find((entry) => entry.kind === "button" && entry.pin === pin)?.key ??
-    null
+    pinAssignments().find((entry) => entry.kind === "button" && entry.pin === pin)?.key ?? null
   );
 }
 
@@ -602,6 +624,7 @@ function render(): void {
   });
   unitSelect.addEventListener("change", () => {
     state.unitIndex = Number(unitSelect.value);
+    tellChanged();
     state.step = 0;
     state.message = null;
     clearBurst();
@@ -617,6 +640,7 @@ function render(): void {
     );
     button.addEventListener("click", () => {
       state.mode = mode;
+      tellChanged();
       state.message = null;
       state.burstNote = null;
       clearBurst();
@@ -721,10 +745,14 @@ function render(): void {
 export function start(
   payload = window.AZERON_PROBE,
   root?: HTMLElement,
-  options: { save?: (path: string, content: string) => void } = {},
+  options: {
+    save?: (path: string, content: string) => void;
+    changed?: (pass: Mode, unitIndex: number) => void;
+  } = {},
 ): void {
   if (!payload) throw new Error("no probe payload embedded in the page");
   saveDevice = options.save ?? null;
+  changed = options.changed ?? null;
   if (!document.getElementById("azeron-probe-styles")) {
     const style = document.createElement("style");
     style.id = "azeron-probe-styles";
@@ -759,4 +787,5 @@ export function stop(): void {
   clearBurst();
   mountPoint = null;
   saveDevice = null;
+  changed = null;
 }
