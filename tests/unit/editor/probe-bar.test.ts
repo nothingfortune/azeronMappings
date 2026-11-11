@@ -123,6 +123,82 @@ describe("the press test on the units", SLOW, () => {
     expect(left.unit.running).toBe(4);
   });
 
+  it("never switches a unit onto probes that did not read back as written", async () => {
+    const left = makeUnit("left", {
+      corrupt: (id, stored) => {
+        if (id === 1) stored[6] = (stored[6] ?? 0) ^ 0x01;
+      },
+    });
+    plugIn([left]);
+    openPressTest();
+    const before = left.unit.running;
+    click("Put the press test on the units");
+    await vi.waitFor(() => {
+      expect(bar()).toMatch(/Nothing else is open|Putting the press test on/);
+    }, WAIT);
+    if (bar().includes("Nothing else is open")) click("Nothing else is open");
+    await vi.waitFor(() => {
+      expect(bar()).toContain("Putting the press test on");
+    }, WAIT);
+    click("Stick zero", ".probe-bar");
+    await vi.waitFor(() => {
+      expect(bar()).toContain("did not read back as written");
+    }, WAIT);
+    await vi.waitFor(() => {
+      expect(bar()).not.toContain("Putting the press test on");
+    }, WAIT);
+    expect(left.unit.running).toBe(before);
+  });
+
+  it("waits for a closed press test's last switch before Write to units opens", async () => {
+    const left = makeUnit("left");
+    plugIn([left]);
+    openPressTest();
+    await putOn();
+    const seen: string[] = [];
+    const open = left.open.bind(left);
+    const close = left.close.bind(left);
+    left.open = () => {
+      seen.push(left.opened ? "open while open" : "open");
+      return open();
+    };
+    left.close = () => {
+      seen.push("close");
+      return close();
+    };
+    // A switch under way, and the press test closed in the middle of it.
+    // The switch is held at its first report until well after the write has started.
+    let hold: Promise<void> | null = new Promise((resolve) => setTimeout(resolve, 1500));
+    const send = left.sendReport.bind(left);
+    left.sendReport = async (id, data) => {
+      if (hold !== null) {
+        await hold;
+        hold = null;
+      }
+      return send(id, data);
+    };
+    click("Stick zero", ".probe-bar");
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    click("Close");
+    const write = document.querySelector<HTMLButtonElement>("header .write-units");
+    if (!write) throw new Error("no Write to units button");
+    write.click();
+    await vi.waitFor(() => {
+      const carry = [...document.querySelectorAll<HTMLButtonElement>(".write-bar button")].find(
+        (node) => node.textContent === "It is closed: carry on",
+      );
+      if (!carry) throw new Error("not asked yet");
+      carry.click();
+    }, WAIT);
+    await vi.waitFor(() => {
+      expect(seen).toContain("open");
+    }, WAIT);
+    expect(seen.slice(0, 2)).toEqual(["close", "open"]);
+    expect(seen).not.toContain("open while open");
+    // The switch finished before the press test let go.
+    expect(left.unit.running).toBe(4);
+  });
+
   it("lets go of the units before Write to units opens them", async () => {
     const left = makeUnit("left");
     plugIn([left]);
