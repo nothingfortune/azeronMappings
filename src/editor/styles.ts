@@ -449,8 +449,9 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 1
 .new-game-where, .new-game-file { font-size: 11.5px; margin: 4px 0 8px; }
 .new-game .row2 { margin-top: 6px; }
 .new-game-styles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
-.new-game-style { display: flex; gap: 8px; align-items: flex-start; padding: 8px; border: 1px solid var(--line); border-radius: 6px; cursor: pointer; font-weight: normal; }
-.new-game-style b { display: block; }
+.field label.new-game-style { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; margin: 0; border: 1px solid var(--line); border-radius: 6px; cursor: pointer; font-size: 12.5px; color: var(--fg); text-transform: none; letter-spacing: normal; }
+.field .new-game-style input { width: auto; margin-top: 2px; flex: none; }
+.new-game-style b { display: block; margin-bottom: 2px; }
 .new-game-style .muted { font-size: 11.5px; }
 /* Pedals: the third part of the control scheme, docked beside the checks. Three axes, each a
    short card -- what it drives and whether it is inverted on top, how far the game's name for
