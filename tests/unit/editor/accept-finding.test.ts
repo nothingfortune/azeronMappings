@@ -80,6 +80,37 @@ describe("accepting a finding", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
+  it("records the acceptance for the game the finding is about", async () => {
+    SERVED.AZERON_SERVED = true;
+    const { payload, taken } = withOneRaised();
+    const first = payload.games[0];
+    if (first) payload.games.push({ ...structuredClone(first), slug: "other", name: "Other" });
+    const calls: { path: string; body: unknown }[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((path: string, init?: { body?: string }) => {
+        calls.push({ path, body: init?.body === undefined ? null : JSON.parse(init.body) });
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ ok: true, entry: taken }),
+        });
+      }),
+    );
+    vi.stubGlobal(
+      "prompt",
+      vi.fn(() => "on purpose"),
+    );
+    document.body.innerHTML = '<div id="app"></div>';
+    start(payload);
+    showDockTab("checks");
+    document.querySelector<HTMLButtonElement>(".checks .accept-finding")?.click();
+    await vi.waitFor(() => {
+      expect(calls.some((call) => call.path === "/api/acknowledge")).toBe(true);
+    });
+    expect((calls[0]?.body as { game?: string }).game).toBe("everspace");
+  });
+
   it("is not offered where the page cannot save", () => {
     const { payload } = withOneRaised();
     document.body.innerHTML = '<div id="app"></div>';

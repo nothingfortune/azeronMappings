@@ -94,6 +94,14 @@ test.describe("the server's request checks", () => {
     );
     expect(missing.status).toBe(400);
     expect(String(missing.json.error)).toContain("there is no file at");
+    const folder = await send(
+      "POST",
+      "/api/local/game-file",
+      JSON_HEADERS,
+      JSON.stringify({ game: "everspace", path: resolvePath("games/SpaceSims/everspace") }),
+    );
+    expect(folder.status).toBe(400);
+    expect(String(folder.json.error)).toContain("is a folder");
     // Any file that is there will do; quotes from "Copy as path" are taken off.
     const real = resolvePath("games/SpaceSims/everspace/game.yaml");
     const found = await send(

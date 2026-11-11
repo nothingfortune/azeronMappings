@@ -3,7 +3,7 @@
 
 import { createServer } from "node:http";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { parseArgs } from "node:util";
 
@@ -706,8 +706,13 @@ function cmdServe(port: number, host: string, open = false): number {
           if (!game) throw new Error(`no game '${parsed.game}'`);
           // Windows' "Copy as path" puts quotes round it.
           const path = parsed.path.trim().replace(/^"(.*)"$/, "$1");
-          if (path === "" || !existsSync(localPath(path))) {
+          const found = path === "" ? null : localPath(path);
+          if (found === null || !existsSync(found)) {
             throw new Error(`there is no file at ${path || "that path"}`);
+          }
+          // A folder passes existsSync, and reading it later would fail with no way back.
+          if (!statSync(found).isFile()) {
+            throw new Error(`${path} is a folder: paste the settings file inside it`);
           }
           const file = setLocalGamePath(game.slug, "ingame_config", path);
           send(200, JSON.stringify({ ok: true, file }));

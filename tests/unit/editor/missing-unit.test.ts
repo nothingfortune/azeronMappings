@@ -82,11 +82,13 @@ describe("a layout with one unit", () => {
 
   it("keeps another game chosen while the unit was being added on its own layout", async () => {
     SERVED.AZERON_SERVED = true;
-    let answer: (value: unknown) => void = () => undefined;
+    let answer: ((value: unknown) => void) | null = null;
+    let refreshed = 0;
     vi.stubGlobal(
       "fetch",
       vi.fn((path: string) => {
         if (path === "/api/payload") {
+          refreshed += 1;
           return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(TWO_GAMES) });
         }
         return new Promise((resolve) => {
@@ -96,6 +98,10 @@ describe("a layout with one unit", () => {
     );
     openSingle(TWO_GAMES);
     addButton()?.click();
+    // The request is out before the game changes.
+    await vi.waitFor(() => {
+      expect(answer).not.toBeNull();
+    });
     // Another game, chosen before the server answers.
     const games = document.querySelectorAll<HTMLSelectElement>("header select")[0];
     if (!games) throw new Error("no game picker");
@@ -103,10 +109,15 @@ describe("a layout with one unit", () => {
     if (!other) throw new Error("no other game in the picker");
     games.value = other.value;
     games.dispatchEvent(new Event("change"));
-    answer({ ok: true, status: 200, json: () => Promise.resolve({ ok: true }) });
-    await vi.waitFor(() => {
-      expect(document.body.textContent).toContain("Added the right unit");
+    (answer as ((value: unknown) => void) | null)?.({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ ok: true }),
     });
+    await vi.waitFor(() => {
+      expect(refreshed).toBe(1);
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
     const picker = document.querySelectorAll<HTMLSelectElement>("header select")[0];
     expect(picker?.value).toBe(other.value);
     // On a layout the game has, so the board is drawn.

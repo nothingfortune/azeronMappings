@@ -817,8 +817,10 @@ function findingItem(finding: Finding): HTMLElement {
   if (canSave() && finding.rule !== "stale-acknowledgement" && finding.profile !== undefined) {
     const accept = el("button", { class: "btn small accept-finding", type: "button" }, ["Accept"]);
     accept.title = "This is fine in this layout: say why, and the check stops raising it.";
+    // The game the finding is about, as it is drawn: not whichever is open when clicked.
+    const slug = currentGame().slug;
     accept.addEventListener("click", () => {
-      void acceptFinding(finding);
+      void acceptFinding(finding, slug);
     });
     item.append(accept);
   }
@@ -826,12 +828,13 @@ function findingItem(finding: Finding): HTMLElement {
 }
 
 /** Record a finding as accepted, with the reason, and stop showing it as a problem. */
-async function acceptFinding(finding: Finding): Promise<void> {
+async function acceptFinding(finding: Finding, slug: string): Promise<void> {
   const reason = window.prompt(
     `Why is this fine here? The reason is kept with it.\n\n${finding.message}`,
   );
   if (reason === null || reason.trim() === "") return;
-  const game = currentGame();
+  const game = state.payload.games.find((entry) => entry.slug === slug);
+  if (game === undefined) return;
   const result = await post<{ ok?: boolean; error?: string; entry?: Acknowledgement }>(
     "/api/acknowledge",
     {
@@ -4458,6 +4461,10 @@ function renderHeader(): HTMLElement {
       return;
     }
     resetSession();
+    // A save report is about the game it was saved in: its findings, and the Accept on
+    // each, would be read as the next game's.
+    saveReport = null;
+    saveNote = null;
     state.gameIndex = Number(gameSelect.value);
     state.working.clear();
     state.workingActions = null;
