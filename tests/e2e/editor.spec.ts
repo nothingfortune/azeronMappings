@@ -86,7 +86,7 @@ test.describe("the served editor", () => {
       // pinky_1 exists on both units, so the click has to name a hand.
       const leftHand = page.locator(".hand").first();
       await leftHand.locator('.key[data-position="pinky_1"]').click();
-      const label = page.locator(".panel", { hasText: "Key" }).locator('input[type="text"]');
+      const label = page.locator('.inspector input[type="text"]');
       await label.fill("Edited end to end");
       await label.blur();
 

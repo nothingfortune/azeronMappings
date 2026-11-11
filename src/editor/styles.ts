@@ -333,6 +333,11 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 /* Drag and drop: what is being carried, and where it may be put down. */
 .key[draggable="true"], .action[draggable="true"] { cursor: grab; }
 .drop-over { outline: 2px dashed var(--accent); outline-offset: 1px; }
+.manage-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 6px; }
+.btn.danger { color: var(--error); border-color: var(--error); }
+.new-action-row { margin-top: 8px; }
+.new-action-row input { width: 100%; }
+.ingame-row .delete-action { align-self: center; }
 .clear-hint { display: none; margin-top: 6px; padding: 6px; border: 1px dashed var(--line);
               border-radius: 6px; text-align: center; font-size: 11.5px; color: var(--muted); }
 body.dragging-key .clear-hint { display: block; }

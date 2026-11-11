@@ -10,7 +10,12 @@ import { describe, expect, it } from "vitest";
 import { parse } from "yaml";
 
 import { repoPath } from "../../../src/config/paths.js";
-import { ActionFileError, patchActionBindings } from "../../../src/lib/actionfile.js";
+import {
+  ActionFileError,
+  addActions,
+  patchActionBindings,
+  removeActions,
+} from "../../../src/lib/actionfile.js";
 
 interface ActionsFile {
   extends?: string;
@@ -112,5 +117,68 @@ describe("patchActionBindings", () => {
     expect(() => patchActionBindings(FILE, { boost: { meta: "Shift, ingame: X" } })).toThrow(
       ActionFileError,
     );
+  });
+});
+
+describe("removeActions", () => {
+  it("takes out each action's line and nothing else", () => {
+    const out = removeActions(FILE, ["boost", "free_look"]);
+    expect(Object.keys(read(out).actions)).toEqual(["throttle_up", "interact"]);
+    expect(out).toContain("  # flight");
+    expect(out).toContain("duplicate_key_allowlist:");
+    expect(out.split("\n")).toHaveLength(FILE.split("\n").length - 2);
+  });
+
+  it("leaves an id with no line of its own alone, and refuses one that is not an id", () => {
+    expect(removeActions(FILE, ["cruise"])).toBe(FILE);
+    expect(() => removeActions(FILE, ["no such"])).toThrow(ActionFileError);
+  });
+
+  it("makes an emptied block `actions: {}` again, which a new action can be added to", () => {
+    const one = "extends: genres/FPS/actions.yaml\nactions:\n  wave: {label: Wave}\n";
+    const out = removeActions(one, ["wave"]);
+    expect(out).toBe("extends: genres/FPS/actions.yaml\nactions: {}\n");
+    expect(read(patchActionBindings(out, { wave: { label: "Wave" } })).actions.wave).toEqual({
+      label: "Wave",
+    });
+  });
+
+  it("keeps a comment on the `actions:` line, and still leaves `{}`, not null", () => {
+    const one =
+      "extends: genres/FPS/actions.yaml\nactions: # the game's own\n  wave: {label: Wave}\n";
+    const out = removeActions(one, ["wave"]);
+    expect(out).toBe("extends: genres/FPS/actions.yaml\nactions: {} # the game's own\n");
+    expect(read(out).actions).toEqual({});
+  });
+
+  it("refuses an action written over several lines", () => {
+    const multi = "actions:\n  wave:\n    label: Wave\n";
+    expect(() => removeActions(multi, ["wave"])).toThrow(/more than one line/);
+  });
+});
+
+describe("addActions", () => {
+  it("writes every field an action carries, on one line, and reads back as given", () => {
+    const spec = {
+      label: "Cycle back",
+      ingame: "CycleBack",
+      mode: "ship",
+      tags: ["combat"],
+      key: "Home",
+    };
+    const out = addActions(FILE, { cycle_back: spec });
+    expect(read(out).actions.cycle_back).toEqual(spec);
+    expect(read(out).actions.boost).toEqual(read(FILE).actions.boost);
+    expect(out).toContain("duplicate_key_allowlist:");
+  });
+
+  it("refuses an action the file already has, and a field that is not one line", () => {
+    expect(() => addActions(FILE, { boost: { label: "Boost" } })).toThrow(/already/);
+    expect(() => addActions(FILE, { odd: { label: "Odd", nested: { a: 1 } } })).toThrow(/one line/);
+  });
+
+  it("turns `actions: {}` into a block", () => {
+    const out = addActions("actions: {}\n", { wave: { label: "Wave" } });
+    expect(read(out).actions).toEqual({ wave: { label: "Wave" } });
   });
 });

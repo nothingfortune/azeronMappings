@@ -50,7 +50,7 @@ import {
   STICK_MODE_CODES,
 } from "../types/azeron.js";
 import type { ExportDocument, ExportProfile, Slot, StickDirection } from "../types/azeron.js";
-import type { EditorGame, EditorPayload } from "../types/editor.js";
+import type { EditorGame, EditorGenre, EditorPayload } from "../types/editor.js";
 import type {
   NameStatus,
   PedalAssignment,
@@ -1114,6 +1114,7 @@ function renderPalette(): HTMLElement {
     }
   }
   panel.append(list);
+  panel.append(newActionField());
   // The way back: a key dragged off the board and let go here is cleared.
   panel.append(el("div", { class: "clear-hint" }, ["Drop a key here to clear it."]));
   dropTarget(
@@ -2347,6 +2348,8 @@ function inGameKeyChanges(game: EditorGame): Record<string, BindingChange> {
   const loaded = game.actions.actions ?? {};
   const changes: Record<string, BindingChange> = {};
   for (const [id, spec] of Object.entries(state.workingActions ?? {})) {
+    // An action the file does not have yet is written whole, by addedActions.
+    if (!(id in loaded)) continue;
     const before = loaded[id] ?? {};
     const change: BindingChange = {};
     for (const field of ["key", "meta", "mouse"] as const) {
@@ -2441,19 +2444,37 @@ function inGameKeysPart(): SchemePart {
     get name() {
       const changes = inGameKeyChanges(currentGame());
       const keys = changesAKey(changes);
-      const names = Object.values(changes).some((change) => "label" in change || "tags" in change);
+      const names =
+        removedActions(currentGame()).length > 0 ||
+        Object.keys(addedActions(currentGame())).length > 0 ||
+        Object.values(changes).some((change) => "label" in change || "tags" in change);
       if (keys && names) return "Wiring and action names";
       return names ? "Action names" : "Wiring";
     },
-    isDirty: () => Object.keys(inGameKeyChanges(currentGame())).length > 0,
+    isDirty: () =>
+      Object.keys(inGameKeyChanges(currentGame())).length > 0 ||
+      Object.keys(addedActions(currentGame())).length > 0 ||
+      removedActions(currentGame()).length > 0,
     async save() {
       const game = currentGame();
       const path = `${game.rel}/actions.yaml`;
       const changes = inGameKeyChanges(game);
-      const result = await saveResponse("/api/actions", { game: game.slug, changes });
+      const remove = removedActions(game);
+      const add = addedActions(game);
+      const result = await saveResponse("/api/actions", {
+        game: game.slug,
+        changes,
+        ...(Object.keys(add).length > 0 ? { add } : {}),
+        ...(remove.length > 0 ? { remove } : {}),
+      });
       game.actions.actions = structuredClone(state.workingActions ?? {});
       // The game is only offered the keys when there is a file of its own to write them to.
-      return { path, result, inGameKeys: changesAKey(changes) && gameFileGaps(game).length === 0 };
+      const keyed =
+        changesAKey(changes) ||
+        Object.values(add).some(
+          (spec) => spec.key !== undefined || spec.meta !== undefined || spec.mouse !== undefined,
+        );
+      return { path, result, inGameKeys: keyed && gameFileGaps(game).length === 0 };
     },
   };
 }
@@ -4838,6 +4859,86 @@ function gameFileMissing(game: EditorGame): HTMLElement | null {
 /** The action whose name is being typed, if any. */
 let renaming: string | null = null;
 
+/** The genre a game inherits its actions from: the folder it sits in. */
+function genreOf(game: EditorGame): EditorGenre | undefined {
+  const name = game.rel.split("/")[1];
+  return state.payload.genres.find((genre) => genre.name === name);
+}
+
+/** Actions new on the page since it loaded, which a save writes whole into the file. */
+function addedActions(game: EditorGame): Record<string, ActionSpec> {
+  const working = state.workingActions;
+  if (working === null) return {};
+  const loaded = game.actions.actions ?? {};
+  return Object.fromEntries(Object.entries(working).filter(([id]) => !(id in loaded)));
+}
+
+/** Actions taken out on the page since it loaded, which a save removes from the file. */
+function removedActions(game: EditorGame): string[] {
+  const working = state.workingActions;
+  if (working === null) return [];
+  return Object.keys(game.actions.actions ?? {}).filter((id) => !(id in working));
+}
+
+/** Whether any layout of the game puts the action on a control. */
+function actionInUse(game: EditorGame, id: string): boolean {
+  return game.profiles.some((profile) => {
+    const data = state.working.get(profile.slug) ?? profile.data;
+    return Object.values(data.positions).some(
+      (spec) =>
+        SLOTS.some((slot) => spec[slot] === id) ||
+        Object.values(spec.directions ?? {}).includes(id),
+    );
+  });
+}
+
+/**
+ * Whether an action can be deleted: the game added it (one from the genre would only come
+ * back from the genre), and no control sends it.
+ */
+function canDeleteAction(game: EditorGame, id: string): boolean {
+  if (id in (genreOf(game)?.actions.actions ?? {})) return false;
+  // One that names a row in the game's own file is part of what the game is told.
+  if (game.actions.actions?.[id]?.ingame !== undefined) return false;
+  return !actionInUse(game, id);
+}
+
+/** An action id from its name: lower case, words joined by underscores, never a clash. */
+function newActionId(label: string, taken: Record<string, unknown>): string {
+  const base =
+    label
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "") || "action";
+  const start = /^[a-z_]/.test(base) ? base : `action_${base}`;
+  let id = start;
+  for (let n = 2; id in taken; n += 1) id = `${start}_${String(n)}`;
+  return id;
+}
+
+/** Type a name and press Enter: a new action, at the foot of the list, ready to place. */
+function newActionField(): HTMLElement {
+  const input = el("input", {
+    type: "text",
+    class: "new-action",
+    placeholder: "New action: type its name, press Enter",
+    "aria-label": "New action",
+  });
+  input.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    const label = input.value.trim();
+    if (label === "") return;
+    const actions = editableActions();
+    const id = newActionId(label, actions);
+    actions[id] = { label };
+    paletteFilter = "";
+    saveNote = `Added "${label}". Drag it onto a key.`;
+    render();
+  });
+  return el("div", { class: "new-action-row" }, [input]);
+}
+
 /** Change an action's label. Empty is not a name: it puts the old one back. */
 function renameAction(id: string, text: string): void {
   const label = text.trim();
@@ -5011,6 +5112,15 @@ function renderInGame(): HTMLElement {
       else item.append(actionKeyField(id));
     }
     item.append(actionTagField(id, spec));
+    if (canDeleteAction(game, id)) {
+      const remove = el("button", { class: "btn small delete-action", type: "button" }, ["Delete"]);
+      remove.title = "Take this action out of the game. It is on no key.";
+      remove.addEventListener("click", () => {
+        removeKey(editableActions(), id);
+        render();
+      });
+      item.append(remove);
+    }
     table.append(item);
   }
   panel.append(table);
@@ -5733,6 +5843,156 @@ function renderNewGame(): HTMLElement {
  * Only reachable when served: opened as a file there is nothing on the other end, and
  * the tab says so rather than offering buttons that cannot work.
  */
+/** The name typed for the open layout, while it is being renamed. */
+let renameTo: string | null = null;
+
+/**
+ * Save the page's edits before a change on the server moves or deletes files. The page
+ * would otherwise keep its copies of the old files, and the next Save write them back:
+ * a deleted layout returned, a renamed one twice. False when they could not be saved.
+ */
+async function settleEdits(): Promise<boolean> {
+  if (!isDirty()) return true;
+  await saveScheme(true);
+  return !isDirty();
+}
+
+const NOT_SETTLED =
+  "Your edits could not be saved, so nothing else was changed. The header says why.";
+
+/** After a change on the server: the page's data again, then the place and a note. */
+async function afterManage(note: string, set?: string): Promise<void> {
+  const game = currentGame().slug;
+  const loaded = await refreshPayload();
+  if (set !== undefined && currentGame().slug === game && setsOf(currentGame()).has(set)) {
+    state.setName = set;
+  }
+  repoNote = loaded ? note : `${note} Reload the page to see it.`;
+  render();
+}
+
+/** Rename or delete the layout on screen, or delete the whole game, with no file to touch. */
+function renderManage(): HTMLElement | null {
+  if (!canSave()) return null;
+  const game = currentGame();
+  const set = state.setName;
+  const box = el("div", { class: "field manage" });
+  box.append(
+    section(
+      `${game.name}: ${set}`,
+      "Rename the layout on screen, or delete it or the whole game. Deleted files can be " +
+        "got back from the repo's history.",
+    ),
+  );
+
+  const name = el("input", {
+    type: "text",
+    value: renameTo ?? set,
+    "data-manage": "name",
+    "aria-label": "Layout name",
+  });
+  name.addEventListener("input", () => {
+    renameTo = name.value;
+  });
+  const rename = el("button", { class: "btn", type: "button", "data-manage": "rename" }, [
+    "Rename",
+  ]);
+  rename.addEventListener("click", () => {
+    const to = name.value.trim();
+    if (to === "" || to === set) return;
+    if (!isFileName(to)) {
+      repoNote = `"${to}" cannot be a layout name: letters, digits, dots and dashes only.`;
+      render();
+      return;
+    }
+    void settleEdits().then(async (settled) => {
+      if (!settled) {
+        repoNote = NOT_SETTLED;
+        render();
+        return;
+      }
+      const result = await post("/api/layout/rename", { game: game.slug, set, to });
+      if (result.ok !== true) {
+        repoNote = `Not renamed: ${String(result.error)}`;
+        render();
+        return;
+      }
+      renameTo = null;
+      void afterManage(`Renamed ${set} to ${to}.`, to);
+    });
+  });
+
+  const only = setsOf(game).size <= 1;
+  const removeLayout = el(
+    "button",
+    { class: "btn danger", type: "button", "data-manage": "delete-layout" },
+    ["Delete this layout"],
+  );
+  if (only) {
+    removeLayout.setAttribute("disabled", "disabled");
+    removeLayout.title = "A game keeps at least one layout. Delete the game instead.";
+  }
+  removeLayout.addEventListener("click", () => {
+    if (!window.confirm(`Delete the layout ${set} from ${game.name}, both units' keys with it?`)) {
+      return;
+    }
+    void settleEdits().then(async (settled) => {
+      if (!settled) {
+        repoNote = NOT_SETTLED;
+        render();
+        return;
+      }
+      const result = await post("/api/layout/delete", { game: game.slug, set });
+      if (result.ok !== true) {
+        repoNote = `Not deleted: ${String(result.error)}`;
+        render();
+        return;
+      }
+      void afterManage(`Deleted the layout ${set}.`);
+    });
+  });
+
+  const removeGame = el(
+    "button",
+    { class: "btn danger", type: "button", "data-manage": "delete-game" },
+    [`Delete ${game.name}`],
+  );
+  if (state.payload.games.length <= 1) {
+    removeGame.setAttribute("disabled", "disabled");
+    removeGame.title = "The only game: add another first, as the page needs one to open.";
+  }
+  removeGame.addEventListener("click", () => {
+    if (
+      !window.confirm(
+        `Delete ${game.name}: every layout, its actions and its keys? This cannot be undone ` +
+          "from the page.",
+      )
+    ) {
+      return;
+    }
+    void settleEdits().then(async (settled) => {
+      if (!settled) {
+        repoNote = NOT_SETTLED;
+        render();
+        return;
+      }
+      const result = await post("/api/game/delete", { game: game.slug });
+      if (result.ok !== true) {
+        repoNote = `Not deleted: ${String(result.error)}`;
+        render();
+        return;
+      }
+      void afterManage(`Deleted ${game.name}.`);
+    });
+  });
+
+  box.append(
+    el("div", { class: "manage-row" }, [name, rename]),
+    el("div", { class: "manage-row" }, [removeLayout, removeGame]),
+  );
+  return box;
+}
+
 function renderRepo(): HTMLElement {
   const panel = el("div", { class: "panel" });
   panel.append(el("h2", {}, ["Setup"]));
@@ -5755,6 +6015,8 @@ function renderRepo(): HTMLElement {
   // A game that is not here yet comes first: it is what a new owner needs before anything
   // else on the tab means anything.
   panel.append(renderNewGame());
+  const manage = renderManage();
+  if (manage !== null) panel.append(manage);
 
   // Importing an export: the round trip back from the Azeron app.
   const importRow = el("div", { class: "field" });
@@ -6554,6 +6816,11 @@ function renderMissingUnit(slug: string): HTMLElement | null {
 async function addMissingUnit(device: string, hand: string): Promise<void> {
   const set = state.setName;
   const game = currentGame().slug;
+  if (!(await settleEdits())) {
+    saveNote = NOT_SETTLED;
+    render();
+    return;
+  }
   const result = await post("/api/layout/unit", { game, set, device });
   if (result.ok !== true) {
     saveNote = `The ${hand} unit was not added: ${String(result.error)}`;

@@ -244,8 +244,11 @@ sticks.
 config — as functions rather than commands. The CLI and the served editor both call
 them, so what the UI can do is what the CLI can do rather than a subset that drifts. The
 editor reaches them over `/api/build`, `/api/import`, `/api/ingame`, `/api/ingame/apply`
-and `/api/actions` (which patches keys, labels and tags in actions.yaml line by line); saving a
-profile rebuilds `dist/` and lints in the same round trip.
+and `/api/actions` (which patches keys, labels and tags in actions.yaml line by line, adds an
+action as a new line and takes one out with `remove`); saving a profile rebuilds `dist/` and
+lints in the same round trip. Layouts and games are managed over `/api/layout/unit`,
+`/api/layout/rename`, `/api/layout/delete` and `/api/game/delete`, so no task on the page
+ends in "edit the file".
 
 `patchActionBindings` needs every action on one line, so `createGame` writes a seeded
 `actions.yaml` in flow style. Never regenerate `actions.yaml` with a generic YAML dump: it

@@ -385,3 +385,60 @@ export function addSetEntry(text: string, setName: string, layout: SetLayout): s
   }
   return patched;
 }
+
+/** The line range a set's entry takes in sets.yaml, or null when it has none. */
+function setEntryRange(lines: readonly string[], setName: string): [number, number] | null {
+  const setsAt = lines.findIndex((line) => line.startsWith("sets:"));
+  if (setsAt === -1) return null;
+  const key = new RegExp(`^ {${String(SET_INDENT)}}(["']?)${escape(setName)}\\1:`);
+  const start = lines.findIndex((line, index) => index > setsAt && key.test(line));
+  if (start === -1) return null;
+  let end = start + 1;
+  while (end < lines.length) {
+    const line = lines[end] ?? "";
+    if (isData(line) && indentOf(line) <= SET_INDENT) break;
+    end += 1;
+  }
+  // Blank lines and comments just before the next entry belong to that entry.
+  while (end - 1 > start && !isData(lines[end - 1] ?? "")) end -= 1;
+  return [start, end];
+}
+
+/** Take a layout's whole entry out of sets.yaml; every other set reads as it did. */
+export function removeSetEntry(text: string, setName: string): string {
+  const eol = text.includes("\r\n") ? "\r\n" : "\n";
+  const lines = text.split(/\r?\n/);
+  const range = setEntryRange(lines, setName);
+  if (range === null) return text;
+  const before = parseSets(parse(text) as unknown, "sets.yaml");
+  lines.splice(range[0], range[1] - range[0]);
+  const setsAt = lines.findIndex((line) => line.startsWith("sets:"));
+  const left = lines.slice(setsAt + 1).some((line) => isData(line) && indentOf(line) > 0);
+  if (!left) lines[setsAt] = "sets: {}";
+  const out = lines.join(eol);
+  const after = parseSets(parse(out) as unknown, "sets.yaml");
+  const expected = { ...before.sets };
+  Reflect.deleteProperty(expected, setName);
+  if (canonical(after.sets) !== canonical(expected)) {
+    throw new SetsFileError(`could not remove ${setName} without changing another layout`);
+  }
+  return out;
+}
+
+/** Give a layout's entry in sets.yaml a new name, keeping everything in it. */
+export function renameSetEntry(text: string, from: string, to: string): string {
+  const eol = text.includes("\r\n") ? "\r\n" : "\n";
+  const lines = text.split(/\r?\n/);
+  const range = setEntryRange(lines, from);
+  if (range === null) return text;
+  const before = parseSets(parse(text) as unknown, "sets.yaml");
+  if (to in before.sets) throw new SetsFileError(`sets.yaml already has ${to}`);
+  const line = lines[range[0]] ?? "";
+  lines[range[0]] = line.replace(/^( *)(["']?)[^:]*?\2:/, `$1${scalar(to)}:`);
+  const out = lines.join(eol);
+  const after = parseSets(parse(out) as unknown, "sets.yaml");
+  if (canonical(after.sets[to]) !== canonical(before.sets[from]) || from in after.sets) {
+    throw new SetsFileError(`could not rename ${from} to ${to}`);
+  }
+  return out;
+}

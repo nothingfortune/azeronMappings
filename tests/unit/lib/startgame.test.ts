@@ -18,6 +18,7 @@ import { tmpdir } from "node:os";
 import { isAbsolute, join } from "node:path";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { parseDocument } from "yaml";
 
 vi.mock("../../../src/config/paths.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../../src/config/paths.js")>();
@@ -44,6 +45,9 @@ import { Game, Genre } from "../../../src/lib/model.js";
 import { ScaffoldError } from "../../../src/lib/scaffold.js";
 import {
   addUnitToLayout,
+  deleteGame,
+  deleteLayout,
+  renameLayout,
   buildAll,
   ImportCollision,
   startGame,
@@ -60,6 +64,115 @@ afterEach(() => {
 
 const sim = (devices: string[] = ["cyborg2-left", "cyborg2-right"]) =>
   startGame({ name: "ZZ Sim", slug: "zzSim", genre: "SpaceSims", devices, set: "v1" });
+
+describe("deleting and renaming layouts and games", () => {
+  /** A space sim with pedals on v1, and v2 as its copy. */
+  const twoLayouts = (): void => {
+    startGame({
+      name: "ZZ Sim",
+      slug: "zzSim",
+      genre: "SpaceSims",
+      devices: ["cyborg2-left", "cyborg2-right"],
+      set: "v1",
+      pedals: "logitech-pro-flight-pedals",
+    });
+    startLayout({ game: "zzSim", set: "v2", devices: [], copyOf: "v1" });
+  };
+  const layouts = (): string[] =>
+    [
+      ...new Set(new Game(SIM).loadedProfiles().map((profile) => profile.set ?? profile.slug)),
+    ].sort();
+
+  it("deletes a layout's profiles and its pedals, and leaves the other layout whole", () => {
+    twoLayouts();
+    const v1 = readFileSync(repoPath(`${SIM}/profiles/v1-left.yaml`), "utf8");
+    deleteLayout({ game: "zzSim", set: "v2" });
+    expect(layouts()).toEqual(["v1"]);
+    expect(Object.keys(new Game(SIM).sets.sets)).toEqual(["v1"]);
+    expect(readFileSync(repoPath(`${SIM}/profiles/v1-left.yaml`), "utf8")).toBe(v1);
+  });
+
+  it("refuses to delete a game's only layout", () => {
+    sim();
+    expect(() => deleteLayout({ game: "zzSim", set: "v1" })).toThrow(/only layout/);
+  });
+
+  it("renames a layout everywhere it is named, keeping its ids and keys", () => {
+    twoLayouts();
+    const before = loadProfileData(`${SIM}/profiles/v1-left.yaml`);
+    renameLayout({ game: "zzSim", set: "v1", to: "main" });
+    expect(layouts()).toEqual(["main", "v2"]);
+    expect(existsSync(repoPath(`${SIM}/profiles/v1-left.yaml`))).toBe(false);
+    const after = loadProfileData(`${SIM}/profiles/main-left.yaml`);
+    expect(after.profile.id).toBe(before.profile.id);
+    expect(after.positions).toEqual(before.positions);
+    expect(after.profile).toMatchObject({ set: "main", name: "ZZ Sim main left" });
+    const game = new Game(SIM);
+    expect(Object.keys(game.sets.sets).sort()).toEqual(["main", "v2"]);
+    // The pad's split thumbs were acknowledged for v1; they follow it.
+    const profiles = (game.config.lint?.acknowledged ?? []).map((entry) => entry.profile);
+    expect(profiles).not.toContain("v1");
+    expect(profiles).toContain("main");
+    expect(lintGame(game).live.filter((finding) => finding.level === "error")).toEqual([]);
+  });
+
+  it("moves an acknowledgement that names one profile's file, not only the layout", () => {
+    twoLayouts();
+    const path = repoPath(`${SIM}/game.yaml`);
+    const doc = parseDocument(readFileSync(path, "utf8"));
+    doc.addIn(["lint", "acknowledged"], {
+      rule: "key-collision",
+      profile: "v1-left",
+      key: "KeyS",
+      reason: "the same key on purpose",
+    });
+    writeFileSync(path, doc.toString());
+    renameLayout({ game: "zzSim", set: "v1", to: "main" });
+    const named = (new Game(SIM).config.lint?.acknowledged ?? []).map((entry) => entry.profile);
+    expect(named).toContain("main-left");
+    expect(named).not.toContain("v1-left");
+    deleteLayout({ game: "zzSim", set: "main" });
+    const left = (new Game(SIM).config.lint?.acknowledged ?? []).map((entry) => entry.profile);
+    expect(left).not.toContain("main-left");
+  });
+
+  it("finds a layout whose profile names none, by its file name, as the editor does", () => {
+    twoLayouts();
+    // v2's left unit on its own, with no set: its layout is its file name, v2-left.
+    const path = repoPath(`${SIM}/profiles/v2-left.yaml`);
+    writeFileSync(path, readFileSync(path, "utf8").replace(/^ {2}set: v2\n/m, ""));
+    expect(layouts()).toContain("v2-left");
+    renameLayout({ game: "zzSim", set: "v2-left", to: "solo" });
+    expect(layouts()).toContain("solo");
+    deleteLayout({ game: "zzSim", set: "solo" });
+    expect(layouts()).not.toContain("solo");
+  });
+
+  it("keeps the last game: the page needs one to open", () => {
+    sim();
+    expect(() => {
+      deleteGame({ game: "zzSim" });
+    }).toThrow(/only game/);
+  });
+
+  it("refuses a name another layout has", () => {
+    twoLayouts();
+    expect(() => renameLayout({ game: "zzSim", set: "v1", to: "v2" })).toThrow(/already has/);
+  });
+
+  it("deletes a game's folder", () => {
+    sim();
+    startGame({
+      name: "ZZ Other",
+      slug: "zzOther",
+      genre: "FPS",
+      devices: ["cyborg2-left"],
+      set: "v1",
+    });
+    deleteGame({ game: "zzSim" });
+    expect(existsSync(repoPath(SIM))).toBe(false);
+  });
+});
 
 describe("adding the unit a layout is missing", () => {
   it("adds the other hand, empty, and leaves the one there untouched", () => {
