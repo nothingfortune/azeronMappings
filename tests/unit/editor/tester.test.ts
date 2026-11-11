@@ -95,7 +95,7 @@ describe("the live key tester", () => {
     });
     window.dispatchEvent(event);
     expect(event.defaultPrevented).toBe(true);
-    header(/^Testing keys$/).click();
+    header(/^Test keys$/).click();
     expect(document.querySelector(".tester-bar")).toBeNull();
   });
 });

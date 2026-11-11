@@ -42,7 +42,13 @@ import { loadProfileData } from "../../../src/lib/io.js";
 import { lintGame } from "../../../src/lib/lint.js";
 import { Game, Genre } from "../../../src/lib/model.js";
 import { ScaffoldError } from "../../../src/lib/scaffold.js";
-import { buildAll, ImportCollision, startGame, startLayout } from "../../../src/lib/tasks.js";
+import {
+  addUnitToLayout,
+  buildAll,
+  ImportCollision,
+  startGame,
+  startLayout,
+} from "../../../src/lib/tasks.js";
 
 const SIM = "games/SpaceSims/zzSim";
 
@@ -54,6 +60,32 @@ afterEach(() => {
 
 const sim = (devices: string[] = ["cyborg2-left", "cyborg2-right"]) =>
   startGame({ name: "ZZ Sim", slug: "zzSim", genre: "SpaceSims", devices, set: "v1" });
+
+describe("adding the unit a layout is missing", () => {
+  it("adds the other hand, empty, and leaves the one there untouched", () => {
+    sim(["cyborg2-left"]);
+    const before = readFileSync(repoPath(`${SIM}/profiles/v1-left.yaml`), "utf8");
+    const result = addUnitToLayout({ game: "zzSim", set: "v1", device: "cyborg2-right" });
+    expect(result.profile.path).toBe(`${SIM}/profiles/v1-right.yaml`);
+    const right = loadProfileData(result.profile.path);
+    expect(right.profile).toMatchObject({ unit: "right", set: "v1", device: "cyborg2-right" });
+    expect(right.positions).toEqual({});
+    expect(readFileSync(repoPath(`${SIM}/profiles/v1-left.yaml`), "utf8")).toBe(before);
+    // Both hands are now one layout.
+    const units = new Game(SIM).loadedProfiles().filter((profile) => profile.set === "v1");
+    expect(units.map((profile) => profile.unit).sort()).toEqual(["left", "right"]);
+  });
+
+  it("refuses a hand the layout already has, and a layout that is not there", () => {
+    sim(["cyborg2-left"]);
+    expect(() => addUnitToLayout({ game: "zzSim", set: "v1", device: "cyborg2-left" })).toThrow(
+      /already has a left unit/,
+    );
+    expect(() => addUnitToLayout({ game: "zzSim", set: "v9", device: "cyborg2-right" })).toThrow(
+      /no layout called 'v9'/,
+    );
+  });
+});
 
 describe("startGame", () => {
   it("writes the game, and a profile per unit on that unit's own export", () => {

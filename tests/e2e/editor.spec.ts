@@ -205,6 +205,46 @@ test.describe("the served editor", () => {
     expect(first && second && second.x > first.x + first.width / 2).toBe(true);
   });
 
+  test("draws each unit's card around all of its keys", async ({ page }) => {
+    // At 1280x720 the board is scaled, and the cards were stretched to the scaled height:
+    // the thumb row spilled out past the card's border.
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.goto("/");
+    for (const hand of await page.locator(".hand").all()) {
+      const card = await hand.evaluate((node) => node.getBoundingClientRect().bottom);
+      const keys = await hand
+        .locator(".key")
+        .evaluateAll((nodes) => Math.max(...nodes.map((n) => n.getBoundingClientRect().bottom)));
+      expect(keys).toBeLessThanOrEqual(card + 0.5);
+    }
+  });
+
+  test("keeps the board still while a unit is being tested", async ({ page }) => {
+    // The run bars were drawn above the board, so it jumped down by 150 to 400 pixels
+    // while the owner was pressing keys on it. They now sit in a tray over the window's foot.
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.goto("/");
+    const key = page.locator('.hand .key[data-position="pinky_1"]').first();
+    const before = await key.boundingBox();
+    await page.getByRole("button", { name: "Test keys", exact: true }).click();
+    const tray = page.locator(".run-tray");
+    await expect(tray).toBeVisible();
+    for (const code of ["KeyQ", "KeyW", "KeyE", "KeyR", "KeyT", "KeyY", "KeyU", "KeyI"]) {
+      await page.keyboard.press(code.slice(3).toLowerCase());
+    }
+    const after = await key.boundingBox();
+    expect(after?.y).toBe(before?.y);
+    // Over the foot of the window, not in the page's flow.
+    expect(await tray.evaluate((node) => getComputedStyle(node).position)).toBe("fixed");
+    const box = await tray.boundingBox();
+    expect(box && Math.round(box.y + box.height)).toBe(720);
+    // The page can still be scrolled clear of it.
+    const padding = await page
+      .locator("#app")
+      .evaluate((node) => parseFloat(getComputedStyle(node).paddingBottom));
+    expect(padding).toBeGreaterThan(0);
+  });
+
   test("draws the press test's stick as a cross, with the click in the middle", async ({
     page,
   }) => {

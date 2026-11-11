@@ -6,6 +6,21 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Fixed
 
+- **The board stays still while a unit is tested.** Test keys, Check this unit, Write to
+  units and the save notes were drawn above the board, which jumped 150 to 400 pixels down
+  as they grew with each press. They now share a tray over the foot of the window that
+  scrolls in itself, and the Test keys button keeps its label, which had re-wrapped the
+  header at 1280 wide. Each unit's card also holds all its keys again at 1280x720.
+
+- **A one-unit layout can be given its other unit.** In place of "Add a profile with
+  `unit: right`", the board offers Add the right unit (or left), which adds that unit
+  empty to the same layout (`addUnitToLayout`, `/api/layout/unit`).
+
+- **Saving a press test asks first.** It reads every key in the window, the computer's
+  keyboard included, so a stray key could overwrite a checked unit map. Save its map now
+  lists what would change and asks, and says so when nothing would. Clear all keys says
+  that autosave keeps the change and Ctrl+Z brings it back.
+
 - **The right unit's stick sends left for left.** The press test of 2026-11-11 found its
   left and right swapped (up and down were right), so `devices/cyborg2-right.yaml` now
   carries `stick_directions` swapping them back, and every right-hand layout is rebuilt

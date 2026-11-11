@@ -469,8 +469,9 @@ function clearAllKeys(): void {
   if (
     !window.confirm(
       `Clear every key on ${units} in ${state.setName}? Every action goes back to the list. ` +
-        "Nothing is saved until you press Save, and Undo all unsaved edits in the menu " +
-        "brings the layout back.",
+        (autosaveOn() && canSave()
+          ? "Autosave keeps the change; Undo (Ctrl+Z) brings the layout back."
+          : "Nothing is saved until you press Save, and Undo (Ctrl+Z) brings the layout back."),
     )
   ) {
     return;
@@ -4527,8 +4528,10 @@ function renderHeader(): HTMLElement {
     const tester = el(
       "button",
       { class: `btn test-keys${liveTester === null ? "" : " primary"}`, type: "button" },
-      [liveTester === null ? "Test keys" : "Testing keys"],
+      ["Test keys"],
     );
+    // The label stays the same: a longer one re-wrapped the header and moved the board.
+    tester.setAttribute("aria-pressed", liveTester === null ? "false" : "true");
     tester.title = "Press keys on a unit and see which control sends what, live.";
     if (checkRun !== null || writeRun !== null) tester.setAttribute("disabled", "disabled");
     tester.addEventListener("click", () => {
@@ -6495,6 +6498,7 @@ function render(): void {
   adoptPendingSpec();
   trackHistory();
   draw();
+  settleTray();
   keepPlace();
   lightTester();
   if (typing) {
@@ -6528,16 +6532,76 @@ function render(): void {
 }
 let undoBound = false;
 
+/** The free hand of a one-unit layout: a button that adds that unit, empty. */
+function renderMissingUnit(slug: string): HTMLElement | null {
+  const has = workingData(slug).profile.unit === "right" ? "right" : "left";
+  const want = has === "right" ? "left" : "right";
+  const device = Object.values(state.payload.devices).find((entry) => entry.hand === want);
+  if (device === undefined) return null;
+  const box = el("div", { class: "empty-state missing-unit" });
+  if (!canSave()) {
+    box.append(`This layout has no ${want} unit. Open the editor with npm start to add one.`);
+    return box;
+  }
+  const add = el("button", { class: "btn primary", type: "button" }, [`Add the ${want} unit`]);
+  add.addEventListener("click", () => {
+    void addMissingUnit(device.device, want);
+  });
+  box.append(el("div", {}, [`This layout has no ${want} unit yet.`]), add);
+  return box;
+}
+
+async function addMissingUnit(device: string, hand: string): Promise<void> {
+  const set = state.setName;
+  const game = currentGame().slug;
+  const result = await post("/api/layout/unit", { game, set, device });
+  if (result.ok !== true) {
+    saveNote = `The ${hand} unit was not added: ${String(result.error)}`;
+    render();
+    return;
+  }
+  const loaded = await refreshPayload();
+  // Only back to the layout if its game is still the one on screen: another game chosen
+  // while the unit was being added keeps the layout it opened on.
+  if (currentGame().slug === game) state.setName = set;
+  saveNote = loaded
+    ? `Added the ${hand} unit. Drag actions onto its keys.`
+    : `Added the ${hand} unit. Reload the page to see it.`;
+  render();
+}
+
+/** Whether the tray was showing at the last draw: it slides in only when it first appears. */
+let trayWasShown = false;
+
+/** Show the tray only with something in it, and pad the page so nothing is left under it. */
+function settleTray(): void {
+  const root = document.getElementById("app");
+  const tray = root?.querySelector<HTMLElement>(":scope > .run-tray");
+  if (!root || !tray) return;
+  const shown = tray.childElementCount > 0;
+  tray.hidden = !shown;
+  tray.classList.toggle("entering", shown && !trayWasShown);
+  trayWasShown = shown;
+  // Measured once laid out; the tray's height changes with what it holds.
+  requestAnimationFrame(() => {
+    root.style.paddingBottom = shown ? `${String(tray.offsetHeight)}px` : "";
+  });
+}
+
 function draw(): void {
   adoptPendingSpec();
   const root = document.getElementById("app");
   if (!root) return;
   root.replaceChildren();
   root.append(renderHeader());
-  if (writeRun !== null) root.append(renderWriteBar(writeRun));
-  if (liveTester !== null) root.append(renderTesterBar(liveTester));
+  // What a unit run and a save have to say goes in a tray over the foot of the window, so
+  // the board never moves under the hand that is pressing keys to test it.
+  const tray = el("div", { class: "run-tray", "aria-live": "polite" });
+  root.append(tray);
+  if (writeRun !== null) tray.append(renderWriteBar(writeRun));
+  if (liveTester !== null) tray.append(renderTesterBar(liveTester));
   if (saveNote !== null) {
-    root.append(el("div", { class: "save-note" }, [saveNote]));
+    tray.append(el("div", { class: "save-note" }, [saveNote]));
   }
   if (saveReport !== null) {
     const dismiss = el("button", { class: "btn dismiss", type: "button" }, ["Dismiss"]);
@@ -6545,7 +6609,7 @@ function draw(): void {
       saveReport = null;
       render();
     });
-    root.append(el("div", { class: "save-note" }, [saveReport, dismiss]));
+    tray.append(el("div", { class: "save-note" }, [saveReport, dismiss]));
   }
 
   if (state.mode === "in-game") {
@@ -6584,17 +6648,14 @@ function draw(): void {
   );
   // A run belongs to a unit of the layout on screen; another layout ends it.
   if (checkRun !== null && !slugsInSet().includes(checkRun.slug)) checkRun = null;
-  if (checkRun !== null) root.append(renderCheckBar(checkRun));
+  if (checkRun !== null) tray.prepend(renderCheckBar(checkRun));
 
   const stage = el("div", { class: "stage" });
   const slugs = slugsInSet();
   for (const slug of slugs) stage.append(renderHand(slug));
   if (slugs.length === 1) {
-    stage.append(
-      el("div", { class: "empty-state" }, [
-        "No second unit in this set. Add a profile with `unit: right` to edit both hands together.",
-      ]),
-    );
+    const missing = renderMissingUnit(slugs[0] ?? "");
+    if (missing !== null) stage.append(missing);
   }
   const stageWrap = el("div", { class: "stage-wrap" }, [stage]);
   workspace.append(stageWrap);

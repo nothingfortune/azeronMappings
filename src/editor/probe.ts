@@ -6,7 +6,13 @@
  * measured rather than inferred from the left-handed layout.
  */
 
-import { deviceFromProbe, PHYSICAL_PUSHES, probeDiff, stickZeroFrom } from "../lib/probe.js";
+import {
+  deviceChanges,
+  deviceFromProbe,
+  PHYSICAL_PUSHES,
+  probeDiff,
+  stickZeroFrom,
+} from "../lib/probe.js";
 import type { ProbeAssignment, ProbeResult } from "../lib/probe.js";
 import { handLayout, positionLabel, probeOrder, unitLabel } from "../lib/layout.js";
 import { Device } from "../lib/model-core.js";
@@ -349,6 +355,20 @@ function exportDevice(hand: string): void {
     `# Save this over devices/${unit.device}.yaml.\n`;
 
   if (saveDevice !== null) {
+    const changes = deviceChanges(assumed, next);
+    if (changes.length === 0) {
+      state.message = `The ${unitLabel(hand).toLowerCase()} unit's map already says this. Nothing to save.`;
+      render();
+      return;
+    }
+    const shown = changes.slice(0, 12).join("\n");
+    const more = changes.length > 12 ? `\n…and ${String(changes.length - 12)} more` : "";
+    const sure = window.confirm(
+      `Saving changes the ${unitLabel(hand).toLowerCase()} unit's map:\n\n${shown}${more}\n\n` +
+        "A key pressed on the computer's keyboard during the test counts as a reading too. " +
+        "Save these changes?",
+    );
+    if (!sure) return;
     saveDevice(`devices/${unit.device}.yaml`, dumpYaml(next, header));
     return;
   }
@@ -703,7 +723,9 @@ function render(): void {
     } else {
       banner.append(
         el("b", {}, ["Zero measured."]),
-        el("span", {}, [`Export the map below. ${REMOVE_PROBES}`]),
+        el("span", {}, [
+          `${saveDevice === null ? "Download" : "Save"} the map below. ${REMOVE_PROBES}`,
+        ]),
       );
     }
   } else {
@@ -711,7 +733,9 @@ function render(): void {
     if (state.step >= totalSteps()) {
       banner.append(
         el("b", {}, ["Done."]),
-        el("span", {}, [`Export the map below. ${REMOVE_PROBES}`]),
+        el("span", {}, [
+          `${saveDevice === null ? "Download" : "Save"} the map below. ${REMOVE_PROBES}`,
+        ]),
       );
     } else {
       banner.append(

@@ -65,6 +65,7 @@ import {
   createGame,
   startGame,
   startLayout,
+  addUnitToLayout,
   deviceNames,
   nameUnit,
   ImportCollision,
@@ -772,13 +773,25 @@ function cmdServe(port: number, host: string, open = false): number {
       (url === "/api/build" ||
         url === "/api/import" ||
         url === "/api/game" ||
-        url === "/api/layout")
+        url === "/api/layout" ||
+        url === "/api/layout/unit")
     ) {
       readBody(request, response, 20_000_000, (body) => {
         try {
           if (url === "/api/build") {
             const result = buildAll(Game.discover());
             send(200, JSON.stringify({ ok: result.errors.length === 0, ...result }));
+            return;
+          }
+          if (url === "/api/layout/unit") {
+            // The hand a layout is missing, added empty beside the one it has.
+            const asked = JSON.parse(body) as { game?: string; set?: string; device?: string };
+            const result = addUnitToLayout({
+              game: asked.game ?? "",
+              set: asked.set ?? "",
+              device: asked.device ?? "",
+            });
+            send(200, JSON.stringify({ ok: true, ...result }));
             return;
           }
           if (url === "/api/layout") {

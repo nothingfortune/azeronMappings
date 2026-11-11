@@ -137,6 +137,66 @@ export interface ProbeResult {
   stick: Partial<Record<StickDirection, StickDirection>>;
 }
 
+/**
+ * What saving a press test would change in a device map, one line per change.
+ *
+ * The press test reads every keystroke in the window, so a key pressed on the computer's
+ * own keyboard is taken as a reading too. Saving then overwrites a map that was right, so
+ * the page shows this list and asks first.
+ */
+export function deviceChanges(before: DeviceData, after: DeviceData): string[] {
+  const changes: string[] = [];
+  for (const [name, position] of Object.entries(after.positions)) {
+    const was = before.positions[name];
+    if (was === undefined) {
+      changes.push(`${name}: new, pin ${String(position.pin)}`);
+      continue;
+    }
+    if (was.pin !== position.pin) {
+      changes.push(`${name}: pin ${String(was.pin)} → ${String(position.pin)}`);
+    }
+    if (was.pin_two !== position.pin_two) {
+      changes.push(
+        `${name}: second pin ${String(was.pin_two ?? "none")} → ${String(position.pin_two ?? "none")}`,
+      );
+    }
+  }
+  const directions = (data: DeviceData): string => JSON.stringify(data.stick_directions ?? {});
+  if (directions(before) !== directions(after)) {
+    const shown = Object.entries(after.stick_directions ?? {})
+      .filter(([from, to]) => from !== to)
+      .map(([from, to]) => `${from} reads as ${to}`);
+    changes.push(`stick: ${shown.length > 0 ? shown.join(", ") : "every direction as itself"}`);
+  }
+  if (before.stick_angle !== after.stick_angle) {
+    changes.push(
+      `stick angle: ${String(before.stick_angle ?? "none")} → ${String(after.stick_angle ?? "none")}`,
+    );
+  }
+  if ((before.verified === true) !== (after.verified === true)) {
+    changes.push(after.verified === true ? "marked as press-tested" : "no longer press-tested");
+  }
+  // Everything else the press test can write -- the stick zero, the pins it saw fire for
+  // the first time -- and anything added to it later, so no result is called "nothing".
+  const named = new Set(["positions", "stick_directions", "stick_angle", "verified"]);
+  const rest = new Set([...Object.keys(before), ...Object.keys(after)]);
+  for (const field of [...rest].filter((key) => !named.has(key)).sort()) {
+    const value = (data: DeviceData, empty: string): string => {
+      const found: unknown = (data as unknown as Record<string, unknown>)[field];
+      return found === undefined ? empty : JSON.stringify(found);
+    };
+    if (value(before, "") === value(after, "")) continue;
+    if (field === "unknown_pins") {
+      changes.push(`unidentified pins: ${value(before, "[]")} → ${value(after, "[]")}`);
+    } else if (field === "stick_zero") {
+      changes.push(`stick zero: ${value(after, "none")}`);
+    } else {
+      changes.push(`${field}: ${value(before, "none")} → ${value(after, "none")}`);
+    }
+  }
+  return changes;
+}
+
 /** Rebuild a device map from what the press test observed. */
 export function deviceFromProbe(assumed: DeviceData, result: ProbeResult): DeviceData {
   // Every position comes through. One that was pressed takes the pin that fired; one that

@@ -122,6 +122,16 @@ select, .btn {
 .save-report .import-path code { user-select: all; overflow-wrap: anywhere; color: var(--fg); }
 .save-note .dismiss { flex: none; }
 .workspace.single { display: block; }
+/* Unit runs and save notes: over the foot of the window, scrolling in themselves, so
+   nothing above them moves. The page is padded by the tray's height while it shows. */
+.run-tray { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; max-height: 45vh;
+            overflow-y: auto; background: var(--panel); border-top: 1px solid var(--line);
+            box-shadow: 0 -6px 18px rgba(0, 0, 0, .18); }
+.run-tray[hidden] { display: none; }
+.run-tray.entering { animation: tray-in .16s ease-out; }
+@keyframes tray-in { from { transform: translateY(100%); } to { transform: none; } }
+.run-tray > * + * { border-top: 1px solid var(--line); }
+.run-tray .save-note, .run-tray .check-bar { border-bottom: 0; }
 /* A tab that is one column of forms or a list reads better at a column's width, centred. */
 .workspace.single > .panel { max-width: 1280px; margin-inline: auto; }
 .panel.inset { background: var(--bg); margin-bottom: 12px; }
@@ -225,7 +235,9 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
    edge, where the scale that then fits it starts from. */
 .workspace.board .stage-wrap { overflow: hidden; display: flex; justify-content: safe center; }
 .workspace.board .stage { display: flex; gap: 14px; align-items: stretch; flex-wrap: nowrap;
-         transform-origin: top left; width: max-content; flex: none; }
+         transform-origin: top left; width: max-content; flex: none;
+         /* Its own height: stretched to the scaled wrap, the hands came out shorter than their keys. */
+         align-self: flex-start; }
 @media (orientation: portrait) {
   .workspace.board .stage { flex-direction: column; width: 100%; }
   .workspace.board .stage > .hand { align-self: stretch; }
