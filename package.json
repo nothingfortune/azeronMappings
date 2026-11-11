@@ -22,7 +22,7 @@
     "test:bin": "node build/scripts/run-bin-tests.js",
     "check": "npm run build && npm run typecheck && npm run lint && npm run format:check && npm test && npm run test:bin",
     "azeron": "node build/index.js",
-    "postinstall": "git config core.hooksPath >/dev/null 2>&1 || git config core.hooksPath .githooks || true",
+    "postinstall": "node -e \"const {execSync: x} = require('node:child_process'); const q = {stdio: 'ignore'}; try { x('git config core.hooksPath', q) } catch { try { x('git config core.hooksPath .githooks', q) } catch {} }\"",
     "test:quick": "vitest run tests/unit",
     "preflight": "node scripts/check-env.mjs",
     "prebuild": "npm run --silent preflight",

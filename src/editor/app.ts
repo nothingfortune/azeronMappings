@@ -2625,7 +2625,7 @@ function unitsReportBox(report: UnitsReport): HTMLElement {
     box.append(
       el("div", {}, [
         direct.length === 0
-          ? "The Azeron app has this layout on both units as it is now."
+          ? "The units have this layout as it is now."
           : "The units have this layout as it is now: " +
             report.units
               .map((unit) =>
@@ -2641,8 +2641,7 @@ function unitsReportBox(report: UnitsReport): HTMLElement {
   }
   box.append(
     el("div", {}, [
-      "The Azeron app does not have this layout as it is now, so the units do not either. " +
-        "Import each file below in the app, then write it to its unit:",
+      "The units do not have this layout as it is now. Write to units puts it on them:",
     ]),
   );
   for (const unit of behind) {
@@ -2651,11 +2650,10 @@ function unitsReportBox(report: UnitsReport): HTMLElement {
       el("div", { class: "unit-behind" }, [
         el("strong", {}, [`${unitLabel(unit.unit)} unit`]),
         unit.status === "missing"
-          ? ` -- the app has no profile named "${unit.name}"`
+          ? " -- not on the unit yet"
           : ` -- ${String(count)} control${count === 1 ? "" : "s"} differ`,
       ]),
     );
-    box.append(el("div", { class: "import-path" }, [el("code", {}, [unit.importPath])]));
     if (count > 0) {
       const list = el("ul", { class: "unit-differences" });
       for (const difference of unit.differences) {
@@ -2663,7 +2661,7 @@ function unitsReportBox(report: UnitsReport): HTMLElement {
           el("li", {}, [
             el("strong", {}, [difference.where]),
             difference.labelOnly
-              ? `: the same key, named "${difference.app}" in the app`
+              ? `: the same key, named "${difference.app}" on the unit`
               : `: the unit has ${difference.app}; the layout has ${difference.layout}`,
           ]),
         );
@@ -2671,11 +2669,16 @@ function unitsReportBox(report: UnitsReport): HTMLElement {
       box.append(list);
     }
   }
+  const write = el("button", { class: "btn small primary", type: "button" }, ["Write to units"]);
+  write.addEventListener("click", () => {
+    saveReport = null;
+    startWrite();
+  });
   const again = el("button", { class: "btn small", type: "button" }, ["Check again"]);
   again.addEventListener("click", () => {
     askUnits();
   });
-  box.append(again);
+  box.append(write, again);
   return box;
 }
 
@@ -3745,7 +3748,7 @@ function writeAll(run: WriteRun): void {
       pendingImports.clear();
     }
     await closeUnits(run.units);
-    // What the units hold has changed, so the header's Re-import is asked again.
+    // What the units hold has changed, so the header's Not on the units is asked again.
     askUnits();
     if (writeRun === run) render();
   })();
@@ -4437,12 +4440,12 @@ function renderHeader(): HTMLElement {
       // Without the Azeron app's store to ask, this is what has been saved since the units
       // were last written; the pill writes them.
       const imports = el("button", { class: "pill todo", type: "button", "data-todo": "import" }, [
-        behind === null ? "Not on the units" : `Re-import ${String(count)}`,
+        "Not on the units",
       ]);
       imports.title =
         behind === null
           ? "Saved since the units were last written. Click to write them."
-          : `The Azeron app's copy of ${String(count)} unit(s) is not this layout. Click for which keys.`;
+          : `${String(count)} unit(s) do not have this layout as it is now. Click for which keys.`;
       imports.addEventListener("click", () => {
         if (units === null) {
           startWrite();

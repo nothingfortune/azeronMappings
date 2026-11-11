@@ -44,7 +44,7 @@ test.describe("autosave", () => {
       await expect(page.locator("header button", { hasText: /^Saved$/ })).toBeVisible();
       // No report is put on screen; what is left to do is in the header.
       await expect(page.locator(".save-report")).toHaveCount(0);
-      await expect(page.locator('[data-todo="import"]')).toHaveText(/^Re-import \d+$/);
+      await expect(page.locator('[data-todo="import"]')).toHaveText("Not on the units");
 
       await page.locator("[data-undo]").click();
       await expect(key).toHaveClass(/empty/);

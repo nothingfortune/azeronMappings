@@ -432,7 +432,7 @@ describe("what the page says is on the units, after a direct write", () => {
     serve();
     await vi.waitFor(() => {
       expect(document.querySelector('header [data-todo="import"]')?.textContent).toBe(
-        "Re-import 2",
+        "Not on the units",
       );
     }, WAIT);
     plugIn([makeUnit("left"), makeUnit("right")]);

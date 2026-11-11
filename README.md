@@ -93,10 +93,9 @@ before playing. It rewrites its own files while it is open.
 **Is what is on the units the layout?** After a write that read back clean, the editor
 knows: it keeps a fingerprint of what went onto each unit (`logs/units-written.json`). For
 a layout that came in through the app, it reads the app's own copy of each profile and
-compares it with the layout, key by key. Without the app, the header shows **Not on the
-units** after a save until the next Write to units, and clicking it starts one. With it,
-while either copy is older than the layout, the header shows **Re-import N**: it lists each unit's file and every key the unit does something else
-on — "Ring 4: the unit has Inventory (I); the layout has Ultimate (G)" — and those keys are
+compares it with the layout, key by key. While a unit is behind, the header shows **Not on
+the units**: it lists every key the unit does something else on — "Ring 4: the unit has
+Inventory (I); the layout has Ultimate (G)" — with a **Write to units** button, and those keys are
 marked _not on unit_ on the board. Coming back to the page checks again.
 `npm run azeron -- units` says the same in the terminal.
 
@@ -152,9 +151,8 @@ turns autosave off if you would rather press Save.
   **Update the game's keys…**. The **In-game** tab is where actions are named and given
   their roles; **Show the wiring** there shows the keys, and lets one be moved by hand.
 
-What a save leaves for you to do shows in the header: **Re-import N** says the units are
-behind (Write to units brings them up to date, or import the files it lists, as paths the
-app's dialog takes), and **Update the game's keys…**
+What a save leaves for you to do shows in the header: **Not on the units** says the units
+are behind (click it to write them), and **Update the game's keys…**
 appears when the wiring or the pedals changed. That one asks whether the game is closed and
 then writes its `Input.ini`; it is the one thing saving never does on its own, because it
 writes outside the repo. **Clear all keys**, on the Actions bar, empties the board to lay a
