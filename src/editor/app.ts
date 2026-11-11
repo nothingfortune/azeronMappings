@@ -3515,8 +3515,17 @@ function deviceNameFor(deviceId: number): string | null {
     : `${unitLabel(device.hand ?? device.device).toLowerCase()} unit`;
 }
 
+/** Whether Write to units is mid-exchange with the units. */
+function writeBusy(): boolean {
+  return writeRun?.stage === "preparing" || writeRun?.stage === "writing";
+}
+
 function startWrite(): void {
   if (writeRun !== null) return;
+  // The press test may have the units open: it is ended, and the write waits for whatever
+  // it is in the middle of and for it to let go, so one session talks to a unit at a time.
+  const probe = probeRun;
+  probeRun = null;
   stopTester(false);
   capturing = null;
   state.selected = null;
@@ -3534,7 +3543,15 @@ function startWrite(): void {
   };
   writeRun = run;
   render();
-  void prepareWrite(run);
+  void (async () => {
+    if (probe !== null) {
+      run.status = "Waiting for the press test to let go of the units…";
+      render();
+      await probe.pending;
+      await closeUnits(probe.units);
+    }
+    await prepareWrite(run);
+  })();
 }
 
 /** Whether the Azeron app is running: true, false, or null when that could not be told. */
@@ -5899,6 +5916,8 @@ interface ProbeRun {
   appClosedSaid: boolean;
   /** What the run was asked to do once the units are found. */
   then: "put" | "remove";
+  /** Every exchange the run has started, settled once the units are left alone. */
+  pending: Promise<void>;
 }
 
 let probeRun: ProbeRun | null = null;
@@ -5936,11 +5955,27 @@ function startProbeRun(then: ProbeRun["then"]): void {
     units: [],
     appClosedSaid: previous?.appClosedSaid ?? false,
     then,
+    pending: Promise.resolve(),
   };
   probeRun = run;
+  if (writeBusy()) {
+    // Write to units has the units open and is mid-exchange; two sessions on one unit
+    // would read each other's answers.
+    run.stage = "failed";
+    run.note = "Write to units is still working. Try again when it has finished.";
+    render();
+    return;
+  }
+  // A finished write still holds the units open: let go of them first.
+  const write = writeRun;
+  if (write !== null) endWrite(false);
   render();
-  void (async () => {
-    if (previous !== null) await closeUnits(previous.units);
+  run.pending = (async () => {
+    if (previous !== null) {
+      await previous.pending;
+      await closeUnits(previous.units);
+    }
+    if (write !== null) await closeUnits(write.units);
     await connectProbeRun(run);
   })();
 }
@@ -5987,8 +6022,12 @@ async function connectProbeRun(run: ProbeRun): Promise<void> {
       render();
       return;
     }
-    if (run.then === "put") await putProbeOnUnits(run, known);
-    else await removeProbeFromUnits(run, known);
+    if (run.then === "put") {
+      const written = await putProbeOnUnits(run, known);
+      if (!alive()) return;
+      // A pass chosen while the probes went on was not followed then: follow it now.
+      await catchUpProbePass(run, written);
+    } else await removeProbeFromUnits(run, known);
     if (!alive()) return;
     run.stage = "ready";
   } catch (error) {
@@ -5999,7 +6038,9 @@ async function connectProbeRun(run: ProbeRun): Promise<void> {
   if (alive()) render();
 }
 
-async function putProbeOnUnits(run: ProbeRun, units: readonly FoundUnit[]): Promise<void> {
+/** Put both probes on each unit, running the pass on screen; returns the pass used. */
+async function putProbeOnUnits(run: ProbeRun, units: readonly FoundUnit[]): Promise<ProbePass> {
+  const pass = probePass();
   const notes: string[] = [];
   for (const unit of units) {
     const device = deviceForUnit(unit);
@@ -6007,7 +6048,7 @@ async function putProbeOnUnits(run: ProbeRun, units: readonly FoundUnit[]): Prom
     run.status = `Putting the press test on the ${probeUnitLabel(unit)}…`;
     render();
     try {
-      const report = await putProbes(unit, probeProfilesForUnit(device), probePass());
+      const report = await putProbes(unit, probeProfilesForUnit(device), pass);
       if (report.problems.length > 0) {
         notes.push(
           `The ${probeUnitLabel(unit)} did not read back as written: ` +
@@ -6020,6 +6061,22 @@ async function putProbeOnUnits(run: ProbeRun, units: readonly FoundUnit[]): Prom
     }
   }
   if (notes.length > 0) run.note = notes.join(" ");
+  return pass;
+}
+
+/** Switch every unit holding the probes to the pass on screen, until it stops changing. */
+async function catchUpProbePass(run: ProbeRun, running: ProbePass): Promise<void> {
+  let current = running;
+  for (let tries = 0; tries < 3 && probePass() !== current; tries += 1) {
+    current = probePass();
+    for (const unit of probeKnownUnits(run).filter(holdsProbe)) {
+      try {
+        await runProbe(unit, current);
+      } catch (error) {
+        run.note = explain(error, `switching the ${probeUnitLabel(unit)}`);
+      }
+    }
+  }
 }
 
 async function removeProbeFromUnits(run: ProbeRun, units: readonly FoundUnit[]): Promise<void> {
@@ -6052,7 +6109,9 @@ function followProbePass(pass: ProbePass): void {
   if (run?.stage !== "ready") return;
   const units = probeKnownUnits(run).filter(holdsProbe);
   if (units.length === 0) return;
-  void (async () => {
+  // One exchange at a time: a second switch waits for the first.
+  run.pending = run.pending.then(async () => {
+    if (probeRun !== run) return;
     const notes: string[] = [];
     for (const unit of units) {
       try {
@@ -6063,13 +6122,13 @@ function followProbePass(pass: ProbePass): void {
     }
     run.note = notes.length > 0 ? notes.join(" ") : null;
     if (probeRun === run) render();
-  })();
+  });
 }
 
 function endProbeRun(): void {
   const run = probeRun;
   probeRun = null;
-  if (run !== null) void closeUnits(run.units);
+  if (run !== null) void run.pending.then(() => closeUnits(run.units));
 }
 
 /** One pick from the browser's dialog. Nothing is awaited first: it opens only from the click. */

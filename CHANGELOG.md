@@ -6,6 +6,17 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Fixed
 
+- **A unit named from the page stays named.** The page's data now carries the id
+  `local.yaml` gives each unit, as the CLI's does, so a unit named from Write to units or
+  the press test is not unknown again on the next refresh. A press test saved from the
+  page keeps the id the device map already has, so one person's unit never reaches the
+  committed file.
+
+- **One thing talks to the units at a time.** Write to units ends the press test and waits
+  for it to let go of the units before opening them, and the press test waits for a
+  finished write to let go too. A pass chosen while the probes are going on is followed
+  once they are on, and pass switches no longer overlap.
+
 - **`npm audit` is clean.** happy-dom, the editor tests' browser, goes to 21.0.4 (a high
   advisory on untrusted HTML). minimatch, inside ESLint, had a moderate one fixed only in
   11.0.1, while every ESLint 10 still asks for 10.x. npm's own fix was to go back to
