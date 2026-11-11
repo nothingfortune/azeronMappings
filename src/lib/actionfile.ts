@@ -273,6 +273,14 @@ export function removeActions(text: string, ids: readonly string[]): string {
   }
   const end = endOf();
   const left = lines.slice(start + 1, end).some((line) => /^\s+[A-Za-z_][\w]*:/.test(line));
-  if (!left) lines[start] = (lines[start] ?? "").replace(/^actions:\s*$/, "actions: {}");
+  // An empty block reads as null, which would delete the genre's whole vocabulary when the
+  // two are merged; `{}` is no actions of the game's own. A comment on the line stays.
+  if (!left) {
+    lines[start] = (lines[start] ?? "").replace(
+      /^actions:\s*(#.*)?$/,
+      (_whole, comment?: string) =>
+        comment === undefined ? "actions: {}" : `actions: {} ${comment}`,
+    );
+  }
   return lines.join(eol);
 }

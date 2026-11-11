@@ -106,3 +106,86 @@ describe("managing the open layout and game", () => {
     expect(document.querySelector('[data-manage="rename"]')).toBeNull();
   });
 });
+
+describe("managing with unsaved edits", () => {
+  /** An unsaved rename of an action, made on the In-game tab. */
+  function editSomething(): void {
+    const tab = (name: string): void => {
+      [...document.querySelectorAll<HTMLButtonElement>("header .tabs button")]
+        .find((button) => button.textContent === name)
+        ?.click();
+    };
+    tab("In-game");
+    const name = [...document.querySelectorAll<HTMLElement>(".ingame-row .who b")].find(
+      (node) => node.textContent === "Headlight",
+    );
+    name?.click();
+    const input = document.querySelector<HTMLInputElement>(".rename-input");
+    if (!input) throw new Error("no name box");
+    input.focus();
+    input.value = "Helmet lamp";
+    input.blur();
+    tab("Setup");
+  }
+
+  function serveWith(saves: boolean): void {
+    SERVED.AZERON_SERVED = true;
+    calls = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((path: string, init?: { body?: string }) => {
+        if (path === "/api/payload") {
+          return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(PAYLOAD) });
+        }
+        calls.push({ path, body: init?.body === undefined ? null : JSON.parse(init.body) });
+        const refused = path === "/api/actions" && !saves;
+        return Promise.resolve({
+          ok: !refused,
+          status: refused ? 400 : 200,
+          json: () =>
+            Promise.resolve(
+              refused
+                ? { ok: false, error: "refused" }
+                : {
+                    ok: true,
+                    saved: true,
+                    path: "p",
+                    check: { game: null, built: [], findings: [], buildErrors: [] },
+                  },
+            ),
+        });
+      }),
+    );
+  }
+
+  it("saves them first, then deletes", async () => {
+    serveWith(true);
+    openSetup();
+    editSomething();
+    vi.stubGlobal(
+      "confirm",
+      vi.fn(() => true),
+    );
+    control("delete-layout").click();
+    await vi.waitFor(() => {
+      expect(calls.map((call) => call.path)).toContain("/api/layout/delete");
+    });
+    const paths = calls.map((call) => call.path);
+    expect(paths.indexOf("/api/actions")).toBeLessThan(paths.indexOf("/api/layout/delete"));
+  });
+
+  it("changes nothing on the server when they cannot be saved", async () => {
+    serveWith(false);
+    openSetup();
+    editSomething();
+    vi.stubGlobal(
+      "confirm",
+      vi.fn(() => true),
+    );
+    control("delete-layout").click();
+    await vi.waitFor(() => {
+      expect(document.body.textContent).toContain("could not be saved");
+    });
+    expect(calls.map((call) => call.path)).not.toContain("/api/layout/delete");
+  });
+});

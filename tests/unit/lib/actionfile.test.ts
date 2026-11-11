@@ -142,6 +142,14 @@ describe("removeActions", () => {
     });
   });
 
+  it("keeps a comment on the `actions:` line, and still leaves `{}`, not null", () => {
+    const one =
+      "extends: genres/FPS/actions.yaml\nactions: # the game's own\n  wave: {label: Wave}\n";
+    const out = removeActions(one, ["wave"]);
+    expect(out).toBe("extends: genres/FPS/actions.yaml\nactions: {} # the game's own\n");
+    expect(read(out).actions).toEqual({});
+  });
+
   it("refuses an action written over several lines", () => {
     const multi = "actions:\n  wave:\n    label: Wave\n";
     expect(() => removeActions(multi, ["wave"])).toThrow(/more than one line/);

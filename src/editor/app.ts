@@ -5825,6 +5825,20 @@ function renderNewGame(): HTMLElement {
 /** The name typed for the open layout, while it is being renamed. */
 let renameTo: string | null = null;
 
+/**
+ * Save the page's edits before a change on the server moves or deletes files. The page
+ * would otherwise keep its copies of the old files, and the next Save write them back:
+ * a deleted layout returned, a renamed one twice. False when they could not be saved.
+ */
+async function settleEdits(): Promise<boolean> {
+  if (!isDirty()) return true;
+  await saveScheme(true);
+  return !isDirty();
+}
+
+const NOT_SETTLED =
+  "Your edits could not be saved, so nothing else was changed. The header says why.";
+
 /** After a change on the server: the page's data again, then the place and a note. */
 async function afterManage(note: string, set?: string): Promise<void> {
   const game = currentGame().slug;
@@ -5870,7 +5884,13 @@ function renderManage(): HTMLElement | null {
       render();
       return;
     }
-    void post("/api/layout/rename", { game: game.slug, set, to }).then((result) => {
+    void settleEdits().then(async (settled) => {
+      if (!settled) {
+        repoNote = NOT_SETTLED;
+        render();
+        return;
+      }
+      const result = await post("/api/layout/rename", { game: game.slug, set, to });
       if (result.ok !== true) {
         repoNote = `Not renamed: ${String(result.error)}`;
         render();
@@ -5895,7 +5915,13 @@ function renderManage(): HTMLElement | null {
     if (!window.confirm(`Delete the layout ${set} from ${game.name}, both units' keys with it?`)) {
       return;
     }
-    void post("/api/layout/delete", { game: game.slug, set }).then((result) => {
+    void settleEdits().then(async (settled) => {
+      if (!settled) {
+        repoNote = NOT_SETTLED;
+        render();
+        return;
+      }
+      const result = await post("/api/layout/delete", { game: game.slug, set });
       if (result.ok !== true) {
         repoNote = `Not deleted: ${String(result.error)}`;
         render();
@@ -5919,7 +5945,13 @@ function renderManage(): HTMLElement | null {
     ) {
       return;
     }
-    void post("/api/game/delete", { game: game.slug }).then((result) => {
+    void settleEdits().then(async (settled) => {
+      if (!settled) {
+        repoNote = NOT_SETTLED;
+        render();
+        return;
+      }
+      const result = await post("/api/game/delete", { game: game.slug });
       if (result.ok !== true) {
         repoNote = `Not deleted: ${String(result.error)}`;
         render();
@@ -6759,6 +6791,11 @@ function renderMissingUnit(slug: string): HTMLElement | null {
 async function addMissingUnit(device: string, hand: string): Promise<void> {
   const set = state.setName;
   const game = currentGame().slug;
+  if (!(await settleEdits())) {
+    saveNote = NOT_SETTLED;
+    render();
+    return;
+  }
   const result = await post("/api/layout/unit", { game, set, device });
   if (result.ok !== true) {
     saveNote = `The ${hand} unit was not added: ${String(result.error)}`;
