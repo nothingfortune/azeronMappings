@@ -55,6 +55,8 @@ export interface EditorGenre {
   default: ProfileData;
   /** Stick modes offered for this genre, if it defines any. */
   stickModes?: StickModeSet;
+  /** The styles a new game can start in (layouts.yaml), the default first. */
+  styles?: { name: string; label: string; note: string }[];
 }
 
 /** Everything the editor page needs, embedded at build time. */

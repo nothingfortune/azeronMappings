@@ -717,7 +717,14 @@ export function checkLayouts(
           modes === undefined
             ? null
             : gameRowFor(assignment.drives, modes, actions.actions, assignment.end);
-        if (row === null) {
+        // A game whose file the repo does not write names no rows at all: its pedals, like
+        // its keys, are bound in the game's own controls screen, and an axis of the genre's
+        // vocabulary is all a layout can say.
+        const handBound =
+          ends !== undefined && !Object.values(actions.actions).some((spec) => spec.ingame);
+        if (row === null && handBound) {
+          driven.add(assignment.drives);
+        } else if (row === null) {
           findings.push({
             level: ERROR,
             rule: "pedal-unknown-game-axis",

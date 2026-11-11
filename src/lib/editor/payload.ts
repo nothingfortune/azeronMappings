@@ -14,6 +14,7 @@ import type { ActionSetData, DeviceData } from "../../types/profile.js";
 import { findStore } from "../install.js";
 import { loadTemplate } from "../io.js";
 import { Game, Genre } from "../model.js";
+import { STYLE_ORDER } from "../styles.js";
 
 const DEFAULT_TEMPLATE = join(dataDirs.templates, "everspace2-v5.json");
 
@@ -94,6 +95,16 @@ export function buildPayload(): EditorPayload {
       } satisfies ActionSetData,
       default: genre.config,
       ...(stickModes ? { stickModes } : {}),
+      styles: [
+        ...STYLE_ORDER.filter((name) => name in genre.styles),
+        ...Object.keys(genre.styles).filter(
+          (name) => !(STYLE_ORDER as readonly string[]).includes(name),
+        ),
+      ].map((name) => ({
+        name,
+        label: genre.styles[name]?.label ?? name,
+        note: genre.styles[name]?.note ?? "",
+      })),
     };
   });
 

@@ -56,6 +56,26 @@ export const WIRE_POOL: readonly string[] = [
   "Numpad9",
   "NumpadDecimal",
   "Backquote",
+  // Added 2026-11-10, at the end so no key already given moves: enough for a default
+  // layout on both units. F13 to F24 are on no keyboard sold today, so nothing is on them;
+  // a game that cannot name them (its file has no word for one) is skipped past them.
+  "F13",
+  "F14",
+  "F15",
+  "F16",
+  "F17",
+  "F18",
+  "F19",
+  "F20",
+  "F21",
+  "F22",
+  "F23",
+  "F24",
+  "Equal",
+  "ArrowUp",
+  "ArrowDown",
+  "ArrowLeft",
+  "ArrowRight",
 ];
 
 /** Whether a control with this action on it would send anything at all. */

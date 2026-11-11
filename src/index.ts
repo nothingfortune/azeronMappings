@@ -279,6 +279,8 @@ function cmdNew(
     units: string | undefined;
     set: string | undefined;
     game: string | undefined;
+    style: string | undefined;
+    pedals: string | undefined;
   },
 ): number {
   const maps = deviceNames().map((device) => ({ device, hand: loadDevice(device).hand }));
@@ -305,8 +307,12 @@ function cmdNew(
     genre: flags.genre,
     devices,
     set: flags.set ?? "v1",
+    style: flags.style,
+    pedals: flags.pedals,
   });
   out(`Started ${result.name} in ${result.gameDir}`);
+  if (result.style !== null) out(`  laid out in the ${result.style} style`);
+  if (result.pedals !== null) out(`  with pedals: ${result.pedals}`);
   for (const profile of result.profiles) {
     out(`  ${profile.path}  (${profile.device}, ${String(profile.positions)} control(s) set)`);
   }
@@ -806,6 +812,8 @@ function cmdServe(port: number, host: string, open = false): number {
               exported?: ExportDocument;
               /** The units, when there is no export: the game starts from the genre. */
               devices?: unknown;
+              style?: string;
+              pedals?: string;
               overwrite?: boolean;
             };
             if (!fresh.exported) {
@@ -817,6 +825,8 @@ function cmdServe(port: number, host: string, open = false): number {
                 genre: fresh.genre ?? "",
                 devices,
                 set: fresh.set ?? "",
+                style: fresh.style,
+                pedals: fresh.pedals,
                 ...(fresh.overwrite === true ? { overwrite: true } : {}),
               });
               send(200, JSON.stringify({ ok: true, ...started }));
@@ -1295,8 +1305,11 @@ function usage(): void {
   probe [--device D]              the press test's profiles, as files; the test itself
                                   runs from the editor's Press test tab
   new <name> --genre G [--units left,right] [--set S] [--game SLUG]
-                                  start a game with no export: the genre's actions and
-                                  default layout, each unit built on its own stock export
+      [--style controller|keyboard] [--pedals DEVICE]
+                                  start a game with no export: the genre's actions, laid
+                                  out on both units like a controller (the default) or a
+                                  keyboard, each unit built on its own stock export;
+                                  --pedals adds pedals where the genre's sticks allow
   layout <game> <name> [--copy-of LAYOUT] [--units left,right]
                                   a new layout with no export: a copy of one the game
                                   has (pedals included), or empty
@@ -1351,6 +1364,8 @@ export function main(argv: string[]): number {
       yes: { type: "boolean", default: false },
       "dry-run": { type: "boolean", default: false },
       device: { type: "string" },
+      style: { type: "string" },
+      pedals: { type: "string" },
       game: { type: "string" },
       set: { type: "string" },
       template: { type: "string" },
@@ -1434,6 +1449,8 @@ export function main(argv: string[]): number {
         units: values.units,
         set: values.set,
         game: values.game,
+        style: values.style,
+        pedals: values.pedals,
       });
     }
     case "layout": {

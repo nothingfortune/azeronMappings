@@ -1,0 +1,56 @@
+# What a new space sim starts with: a pair of units, in one of two styles. See
+# genres/FPS/layouts.yaml for what each part means.
+#
+# Both styles fly the twin-stick mode (stick-modes.yaml): the left stick thrusts and
+# strafes, the right pitches and yaws. With pedals the rudder takes yaw and the right
+# stick rolls instead -- the mode's with-pedals variant.
+#
+# The vocabulary is bigger than the pool of keys the editor hands out, so neither style
+# places everything; the rest are in the action list, to put on a control by hand.
+controller:
+  label: Like a controller
+  note: >-
+    Twin sticks, RT and LT to fire, the d-pad for vertical thrust and roll -- an Xbox pad
+    laid over the pair, with the consumables and devices in banks under the fingers.
+  stick_mode: twin_stick
+  acknowledge:
+    reason: The thumb pads are a pad's d-pad and its A B X Y, which do different jobs.
+    positions: [dpad_up, dpad_down, dpad_left, dpad_right, stick_press, thumb_aux_upper]
+  left:
+    index_1: {label: Travel drive, tap: cruise}
+    index_4: {label: Jump drive, tap: supralight}
+    pinky_1: {label: Consumable 1, tap: consume_1}
+    pinky_2: {label: Consumable 2, tap: consume_2}
+    pinky_3: {label: Consumable 3, tap: consume_3}
+    pinky_4: {label: Consumable 4, tap: consume_4}
+    ring_1: {label: Equip primary 1, tap: equip_primary_1}
+    ring_2: {label: Equip primary 2, tap: equip_primary_2}
+    middle_2: {label: Previous primary, tap: previous_primary}
+    middle_3: {label: Ultimate, tap: ultimate}
+    pinky_side: {label: Headlight, tap: headlight}
+    index_side: {label: Switch camera, tap: view_ship}
+    pinky_5: {label: Inventory, tap: inventory}
+    ring_5: {label: Missions, tap: missions}
+    middle_5: {label: Ship, tap: ship_menu}
+  right:
+    pinky_1: {label: Device 1, tap: device_1}
+    pinky_2: {label: Device 2, tap: device_2}
+    pinky_3: {label: Device 3, tap: device_3}
+    pinky_4: {label: Device 4, tap: device_4}
+    ring_1: {label: Equip secondary 1, tap: secondary_1}
+    ring_2: {label: Equip secondary 2, tap: secondary_2}
+    middle_2: {label: Previous secondary, tap: previous_secondary}
+    middle_3: {label: Lock nearest target, tap: lock_nearest_target}
+
+keyboard:
+  label: Like a keyboard
+  note: >-
+    The genre's one-unit layout on the left, and the right unit for pitch and yaw on its
+    stick, both guns and the secondaries.
+  stick_mode: twin_stick
+  left: default
+  right:
+    middle_1: {label: Fire secondary, tap: fire_secondary}
+    middle_2: {label: Fire primary, tap: fire_primary}
+    ring_1: {label: Equip secondary 1, tap: secondary_1}
+    ring_2: {label: Equip secondary 2, tap: secondary_2}

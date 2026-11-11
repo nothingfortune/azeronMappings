@@ -3,6 +3,9 @@
 # No keys here: a genre says which ROLES a game has, a game says which keys they are
 # bound to. Start a game's actions.yaml with `extends: genres/Flight/actions.yaml`.
 #
+# `xbox:` is the Xbox pad control a game usually puts the action on. It is never sent:
+# it is where the controller-style layout places the action (layouts.yaml, src/lib/xbox.ts).
+#
 # A plane has four control axes -- throttle, pitch, roll and yaw -- against a ship's six,
 # so these are the four a DJI-style stick mode puts on two sticks (stick-modes.yaml).
 # Nothing is `provided_by: mouse`: a pair of keypads flies with no mouse at all, so firing
@@ -14,33 +17,33 @@ genre: Flight
 
 actions:
   # --- flight: the four axes -----------------------------------------------------
-  throttle_up:    {label: Accelerate,     tags: [movement, required]}
-  throttle_down:  {label: Decelerate,     tags: [movement, required]}
-  pitch_up:       {label: Pitch up,       tags: [movement, required],
+  throttle_up:    {label: Accelerate,     xbox: LeftStickUp, tags: [movement, required]}
+  throttle_down:  {label: Decelerate,     xbox: LeftStickDown, tags: [movement, required]}
+  pitch_up:       {label: Pitch up,       xbox: RightStickDown, tags: [movement, required],
                    note: "Nose up. A stick pulled back, in the aircraft convention."}
-  pitch_down:     {label: Pitch down,     tags: [movement, required],
+  pitch_down:     {label: Pitch down,     xbox: RightStickUp, tags: [movement, required],
                    note: "Nose down. A stick pushed forward."}
-  roll_left:      {label: Roll left,      tags: [movement, required]}
-  roll_right:     {label: Roll right,     tags: [movement, required]}
-  yaw_left:       {label: Yaw left,       tags: [movement]}
-  yaw_right:      {label: Yaw right,      tags: [movement]}
+  roll_left:      {label: Roll left,      xbox: RightStickLeft, tags: [movement, required]}
+  roll_right:     {label: Roll right,     xbox: RightStickRight, tags: [movement, required]}
+  yaw_left:       {label: Yaw left,       xbox: LeftStickLeft, tags: [movement]}
+  yaw_right:      {label: Yaw right,      xbox: LeftStickRight, tags: [movement]}
 
   # --- weapons -------------------------------------------------------------------
-  fire_gun:       {label: Fire gun,       tags: [combat, required]}
-  fire_missile:   {label: Fire missile,   tags: [combat, required]}
-  weapon_change:  {label: Change weapon,  tags: [combat]}
-  target_change:  {label: Change target,  tags: [combat, required]}
-  flare:          {label: Flare,          tags: [combat],
+  fire_gun:       {label: Fire gun,       xbox: RT, tags: [combat, required]}
+  fire_missile:   {label: Fire missile,   xbox: RB, tags: [combat, required]}
+  weapon_change:  {label: Change weapon,  xbox: Y, tags: [combat]}
+  target_change:  {label: Change target,  xbox: X, tags: [combat, required]}
+  flare:          {label: Flare,          xbox: LB, tags: [combat],
                    note: "A countermeasure is pressed in a hurry. Tap only -- constraint 4."}
 
   # --- view ----------------------------------------------------------------------
-  view_change:    {label: Change view,    tags: [utility]}
-  camera_up:      {label: Look up,        tags: [utility]}
-  camera_down:    {label: Look down,      tags: [utility]}
-  camera_left:    {label: Look left,      tags: [utility]}
-  camera_right:   {label: Look right,     tags: [utility]}
-  radar_map:      {label: Radar map,      tags: [utility]}
+  view_change:    {label: Change view,    xbox: A, tags: [utility]}
+  camera_up:      {label: Look up,        xbox: DpadUp, tags: [utility]}
+  camera_down:    {label: Look down,      xbox: DpadDown, tags: [utility]}
+  camera_left:    {label: Look left,      xbox: DpadLeft, tags: [utility]}
+  camera_right:   {label: Look right,     xbox: DpadRight, tags: [utility]}
+  radar_map:      {label: Radar map,      xbox: View, tags: [utility]}
 
   # --- menus ---------------------------------------------------------------------
-  menu_main:      {label: Pause,          tags: [menu],
+  menu_main:      {label: Pause,          xbox: Menu, tags: [menu],
                    note: "Constraint 5 -- this is Escape. Keep it off anything mashable."}

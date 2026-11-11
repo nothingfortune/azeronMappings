@@ -448,6 +448,10 @@ body.dragging-key .palette.drop-over { outline: none; }
 code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
 .new-game-where, .new-game-file { font-size: 11.5px; margin: 4px 0 8px; }
 .new-game .row2 { margin-top: 6px; }
+.new-game-styles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
+.new-game-style { display: flex; gap: 8px; align-items: flex-start; padding: 8px; border: 1px solid var(--line); border-radius: 6px; cursor: pointer; font-weight: normal; }
+.new-game-style b { display: block; }
+.new-game-style .muted { font-size: 11.5px; }
 /* Pedals: the third part of the control scheme, docked beside the checks. Three axes, each a
    short card -- what it drives and whether it is inverted on top, how far the game's name for
    it is trusted underneath -- with the tuning folded away. */

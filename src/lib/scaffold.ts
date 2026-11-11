@@ -159,10 +159,13 @@ export function seedActions(
  * would still say "rename it" after the action had been renamed, and the label already
  * says "(unnamed)" for as long as that is true.
  */
+/** An action as a new game's actions.yaml writes it; `provided_by: null` takes the genre's off. */
+export type WrittenAction = Omit<ActionSpec, "provided_by"> & { provided_by?: string | null };
+
 export function actionsYaml(
   game: string,
   extendsPath: string,
-  actions: Readonly<Record<string, ActionSpec>>,
+  actions: Readonly<Record<string, WrittenAction>>,
   header: string,
 ): string {
   const ids = Object.keys(actions);
@@ -174,6 +177,7 @@ export function actionsYaml(
     if (spec.key) fields.push(`key: ${spec.key}`);
     if (spec.meta) fields.push(`meta: ${spec.meta}`);
     if (spec.mouse) fields.push(`mouse: ${spec.mouse}`);
+    if (spec.provided_by === null) fields.push("provided_by: null");
     return `  ${`${id}:`.padEnd(width + 1)} {${fields.join(", ")}}`;
   });
   // No actions of its own (a game started with nothing placed) is an empty mapping: a bare

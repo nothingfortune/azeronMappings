@@ -93,7 +93,7 @@ output, so `npm run build` first:
 | `azeron serve [--port N] [--host H] [--open]`       | the editor, able to save back into the repo; `--open` starts Chrome or Edge    |
 | `azeron editor`                                     | the side-by-side editor, one self-contained HTML                               |
 | `azeron probe [--device D]`                         | the press test's profiles as files; the test runs from the editor's Press test |
-| `azeron new <name> --genre G [--units left,right]`  | start a game with no export, from its genre                                    |
+| `azeron new <name> --genre G [--units left,right]`  | a game with no export; `--style controller                                     | keyboard`, `--pedals D` |
 | `azeron layout <game> <name> [--copy-of L]`         | a new layout with no export: a copy (pedals included) or empty                 |
 | `azeron import <export.json> --genre G --game SLUG` | start a game folder from an Azeron app export instead                          |
 | `azeron decompile <export.json> [-o ...]`           | an app export back into profile YAML                                           |
@@ -102,21 +102,21 @@ output, so `npm run build` first:
 
 ## Layout
 
-| Path                    | Contents                                                                     |
-| ----------------------- | ---------------------------------------------------------------------------- |
-| `src/lib/`              | The toolchain. Pure modules; `io.ts` holds every filesystem touch.           |
-| `src/editor/`           | Browser editor. `main.ts` is the bundle entry, `app.ts` the code.            |
-| `src/types/`            | Shared types: the export format, the YAML schemas, the payload.              |
-| `src/config/paths.ts`   | Repo root and the data directory names.                                      |
-| `tests/unit/`           | Vitest specs mirroring `src/`.                                               |
-| `tests/bin/run.sh`      | CLI smoke tests.                                                             |
-| `devices/`              | Pin map per unit; and `kind: pedals` devices (axes, no pins).                |
-| `genres/<Genre>/`       | Shared action vocabulary and default layout for a kind of game.              |
-| `games/<Genre>/<game>/` | `game.yaml`, `actions.yaml`, `sets.yaml`, `profiles/*.yaml`, `playtests.md`. |
-| `templates/`            | Real Azeron exports, committed untouched.                                    |
-| `dist/`                 | Compiled import JSON and the game's bindings. **Committed.**                 |
-| `build/`                | TypeScript output. Gitignored. Not to be confused with `dist/`.              |
-| `local.yaml`            | This computer's settings. Gitignored; `local.example.yaml` documents it.     |
+| Path                    | Contents                                                                        |
+| ----------------------- | ------------------------------------------------------------------------------- |
+| `src/lib/`              | The toolchain. Pure modules; `io.ts` holds every filesystem touch.              |
+| `src/editor/`           | Browser editor. `main.ts` is the bundle entry, `app.ts` the code.               |
+| `src/types/`            | Shared types: the export format, the YAML schemas, the payload.                 |
+| `src/config/paths.ts`   | Repo root and the data directory names.                                         |
+| `tests/unit/`           | Vitest specs mirroring `src/`.                                                  |
+| `tests/bin/run.sh`      | CLI smoke tests.                                                                |
+| `devices/`              | Pin map per unit; and `kind: pedals` devices (axes, no pins).                   |
+| `genres/<Genre>/`       | Shared vocabulary (with `xbox:` controls), default layout, styles, stick modes. |
+| `games/<Genre>/<game>/` | `game.yaml`, `actions.yaml`, `sets.yaml`, `profiles/*.yaml`, `playtests.md`.    |
+| `templates/`            | Real Azeron exports, committed untouched.                                       |
+| `dist/`                 | Compiled import JSON and the game's bindings. **Committed.**                    |
+| `build/`                | TypeScript output. Gitignored. Not to be confused with `dist/`.                 |
+| `local.yaml`            | This computer's settings. Gitignored; `local.example.yaml` documents it.        |
 
 ## Architecture
 
@@ -133,9 +133,18 @@ Three inputs meet in the compiler, and are kept separate:
    **No Azeron app is needed to start anything.** `startGame` (`azeron new`, the Setup
    tab's Add a new game) makes a game from its genre: each unit's profile is built on the
    export its device map names (`template:` in `devices/*.yaml`, a real export of that
-   unit, which carries its stick rotation), the genre's `default.yaml` goes on the unit
-   it names, and every action it places is wired with the editor's own `wireAction`,
-   required actions first. What the pool cannot carry is taken off its control and
+   unit, which carries its stick rotation), and a pair is laid out in one of the genre's
+   **styles** (`genres/<Genre>/layouts.yaml`, `src/lib/styles.ts`): `controller`, the
+   default, places every action by its `xbox:` control (`src/lib/xbox.ts` says where each
+   pad control sits on the pair) plus the style's extras; `keyboard` puts `default.yaml` on
+   the left and the style's `right` on the other. A style may name a `stick_mode`, flown in
+   its with-pedals variant when the layout gets pedals (`pedals:`, offered only where the
+   genre's stick modes have `pedals.takes`; the centred axis drives it, into `sets.yaml`),
+   may override actions in the new `actions.yaml` (`provided_by: null` + `mouse: left` for
+   a shooter's trigger), and lists `acknowledge` positions: the pad's split thumbs, written
+   into `lint.acknowledged` only where the checks actually raise them. One unit on its own
+   gets `default.yaml` on its hand, as before. Every action placed is wired with the
+   editor's own `wireAction`, required actions first. What the pool cannot carry is taken off its control and
    reported (`leftOff`), never placed sending nothing. `startLayout` (`azeron layout`, Add
    a layout) makes a layout as a copy of another (its `sets.yaml` entry too, modes and pedals, through
    `addSetEntry`;
@@ -158,9 +167,11 @@ Profiles map position to action id, never position to raw key.
 **A layout and its wiring.** What the owner edits is the _layout_: which control does which
 action. The key an action is sent on is the _wiring_, and it is the tooling's to choose:
 `src/lib/wiring.ts` gives an action with no key the first free one from a pool chosen to
-stay out of a game's way (`WIRE_POOL`: navigation keys, numpad operators, punctuation — no
-letters, digits, function keys, modifiers or anything a menu uses), narrowed to keys the
-game's file can name. The editor does this the moment an action is first put on a control
+stay out of a game's way (`WIRE_POOL`: navigation keys, numpad operators, punctuation, then
+F13–F24, `=` and the arrows — no letters, digits, F1–F12, modifiers or anything a menu
+uses), narrowed to keys the game's file can name (Unreal and Elite have no F13–F24, so
+those are skipped for them). The pool only ever grows at its end: `freeKey` is first-free,
+so reordering it would re-deal keys. The editor does this the moment an action is first put on a control
 (`wire()` in `app.ts`), saves it into the game's `actions.yaml` with the rest of the
 layout, and `Update the game's keys…` writes it into the game. A key, once given, is never
 re-dealt: the compiled layouts, the golden fixture and the game's file all depend on an

@@ -272,6 +272,35 @@ describe("starting a new game", () => {
     });
   });
 
+  it("sends the style chosen, and pedals where the kind of game takes them", async () => {
+    const calls = served(() => ({ ok: true, slug: "x", name: "Deep Rock", leftOff: [] }));
+    mount();
+    const genre = form().querySelector<HTMLSelectElement>('[data-new-game="genre"]');
+    if (!genre) throw new Error("no genre");
+    genre.value = "SpaceSims";
+    genre.dispatchEvent(new Event("change"));
+    const keyboard = form().querySelector<HTMLInputElement>('[data-new-game-style="keyboard"]');
+    if (!keyboard) throw new Error("no keyboard style");
+    keyboard.checked = true;
+    keyboard.dispatchEvent(new Event("change"));
+    // A space sim's sticks say pedals take yaw, so they are offered.
+    const pedals = form().querySelector<HTMLSelectElement>('[data-new-game="pedals"]');
+    if (!pedals) throw new Error("no pedals");
+    pedals.value = "logitech-pro-flight-pedals";
+    pedals.dispatchEvent(new Event("change"));
+    fill("Deep Rock");
+    create();
+    await vi.waitFor(() => {
+      expect(calls.some((call) => call.path === "/api/game")).toBe(true);
+    });
+    const body = calls.find((call) => call.path === "/api/game")?.body ?? {};
+    expect(body).toMatchObject({
+      genre: "SpaceSims",
+      style: "keyboard",
+      pedals: "logitech-pro-flight-pedals",
+    });
+  });
+
   it("sends only the units left ticked, and says so when none is", () => {
     const calls = served(() => ({ ok: true }));
     mount();

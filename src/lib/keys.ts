@@ -162,6 +162,19 @@ export const ANALOG_KEYCODES: Record<string, number> = {
   Numpad9: 105,
   NumpadDecimal: 110,
   Backquote: 192,
+  F13: 124,
+  F14: 125,
+  F15: 126,
+  F16: 127,
+  F17: 128,
+  F18: 129,
+  F19: 130,
+  F20: 131,
+  F21: 132,
+  F22: 133,
+  F23: 134,
+  F24: 135,
+  Equal: 187,
 };
 
 const ANALOG_BY_CODE: Record<number, string> = Object.fromEntries(
