@@ -119,3 +119,42 @@ describe("accepting a finding", () => {
     expect(document.querySelector(".checks .accept-finding")).toBeNull();
   });
 });
+
+describe("accepting with unsaved edits", () => {
+  it("saves them first, and accepts nothing when they cannot be saved", async () => {
+    SERVED.AZERON_SERVED = true;
+    const { payload } = withOneRaised();
+    const calls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((path: string) => {
+        calls.push(path);
+        const refused = path === "/api/save";
+        return Promise.resolve({
+          ok: !refused,
+          status: refused ? 400 : 200,
+          json: () => Promise.resolve(refused ? { ok: false, error: "refused" } : { ok: true }),
+        });
+      }),
+    );
+    vi.stubGlobal(
+      "prompt",
+      vi.fn(() => "on purpose"),
+    );
+    document.body.innerHTML = '<div id="app"></div>';
+    start(payload);
+    // An unsaved edit: a key's label.
+    document.querySelector<HTMLElement>('.hand .key[data-position="pinky_1"]')?.click();
+    const label = document.querySelector<HTMLInputElement>(".inspector input[type='text']");
+    if (!label) throw new Error("no label box");
+    label.value = "Changed";
+    label.dispatchEvent(new Event("change"));
+    showDockTab("checks");
+    document.querySelector<HTMLButtonElement>(".checks .accept-finding")?.click();
+    await vi.waitFor(() => {
+      expect(calls).toContain("/api/save");
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(calls).not.toContain("/api/acknowledge");
+  });
+});

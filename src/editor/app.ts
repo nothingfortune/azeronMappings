@@ -849,6 +849,13 @@ async function acceptFinding(finding: Finding, slug: string): Promise<void> {
   if (reason === null || reason.trim() === "") return;
   const game = state.payload.games.find((entry) => entry.slug === slug);
   if (game === undefined) return;
+  // The finding may come from edits not saved yet. Accepted on its own, it would stay in
+  // game.yaml if those edits were then discarded, and be reported stale: so they go first.
+  if (!(await settleEdits())) {
+    saveNote = NOT_SETTLED;
+    render();
+    return;
+  }
   const result = await post<{ ok?: boolean; error?: string; entry?: Acknowledgement }>(
     "/api/acknowledge",
     {
