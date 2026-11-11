@@ -241,8 +241,8 @@ function onZeroKey(event: KeyboardEvent): void {
   const assignment = stickAssignments().find((entry) => entry.key === event.code);
   if (!assignment?.sector) {
     state.message =
-      `${event.code} is not one of the stick calibration keys. ` +
-      "Is this unit running PROBE 2 stick zero? Put the press test on it with the button above.";
+      `${event.code} is not a stick-test key. The unit may be on another profile: press ` +
+      "Put the press test on the units above.";
     render();
     return;
   }
@@ -275,7 +275,7 @@ function onKey(event: KeyboardEvent): void {
   state.lastKey = event.code;
   const assignment = pinAssignments().find((entry) => entry.key === event.code);
   if (!assignment) {
-    state.message = `${event.code} is not one of the probe keys. Is this unit running PROBE 1 pins? Put the press test on it with the button above.`;
+    state.message = `${event.code} is not a press-test key. The unit may be on another profile: press Put the press test on the units above.`;
     render();
     return;
   }
@@ -487,9 +487,8 @@ function renderZero(): HTMLElement {
   panel.append(el("h2", {}, ["Stick zero"]));
   panel.append(
     el("div", { class: "note" }, [
-      "While this pass is open, a unit with the press test on it runs PROBE 2 stick zero. " +
-        "It binds all eight sectors, so each push reports where the firmware thinks the " +
-        "stick is pointing.",
+      "While this pass is open, each unit runs the stick test. Push the stick each way " +
+        "shown, and the page records which way the unit thinks it is pointing.",
     ]),
   );
 
@@ -563,7 +562,7 @@ function renderSummary(): HTMLElement {
         (note) => !note.includes("never fired"),
       );
       if (notes.length > 0) {
-        panel.append(el("div", { class: "head" }, ["differs from the assumed map"]));
+        panel.append(el("div", { class: "head" }, ["Different from the saved map"]));
         for (const note of notes.slice(0, 12)) {
           panel.append(el("div", { class: "note" }, [note]));
         }
@@ -747,10 +746,10 @@ function render(): void {
   const sampling = Object.values(state.burstVotes).reduce((sum, count) => sum + count, 0);
   const expected = expectedKey();
   if (expected !== null) {
-    banner.append(el("span", { class: "muted" }, [`expecting ${expected}`]));
+    banner.append(el("span", { class: "muted" }, [`waiting for ${expected}`]));
   }
   if (state.lastKey !== null) {
-    banner.append(el("span", { class: "muted" }, [`last key seen: ${state.lastKey}`]));
+    banner.append(el("span", { class: "muted" }, [`last key: ${state.lastKey}`]));
   }
   if (state.message) banner.append(el("span", { class: "bad" }, [state.message]));
   else if (sampling > 0)

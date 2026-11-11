@@ -4,8 +4,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { start } from "../../../src/editor/probe.js";
-import { start as startEditor } from "../../../src/editor/app.js";
-import { buildPayload as buildEditorPayload } from "../../../src/lib/editor/payload.js";
 import { loadDevice, loadTemplate } from "../../../src/lib/io.js";
 import { buildProbeProfile, buildStickCalibrationProfile } from "../../../src/lib/probe.js";
 import type { ProbePayload } from "../../../src/types/probe.js";
@@ -86,9 +84,7 @@ describe("the press test", () => {
 
   it("refuses a key that is not part of the probe profile", () => {
     press("Backquote");
-    expect(document.querySelector(".prompt .bad")?.textContent).toContain(
-      "not one of the probe keys",
-    );
+    expect(document.querySelector(".prompt .bad")?.textContent).toContain("not a press-test key");
     expect(document.querySelector(".prompt b")?.textContent).toBe("Press Pinky side");
   });
 
@@ -198,9 +194,7 @@ describe("the stick zero pass", () => {
 
   it("rejects a key from the pin sweep profile", () => {
     press(keyForPin(1));
-    expect(document.querySelector(".prompt .bad")?.textContent).toContain(
-      "not one of the stick calibration keys",
-    );
+    expect(document.querySelector(".prompt .bad")?.textContent).toContain("not a stick-test key");
   });
 
   it("reports the rotation once the pushes are in", () => {
@@ -314,45 +308,6 @@ describe("button presses", () => {
   });
 });
 
-describe("unit detection", () => {
-  beforeEach(() => {
-    localStorage.clear();
-    document.body.innerHTML = '<div id="app"></div>';
-    probePayload = payload();
-  });
-
-  function openRepo(): void {
-    startEditor(buildEditorPayload());
-    const tab = [...document.querySelectorAll("header button")].find(
-      (button) => button.textContent === "Setup",
-    );
-    (tab as HTMLButtonElement).click();
-  }
-
-  it("does not claim anything before it has been asked", () => {
-    openRepo();
-    const panel = [...document.querySelectorAll(".panel")].find(
-      (node) => node.querySelector("h2")?.textContent === "Units connected",
-    );
-    expect(panel?.textContent).toContain("Not checked yet");
-    expect([...(panel?.querySelectorAll("button") ?? [])][0]?.textContent).toBe("Detect units");
-  });
-
-  it("says plainly when the browser cannot do it", async () => {
-    openRepo();
-    const button = [...document.querySelectorAll("button")].find(
-      (node) => node.textContent === "Detect units",
-    );
-    // happy-dom has no navigator.hid, which is the same situation as Firefox.
-    button?.click();
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    const panel = [...document.querySelectorAll(".panel")].find(
-      (node) => node.querySelector("h2")?.textContent === "Units connected",
-    );
-    expect(panel?.textContent).toContain("no WebHID");
-  });
-});
-
 describe("diagnosing a direction that does nothing", () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -369,14 +324,14 @@ describe("diagnosing a direction that does nothing", () => {
   it("says which key it is waiting for, so silence is diagnosable", () => {
     // A direction that sends nothing is otherwise indistinguishable from a bug here.
     const banner = document.querySelector(".prompt")?.textContent ?? "";
-    expect(banner).toContain("expecting");
+    expect(banner).toContain("waiting for");
   });
 
   it("echoes whatever key did arrive, even a wrong one", () => {
     document.dispatchEvent(
       new KeyboardEvent("keydown", { code: "Backquote", bubbles: true, cancelable: true }),
     );
-    expect(document.querySelector(".prompt")?.textContent).toContain("last key seen: Backquote");
+    expect(document.querySelector(".prompt")?.textContent).toContain("last key: Backquote");
   });
 
   it("draws the stick click, which is prompted for like any other key", () => {

@@ -244,13 +244,11 @@ describe("the setup tab", () => {
     (tab as HTMLButtonElement).click();
   });
 
-  it("explains what still needs a server, but keeps what does not", () => {
-    // Detection is the browser talking to USB, so it works either way.
+  it("says how to start the editor, in words, with nothing to click that cannot work", () => {
     const panel = document.querySelector(".panel");
-    expect(panel?.textContent).toContain("azeron serve");
-    expect(panel?.querySelector(".panel.inset h2")?.textContent).toBe("Units connected");
-    const labels = [...(panel?.querySelectorAll("button") ?? [])].map((n) => n.textContent);
-    expect(labels).toEqual(["Detect units"]);
+    expect(panel?.textContent).toContain("npm start");
+    expect(panel?.textContent).not.toContain("azeron serve");
+    expect(panel?.querySelectorAll("button")).toHaveLength(0);
   });
 
   it("offers the operations once a server is behind it", () => {
@@ -262,9 +260,8 @@ describe("the setup tab", () => {
       );
       (tab as HTMLButtonElement).click();
       const labels = [...document.querySelectorAll(".panel button")].map((n) => n.textContent);
-      expect(labels).toContain("Rebuild every import file");
       expect(labels).toContain("Compare with the game's keys");
-      expect(document.querySelector("header .pill.mode")?.textContent).toBe("saves to repo");
+      expect(document.querySelector("header .pill.mode")).toBeNull();
     } finally {
       (window as unknown as { AZERON_SERVED?: boolean }).AZERON_SERVED = false;
     }
@@ -343,7 +340,7 @@ describe("the setup tab", () => {
   });
 
   it("says which mode the page is in", () => {
-    expect(document.querySelector("header .pill.mode")?.textContent).toBe("downloads only");
+    expect(document.querySelector("header .pill.mode")?.textContent).toBe("read-only copy");
   });
 });
 
@@ -521,10 +518,9 @@ describe("unsaved edits", () => {
     // A working copy is made on first read, and drawing reads -- so "has a working copy"
     // made every page dirty, and every Reset and reload asked about edits nobody made.
     mount();
-    const confirm = vi.fn(() => false);
-    vi.stubGlobal("confirm", confirm);
-    header("Undo all unsaved edits").click();
-    expect(confirm).not.toHaveBeenCalled();
+    // Nothing unsaved, so there is nothing to undo: the menu does not offer it.
+    const labels = [...document.querySelectorAll("header button")].map((node) => node.textContent);
+    expect(labels).not.toContain("Undo all unsaved edits");
   });
 
   it("asks before Reset throws an edit away", () => {
@@ -570,7 +566,7 @@ describe("unsaved edits", () => {
       expect(document.querySelector(".save-report")).not.toBeNull();
     });
     const report = document.querySelector(".save-report");
-    expect(report?.firstElementChild?.textContent).toMatch(/^Saved /);
+    expect(report?.firstElementChild?.textContent).toMatch(/^Saved/);
     expect(report?.querySelector(".import-path code")?.textContent).toBe(
       "C:\\\\repo\\\\dist\\\\x\\\\example_left.json",
     );
@@ -666,8 +662,10 @@ describe("unsaved edits", () => {
     await vi.waitFor(() => {
       expect(document.querySelectorAll(".save-report")).toHaveLength(1);
     });
-    expect(document.querySelector(".save-report")?.firstElementChild?.textContent).toMatch(
-      /^Saved .*profiles.* and .*actions\.yaml\.$/,
+    // One report: "Saved.", and both files under Files written.
+    expect(document.querySelector(".save-report")?.firstElementChild?.textContent).toBe("Saved.");
+    expect(document.querySelector(".save-report .saved-files")?.textContent).toMatch(
+      /profiles.* and .*actions\.yaml/,
     );
     expect(header("Saved").hasAttribute("disabled")).toBe(true);
   });
@@ -830,12 +828,28 @@ describe("the inspector in plain words", () => {
     expect(labels()).toContain("Every (ms)");
   });
 
-  it("can put a stick back into keyboard mode, which the linter requires", () => {
+  it("says nothing of a stick's mode while it sends keys, the only mode allowed", () => {
+    document.querySelector<HTMLButtonElement>(".stick-dial .dir.up")?.click();
+    const labels = [...document.querySelectorAll(".field label")].map((node) => node.textContent);
+    expect(labels).not.toContain("Stick sends");
+    // Its four directions are still offered.
+    expect(document.querySelector(".inspector .field-grid")).not.toBeNull();
+  });
+
+  it("offers to put a stick in another mode back to keyboard, which the linter requires", () => {
+    const payload = structuredClone(PAYLOAD);
+    for (const profile of payload.games[0]?.profiles ?? []) {
+      const stick = profile.data.positions.stick;
+      if (stick) stick.mode = "analog";
+    }
+    document.body.innerHTML = '<div id="app"></div>';
+    start(payload);
     document.querySelector<HTMLButtonElement>(".stick-dial .dir.up")?.click();
     const mode = [...document.querySelectorAll<HTMLElement>(".field")]
       .find((field) => field.querySelector("label")?.textContent === "Stick sends")
       ?.querySelector("select");
-    expect(mode?.value).toBe("keyboard");
+    expect(mode?.value).toBe("analog");
+    expect([...(mode?.options ?? [])].map((option) => option.value)).toContain("keyboard");
   });
 
   it("says why there are no stick modes for a single unit instead of hiding the panel", () => {

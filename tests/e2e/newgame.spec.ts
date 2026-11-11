@@ -97,7 +97,7 @@ test.describe("a game started from an export", () => {
 
     // What is missing, and what to do about it, in the owner's words.
     const note = page.locator(".game-file");
-    await expect(note).toContainText("not connected");
+    await expect(note).toContainText("not told its keys automatically");
     await expect(note).toContainText("controls screen");
     await expect(note).not.toContainText("ingame_config");
     await shot(page, "03-ingame-new-game");
@@ -121,7 +121,7 @@ test.describe("a game started from an export", () => {
 
     const before = readFileSync(join(FOLDER, "actions.yaml"), "utf8");
     await page.locator("header button.primary.dirty").click();
-    await expect(page.locator(".save-report > div").first()).toHaveText(/^Saved /, {
+    await expect(page.locator(".save-report > div").first()).toHaveText(/^Saved/, {
       timeout: 120_000,
     });
     await expect(page.getByRole("button", { name: "Saved", exact: true })).toBeDisabled();
@@ -149,7 +149,7 @@ test.describe("a game started from an export", () => {
     await page.goto("/");
     await page.locator("header select").first().selectOption({ label: NAME });
     await tab(page, "Setup");
-    await expect(page.locator(".game-file")).toContainText("not connected");
+    await expect(page.locator(".game-file")).toContainText("not told its keys automatically");
     await expect(page.getByRole("button", { name: "Update the game's keys…" })).toHaveCount(0);
     await shot(page, "05-setup-not-connected");
   });

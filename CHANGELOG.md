@@ -4,7 +4,19 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ## Unreleased
 
-### Added
+### Changed
+
+- **The page speaks to a player, not to the repo.** About thirty messages are rewritten,
+  among them "RC transmitter", "with-pedals variant", "wiring" (now "game keys"),
+  "PROBE 1 pins", "developer work", "Run `azeron serve`" and every check message that said
+  to edit a file. The save report opens "Saved." with the files under Files written, and
+  says plainly whether the units need a write. A game the editor cannot tell its keys
+  says what to do, with the reasons under "Why not this game?".
+- **Fewer controls.** Gone: Detect units (Write to units and the press test find the units
+  themselves) and `src/lib/hid.ts` with it, Rebuild every import file (saving rebuilds),
+  the "saves to repo" pill, the Stick sends picker on a stick that already sends keys,
+  and the "It will live in games/…" line. Undo all unsaved edits shows only when there
+  is something unsaved, and Open a data file… only on a page opened as a file.
 
 - **The last hand edits go.** Each of these pointed at a file before:
   - A check that is fine in this layout has an Accept button: say why, and it goes into

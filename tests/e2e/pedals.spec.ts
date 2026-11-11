@@ -129,7 +129,7 @@ test.describe("the pedals in the editor", () => {
       await save.click();
 
       const report = page.locator(".save-report");
-      await expect(report).toContainText("Saved games/SpaceSims/everspace/sets.yaml.", {
+      await expect(report).toContainText("games/SpaceSims/everspace/sets.yaml", {
         timeout: 20_000,
       });
       await expect(report).toContainText("Pedals in akimbo-v10");
@@ -158,7 +158,7 @@ test.describe("the pedals in the editor", () => {
     await page.goto("/");
     await openPedals(page);
     await page.locator("details.panel.fold > summary").click();
-    await expect(page.locator(".mode-pedals")).toContainText("with-pedals variant");
+    await expect(page.locator(".mode-pedals")).toContainText("given another job");
     await pedalAxis(page, "rudder").locator("select").selectOption("");
     await expect(page.locator("[data-reading]")).toHaveText("Mode 2, roll for yaw");
     await expect(page.locator(".pedals-note")).toContainText("Nothing on the sticks was changed");

@@ -38,7 +38,7 @@ test.describe("the served editor", () => {
     await page.goto("/");
 
     await expect(page.locator(".hand")).toHaveCount(2);
-    await expect(page.locator("header .pill.mode")).toHaveText("saves to repo");
+    await expect(page.locator("header .pill.mode")).toHaveCount(0);
     await expect(page.locator("header .pill.lint")).toHaveText("✓ Clean");
     await expect(page.locator(".finding").first()).toContainText("Clean");
   });
@@ -95,8 +95,8 @@ test.describe("the served editor", () => {
       // The verdict comes back from the server, not from the page guessing -- and it says
       // the file was saved before it says anything else.
       const report = page.locator(".save-report");
-      await expect(report).toContainText("Lint clean.", { timeout: 15_000 });
-      await expect(report.locator("> div").first()).toHaveText(/^Saved /);
+      await expect(report).toContainText("Checks: clean.", { timeout: 15_000 });
+      await expect(report.locator("> div").first()).toHaveText(/^Saved/);
       const after = readFileSync(PROFILE, "utf8");
       expect(after).toContain("Edited end to end");
       // The header says why the profile is the way it is; a save must not eat it.
@@ -300,16 +300,6 @@ test.describe("the served editor", () => {
     await expect(page.locator(".action", { hasText: "Consumable 1" }).first()).toBeVisible();
   });
 
-  test("offers detection, and says what it cannot know", async ({ page }) => {
-    await page.goto("/");
-    await page.getByRole("button", { name: "Setup", exact: true }).click();
-
-    const units = page.locator(".panel.inset", { hasText: "Units connected" });
-    await expect(units).toBeVisible();
-    await expect(units).toContainText("Not checked yet");
-    await expect(units.getByRole("button", { name: "Detect units" })).toBeVisible();
-  });
-
   test("refuses a layout name that would leave the game's folder", async ({ page }) => {
     // The name becomes part of a file path, and was not checked.
     const response = await page.request.post("/api/import", {
@@ -363,16 +353,6 @@ test.describe("the served editor", () => {
     } finally {
       for (const path of paths) rmSync(path, { recursive: true, force: true });
     }
-  });
-
-  test("rebuilds from the Setup tab", async ({ page }) => {
-    await page.goto("/");
-    await page.getByRole("button", { name: "Setup", exact: true }).click();
-
-    await page.getByRole("button", { name: "Rebuild every import file" }).click();
-    await expect(page.locator(".repo-note")).toContainText("profile(s) changed", {
-      timeout: 20_000,
-    });
   });
 });
 
