@@ -52,6 +52,11 @@ export interface ActionSpec {
    * `MoveRight` is one action: -1 strafes left, +1 right). Omitted for a single row.
    */
   ingame_scale?: number;
+  /**
+   * The Xbox controller control a game usually puts this action on (`A`, `RT`,
+   * `LeftStickUp`): reference for the controller-style layout, never sent. See xbox.ts.
+   */
+  xbox?: string;
 }
 
 export interface DuplicateKeyAllowance {

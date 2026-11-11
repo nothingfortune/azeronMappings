@@ -40,7 +40,7 @@ import { repoPath } from "../../../src/config/paths.js";
 import { patchActionBindings } from "../../../src/lib/actionfile.js";
 import { loadProfileData } from "../../../src/lib/io.js";
 import { lintGame } from "../../../src/lib/lint.js";
-import { Game } from "../../../src/lib/model.js";
+import { Game, Genre } from "../../../src/lib/model.js";
 import { ScaffoldError } from "../../../src/lib/scaffold.js";
 import { buildAll, ImportCollision, startGame, startLayout } from "../../../src/lib/tasks.js";
 
@@ -79,11 +79,167 @@ describe("startGame", () => {
     expect(left.profile.id).not.toBe(right.profile.id);
   });
 
-  it("puts the genre's default layout on its unit, and starts the other empty", () => {
+  it("lays a pair out like a controller unless told otherwise", () => {
     const result = sim();
-    const [left, right] = result.profiles;
-    expect(left?.positions).toBeGreaterThan(20);
-    expect(right?.positions).toBe(0);
+    expect(result.style).toBe("controller");
+    const left = loadProfileData(`${SIM}/profiles/v1-left.yaml`).positions;
+    const right = loadProfileData(`${SIM}/profiles/v1-right.yaml`).positions;
+    // The sticks fly the style's mode: twin-stick, as the game's own pad layout does.
+    expect(left.stick?.directions).toMatchObject({ up: "throttle_up", left: "strafe_left" });
+    expect(right.stick?.directions).toMatchObject({ up: "pitch_up", right: "yaw_right" });
+    // Each action with an Xbox control is where that control sits on the pair.
+    expect(right.dpad_down?.tap).toBe("interact"); // A
+    expect(right.index_3?.tap).toBe("fire_primary"); // RT
+    expect(left.index_3?.tap).toBe("fire_secondary"); // LT
+    expect(left.dpad_up?.tap).toBe("hover_up"); // d-pad up
+    // And the rest of the vocabulary under the fingers.
+    expect(left.index_1?.tap).toBe("cruise");
+  });
+
+  it("lays a pair out like a keyboard: the genre's one-unit default on the left", () => {
+    const result = startGame({
+      name: "ZZ Sim",
+      slug: "zzSim",
+      genre: "SpaceSims",
+      devices: ["cyborg2-left", "cyborg2-right"],
+      set: "v1",
+      style: "keyboard",
+    });
+    expect(result.style).toBe("keyboard");
+    const left = loadProfileData(`${SIM}/profiles/v1-left.yaml`).positions;
+    const right = loadProfileData(`${SIM}/profiles/v1-right.yaml`).positions;
+    expect(left.pinky_1?.tap).toBe("consume_1");
+    expect(right.middle_2?.tap).toBe("fire_primary");
+    expect(right.stick?.directions).toMatchObject({ up: "pitch_up" });
+  });
+
+  it("starts each style with nothing for the checks to say, the pad's split thumbs acknowledged", () => {
+    for (const style of ["controller", "keyboard"]) {
+      for (const genre of ["SpaceSims", "FPS"]) {
+        const slug = `zz${genre}${style}`;
+        startGame({
+          name: slug,
+          slug,
+          genre,
+          devices: ["cyborg2-left", "cyborg2-right"],
+          set: "v1",
+          style,
+        });
+        const game = new Game(`games/${genre}/${slug}`);
+        const result = lintGame(game);
+        expect(result.live, `${genre} ${style}`).toEqual([]);
+        expect(buildAll([game]).errors).toEqual([]);
+        if (style === "controller") {
+          expect(result.acknowledged.length, `${genre} ${style}`).toBeGreaterThan(0);
+          expect(
+            result.acknowledged.every(
+              ({ ack }) =>
+                (ack.position ?? "").startsWith("dpad") ||
+                ack.position === "stick_press" ||
+                ack.position === "thumb_aux_upper",
+            ),
+          ).toBe(true);
+        }
+      }
+    }
+  });
+
+  it("fires a shooter with no mouse from a key, as the pad's triggers", () => {
+    startGame({
+      name: "ZZ Gun",
+      slug: "zzGun",
+      genre: "FPS",
+      devices: ["cyborg2-left", "cyborg2-right"],
+      set: "v1",
+    });
+    const text = readFileSync(repoPath("games/FPS/zzGun/actions.yaml"), "utf8");
+    expect(text).toMatch(/fire_primary: +\{mouse: left, provided_by: null\}/);
+    const game = new Game("games/FPS/zzGun");
+    expect(game.actions.actions.fire_primary).toMatchObject({ mouse: "left" });
+    expect(game.actions.actions.fire_primary?.provided_by).toBeUndefined();
+    const right = loadProfileData("games/FPS/zzGun/profiles/v1-right.yaml").positions;
+    expect(right.index_3?.tap).toBe("fire_primary");
+    expect(right.stick?.directions).toMatchObject({ up: "look_up", left: "look_left" });
+    // Renamed on the In-game tab, the trigger still sends its mouse button.
+    const renamed = patchActionBindings(text, { fire_primary: { label: "Shoot" } });
+    expect(renamed).toMatch(/fire_primary: +\{label: Shoot, mouse: left, provided_by: null\}/);
+  });
+
+  it("adds pedals where the genre's sticks say what they take, and flies the sticks around them", () => {
+    const result = startGame({
+      name: "ZZ Sim",
+      slug: "zzSim",
+      genre: "SpaceSims",
+      devices: ["cyborg2-left", "cyborg2-right"],
+      set: "v1",
+      pedals: "logitech-pro-flight-pedals",
+    });
+    expect(result.pedals).toBe("logitech-pro-flight-pedals");
+    const sets = readFileSync(repoPath(`${SIM}/sets.yaml`), "utf8");
+    expect(sets).toContain("device: logitech-pro-flight-pedals");
+    expect(sets).toContain("rudder: {drives: yaw}");
+    // The rudder has yaw, so the right stick rolls: the mode's with-pedals variant.
+    const right = loadProfileData(`${SIM}/profiles/v1-right.yaml`).positions;
+    expect(right.stick?.directions).toMatchObject({ right: "roll_right", left: "roll_left" });
+    expect(lintGame(new Game(SIM)).live).toEqual([]);
+  });
+
+  it("started again, changes only its own layout's pedals and keeps the others'", () => {
+    const request = {
+      name: "ZZ Sim",
+      slug: "zzSim",
+      genre: "SpaceSims",
+      devices: ["cyborg2-left", "cyborg2-right"],
+      pedals: "logitech-pro-flight-pedals",
+    };
+    startGame({ ...request, set: "v1" });
+    startGame({ ...request, set: "v2", overwrite: true });
+    const both = new Game(SIM).sets.sets;
+    expect(both.v1?.pedals?.device).toBe("logitech-pro-flight-pedals");
+    expect(both.v2?.pedals?.device).toBe("logitech-pro-flight-pedals");
+    // v1 again, now with no pedals: its own are gone and v2 keeps its.
+    const { pedals: _pedals, ...noPedals } = request;
+    startGame({ ...noPedals, set: "v1", overwrite: true });
+    const after = new Game(SIM).sets.sets;
+    expect(after.v1?.pedals).toBeUndefined();
+    expect(after.v2?.pedals?.device).toBe("logitech-pro-flight-pedals");
+  });
+
+  it("offers no pedals to a genre whose sticks do not say what they would take", () => {
+    expect(() =>
+      startGame({
+        name: "ZZ Gun",
+        genre: "FPS",
+        devices: ["cyborg2-left", "cyborg2-right"],
+        set: "v1",
+        pedals: "logitech-pro-flight-pedals",
+      }),
+    ).toThrow(/pedals/);
+    expect(existsSync(repoPath("games/FPS/zzGun"))).toBe(false);
+  });
+
+  it("gives one unit on its own the genre's one-unit default, and refuses it a style", () => {
+    const result = sim(["cyborg2-left"]);
+    expect(result.style).toBeNull();
+    expect(result.profiles[0]?.positions).toBeGreaterThan(20);
+    expect(() =>
+      startGame({
+        name: "ZZ Other",
+        genre: "SpaceSims",
+        devices: ["cyborg2-left"],
+        set: "v1",
+        style: "controller",
+      }),
+    ).toThrow(/both units/);
+    expect(() =>
+      startGame({
+        name: "ZZ Other",
+        genre: "SpaceSims",
+        devices: ["cyborg2-left", "cyborg2-right"],
+        set: "v1",
+        style: "gamepad",
+      }),
+    ).toThrow(/no 'gamepad' style/);
   });
 
   it("gives every placed action a key of its own, so the game builds and lints clean", () => {
@@ -101,11 +257,46 @@ describe("startGame", () => {
   });
 
   it("leaves off, and says so, what the pool of keys cannot carry", () => {
-    const result = sim();
-    // The space-sim default places more actions than there are out-of-the-way keys.
+    // A style that places the whole space-sim vocabulary: more actions than there are
+    // out-of-the-way keys.
+    const layouts = repoPath("genres/SpaceSims/layouts.yaml");
+    const before = readFileSync(layouts, "utf8");
+    const defaults = new Set(
+      JSON.stringify(loadProfileData("genres/SpaceSims/default.yaml").positions).match(
+        /[a-z_0-9]+/g,
+      ),
+    );
+    const rest = Object.entries(
+      Genre.discover().find((genre) => genre.name === "SpaceSims")?.actions.actions ?? {},
+    )
+      .filter(([id, spec]) => !spec.provided_by && !defaults.has(id))
+      .map(([id]) => id);
+    const fingers = ["pinky", "ring", "middle", "index"].flatMap((col) =>
+      [1, 2, 3, 4, 5].map((row) => `${col}_${String(row)}`),
+    );
+    const right = fingers.map(
+      (position, index) => `    ${position}: {tap: ${rest[index] ?? "boost"}}`,
+    );
+    const style = ["everything:", "  label: Everything", "  left: default", "  right:", ...right];
+    writeFileSync(layouts, `${before}\n${style.join("\n")}\n`, "utf8");
+    let result: ReturnType<typeof startGame>;
+    try {
+      result = startGame({
+        name: "ZZ Sim",
+        slug: "zzSim",
+        genre: "SpaceSims",
+        devices: ["cyborg2-left", "cyborg2-right"],
+        set: "v1",
+        style: "everything",
+      });
+    } finally {
+      writeFileSync(layouts, before, "utf8");
+    }
     expect(result.leftOff.length).toBeGreaterThan(0);
-    const left = loadProfileData(`${SIM}/profiles/v1-left.yaml`);
-    const placed = JSON.stringify(left.positions);
+    const both = ["left", "right"].map((unit) =>
+      loadProfileData(`${SIM}/profiles/v1-${unit}.yaml`),
+    );
+    const placed = JSON.stringify(both.map((data) => data.positions));
     for (const entry of result.leftOff) {
       const action = entry.split(": ")[1] ?? "";
       expect(placed).not.toContain(`"${action}"`);

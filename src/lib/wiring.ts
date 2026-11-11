@@ -56,6 +56,28 @@ export const WIRE_POOL: readonly string[] = [
   "Numpad9",
   "NumpadDecimal",
   "Backquote",
+  // Added 2026-11-10, at the end so no key already given moves: enough for a default
+  // layout on both units. The arrows come late because menus use them. F13 to F24 come
+  // last: on no keyboard sold today, so no game default is on them, but some games cannot
+  // bind them at all (Unreal has no name for them), and a game whose file cannot name
+  // them is skipped past them.
+  "Equal",
+  "ArrowUp",
+  "ArrowDown",
+  "ArrowLeft",
+  "ArrowRight",
+  "F13",
+  "F14",
+  "F15",
+  "F16",
+  "F17",
+  "F18",
+  "F19",
+  "F20",
+  "F21",
+  "F22",
+  "F23",
+  "F24",
 ];
 
 /** Whether a control with this action on it would send anything at all. */

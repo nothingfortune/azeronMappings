@@ -11,7 +11,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json && tsc -p tsconfig.scripts.json && node build/scripts/build-editor.js",
-    "start": "npm run build && node build/index.js serve",
+    "start": "npm run build && node build/index.js serve --open",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

@@ -6,6 +6,20 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Fixed
 
+- **The right unit's stick sends left for left.** The press test of 2026-11-11 found its
+  left and right swapped (up and down were right), so `devices/cyborg2-right.yaml` now
+  carries `stick_directions` swapping them back, and every right-hand layout is rebuilt
+  with it. The same run recorded D-pad press on D-pad left's pin, from the centre tipping
+  as it was clicked; it stays on pin 37.
+
+- **The press test draws the stick as a cross.** The d-pad's placement rules reached the
+  stick's cells and drew Stick press where stick up should be. A stick tilting as it is
+  clicked is now passed over during a button step, and a pin already recorded for another
+  position is refused, naming that position. Its status lines are reworded.
+
+- **The unit maps' headers are one line.** They held one owner's dated test notes, which a
+  person with their own units would take as being about theirs.
+
 - **A unit named from the page stays named.** The page's data now carries the id
   `local.yaml` gives each unit, as the CLI's does, so a unit named from Write to units or
   the press test is not unknown again on the next refresh. A press test saved from the
@@ -52,6 +66,35 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Added
 
+- **A new game starts on both units, like a controller or like a keyboard.** Add a new game
+  used to put the genre's one-unit layout on the left unit and leave the right one empty,
+  and with the pool of keys spent on the left, the first action put on the right sent
+  nothing. Each genre now has two styles (`genres/<Genre>/layouts.yaml`). **Like a
+  controller**, the default, holds the pair like an Xbox pad: each genre action records
+  the pad control a game usually puts it on (`xbox:` in actions.yaml, shown on the action's
+  tooltip), and goes where that control sits on the pair (`src/lib/xbox.ts`): sticks to
+  sticks, A B X Y under the right thumb, the d-pad under the left, bumpers and triggers
+  under the index fingers. **Like a keyboard** puts the genre's one-unit layout on the left
+  and the rest on the right. Both fly the genre's stick mode. A shooter with no mouse fires
+  and aims on mouse buttons sent from the triggers, and looks with keys on the right stick
+  (`look_up` and the rest, new in the FPS vocabulary). **Pedals** can be added to either
+  where the genre's stick modes say what they take (space sims: the rudder takes yaw, and
+  the sticks fly the with-pedals variant); a game whose file the repo does not write binds
+  them in its own controls screen, so `pedal-unknown-game-axis` no longer asks it for a row.
+  Every style starts with nothing for the checks to say; the pad's two thumbs doing
+  different jobs is acknowledged with its reason. `azeron new --style --pedals`.
+- **Seventeen more keys to hand out**, at the end of the pool so no key already given
+  moves: `=`, the arrows and then F13 to F24, 48 in all, enough for a pair. F13 to F24 are
+  on no keyboard sold today, so no game default is on them, but they come last because some
+  games cannot bind them at all: Unreal has no name for them, nor do Everspace 2's and
+  Elite's files, so the wiring skips them for those games. A new shooter laid out like a
+  controller wires 37 actions, one of them onto F13; Show the wiring on the In-game tab moves
+  a key by hand.
+- **`npm start` opens the editor** in Chrome or Edge (`serve --open`), and a
+  `node_modules` installed from the other shell (WSL or Windows) is reinstalled for this
+  one instead of stopping with instructions.
+- **The README is a new user's**, start to finish, and each game already here has a case
+  study in its own folder (`games/<Genre>/<game>/README.md`) instead of a section of it.
 - **The press test runs without the Azeron app.** The Press test tab used to offer two
   files to import in the app, and to delete from the units there afterwards. **Put the
   press test on the units** now writes both profiles into each unit over USB, each on that

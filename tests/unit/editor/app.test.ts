@@ -305,6 +305,10 @@ describe("the setup tab", () => {
       expect(labels).toEqual([
         "Name of the game",
         "Kind of game",
+        // How the pair is laid out: like a pad, the default, or like a keyboard.
+        "Lay it out",
+        "Like a controllerLeft stick moves, right stick looks, A jumps, RT fires -- an Xbox pad laid over the pair. Looking on keys turns at one speed, and not every shooter lets look be put on keys.",
+        "Like a keyboardThe left unit is the keyboard half: movement on the stick, abilities and weapons in banks under the fingers. The right unit looks with its stick and fires on its side keys.",
         "Units",
         "Left unit",
         "Right unit",
@@ -312,6 +316,12 @@ describe("the setup tab", () => {
         // The Azeron app export is an option, folded away below the rest.
         "Exported from",
       ]);
+      // Both units, like a controller, unless chosen otherwise.
+      expect(
+        form?.querySelector<HTMLInputElement>('[data-new-game-style="controller"]')?.checked,
+      ).toBe(true);
+      // A shooter's sticks say nothing of pedals, so none are offered.
+      expect(form?.querySelector('[data-new-game="pedals"]')).toBeNull();
       const genres = [...(form?.querySelectorAll('[data-new-game="genre"] option') ?? [])].map(
         (o) => o.textContent,
       );
@@ -1013,7 +1023,7 @@ describe("the action list, kept to one line each", () => {
     // is on the tooltip and in the text the filter searches.
     const bound = document.querySelector<HTMLElement>(".action.bound");
     if (!bound) throw new Error("no bound action");
-    const where = bound.title.split(", ")[0] ?? "";
+    const where = bound.title.split(/, |\n/)[0] ?? "";
     expect(where).not.toBe("not bound");
     const filter = document.querySelector<HTMLInputElement>(".palette .filter");
     if (!filter) throw new Error("no filter");

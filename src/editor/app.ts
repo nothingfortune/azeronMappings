@@ -31,6 +31,7 @@ import { describeDirection } from "../lib/binding.js";
 import type { BindingChange } from "../lib/actionfile.js";
 import { ueKeyFor } from "../lib/ingame.js";
 import { needsWire, wireAction } from "../lib/wiring.js";
+import { xboxLabel } from "../lib/xbox.js";
 import { eliteKeyFor } from "../lib/elite.js";
 import type { UnitCheck, UnitDifference, UnitsReport } from "../lib/units.js";
 import { describeSent, expectedPresses, verdict } from "../lib/checkunit.js";
@@ -1088,7 +1089,9 @@ function renderPalette(): HTMLElement {
       const button = el("button", {
         class: `action${where ? " bound" : ""}`,
         type: "button",
-        title: where ? where.join(", ") : "not bound",
+        title:
+          (where ? where.join(", ") : "not bound") +
+          (spec.xbox === undefined ? "" : `\non an Xbox pad: ${xboxLabel(spec.xbox)}`),
       });
       button.append(el("span", { class: `dot ${role}` }));
       const text = el("span", { class: "txt" });
@@ -5418,7 +5421,17 @@ const newGame: {
   device: string;
   set: string;
   file: { name: string; exported: unknown } | null;
-} = { name: "", genre: "", units: null, device: "", set: "v1", file: null };
+  /** The genre's style to lay it out in; "" for the genre's first. */
+  style: string;
+  /** A pedals device for the layout, or "" for none. */
+  pedals: string;
+} = { name: "", genre: "", units: null, device: "", set: "v1", file: null, style: "", pedals: "" };
+
+/** Whether a genre's sticks know what pedals take, so a layout of it can have them. */
+function genreTakesPedals(genreName: string): boolean {
+  const genre = state.payload.genres.find((entry) => entry.name === genreName);
+  return (genre?.stickModes?.pedals?.takes.length ?? 0) > 0;
+}
 
 /** The keypads a layout can be for, left hand first. */
 function keypads(): { device: string; label: string }[] {
@@ -5446,9 +5459,9 @@ function renderNewGame(): HTMLElement {
   box.append(
     section(
       "Add a new game",
-      "For a game that is not in the Game selector. Name it and say what kind of game it is: " +
-        "it starts with that kind's actions and its default layout, ready to rearrange on " +
-        "the Edit tab. No Azeron app needed.",
+      "For a game that is not in the Game selector. Name it, say what kind of game it is " +
+        "and how to lay it out: it starts with that kind's actions on both units, ready to " +
+        "rearrange on the Edit tab. No Azeron app needed.",
     ),
   );
 
@@ -5483,7 +5496,48 @@ function renderNewGame(): HTMLElement {
   }
   genre.addEventListener("change", () => {
     newGame.genre = genre.value;
-    showWhere();
+    newGame.style = "";
+    render();
+  });
+
+  // How to lay it out: like a controller or like a keyboard, as the genre offers.
+  const styles = state.payload.genres.find((entry) => entry.name === newGame.genre)?.styles ?? [];
+  if (!styles.some((entry) => entry.name === newGame.style)) newGame.style = styles[0]?.name ?? "";
+  const style = el("div", { class: "new-game-styles" });
+  for (const entry of styles) {
+    const pick = el("input", {
+      type: "radio",
+      name: "new-game-style",
+      value: entry.name,
+      "data-new-game-style": entry.name,
+    });
+    pick.checked = entry.name === newGame.style;
+    pick.addEventListener("change", () => {
+      if (pick.checked) newGame.style = entry.name;
+    });
+    style.append(
+      el("label", { class: "new-game-style", title: entry.note }, [
+        pick,
+        el("span", {}, [el("b", {}, [entry.label]), el("span", { class: "muted" }, [entry.note])]),
+      ]),
+    );
+  }
+
+  // Pedals, where the genre's sticks say what they take over.
+  const pedalDevices = Object.keys(state.payload.pedals);
+  const offersPedals = genreTakesPedals(newGame.genre) && pedalDevices.length > 0;
+  if (!offersPedals || !pedalDevices.includes(newGame.pedals)) newGame.pedals = "";
+  const pedals = el("select", { "data-new-game": "pedals" });
+  for (const [value, label] of [
+    ["", "No pedals"],
+    ...pedalDevices.map((device) => [device, device] as const),
+  ] as const) {
+    const option = el("option", { value }, [label]);
+    if (value === newGame.pedals) option.setAttribute("selected", "selected");
+    pedals.append(option);
+  }
+  pedals.addEventListener("change", () => {
+    newGame.pedals = pedals.value;
   });
 
   const units = el("div", { class: "new-game-units" });
@@ -5577,7 +5631,12 @@ function renderNewGame(): HTMLElement {
         genre: newGame.genre,
         set: layoutName,
         ...(file === null
-          ? { devices: chosenUnits }
+          ? {
+              devices: chosenUnits,
+              // A style lays out a pair; one unit on its own gets the genre's default.
+              ...(newGame.style === "" || chosenUnits.length < 2 ? {} : { style: newGame.style }),
+              ...(newGame.pedals === "" ? {} : { pedals: newGame.pedals }),
+            }
           : { device: newGame.device, exported: file.exported }),
         ...(overwrite ? { overwrite: true } : {}),
       }).then((result) => {
@@ -5643,10 +5702,20 @@ function renderNewGame(): HTMLElement {
       el("div", { class: "field" }, [el("label", {}, ["Kind of game"]), genre]),
     ]),
     where,
+    ...(styles.length === 0
+      ? []
+      : [el("div", { class: "field" }, [el("label", {}, ["Lay it out"]), style])]),
     el("div", { class: "row2" }, [
       el("div", { class: "field" }, [el("label", {}, ["Units"]), units]),
       el("div", { class: "field" }, [el("label", {}, ["Name for the first layout"]), layout]),
     ]),
+    ...(offersPedals
+      ? [
+          el("div", { class: "row2" }, [
+            el("div", { class: "field" }, [el("label", {}, ["Pedals"]), pedals]),
+          ]),
+        ]
+      : []),
     el("div", { class: "row2" }, [create]),
     fromApp,
   );
@@ -6182,9 +6251,9 @@ function renderProbeBar(): HTMLElement {
   const run = probeRun;
   if (run === null) {
     say(
-      "The press test runs on profiles of its own: every control sends a key of its own, so " +
-        "the key that arrives says which pin fired. This puts them on the units over USB, and " +
-        "takes them off again when you are done.",
+      "The press test uses two dedicated profiles in which every control sends a unique key, " +
+        "identifying the pin that fired. They are installed on the units over USB and removed " +
+        "when you finish.",
       "muted",
     );
     button(
@@ -6249,15 +6318,15 @@ function renderProbeBar(): HTMLElement {
     for (const unit of known) {
       say(
         `${unitLabel(deviceForUnit(unit)?.hand ?? "")} unit: ` +
-          (holdsProbe(unit) ? "the press test is on it." : "nothing of the press test on it."),
+          (holdsProbe(unit) ? "press test installed." : "press test not installed."),
         "check-status",
       );
     }
     const anyOn = known.some(holdsProbe);
     if (anyOn) {
       say(
-        "Each unit runs the pass on screen, Pins or Stick zero. When you are done, take the " +
-          "press test off, or a unit's profile button will land on it.",
+        "Each unit runs the pass shown below (Pins or Stick zero). Remove the press test when " +
+          "you finish; until then, the profile button can still select it.",
         "muted",
       );
       button(

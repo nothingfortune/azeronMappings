@@ -46,6 +46,8 @@ import { readUsbPcap } from "./lib/usbpcap.js";
 import { buildProbeProfile, buildStickCalibrationProfile } from "./lib/probe.js";
 import { checkFileName } from "./lib/scaffold.js";
 import { patchActionBindings } from "./lib/actionfile.js";
+import { openInChromium } from "./lib/browser.js";
+import { isWsl } from "./lib/machine.js";
 import type { BindingChange } from "./lib/actionfile.js";
 import {
   CONTENT_TYPES,
@@ -278,6 +280,8 @@ function cmdNew(
     units: string | undefined;
     set: string | undefined;
     game: string | undefined;
+    style: string | undefined;
+    pedals: string | undefined;
   },
 ): number {
   const maps = deviceNames().map((device) => ({ device, hand: loadDevice(device).hand }));
@@ -304,8 +308,12 @@ function cmdNew(
     genre: flags.genre,
     devices,
     set: flags.set ?? "v1",
+    style: flags.style,
+    pedals: flags.pedals,
   });
   out(`Started ${result.name} in ${result.gameDir}`);
+  if (result.style !== null) out(`  laid out in the ${result.style} style`);
+  if (result.pedals !== null) out(`  with pedals: ${result.pedals}`);
   for (const profile of result.profiles) {
     out(`  ${profile.path}  (${profile.device}, ${String(profile.positions)} control(s) set)`);
   }
@@ -612,7 +620,7 @@ function cmdCapturePedals(
 }
 
 /** Serve the editor and let it write back into the repo. */
-function cmdServe(port: number, host: string): number {
+function cmdServe(port: number, host: string, open = false): number {
   const bundle = readBundle("editor-app.js");
   if (bundle === null) {
     process.stderr.write("error: build/editor-app.js is missing. Run `npm run build` first.\n");
@@ -805,6 +813,8 @@ function cmdServe(port: number, host: string): number {
               exported?: ExportDocument;
               /** The units, when there is no export: the game starts from the genre. */
               devices?: unknown;
+              style?: string;
+              pedals?: string;
               overwrite?: boolean;
             };
             if (!fresh.exported) {
@@ -816,6 +826,8 @@ function cmdServe(port: number, host: string): number {
                 genre: fresh.genre ?? "",
                 devices,
                 set: fresh.set ?? "",
+                style: fresh.style,
+                pedals: fresh.pedals,
                 ...(fresh.overwrite === true ? { overwrite: true } : {}),
               });
               send(200, JSON.stringify({ ok: true, ...started }));
@@ -963,6 +975,13 @@ function cmdServe(port: number, host: string): number {
     }
     out("  Saving writes straight into the repo and reports what the linter says.");
     out("  Ctrl-C to stop.");
+    if (open) {
+      const url = `http://localhost:${String(port)}`;
+      const ctx = { platform: process.platform, wsl: isWsl(), env: process.env };
+      if (openInChromium(url, ctx) === null) {
+        out(`  Open ${url} in Chrome or Edge: no copy of either was found to open it in.`);
+      }
+    }
   });
   return 0;
 }
@@ -1284,13 +1303,18 @@ function usage(): void {
                                   write a name to try by hand, marked UNTESTED, for a pedal
                                   axis the game's own controls screen will not bind
   editor [--out PATH]             the editor as one self-contained HTML file
-  serve [--port N] [--host H]     the same editor, able to save back into the repo; it
-                                  listens on 127.0.0.1 only unless --host names another
+  serve [--port N] [--host H] [--open]
+                                  the same editor, able to save back into the repo; it
+                                  listens on 127.0.0.1 only unless --host names another;
+                                  --open opens it in Chrome or Edge
   probe [--device D]              the press test's profiles, as files; the test itself
                                   runs from the editor's Press test tab
   new <name> --genre G [--units left,right] [--set S] [--game SLUG]
-                                  start a game with no export: the genre's actions and
-                                  default layout, each unit built on its own stock export
+      [--style controller|keyboard] [--pedals DEVICE]
+                                  start a game with no export: the genre's actions, laid
+                                  out on both units like a controller (the default) or a
+                                  keyboard, each unit built on its own stock export;
+                                  --pedals adds pedals where the genre's sticks allow
   layout <game> <name> [--copy-of LAYOUT] [--units left,right]
                                   a new layout with no export: a copy of one the game
                                   has (pedals included), or empty
@@ -1332,6 +1356,7 @@ export function main(argv: string[]): number {
     allowPositionals: true,
     options: {
       check: { type: "boolean", default: false },
+      open: { type: "boolean", default: false },
       strict: { type: "boolean", default: false },
       "show-acknowledged": { type: "boolean", default: false },
       apply: { type: "boolean", default: false },
@@ -1344,6 +1369,8 @@ export function main(argv: string[]): number {
       yes: { type: "boolean", default: false },
       "dry-run": { type: "boolean", default: false },
       device: { type: "string" },
+      style: { type: "string" },
+      pedals: { type: "string" },
       game: { type: "string" },
       set: { type: "string" },
       template: { type: "string" },
@@ -1389,7 +1416,11 @@ export function main(argv: string[]): number {
         candidate: values.candidate,
       });
     case "serve":
-      return cmdServe(wholeNumber("--port", values.port ?? "4173"), values.host ?? "127.0.0.1");
+      return cmdServe(
+        wholeNumber("--port", values.port ?? "4173"),
+        values.host ?? "127.0.0.1",
+        values.open,
+      );
     case "editor":
       return cmdEditor(values.out ?? join(dataDirs.dist, "editor.html"));
     case "probe": {
@@ -1423,6 +1454,8 @@ export function main(argv: string[]): number {
         units: values.units,
         set: values.set,
         game: values.game,
+        style: values.style,
+        pedals: values.pedals,
       });
     }
     case "layout": {

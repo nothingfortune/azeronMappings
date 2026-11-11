@@ -41,7 +41,7 @@ const slotNames = (device: FakeHidDevice): string[] =>
 async function putOn(): Promise<void> {
   click("Put the press test on the units");
   await vi.waitFor(() => {
-    expect(bar()).toMatch(/Nothing else is open|press test is on it/);
+    expect(bar()).toMatch(/Nothing else is open|press test installed/);
   }, WAIT);
   if (bar().includes("Nothing else is open")) click("Nothing else is open");
   await vi.waitFor(() => {
@@ -84,8 +84,8 @@ describe("the press test on the units", SLOW, () => {
       ]);
       expect(unit.unit.running).toBe(3);
     }
-    expect(bar()).toContain("Left unit: the press test is on it.");
-    expect(bar()).toContain("Right unit: the press test is on it.");
+    expect(bar()).toContain("Left unit: press test installed.");
+    expect(bar()).toContain("Right unit: press test installed.");
   });
 
   it("switches the units to the stick pass when the page does", async () => {
@@ -241,7 +241,7 @@ describe("the press test on the units", SLOW, () => {
     await putOn();
     click("Take the press test off");
     await vi.waitFor(() => {
-      expect(bar()).toContain("nothing of the press test on it");
+      expect(bar()).toContain("press test not installed");
     }, WAIT);
     expect(slotNames(left)).toEqual(["Basic", "Joystick", "Everspace 2 akimbo"]);
     expect(left.unit.running).toBe(0);
@@ -261,7 +261,7 @@ describe("the press test on the units", SLOW, () => {
     }, WAIT);
     click("Choose a unit");
     await vi.waitFor(() => {
-      expect(bar()).toContain("Left unit: the press test is on it.");
+      expect(bar()).toContain("Left unit: press test installed.");
     }, WAIT);
   });
 });
@@ -297,7 +297,7 @@ describe("a unit this computer does not know yet", SLOW, () => {
     }, WAIT);
     click("This is the left unit");
     await vi.waitFor(() => {
-      expect(bar()).toContain("Left unit: the press test is on it.");
+      expect(bar()).toContain("Left unit: press test installed.");
     }, WAIT);
     expect(named).toEqual([{ device: "cyborg2-left", id: "1111" }]);
     expect(slotNames(stranger)).toContain(PROBE_SLOT_NAMES.pins);

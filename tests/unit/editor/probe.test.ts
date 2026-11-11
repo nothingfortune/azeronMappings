@@ -92,6 +92,34 @@ describe("the press test", () => {
     expect(document.querySelector(".prompt b")?.textContent).toBe("Press Pinky side");
   });
 
+  it("passes over the stick moving while it asks for a button, as a click tilts it", () => {
+    const stickKey = probePayload.assignments.find((item) => item.kind === "stick")?.key;
+    expect(stickKey).toBeDefined();
+    press(stickKey ?? "");
+    const said = document.querySelector(".prompt .bad")?.textContent ?? "";
+    expect(said).toContain("Stick input ignored");
+    expect(said).toContain("Waiting for Pinky side");
+    expect(document.querySelector(".prompt b")?.textContent).toBe("Press Pinky side");
+    // The button that follows is read as usual.
+    press(keyForPin(1));
+    expect(document.querySelector(".prompt b")?.textContent).toBe("Press Pinky 1");
+  });
+
+  it("refuses a pin it has already recorded for another position on the unit", () => {
+    // Pressing the d-pad's centre can tip it onto a side recorded a moment before.
+    vi.useFakeTimers();
+    press(keyForPin(1));
+    expect(document.querySelector(".prompt b")?.textContent).toBe("Press Pinky 1");
+    // Past the lockout that swallows a press's own tail.
+    vi.advanceTimersByTime(500);
+    press(keyForPin(1));
+    vi.useRealTimers();
+    expect(document.querySelector(".prompt .bad")?.textContent).toContain(
+      "Pin 1 is already recorded for Pinky side",
+    );
+    expect(document.querySelector(".prompt b")?.textContent).toBe("Press Pinky 1");
+  });
+
   it("rejects a button press when it asked for the stick", () => {
     const buttons = document.querySelectorAll(".cell").length;
     expect(buttons).toBeGreaterThan(0);

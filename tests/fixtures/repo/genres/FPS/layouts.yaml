@@ -1,0 +1,59 @@
+# What a new shooter starts with: a pair of units, in one of two styles.
+#
+# controller  the pair held like an Xbox pad. Every action with an `xbox:` control in
+#             actions.yaml goes where that control sits on the pair (src/lib/xbox.ts), so
+#             the left stick moves, the right stick looks, A jumps and RT fires. `left`
+#             and `right` below add the rest of the vocabulary on the keys a pad does not
+#             have.
+# keyboard    the pair as a keyboard: the genre's single-unit default (default.yaml) on the
+#             left unit, banks of abilities and weapons under the fingers, and `right` below
+#             on the other.
+#
+# With no mouse, firing and aiming come off a key: `actions` says what the new game's
+# actions.yaml gives them. Tap only everywhere, as in default.yaml (constraints 4 and 6).
+# `acknowledge` lists the positions the two hands use for different jobs on purpose;
+# each goes into the new game's lint.acknowledged with its reason.
+controller:
+  label: Like a controller
+  note: >-
+    Left stick moves, right stick looks, A jumps, RT fires -- an Xbox pad laid over the
+    pair. Looking on keys turns at one speed, and not every shooter lets look be put on keys.
+  actions:
+    fire_primary: {provided_by: null, mouse: left}
+    aim: {provided_by: null, mouse: right}
+  acknowledge:
+    reason: The thumb pads are a pad's d-pad and its A B X Y, which do different jobs.
+    positions: [dpad_up, dpad_down, dpad_left, dpad_right, stick_press, thumb_aux_upper]
+  left:
+    index_1: {label: Prone, tap: prone}
+    index_4: {label: Dive / dodge, tap: dive}
+    middle_2: {label: Weapon 1, tap: weapon_1}
+    middle_3: {label: Weapon 2, tap: weapon_2}
+    middle_4: {label: Sidearm, tap: weapon_3}
+    ring_3: {label: Equipment 2, tap: equipment_2}
+    pinky_3: {label: Push to talk, tap: push_to_talk}
+    index_5: {label: Map, tap: map}
+    middle_5: {label: Inventory, tap: inventory}
+    ring_5: {label: Emote wheel, tap: emote}
+  right:
+    middle_2: {label: Ability 2, tap: ability_2}
+    middle_3: {label: Ability 3, tap: ability_3}
+    middle_4: {label: Ability 4, tap: ability_4}
+    ring_3: {label: Previous weapon, tap: weapon_prev}
+    pinky_3: {label: Interact, tap: interact}
+
+keyboard:
+  label: Like a keyboard
+  note: >-
+    The left unit is the keyboard half: movement on the stick, abilities and weapons in
+    banks under the fingers. The right unit looks with its stick and fires on its side keys.
+  actions:
+    fire_primary: {provided_by: null, mouse: left}
+    aim: {provided_by: null, mouse: right}
+  left: default
+  right:
+    stick:
+      mode: keyboard
+      directions: {up: look_up, right: look_right, down: look_down, left: look_left}
+    index_side: {label: Fire, tap: fire_primary}
+    pinky_side: {label: Aim, tap: aim}

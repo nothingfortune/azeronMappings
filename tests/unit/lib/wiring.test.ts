@@ -37,7 +37,8 @@ describe("whether an action needs a key", () => {
 describe("the pool of keys", () => {
   it("holds nothing a game's defaults, its menus or the desktop already use", () => {
     for (const key of WIRE_POOL) {
-      expect(key).not.toMatch(/^(Key[A-Z]|Digit\d|F\d+)$/);
+      // F13 to F24 are function keys no keyboard sold today has, so no game's default is on one.
+      expect(key).not.toMatch(/^(Key[A-Z]|Digit\d|F\d|F1[0-2])$/);
       expect(key).not.toMatch(/^(Enter|Space|Tab|Escape|Backspace|CapsLock)$/);
       expect(key).not.toMatch(/^(Shift|Control|Alt|Meta)/);
     }
@@ -48,8 +49,42 @@ describe("the pool of keys", () => {
     for (const key of WIRE_POOL) expect(ANALOG_KEYCODES[key], key).toBeTypeOf("number");
   });
 
-  it("holds only keys Everspace 2's own file has a name for", () => {
-    for (const key of WIRE_POOL) expect(ueKeyFor({ key }), key).not.toBeNull();
+  it("holds keys Everspace 2's own file has a name for, and then F13 to F24, which it has not", () => {
+    const unnamed = WIRE_POOL.filter((key) => ueKeyFor({ key }) === null);
+    expect(unnamed).toEqual(WIRE_POOL.filter((key) => /^F(1[3-9]|2[0-4])$/.test(key)));
+  });
+
+  it("hands out every key a game can bind in its own screen before F13 to F24", () => {
+    const first = WIRE_POOL.findIndex((key) => key === "F13");
+    expect(WIRE_POOL.slice(first)).toEqual([
+      "F13",
+      "F14",
+      "F15",
+      "F16",
+      "F17",
+      "F18",
+      "F19",
+      "F20",
+      "F21",
+      "F22",
+      "F23",
+      "F24",
+    ]);
+    // Every key a game can be told before then.
+    for (const key of WIRE_POOL.slice(0, first)) expect(ueKeyFor({ key }), key).not.toBeNull();
+  });
+
+  it("finds nothing past F13 to F24 for a game whose file cannot name them", () => {
+    const taken = Object.fromEntries(
+      WIRE_POOL.filter((key) => !/^F(1[3-9]|2[0-4])$/.test(key)).map((key) => [key, { key }]),
+    );
+    const usable = (key: string): boolean => ueKeyFor({ key }) !== null;
+    expect(freeKey(taken, usable)).toBeNull();
+    expect(freeKey(taken)).toBe("F13");
+  });
+
+  it("holds enough for a default layout on both units", () => {
+    expect(WIRE_POOL.length).toBeGreaterThanOrEqual(48);
   });
 
   it("has room for every action of the live game that has no key yet", () => {

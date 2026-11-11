@@ -10,6 +10,8 @@ import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
+import { parse } from "yaml";
+
 import { dataDirs, hostPath, posixJoin, repoPath } from "../config/paths.js";
 import type { ExportDocument } from "../types/azeron.js";
 import type { ActionSpec, ProfileData, ProfileMeta } from "../types/profile.js";
@@ -27,10 +29,19 @@ import {
 } from "./ingame.js";
 import type { Comparison, IngameChange, PedalChange, PedalPlan, PedalWaiting } from "./ingame.js";
 import { applyBinds, compareBinds, describeControl, EliteError, parseBinds } from "./elite.js";
-import { loadDevice, loadDirectWrites, loadProfileData, loadTemplate, writeText } from "./io.js";
+import {
+  loadDevice,
+  loadDirectWrites,
+  loadPedalsDevice,
+  loadProfileData,
+  loadStickModes,
+  loadTemplate,
+  writeText,
+} from "./io.js";
+import { buildStyle, STYLE_ORDER } from "./styles.js";
 import { currentWrite, layoutFingerprint } from "./written.js";
 import type { LoadedPedals } from "./io.js";
-import { capturePedals, ingamePlan, planAxes, recordCandidateNames } from "./pedals.js";
+import { capturePedals, ingamePlan, parseSets, planAxes, recordCandidateNames } from "./pedals.js";
 import type { CaptureOptions, CaptureResult, PlannedAxis } from "./pedals.js";
 import type { StickModeSet } from "./stickmodes.js";
 import type { NameStatus } from "../types/pedals.js";
@@ -50,9 +61,10 @@ import {
   slugFromName,
   unnamedPositions,
 } from "./scaffold.js";
-import { addSetEntry } from "./setsfile.js";
+import type { WrittenAction } from "./scaffold.js";
+import { addSetEntry, patchSetPedals } from "./setsfile.js";
 import { needsWire, wireAction } from "./wiring.js";
-import { dumpYaml } from "./yaml.js";
+import { deepMerge, dumpYaml } from "./yaml.js";
 import { loadInherited } from "./yaml-io.js";
 import { messageOf, removeKey } from "./object.js";
 import { findStore, findStoredProfiles } from "./install.js";
@@ -467,6 +479,13 @@ export interface StartGameRequest {
   set: string;
   /** Replace a game already on disk. Refused by default. */
   overwrite?: boolean;
+  /**
+   * The genre's style to start in (layouts.yaml): `controller` or `keyboard`. The first
+   * the genre has when left out; a genre with none puts its default.yaml on one unit.
+   */
+  style?: string | undefined;
+  /** A pedals device for the layout, in a genre whose sticks know what pedals take. */
+  pedals?: string | undefined;
 }
 
 export interface StartGameResult {
@@ -479,6 +498,10 @@ export interface StartGameResult {
   wired: number;
   /** Controls of the default layout left empty: no free key to send their action on. */
   leftOff: string[];
+  /** The style it started in, or null for a genre with none. */
+  style: string | null;
+  /** The pedals device the layout has, or null. */
+  pedals: string | null;
 }
 
 /** Every action a profile's controls carry: each key's presses and each stick direction. */
@@ -494,6 +517,31 @@ function actionsPlaced(data: ProfileData): string[] {
     }
   }
   return [...new Set(found)];
+}
+
+/**
+ * Which pedal axis a new layout's pedals put to work, and on what: the axis that springs
+ * back to centre (the rudder) drives what the genre's sticks say pedals take. Refused for
+ * a genre whose sticks say nothing of pedals, and for a device that is not pedals.
+ */
+function newLayoutPedals(
+  device: string,
+  modes: StickModeSet | undefined,
+): { axis: string; drives: string } {
+  const takes = modes?.pedals?.takes[0];
+  if (takes === undefined) {
+    throw new ScaffoldError(
+      "pedals are offered where the genre's stick-modes.yaml says what they take over " +
+        "(its `pedals:` section), and this genre's does not",
+    );
+  }
+  const loaded = loadPedalsDevice(device);
+  if (loaded === null) throw new ScaffoldError(`'${device}' is not a pedals device here`);
+  const centred = Object.entries(loaded.data.axes).find(([, axis]) => axis.rest === "centre");
+  if (centred === undefined) {
+    throw new ScaffoldError(`${device} has no axis that rests at centre to drive ${takes}`);
+  }
+  return { axis: centred[0], drives: takes };
 }
 
 /**
@@ -541,6 +589,24 @@ export function startGame(request: StartGameRequest): StartGameResult {
     throw new ScaffoldError("a layout has one unit per hand: choose a left unit and a right one");
   }
 
+  // A style lays out a pair. One unit on its own gets the genre's single-unit default.
+  const paired = devices.length === 2;
+  if (!paired && request.style !== undefined) {
+    throw new ScaffoldError("a style lays out both units: choose the left unit and the right one");
+  }
+  const styleName = !paired
+    ? null
+    : (request.style ?? STYLE_ORDER.find((name) => name in genre.styles) ?? null);
+  const style = styleName === null ? undefined : genre.styles[styleName];
+  if (styleName !== null && style === undefined) {
+    const have = Object.keys(genre.styles);
+    throw new ScaffoldError(
+      `${request.genre} has no '${styleName}' style (have: ${have.join(", ") || "none"})`,
+    );
+  }
+  const modes = loadStickModes(genre.rel);
+  const pedalAxis = request.pedals === undefined ? null : newLayoutPedals(request.pedals, modes);
+
   const gameDir = posixJoin(dataDirs.games, request.genre, slug);
   const profilePaths = units.map((unit) => posixJoin(gameDir, "profiles", `${set}-${unit}.yaml`));
 
@@ -558,6 +624,7 @@ export function startGame(request: StartGameRequest): StartGameResult {
   const owned = [
     posixJoin(gameDir, "game.yaml"),
     posixJoin(gameDir, "actions.yaml"),
+    ...(pedalAxis === null ? [] : [posixJoin(gameDir, "sets.yaml")]),
     ...profilePaths,
   ];
   if (request.overwrite !== true) {
@@ -571,10 +638,28 @@ export function startGame(request: StartGameRequest): StartGameResult {
     }
   }
 
-  // The first layout: the genre's default on the unit it was written for, the rest empty.
+  // The first layout: the style's two hands, or for a genre with no styles, its default on
+  // the unit it was written for and the rest empty.
+  const built =
+    style === undefined || styleName === null
+      ? null
+      : buildStyle(styleName, style, {
+          actions: genre.actions.actions,
+          defaults: genre.config.positions,
+          modes,
+          withPedals: pedalAxis !== null,
+        });
   const layouts = devices.map((device, index): ProfileData => {
     const unit = units[index] ?? "left";
     const seeded = genre.config.profile.device === device.name;
+    const positions =
+      built === null
+        ? seeded
+          ? structuredClone(genre.config.positions)
+          : {}
+        : unit === "right"
+          ? built.right
+          : built.left;
     return {
       profile: {
         id: randomUUID(),
@@ -585,13 +670,20 @@ export function startGame(request: StartGameRequest): StartGameResult {
         set,
         output: `${slug}_${set}_${unit}.json`,
       },
-      positions: seeded ? structuredClone(genre.config.positions) : {},
+      positions,
     };
   });
 
   // Give each placed action a key, as dropping it on a control in the editor would.
   const vocabulary = structuredClone(genre.actions.actions);
-  const keys: Record<string, ActionSpec> = {};
+  const keys: Record<string, WrittenAction> = {};
+  // What the style says of an action beyond its key (fire on a mouse button, with no mouse
+  // to provide it) is the game's from the start, and is in place before anything is wired.
+  for (const [id, fields] of Object.entries(built?.actions ?? {})) {
+    const merged = deepMerge({ ...(vocabulary[id] ?? {}) }, fields) as ActionSpec;
+    vocabulary[id] = merged;
+    keys[id] = fields;
+  }
   const unsendable = new Set<string>();
   // Required actions first, so if the pool runs short it is something optional left off.
   const required = (id: string): number =>
@@ -601,7 +693,7 @@ export function startGame(request: StartGameRequest): StartGameResult {
   );
   for (const id of placed) {
     const key = wireAction(vocabulary, id);
-    if (key !== null) keys[id] = { key };
+    if (key !== null) keys[id] = { ...keys[id], key };
     else if (needsWire(vocabulary[id])) unsendable.add(id);
   }
   // The pool of out-of-the-way keys is smaller than a whole default layout. An action left
@@ -633,7 +725,10 @@ export function startGame(request: StartGameRequest): StartGameResult {
   }
 
   const madeDir = !existsSync(repoPath(gameDir));
-  const touched = owned.map((path) => ({
+  // sets.yaml holds every layout's pedals, so a game started again keeps the others' and
+  // only this layout's entry changes. It is restored with the rest on a failure.
+  const setsPath = posixJoin(gameDir, "sets.yaml");
+  const touched = [...new Set([...owned, setsPath])].map((path) => ({
     path,
     text: existsSync(repoPath(path)) ? readFileSync(repoPath(path), "utf8") : null,
   }));
@@ -651,13 +746,25 @@ export function startGame(request: StartGameRequest): StartGameResult {
       ),
     );
     const firstTemplate = devices[0]?.template;
-    writeText(
-      posixJoin(gameDir, "game.yaml"),
-      dumpYaml(
-        gameConfig({ name, slug, genre: request.genre, template: firstTemplate ?? "" }),
-        `# ${name}\n`,
-      ),
-    );
+    const config = gameConfig({ name, slug, genre: request.genre, template: firstTemplate ?? "" });
+    const writeConfig = (): void => {
+      writeText(posixJoin(gameDir, "game.yaml"), dumpYaml(config, `# ${name}\n`));
+    };
+    writeConfig();
+    const setsText = touched.find((entry) => entry.path === setsPath)?.text ?? null;
+    const hasSet =
+      setsText !== null && set in parseSets((parse(setsText) as unknown) ?? {}, setsPath).sets;
+    const pedals =
+      pedalAxis !== null && request.pedals !== undefined
+        ? { device: request.pedals, assign: { [pedalAxis.axis]: { drives: pedalAxis.drives } } }
+        : null;
+    if (setsText !== null && hasSet) {
+      // Started again: this layout's pedals are what was asked for now, none included.
+      writeText(setsPath, patchSetPedals(setsText, set, pedals));
+    } else if (pedals !== null) {
+      const header = `# ${name} -- what a layout does beyond its profiles: its pedals.\n`;
+      writeText(setsPath, addSetEntry(setsText ?? header, set, { pedals }));
+    }
     const profiles = layouts.map((data, index) => {
       const path = profilePaths[index] ?? "";
       writeText(path, dumpProfile(data, `# ${name} -- ${set}, ${units[index] ?? "left"} unit.\n`));
@@ -670,7 +777,41 @@ export function startGame(request: StartGameRequest): StartGameResult {
     if (!existsSync(repoPath(posixJoin(gameDir, "playtests.md")))) {
       writeText(posixJoin(gameDir, "playtests.md"), `# ${name} playtests\n`);
     }
-    return { slug, name, gameDir, profiles, wired: Object.keys(keys).length, leftOff };
+    // A style that has the two hands do different jobs on purpose -- a pad's d-pad against
+    // its A B X Y -- says so, and each position the checks would raise is acknowledged with
+    // that reason. Only those the checks raise, so none is stale from the start.
+    const meant = built?.acknowledge;
+    if (meant) {
+      const raised = lintGame(new Game(gameDir)).live.filter(
+        (finding) =>
+          finding.rule === "akimbo-role-mismatch" &&
+          finding.position !== undefined &&
+          meant.positions.includes(finding.position),
+      );
+      if (raised.length > 0) {
+        config.lint = {
+          ...config.lint,
+          acknowledged: raised.map((finding) => ({
+            rule: finding.rule,
+            profile: set,
+            ...(finding.position === undefined ? {} : { position: finding.position }),
+            reason: meant.reason,
+          })),
+        };
+        writeConfig();
+      }
+    }
+    const wired = Object.values(keys).filter((spec) => spec.key !== undefined).length;
+    return {
+      slug,
+      name,
+      gameDir,
+      profiles,
+      wired,
+      leftOff,
+      style: styleName,
+      pedals: pedalAxis === null ? null : (request.pedals ?? null),
+    };
   } catch (error) {
     if (madeDir) rmSync(repoPath(gameDir), { recursive: true, force: true });
     for (const { path, text } of touched) {

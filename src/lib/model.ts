@@ -28,6 +28,8 @@ import type { LoadedPedals } from "./io.js";
 import type { ActionSet, GameLike } from "./model-core.js";
 import { Profile } from "./model-core.js";
 import type { StickModeSet } from "./stickmodes.js";
+import { parseStyles } from "./styles.js";
+import type { StyleSpec } from "./styles.js";
 import { loadYaml } from "./yaml-io.js";
 
 export { ActionSet, Device, Profile } from "./model-core.js";
@@ -163,6 +165,8 @@ export class Genre {
   readonly defaultPath: string;
   readonly config: ProfileData & { lint?: LintConfig };
   readonly lintConfig: LintConfig;
+  /** The styles a new game can start in (layouts.yaml); empty when it has none. */
+  readonly styles: Record<string, StyleSpec>;
 
   constructor(dir: string) {
     this.rel = dataRelativePath(dir);
@@ -171,6 +175,8 @@ export class Genre {
     this.defaultPath = join(this.rel, "default.yaml");
     this.config = loadProfileData(this.defaultPath);
     this.lintConfig = this.config.lint ?? {};
+    const layouts = join(this.rel, "layouts.yaml");
+    this.styles = existsSync(repoPath(layouts)) ? parseStyles(loadYaml(layouts), layouts) : {};
   }
 
   defaultProfile(): Profile {

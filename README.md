@@ -1,200 +1,100 @@
 # azeronMappings
 
-Azeron Cyborg II profiles as code. A profile says which **game action** each **physical
-position** on a keypad sends; this repo compiles it into the Azeron app's import JSON,
-checks it against what has already gone wrong in play, and generates the game's own key
-bindings to match — so a layout is changed on the keypads alone.
+Azeron Cyborg II layouts as code. A layout says which **game action** each **control** on a
+pair of keypads does; this repo writes it onto the units over USB, checks it against what
+has already gone wrong in play, and, for the games it knows, writes the game's own key
+bindings to match — so a layout is changed in one place.
 
-Everything below is done from one page, the editor. The terminal is only for starting it.
+Everything is done from one page, the editor. The terminal is only for starting it. No
+Azeron app is needed for any of it.
 
-## First run
+## Start
 
-You need Node 22 or newer and Git. The repo works from PowerShell or from WSL; the
-commands are the same in both:
+You need Node 22 or newer and Git, and Chrome or Edge.
 
 ```sh
+git clone https://github.com/nothingfortune/azeronMappings
+cd azeronMappings
 npm install
-npm start          # builds, then serves the editor at http://localhost:4173
+npm start
 ```
 
-Open the editor in Chrome or Edge on Windows. Write to units and the press test talk to the
-units over WebHID, which only those browsers have. From WSL, Windows reaches the editor on
-`localhost` as usual.
+`npm start` builds the editor and opens it in Chrome or Edge, the browsers that can talk to
+the units (WebHID). PowerShell and WSL both work, with the same commands; switching between
+them needs nothing from you. Nothing in the repo needs editing for your computer.
 
-> **Pick one shell and stay in it.** The repo sits on a Windows drive that WSL also
-> mounts, and one `node_modules` cannot serve both. If you switch shells, reinstall in
-> the one you mean to use. Every command checks for this and says so.
->
-> ```powershell
-> Remove-Item -Recurse -Force node_modules; npm install   # PowerShell
-> ```
->
-> ```sh
-> rm -rf node_modules && npm install                      # WSL
-> ```
+Then, in the editor:
 
-Nothing in the repo needs editing for your computer. Each game's own files, and the Azeron
-app's profile store, are found on their own (see
-[Your computer and your units](#your-computer-and-your-units)).
+1. **Add your game.** In the **Setup** tab, **Add a new game**: its name, the kind of game
+   (shooter, flight, space sim) and how to lay it out on the pair:
+   - **Like a controller** (the default): the pair held like an Xbox pad. The left stick
+     moves, the right stick looks or steers, A, B, X and Y are under the right thumb, the
+     d-pad under the left, the bumpers and triggers under the index fingers. The rest of
+     the game's actions go on the keys a pad does not have.
+   - **Like a keyboard**: the left unit is the keyboard half, with banks of abilities and
+     weapons under the fingers, and the right unit takes the rest.
 
-The editor answers only this computer: it listens on `localhost` and refuses requests
-from other devices and from other web pages. `npm run azeron -- serve --host <address>`
-opens it to a network you trust.
+   Where the kind of game has a use for them (a space sim's yaw), add **rudder pedals** to
+   either. Every action placed is given a key straight away, and the game opens on the
+   **Edit** tab with nothing on the board that sends nothing.
 
-The CLI is `npm run azeron -- <command>`, which works in either shell, or `bin/azeron`
-directly: `./bin/azeron` in bash, `.\bin\azeron` in PowerShell (through `bin/azeron.cmd`).
-`npm run azeron -- help` lists everything.
+2. **Name your units**, the first time. Press **Write to units** in the header. It lists the
+   units it finds; press **This is the left unit** / **This is the right unit** for each
+   (unplug one to see which is which). That goes into `local.yaml`, which git ignores.
+3. **Write to units** again: each unit gets the layout in one of its onboard slots, read
+   back to check it, and is switched to it. Close the Azeron app first if it is open: it
+   talks to the units on the same channel.
+4. **Tell the game the keys.** For a game the repo knows the settings file of, **Update the
+   game's keys…** writes it (game closed). For any other game, the **In-game** tab lists
+   each action and its key: set the same keys in the game's own controls screen once.
+
+The editor answers only this computer: it listens on `localhost` and refuses requests from
+other devices and other web pages. `npm run azeron -- serve --host <address>` opens it to a
+network you trust.
+
+## Changing a layout
+
+The **Edit** tab is both units, and the pedals. **Changes save themselves** about a second
+after the last one; **Undo** (Ctrl+Z) takes one back, and the ⋯ menu turns autosave off.
+
+- Drag an action from the list onto a key, or onto one of a stick's four directions. Drag a
+  key onto another to swap them, or back onto the list to clear it. Clicking a key and then
+  an action does the same, and reaches the long press and double tap.
+- Hovering an action shows where it is, and the Xbox button a game usually puts it on.
+- **The keys are the editor's to choose.** An action reaches the game on a key: the unit
+  sends it and the game listens for it. The editor gives an action a key the first time it
+  is put on a control, from a pool of 48 chosen to stay out of a game's way (navigation keys,
+  the numpad, punctuation, F13 to F24), and the action keeps it.
+- **Sticks & pedals**, beside the board, applies a stick mode to both sticks in one click
+  (Mode 1, 2 and 3 as on an RC transmitter, or the game's own twin-stick layout), and sets
+  what each pedal drives.
+
+The header says what a save leaves to do: **Not on the units** (click it to write them) and
+**Update the game's keys…** when the keys or pedals changed. **Print layout**, in the ⋯
+menu, prints the board for reference.
+
+**Is a unit running it?** **Check this unit**, beside each unit's name on the board, lights
+one control at a time; press it, and the page reads what the unit sends and says whether
+the unit is running this layout. **Test keys**, in the header, lights every control as you
+press it.
 
 ## Your computer and your units
 
-The repo finds what it needs on whatever computer runs it, from PowerShell or WSL:
+The repo finds what it needs on any computer: a game's settings file under your Windows
+user's `AppData`, Steam games in any of your Steam libraries, and the Azeron app's profile
+store if it is installed. `local.yaml` (copy `local.example.yaml`) holds what is yours:
 
-- **The games' key settings files** are under your Windows user's `AppData\Local`, which is
-  where every copy of Everspace 2 and Elite Dangerous keeps them. `game.yaml` names them
-  that way (`${LOCALAPPDATA}/ES2/...`), never by one person's folder.
-- **Games installed through Steam**, in any of your Steam libraries: the list Steam keeps
-  of them is read. Elite's control-scheme preset is found this way.
-- **The Azeron app's profile store**, under `AppData\Roaming`.
-
-Two things are yours to tell it, in a file called `local.yaml` at the top of the repo. Git
-ignores it, so it never gets committed or overwritten by an update. Copy
-`local.example.yaml` to start one.
-
-- **Your keypads.** Each unit reports an id, and **Write to units** (and the press test)
-  writes only to a unit whose id it knows. The ids in `devices/` belong to the repo owner's
-  units. The first time, it lists the units it found but does not know, each with a
-  **This is the left unit** / **This is the right unit** button that puts its id in
-  `local.yaml` for you. Unplug one unit to see which id belongs to which hand.
-- **Anything installed somewhere unusual**, like a game from another store or a settings
-  file that has been moved. When a file is not found, the page and the CLI say where they
-  looked and which line of `local.yaml` would point them at it. Until then, comparing keys
-  uses the repo's own copy, so nothing breaks.
-
-## Getting a pair onto the units
-
-1. **Give the game its bindings.** Close Everspace 2, then in the editor's **Setup** tab,
-   **Update the game's keys…** (or `npm run azeron -- ingame --apply`). This writes the
-   game's `Input.ini` from `games/SpaceSims/everspace/actions.yaml`, keeping the previous
-   file beside it. You do this once, and again only when an in-game key changes — never
-   from the game's own controls screen.
-2. **Write to units**, in the editor's header (Chrome or Edge, with the Azeron app
-   closed). It writes the layout straight into both units' onboard slots over USB, reads
-   each slot back to check it, and leaves each unit running it. No export, no import. It
-   tells the two units apart by the id each one reports, puts each hand into the slot that
-   already has the layout's name (or a new one), and says before writing how many controls
-   each slot will change. The write bar also lists each unit's other slots, with a
-   **Delete** beside each.
-
-The Azeron app is the other way in: import
-`dist/SpaceSims/everspace/everspace_akimbo_v10_left.json` onto the unit on your left hand
-and `…_right.json` onto the one on your right, write each to its unit, then close the app
-before playing. It rewrites its own files while it is open.
-
-**Is what is on the units the layout?** After a write that read back clean, the editor
-knows: it keeps a fingerprint of what went onto each unit (`logs/units-written.json`). For
-a layout that came in through the app, it reads the app's own copy of each profile and
-compares it with the layout, key by key. While a unit is behind, the header shows **Not on
-the units**: it lists every key the unit does something else on — "Ring 4: the unit has
-Inventory (I); the layout has Ultimate (G)" — with a **Write to units** button, and those keys are
-marked _not on unit_ on the board. Coming back to the page checks again.
-`npm run azeron -- units` says the same in the terminal.
-
-**Is a unit running the layout?** Each unit holds up to six profiles in its own memory and
-runs the one its profile button picked. **Check this unit**, beside each unit's name on the
-board, lights up one control at a time; press it, and the page reads the key or mouse
-button that arrives. Each key goes green or red, and at the end the page says whether the
-unit is running this layout, which controls are not, and what to do about it — including
-when the unit is on a press-test profile. Point at the board for the mouse-button keys: a
-click on the bar is a click on its buttons. **Test keys**, in the header, is the free-form
-version: while it is on, every key a unit sends lights the control that sent it.
-
-Both units report the same USB product id, so the computer alone cannot tell them apart.
-Write to units asks each unit for its id, which its device map records; the press test
-(below) confirms which is which if you are unsure.
-
-### Elite Dangerous
-
-Elite is played in modes, and has a layout for each: **ship**, **srv** (the buggy) and
-**on-foot**, each a pair of files in `dist/SpaceSims/eliteDangerous/`. Put all three on the
-units, one slot per mode on each, and switch between them with the unit's profile button as
-you get out of the ship. The same button is a different thing in each.
-
-Update the game's keys… writes Elite's `Custom.4.1.binds` and tells the game to use it
-(`StartPreset.4.start`), keeping copies of both. Close Elite first. Anything you had bound
-to a joystick in the game is not in the new file: it starts from the game's keyboard
-preset, not your old one.
-
-### Helldivers 2 and Ace Combat 7
-
-Each has a default layout, not yet played. **Helldivers 2** is one unit on the left hand
-with a mouse in the right (`dist/FPS/hellDivers/`); the mouse aims, which a keypad stick
-cannot. **Ace Combat 7** is a pair (`dist/Flight/aceCombat7/`): throttle and yaw on the
-left stick, pitch and roll on the right, both weapons on the index fingers. The repo does
-not write either game's bindings, so both layouts send the game's own default keys; check
-them in the game's controls screen, and change a key in the game's `actions.yaml` if the
-game has it elsewhere.
-
-## Changing a binding
-
-A layout says which control does which action: this key is thrust, that one is boost. It
-is both keypads and the pedals, changed on the **Edit** tab. **Changes save themselves**
-about a second after the last one; **Undo** (or Ctrl+Z) takes one back, and the ⋯ menu
-turns autosave off if you would rather press Save.
-
-- The actions are listed under the two units: drag one onto a key, or onto one of a
-  stick's four directions. Drag a key onto another to swap them, or back onto the list to
-  clear it. Clicking a key and then an action does the same, and reaches the long press and
-  double tap. The label follows the action.
-- **The wiring is not yours to manage.** A control reaches the game on a key: the keypad
-  sends it and the game listens for it. The editor picks that key when an action is first
-  put on a control, keeps it in the game's `actions.yaml`, and writes it into the game with
-  **Update the game's keys…**. The **In-game** tab is where actions are named and given
-  their roles; **Show the wiring** there shows the keys, and lets one be moved by hand.
-
-What a save leaves for you to do shows in the header: **Not on the units** says the units
-are behind (click it to write them), and **Update the game's keys…**
-appears when the wiring or the pedals changed. That one asks whether the game is closed and
-then writes its `Input.ini`; it is the one thing saving never does on its own, because it
-writes outside the repo. **Clear all keys**, on the Actions bar, empties the board to lay a
-layout out again; Undo brings it back.
-
-Beside the board are two tabs: **Checks**, the linter's findings with their count on the
-tab, and **Sticks & pedals**. Stick modes (DJI Mode 1/2/3, the game's own twin-stick
-layout, and a roll variant) are applied to both sticks in one click there.
-
-Rudder pedals are part of a layout. They are on the Sticks & pedals tab — what each axis
-drives, and how far the game's name for it is trusted — and save with the keypads and the
-in-game keys. While the pedals carry yaw, a stick mode is applied in its with-pedals
-form, which gives the stick's freed direction to roll. A toe brake is half an axis, so it
-is offered directions: hover up on one toe and hover down on the other. An action dragged
-from the list onto a pedal does the same. A layout with no pedals offers
-**Add pedals**.
-
-## Learning a layout
-
-- **The Edit tab is the reference**: both hands with every binding on them. For paper,
-  the header's menu has **Print layout**, which prints the board itself and nothing
-  around it.
-- `npm run azeron -- bindings` writes `dist/.../<game>-ingame-bindings.md` and `.csv`:
-  every action the units send, its key, and where it is sent from.
-- `npm run azeron -- ingame` compares the game's `Input.ini` with `actions.yaml` and
-  lists any row the game has put on another key.
-
-## Where things are
-
-| Path                    | What it is                                                                                |
-| ----------------------- | ----------------------------------------------------------------------------------------- |
-| `games/<Genre>/<game>/` | `actions.yaml` (the in-game keys), `profiles/` (the layouts), `game.yaml`, `playtests.md` |
-| `devices/`              | Which physical pin each position is, per unit — measured, not guessed                     |
-| `genres/<Genre>/`       | The action vocabulary and stick modes a kind of game shares                               |
-| `templates/`            | Real exports from the app, which the compiler builds on                                   |
-| `dist/`                 | **What you import.** Compiled JSON and the game's bindings. Committed.                    |
-| `build/`                | Compiled TypeScript. Throwaway, not committed — nothing here is for you.                  |
-| `local.yaml`            | Your computer's own settings, if any. Not committed; copy `local.example.yaml` to start   |
+- **Your units' ids.** Write to units writes only to a unit it knows, and the ids in
+  `devices/` belong to the repo owner's units. The naming buttons above fill this in.
+- **Anything installed somewhere unusual.** When a file is not found, the page says where
+  it looked and which line of `local.yaml` would point it there. Until then the repo's own
+  copy is used, so nothing breaks.
 
 ## When it refuses
 
-The linter's rules came from real play sessions. Each finding names its rule:
+The checks came from real play sessions: a stick in gamepad mode that made a game stutter,
+a menu on a key mashed in a fight, a long press that delayed a heal. Each finding names its
+rule:
 
 | Rule                                  | Level   | What it catches                                                   |
 | ------------------------------------- | ------- | ----------------------------------------------------------------- |
@@ -227,79 +127,59 @@ The linter's rules came from real play sessions. Each finding names its rule:
 | `stale-acknowledgement`               | note    | An acceptance for a finding that no longer exists                 |
 
 A finding that is real but accepted goes in `game.yaml` under `lint.acknowledged`, with a
-reason. [CLAUDE.md](CLAUDE.md) has the constraint behind each rule.
+reason. A controller-style layout starts with a few of these: a pad's d-pad and its A B X Y
+are different jobs for the two thumbs on purpose. [CLAUDE.md](CLAUDE.md) has the
+constraint behind each rule.
 
 ## Less often
 
-**Press-testing a unit.** The right unit is not a mirror of the left — its thumb cluster
-is rotated half a turn — so each map is measured. Open the editor's **Press test** tab
-(`npm start`, in Chrome or Edge) and press **Put the press test on the units**. It writes
-two profiles of its own into each unit over USB, one where every pin sends a different
-key and one for the stick, and each unit runs the one for the pass on screen. Press what
-the page highlights; it records which pin fired and saves a corrected
-`devices/<unit>.yaml`. Then press **Take the press test off**: left there, a unit's
-profile button cycles onto them and every key sends a probe key. Nothing else needs to be
-installed, and any other keypad software must be closed while the page talks to the
-units. (`npm run azeron -- probe` writes the same two profiles to `dist/probe/` as files,
-for reading.)
+**Press-testing a unit.** Each unit's map of which pin is which control is measured, not
+assumed: the right unit is not a mirror of the left. In the **Press test** tab, **Put the
+press test on the units** writes two test profiles into each unit, and each unit runs the
+one for the pass on screen. Press what the page highlights; it saves a corrected
+`devices/<unit>.yaml`. Then **Take the press test off**.
 
-**Starting a new game.** In the Setup tab, **Add a new game**: its name, the kind of game,
-which units, and a name for the first layout. No Azeron app is involved. The game starts
-with that kind of game's actions, and its default layout on the unit it was written for;
-any other unit starts empty. Every action placed is given a key straight away, so the game
-opens with nothing on the board sending nothing. (`npm run azeron -- new "Deep Rock
-Galactic" --genre FPS --units left` does the same from the terminal.)
+**Adding a layout** to a game: Setup, **Add a layout**, as a copy of one the game has (the
+next version of the one you play, pedals included) or empty.
 
-The keys handed out come from a pool of 31 chosen to stay out of a game's way, and an
-action keeps its key on both hands. A whole default layout can need more than that: the
-space-sim one places 38. When it does, the optional controls are left empty (required
-actions get their keys first) and the page lists them. On a new game every key in the pool
-is then in use, so putting a new action on the other unit means taking one off first.
+**From an Azeron app export**, if you have a profile made there: both Setup forms fold away
+an option for it. Each key the export sends becomes an action named after the key, to
+rename on the In-game tab.
 
-Writing keys into the game itself is built for Everspace 2's `Input.ini` and Elite
-Dangerous's `.binds` only. For another game, set the keys in its own controls screen to
-match the In-game tab.
+**From the terminal**: `npm run azeron -- help` lists everything the editor does, for
+scripting it — `new "Deep Rock Galactic" --genre FPS --style keyboard`, `lint`, `build`,
+`units`. `bin/azeron` runs it directly (`.\bin\azeron` in PowerShell).
 
-**Adding a layout.** In the Setup tab, **Add a layout**: a name and what it starts from,
-either a copy of one of the game's layouts (the next version of the one you are flying,
-with its pedals and modes) or an empty one for the units you choose. It opens on the board. From the
-terminal: `npm run azeron -- layout everspace akimbo-v11 --copy-of akimbo-v10`.
-Acknowledged checks belong to the layout they were accepted on, so a copy shows them again
-until you accept them for it too.
+## Where things are
 
-**Bringing a profile from the Azeron app**, if you have one made there. Both forms above
-fold away an option for it: a game from an export (each key it sends becomes an action
-named after the key, to rename on the **In-game** tab), or a layout from each unit's export.
-Anything that will not round-trip is kept raw rather than guessed at.
-(`npm run azeron -- import` and `decompile` do the same from the terminal.)
+| Path                    | What it is                                                                         |
+| ----------------------- | ---------------------------------------------------------------------------------- |
+| `games/<Genre>/<game>/` | A game: `actions.yaml` (its actions and keys), `profiles/` (its layouts)           |
+| `genres/<Genre>/`       | What a kind of game shares: actions, Xbox buttons, stick modes, the two styles     |
+| `devices/`              | Which pin each control is, per unit — measured by the press test                   |
+| `templates/`            | Real exports from the Azeron app, which every layout is built on                   |
+| `dist/`                 | The compiled layouts and game key files. Committed, so any past version is at hand |
+| `local.yaml`            | Your computer's own settings. Not committed                                        |
 
-**Writing into the app's library directly.** `npm run azeron -- install everspace --yes`
-drops each profile into the app's store under its own unit (`--dry-run` first). It
-refuses while the app is open and backs up what it replaces. It is unsupported: the app's
-store format is not documented. Write to units, or an import through the app, is the way to
-get a layout onto the units.
+## Case studies
+
+The games already here, and what each one taught. Each folder's `README.md` has the
+details, and `playtests.md` how it felt to play.
+
+- [Everspace 2](games/SpaceSims/everspace/README.md): a pair and rudder pedals; most of the
+  checks came from it.
+- [Elite Dangerous](games/SpaceSims/eliteDangerous/README.md): one layout per mode of play,
+  switched with the profile button.
+- [Ace Combat 7](games/Flight/aceCombat7/README.md): a pair flying Mode 2, no mouse.
+- [Helldivers 2](games/FPS/hellDivers/README.md): one unit and a mouse.
 
 ## Contributing
 
 `npm run check` is the gate: build, typecheck, lint, format, unit tests and CLI smoke
-tests. The pre-commit hook runs every unit test; pre-push runs the whole gate.
-`npm install` wires the hooks (`core.hooksPath .githooks`).
+tests. The pre-commit hook runs every unit test and pre-push the whole gate; `npm install`
+wires them. The smoke tests and hooks are bash, which Git for Windows supplies.
 
-The smoke tests and the hooks are bash scripts. WSL has bash. On Windows, Git for Windows
-supplies it: Git runs the hooks in it, and `npm run test:bin` finds it in
-`C:\Program Files\Git\bin` even when bash is not on PATH.
-
-`npm run test:e2e` drives the served editor in a browser. It needs Playwright's Chromium
-once per shell (`npx playwright install chromium`), and a free port:
-
-```powershell
-$env:E2E_PORT = 4181; npm run test:e2e   # PowerShell
-```
-
-```sh
-E2E_PORT=4181 npm run test:e2e           # WSL
-```
-
-Every test runs against a frozen
-copy of the data (`tests/fixtures/repo`), never the layouts you are editing, so a layout
-half way through a change fails nothing. See [CLAUDE.md](CLAUDE.md).
+`npm run test:e2e` drives the served editor in a browser, after
+`npx playwright install chromium`, on a free port (`$env:E2E_PORT = 4181` in PowerShell,
+`E2E_PORT=4181` in WSL). Every test runs against a frozen copy of the data
+(`tests/fixtures/repo`), never the layouts you are editing. See [CLAUDE.md](CLAUDE.md).
