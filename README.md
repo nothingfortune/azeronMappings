@@ -17,21 +17,10 @@ npm install
 npm start          # builds, then serves the editor at http://localhost:4173
 ```
 
-Open the editor in Chrome or Edge on Windows. Write to units and the press test talk to the
-units over WebHID, which only those browsers have. From WSL, Windows reaches the editor on
-`localhost` as usual.
-
-> **Pick one shell and stay in it.** The repo sits on a Windows drive that WSL also
-> mounts, and one `node_modules` cannot serve both. If you switch shells, reinstall in
-> the one you mean to use. Every command checks for this and says so.
->
-> ```powershell
-> Remove-Item -Recurse -Force node_modules; npm install   # PowerShell
-> ```
->
-> ```sh
-> rm -rf node_modules && npm install                      # WSL
-> ```
+`npm start` opens the editor in Chrome or Edge: Write to units and the press test talk to the
+units over WebHID, which only those browsers have. If neither is installed, it says where
+the editor is. Switching between PowerShell and WSL needs nothing from you: the first
+command run in the other one reinstalls `node_modules` for it.
 
 Nothing in the repo needs editing for your computer. Each game's own files, and the Azeron
 app's profile store, are found on their own (see

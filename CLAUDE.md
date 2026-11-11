@@ -20,7 +20,7 @@ leaves open.
 | Command                                   | Purpose                                            |
 | ----------------------------------------- | -------------------------------------------------- |
 | `npm run check`                           | build + typecheck + lint + format check + tests    |
-| `npm start`                               | build, then serve the editor — the owner's command |
+| `npm start`                               | build, serve the editor, open it in Chrome or Edge |
 | `npm run build`                           | `tsc` to `build/`, then bundle the editor          |
 | `npm run typecheck`                       | `tsc --noEmit`                                     |
 | `npm run lint` / `npm run lint:fix`       | ESLint                                             |
@@ -34,12 +34,10 @@ Run one test: `npx vitest run tests/unit/lib/compile.test.ts -t "byte for byte"`
 **Both shells are supported.** The owner works from PowerShell, and WSL must keep
 working. Every `npm run` command is the same in both. Where they differ:
 
-- `node_modules` is platform-specific: npm writes `.cmd` shims only on Windows and esbuild
-  and rolldown ship per-platform binaries, so installing in one shell and running from the
-  other fails (`'tsc' is not recognized`). `scripts/check-env.mjs` runs first and explains
-  it. Reinstall in the shell you mean to work in:
-  `Remove-Item -Recurse -Force node_modules; npm install` (PowerShell),
-  `rm -rf node_modules && npm install` (WSL).
+- `node_modules` is platform-specific (npm writes `.cmd` shims only on Windows; esbuild and
+  rolldown ship per-platform binaries). `scripts/check-env.mjs` runs before every command
+  and, finding a tree the other shell installed, deletes it and runs `npm install`, so
+  nobody has to be told to pick a shell.
 - Environment variables: `$env:E2E_PORT = 4181; npx playwright test` in PowerShell,
   `E2E_PORT=4181 npx playwright test` in WSL.
 - `bin/azeron` is a node script with a shebang, which PowerShell and cmd cannot follow, so
@@ -82,25 +80,25 @@ file names one person's folders or units. `src/lib/machine.ts` is where that liv
 The CLI is `bin/azeron` (also `npm run azeron -- <command>`), and it runs the built
 output, so `npm run build` first:
 
-| Command                                             | Purpose                                                                         |
-| --------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `azeron build [game] [--check]`                     | compile profile YAML into `dist/`                                               |
-| `azeron lint [game] [--strict]`                     | the constraint rules; `--show-acknowledged` too                                 |
-| `azeron roundtrip [game]`                           | golden profiles must rebuild their template exactly                             |
-| `azeron bindings [game]`                            | the in-game key list, to check against the game                                 |
-| `azeron units [game] [--set S]`                     | whether the Azeron app has each layout as it is now, and which keys differ      |
-| `azeron ingame [game] [--apply]`                    | compare the game's `Input.ini`; `--apply` rewrites it                           |
-| `azeron ingame [game] --capture-pedals`             | record the pedals' game names from a file they were bound in                    |
-| `azeron ingame [game] --candidate axis=NAME`        | write a hand-written pedal name (a candidate)                                   |
-| `azeron serve [--port N] [--host H]`                | the editor, able to save back into the repo; this computer only unless `--host` |
-| `azeron editor`                                     | the side-by-side editor, one self-contained HTML                                |
-| `azeron probe [--device D]`                         | the press test's profiles as files; the test runs from the editor's Press test  |
-| `azeron new <name> --genre G [--units left,right]`  | start a game with no export, from its genre                                     |
-| `azeron layout <game> <name> [--copy-of L]`         | a new layout with no export: a copy (pedals included) or empty                  |
-| `azeron import <export.json> --genre G --game SLUG` | start a game folder from an Azeron app export instead                           |
-| `azeron decompile <export.json> [-o ...]`           | an app export back into profile YAML                                            |
-| `azeron install [game] [--yes] [--dry-run]`         | write into the app's store; `--device-id ID` and `--store PATH` too             |
-| `azeron hidcap devices\|decode\|diff <capture>`     | read a USBPcap capture of the app talking to a unit; reads files only           |
+| Command                                             | Purpose                                                                        |
+| --------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `azeron build [game] [--check]`                     | compile profile YAML into `dist/`                                              |
+| `azeron lint [game] [--strict]`                     | the constraint rules; `--show-acknowledged` too                                |
+| `azeron roundtrip [game]`                           | golden profiles must rebuild their template exactly                            |
+| `azeron bindings [game]`                            | the in-game key list, to check against the game                                |
+| `azeron units [game] [--set S]`                     | whether the Azeron app has each layout as it is now, and which keys differ     |
+| `azeron ingame [game] [--apply]`                    | compare the game's `Input.ini`; `--apply` rewrites it                          |
+| `azeron ingame [game] --capture-pedals`             | record the pedals' game names from a file they were bound in                   |
+| `azeron ingame [game] --candidate axis=NAME`        | write a hand-written pedal name (a candidate)                                  |
+| `azeron serve [--port N] [--host H] [--open]`       | the editor, able to save back into the repo; `--open` starts Chrome or Edge    |
+| `azeron editor`                                     | the side-by-side editor, one self-contained HTML                               |
+| `azeron probe [--device D]`                         | the press test's profiles as files; the test runs from the editor's Press test |
+| `azeron new <name> --genre G [--units left,right]`  | start a game with no export, from its genre                                    |
+| `azeron layout <game> <name> [--copy-of L]`         | a new layout with no export: a copy (pedals included) or empty                 |
+| `azeron import <export.json> --genre G --game SLUG` | start a game folder from an Azeron app export instead                          |
+| `azeron decompile <export.json> [-o ...]`           | an app export back into profile YAML                                           |
+| `azeron install [game] [--yes] [--dry-run]`         | write into the app's store; `--device-id ID` and `--store PATH` too            |
+| `azeron hidcap devices\|decode\|diff <capture>`     | read a USBPcap capture of the app talking to a unit; reads files only          |
 
 ## Layout
 

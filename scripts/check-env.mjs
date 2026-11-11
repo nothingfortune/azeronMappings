@@ -1,15 +1,15 @@
 // @ts-check
 /**
- * Fail early and clearly when node_modules was installed for a different platform.
+ * Make node_modules fit the shell that is running.
  *
- * The repo sits on a Windows drive that WSL also mounts, so `npm install` in one shell and
- * `npm run` in the other is easy to do by accident. npm writes .cmd shims only when it
- * installs on Windows, and esbuild and rolldown each ship a per-platform binary, so the
- * mismatch surfaces as "'tsc' is not recognized" or "vitest failed to start" rather than
- * anything that names the cause.
+ * The repo sits on a Windows drive that WSL also mounts, so it may be run from either. npm
+ * writes .cmd shims only when it installs on Windows, and esbuild and rolldown each ship a
+ * per-platform binary, so a tree installed by one shell fails in the other with errors that
+ * name nothing ("'tsc' is not recognized"). This reinstalls instead.
  */
 import console from "node:console";
-import { existsSync, readdirSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { existsSync, readdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
 import { fileURLToPath, URL } from "node:url";
@@ -58,41 +58,22 @@ const wanted = `${process.platform}-${process.arch}`;
 const installed = installedPlatforms();
 const mismatched = [...installed].filter(([, platform]) => platform !== wanted);
 
-// Half a reinstall -- binaries for both platforms side by side -- works until it does not.
-// Worth saying, not worth stopping for.
-if (mismatched.length > 0 && mismatched.length < installed.size) {
-  console.warn(
-    `node_modules also holds binaries for another platform: ${mismatched
-      .map(([name, platform]) => `${name} (${platform})`)
-      .join(", ")}. If something fails to start, reinstall in this shell.`,
-  );
-}
-
-// On Windows the failure people actually see is "'tsc' is not recognized": npm wrote no
-// .cmd shims because it installed from WSL. Check for the shim itself, not a proxy for it.
+// On Windows a tree installed from WSL has no .cmd shims ("'tsc' is not recognized"), so
+// check for the shim itself, not a proxy for it.
 const missingShim = process.platform === "win32" && !existsSync(join(modules, ".bin", "tsc.cmd"));
 
-if (missingShim || (installed.size > 0 && mismatched.length === installed.size)) {
-  const names = [...new Set(mismatched.map(([, platform]) => platform))].join(", ");
-  console.error(
-    [
-      missingShim && mismatched.length === 0
-        ? "node_modules has no .cmd shims, so it was installed from WSL, not this shell."
-        : `node_modules holds binaries for ${names}, but this shell is ${wanted}.`,
-      "",
-      ...mismatched.map(([name, platform]) => `  ${name}  (${platform})`),
-      "",
-      "One node_modules cannot serve both Windows and WSL: npm writes .cmd shims only on",
-      "Windows, and esbuild and rolldown ship per-platform binaries. Reinstall in the shell",
-      "you mean to work in:",
-      "",
-      "  rm -rf node_modules && npm install                     (WSL / bash)",
-      "  Remove-Item -Recurse -Force node_modules; npm install  (PowerShell)",
-      "  rmdir /s /q node_modules && npm install                (cmd)",
-      "",
-      "Both shells work. `azeron install` finds the Azeron app's store natively on Windows",
-      "and through /mnt/c from WSL.",
-    ].join("\n"),
-  );
-  process.exit(1);
+if (missingShim || mismatched.length > 0) {
+  // node_modules was installed by the other shell (WSL or Windows). It is only a copy of
+  // what package-lock.json names, so put back the one this shell needs and carry on.
+  console.warn("node_modules was installed for another platform; installing for this one...");
+  rmSync(modules, { recursive: true, force: true });
+  const npm = spawnSync("npm install --no-audit --no-fund", {
+    cwd: root,
+    stdio: "inherit",
+    shell: true,
+  });
+  if (npm.status !== 0) {
+    console.error("npm install failed; run it yourself to see why.");
+    process.exit(1);
+  }
 }

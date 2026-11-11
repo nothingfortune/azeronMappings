@@ -108,7 +108,7 @@ export function parseLibraryFolders(text: string): string[] {
 // The real machine. Each part is worked out once per process, on first use: the served
 // editor discovers every game on every request.
 
-function isWsl(): boolean {
+export function isWsl(): boolean {
   if (process.platform !== "linux") return false;
   try {
     return readFileSync("/proc/version", "utf8").toLowerCase().includes("microsoft");

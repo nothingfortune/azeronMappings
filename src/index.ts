@@ -46,6 +46,8 @@ import { readUsbPcap } from "./lib/usbpcap.js";
 import { buildProbeProfile, buildStickCalibrationProfile } from "./lib/probe.js";
 import { checkFileName } from "./lib/scaffold.js";
 import { patchActionBindings } from "./lib/actionfile.js";
+import { openInChromium } from "./lib/browser.js";
+import { isWsl } from "./lib/machine.js";
 import type { BindingChange } from "./lib/actionfile.js";
 import {
   CONTENT_TYPES,
@@ -611,7 +613,7 @@ function cmdCapturePedals(
 }
 
 /** Serve the editor and let it write back into the repo. */
-function cmdServe(port: number, host: string): number {
+function cmdServe(port: number, host: string, open = false): number {
   const bundle = readBundle("editor-app.js");
   if (bundle === null) {
     process.stderr.write("error: build/editor-app.js is missing. Run `npm run build` first.\n");
@@ -958,6 +960,13 @@ function cmdServe(port: number, host: string): number {
     }
     out("  Saving writes straight into the repo and reports what the linter says.");
     out("  Ctrl-C to stop.");
+    if (open) {
+      const url = `http://localhost:${String(port)}`;
+      const ctx = { platform: process.platform, wsl: isWsl(), env: process.env };
+      if (openInChromium(url, ctx) === null) {
+        out(`  Open ${url} in Chrome or Edge: no copy of either was found to open it in.`);
+      }
+    }
   });
   return 0;
 }
@@ -1279,8 +1288,10 @@ function usage(): void {
                                   write a name to try by hand, marked UNTESTED, for a pedal
                                   axis the game's own controls screen will not bind
   editor [--out PATH]             the editor as one self-contained HTML file
-  serve [--port N] [--host H]     the same editor, able to save back into the repo; it
-                                  listens on 127.0.0.1 only unless --host names another
+  serve [--port N] [--host H] [--open]
+                                  the same editor, able to save back into the repo; it
+                                  listens on 127.0.0.1 only unless --host names another;
+                                  --open opens it in Chrome or Edge
   probe [--device D]              the press test's profiles, as files; the test itself
                                   runs from the editor's Press test tab
   new <name> --genre G [--units left,right] [--set S] [--game SLUG]
@@ -1327,6 +1338,7 @@ export function main(argv: string[]): number {
     allowPositionals: true,
     options: {
       check: { type: "boolean", default: false },
+      open: { type: "boolean", default: false },
       strict: { type: "boolean", default: false },
       "show-acknowledged": { type: "boolean", default: false },
       apply: { type: "boolean", default: false },
@@ -1384,7 +1396,11 @@ export function main(argv: string[]): number {
         candidate: values.candidate,
       });
     case "serve":
-      return cmdServe(wholeNumber("--port", values.port ?? "4173"), values.host ?? "127.0.0.1");
+      return cmdServe(
+        wholeNumber("--port", values.port ?? "4173"),
+        values.host ?? "127.0.0.1",
+        values.open,
+      );
     case "editor":
       return cmdEditor(values.out ?? join(dataDirs.dist, "editor.html"));
     case "probe": {
