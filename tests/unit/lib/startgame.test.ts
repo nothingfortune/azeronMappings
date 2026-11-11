@@ -18,6 +18,7 @@ import { tmpdir } from "node:os";
 import { isAbsolute, join } from "node:path";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { parseDocument } from "yaml";
 
 vi.mock("../../../src/config/paths.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../../src/config/paths.js")>();
@@ -113,6 +114,33 @@ describe("deleting and renaming layouts and games", () => {
     expect(lintGame(game).live.filter((finding) => finding.level === "error")).toEqual([]);
   });
 
+  it("moves an acknowledgement that names one profile's file, not only the layout", () => {
+    twoLayouts();
+    const path = repoPath(`${SIM}/game.yaml`);
+    const doc = parseDocument(readFileSync(path, "utf8"));
+    doc.addIn(["lint", "acknowledged"], {
+      rule: "key-collision",
+      profile: "v1-left",
+      key: "KeyS",
+      reason: "the same key on purpose",
+    });
+    writeFileSync(path, doc.toString());
+    renameLayout({ game: "zzSim", set: "v1", to: "main" });
+    const named = (new Game(SIM).config.lint?.acknowledged ?? []).map((entry) => entry.profile);
+    expect(named).toContain("main-left");
+    expect(named).not.toContain("v1-left");
+    deleteLayout({ game: "zzSim", set: "main" });
+    const left = (new Game(SIM).config.lint?.acknowledged ?? []).map((entry) => entry.profile);
+    expect(left).not.toContain("main-left");
+  });
+
+  it("keeps the last game: the page needs one to open", () => {
+    sim();
+    expect(() => {
+      deleteGame({ game: "zzSim" });
+    }).toThrow(/only game/);
+  });
+
   it("refuses a name another layout has", () => {
     twoLayouts();
     expect(() => renameLayout({ game: "zzSim", set: "v1", to: "v2" })).toThrow(/already has/);
@@ -120,6 +148,13 @@ describe("deleting and renaming layouts and games", () => {
 
   it("deletes a game's folder", () => {
     sim();
+    startGame({
+      name: "ZZ Other",
+      slug: "zzOther",
+      genre: "FPS",
+      devices: ["cyborg2-left"],
+      set: "v1",
+    });
     deleteGame({ game: "zzSim" });
     expect(existsSync(repoPath(SIM))).toBe(false);
   });

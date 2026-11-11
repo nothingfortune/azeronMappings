@@ -8,7 +8,7 @@
 
 import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 
 import { isMap, isSeq, parse, parseDocument } from "yaml";
 
@@ -1060,16 +1060,26 @@ function writeAll(changes: ReadonlyMap<string, string | null>): void {
  * game.yaml with what names a layout changed: its acknowledgements and `ingame_set`. Edited
  * through the YAML document so the file's comments stay; null when nothing changes.
  */
-function gameYamlForLayout(text: string, set: string, to: string | null): string | null {
+function gameYamlForLayout(
+  text: string,
+  set: string,
+  to: string | null,
+  /** Each profile's file name, old to new (null when deleted): an acknowledgement may name one. */
+  slugs: ReadonlyMap<string, string | null>,
+): string | null {
   const doc = parseDocument(text);
   let changed = false;
+  const renamed = new Map<string, string | null>([[set, to], ...slugs]);
   const acknowledged = doc.getIn(["lint", "acknowledged"]);
   if (isSeq(acknowledged)) {
     const kept = acknowledged.items.filter((item) => {
-      if (!isMap(item) || item.get("profile") !== set) return true;
+      if (!isMap(item)) return true;
+      const named = item.get("profile");
+      if (typeof named !== "string" || !renamed.has(named)) return true;
       changed = true;
-      if (to === null) return false;
-      item.set("profile", to);
+      const next = renamed.get(named) ?? null;
+      if (next === null) return false;
+      item.set("profile", next);
       return true;
     });
     acknowledged.items = kept;
@@ -1115,7 +1125,13 @@ export function deleteLayout(request: { game: string; set: string }): { removed:
     if (out !== text) changes.set(setsPath, out);
   }
   const configPath = posixJoin(game.rel, "game.yaml");
-  const config = gameYamlForLayout(readFileSync(repoPath(configPath), "utf8"), request.set, null);
+  const slugs = new Map(profiles.map((profile) => [profile.slug, null]));
+  const config = gameYamlForLayout(
+    readFileSync(repoPath(configPath), "utf8"),
+    request.set,
+    null,
+    slugs,
+  );
   if (config !== null) changes.set(configPath, config);
   writeAll(changes);
   return {
@@ -1174,7 +1190,18 @@ export function renameLayout(request: { game: string; set: string; to: string })
     if (out !== text) changes.set(setsPath, out);
   }
   const configPath = posixJoin(game.rel, "game.yaml");
-  const config = gameYamlForLayout(readFileSync(repoPath(configPath), "utf8"), request.set, to);
+  const slugs = new Map(
+    profiles.map((profile) => [
+      profile.slug,
+      basename(profilePathFor(game, to, profile.unit ?? "left")).replace(/\.ya?ml$/, ""),
+    ]),
+  );
+  const config = gameYamlForLayout(
+    readFileSync(repoPath(configPath), "utf8"),
+    request.set,
+    to,
+    slugs,
+  );
   if (config !== null) changes.set(configPath, config);
   writeAll(changes);
   return { set: to, profiles: moved };
@@ -1186,6 +1213,11 @@ export function renameLayout(request: { game: string; set: string; to: string })
  */
 export function deleteGame(request: { game: string }): { removed: string[] } {
   const game = gameNamed(request.game);
+  if (Game.discover().length <= 1) {
+    throw new ScaffoldError(
+      `${game.name} is the only game. Add another first: the page needs one to open.`,
+    );
+  }
   if (game.loadedProfiles().some((profile) => profile.data.profile.golden === true)) {
     throw new ScaffoldError(`${game.name} holds the reference layout the checks compare against`);
   }

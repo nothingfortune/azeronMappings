@@ -5936,6 +5936,10 @@ function renderManage(): HTMLElement | null {
     { class: "btn danger", type: "button", "data-manage": "delete-game" },
     [`Delete ${game.name}`],
   );
+  if (state.payload.games.length <= 1) {
+    removeGame.setAttribute("disabled", "disabled");
+    removeGame.title = "The only game: add another first, as the page needs one to open.";
+  }
   removeGame.addEventListener("click", () => {
     if (
       !window.confirm(

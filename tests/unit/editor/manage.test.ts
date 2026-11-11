@@ -87,7 +87,20 @@ describe("managing the open layout and game", () => {
     });
   });
 
+  it("does not offer to delete the only game", () => {
+    expect(PAYLOAD.games).toHaveLength(1);
+    expect(control("delete-game").hasAttribute("disabled")).toBe(true);
+  });
+
   it("asks before deleting the game", async () => {
+    const two = structuredClone(PAYLOAD);
+    const first = two.games[0];
+    if (first) two.games.push({ ...structuredClone(first), slug: "other", name: "Other" });
+    document.body.innerHTML = '<div id="app"></div>';
+    start(two);
+    [...document.querySelectorAll<HTMLButtonElement>("header .tabs button")]
+      .find((button) => button.textContent === "Setup")
+      ?.click();
     vi.stubGlobal(
       "confirm",
       vi.fn(() => true),
