@@ -810,17 +810,31 @@ function missingActionNames(missing: readonly Finding[]): string[] {
   });
 }
 
-function findingItem(finding: Finding): HTMLElement {
+/**
+ * One finding. `acceptable` is for the Checks panel only: it is drawn from the open game's
+ * live checks every time, so an accepted finding leaves it. A save report is a record of
+ * one save and outlives a change of game, so its findings carry no Accept.
+ */
+function findingItem(finding: Finding, acceptable = false): HTMLElement {
   const item = el("div", { class: `finding ${finding.level}` });
   item.append(el("b", {}, [findingWhere(finding)]), el("small", { class: "rule" }, [finding.rule]));
   item.append(document.createTextNode(finding.message));
-  if (canSave() && finding.rule !== "stale-acknowledgement" && finding.profile !== undefined) {
+  if (
+    acceptable &&
+    canSave() &&
+    finding.rule !== "stale-acknowledgement" &&
+    finding.profile !== undefined
+  ) {
     const accept = el("button", { class: "btn small accept-finding", type: "button" }, ["Accept"]);
     accept.title = "This is fine in this layout: say why, and the check stops raising it.";
     // The game the finding is about, as it is drawn: not whichever is open when clicked.
     const slug = currentGame().slug;
     accept.addEventListener("click", () => {
-      void acceptFinding(finding, slug);
+      // One request per click: a second would record the same acceptance twice.
+      accept.setAttribute("disabled", "disabled");
+      void acceptFinding(finding, slug).finally(() => {
+        accept.removeAttribute("disabled");
+      });
     });
     item.append(accept);
   }
@@ -893,9 +907,11 @@ function missingGroup(missing: readonly Finding[]): HTMLElement {
 }
 
 /** The findings, laid out; used by the Checks panel and by the report after a save. */
-function appendFindings(box: HTMLElement, findings: readonly Finding[]): void {
+function appendFindings(box: HTMLElement, findings: readonly Finding[], acceptable = false): void {
   for (const entry of shownFindings(findings)) {
-    box.append("missing" in entry ? missingGroup(entry.missing) : findingItem(entry.finding));
+    box.append(
+      "missing" in entry ? missingGroup(entry.missing) : findingItem(entry.finding, acceptable),
+    );
   }
 }
 
@@ -2081,7 +2097,7 @@ function renderChecks(): HTMLElement {
       ]),
     );
   }
-  appendFindings(box, [...live, ...stale]);
+  appendFindings(box, [...live, ...stale], true);
   panel.append(box);
   panel.append(
     el("div", { class: "field muted" }, [

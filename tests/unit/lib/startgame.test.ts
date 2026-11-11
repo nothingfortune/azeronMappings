@@ -91,6 +91,21 @@ describe("accepting a finding from the page", () => {
     });
   });
 
+  it("records the same finding once, however often it is accepted", () => {
+    sim();
+    const before = (new Game(SIM).config.lint?.acknowledged ?? []).length;
+    const once = {
+      game: "zzSim",
+      rule: "akimbo-role-mismatch",
+      profile: "v1",
+      position: "pinky_1",
+      reason: "on purpose",
+    };
+    acknowledgeFinding(once);
+    acknowledgeFinding({ ...once, reason: "again" });
+    expect(new Game(SIM).config.lint?.acknowledged ?? []).toHaveLength(before + 1);
+  });
+
   it("refuses one with no reason", () => {
     sim();
     expect(() =>

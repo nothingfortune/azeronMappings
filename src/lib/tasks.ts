@@ -1058,6 +1058,15 @@ export function acknowledgeFinding(request: {
   const path = posixJoin(game.rel, "game.yaml");
   const doc = parseDocument(readFileSync(repoPath(path), "utf8"));
   const existing = doc.getIn(["lint", "acknowledged"]);
+  // The same finding accepted twice would leave the second entry stale, which the strict
+  // checks fail on; it is recorded once.
+  const same = (item: unknown): boolean => {
+    if (!isMap(item)) return false;
+    return (["rule", "profile", "position", "key"] as const).every(
+      (field) => (item.get(field) ?? undefined) === entry[field],
+    );
+  };
+  if (isSeq(existing) && existing.items.some(same)) return entry;
   if (isSeq(existing)) existing.add(doc.createNode(entry));
   else doc.setIn(["lint", "acknowledged"], doc.createNode([entry]));
   writeText(path, doc.toString());
