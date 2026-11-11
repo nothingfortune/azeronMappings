@@ -59,9 +59,12 @@ Every profile change, and why. `playtests.md` records what each layout felt like
   Every style starts with nothing for the checks to say; the pad's two thumbs doing
   different jobs is acknowledged with its reason. `azeron new --style --pedals`.
 - **Seventeen more keys to hand out**, at the end of the pool so no key already given
-  moves: F13 to F24, `=` and the arrows, 48 in all, enough for a pair. F13 to F24 are on no
-  keyboard sold today; Everspace 2's and Elite's files have no name for them, so the wiring
-  skips them for those games.
+  moves: `=`, the arrows and then F13 to F24, 48 in all, enough for a pair. F13 to F24 are
+  on no keyboard sold today, so no game default is on them, but they come last because some
+  games cannot bind them at all: Unreal has no name for them, nor do Everspace 2's and
+  Elite's files, so the wiring skips them for those games. A new shooter laid out like a
+  controller wires 37 actions, one of them onto F13; Show the wiring on the In-game tab moves
+  a key by hand.
 - **`npm start` opens the editor** in Chrome or Edge (`serve --open`), and a
   `node_modules` installed from the other shell (WSL or Windows) is reinstalled for this
   one instead of stopping with instructions.

@@ -160,6 +160,9 @@ describe("startGame", () => {
     const right = loadProfileData("games/FPS/zzGun/profiles/v1-right.yaml").positions;
     expect(right.index_3?.tap).toBe("fire_primary");
     expect(right.stick?.directions).toMatchObject({ up: "look_up", left: "look_left" });
+    // Renamed on the In-game tab, the trigger still sends its mouse button.
+    const renamed = patchActionBindings(text, { fire_primary: { label: "Shoot" } });
+    expect(renamed).toMatch(/fire_primary: +\{label: Shoot, mouse: left, provided_by: null\}/);
   });
 
   it("adds pedals where the genre's sticks say what they take, and flies the sticks around them", () => {

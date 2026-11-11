@@ -168,7 +168,7 @@ Profiles map position to action id, never position to raw key.
 action. The key an action is sent on is the _wiring_, and it is the tooling's to choose:
 `src/lib/wiring.ts` gives an action with no key the first free one from a pool chosen to
 stay out of a game's way (`WIRE_POOL`: navigation keys, numpad operators, punctuation, then
-F13–F24, `=` and the arrows — no letters, digits, F1–F12, modifiers or anything a menu
+`=`, the arrows and last F13–F24 — no letters, digits, F1–F12, modifiers or anything a menu
 uses), narrowed to keys the game's file can name (Unreal and Elite have no F13–F24, so
 those are skipped for them). The pool only ever grows at its end: `freeKey` is first-free,
 so reordering it would re-deal keys. The editor does this the moment an action is first put on a control

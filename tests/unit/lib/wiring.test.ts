@@ -54,14 +54,32 @@ describe("the pool of keys", () => {
     expect(unnamed).toEqual(WIRE_POOL.filter((key) => /^F(1[3-9]|2[0-4])$/.test(key)));
   });
 
-  it("is skipped past F13 to F24 for a game whose file cannot name them", () => {
+  it("hands out every key a game can bind in its own screen before F13 to F24", () => {
+    const first = WIRE_POOL.findIndex((key) => key === "F13");
+    expect(WIRE_POOL.slice(first)).toEqual([
+      "F13",
+      "F14",
+      "F15",
+      "F16",
+      "F17",
+      "F18",
+      "F19",
+      "F20",
+      "F21",
+      "F22",
+      "F23",
+      "F24",
+    ]);
+    // Every key a game can be told before then.
+    for (const key of WIRE_POOL.slice(0, first)) expect(ueKeyFor({ key }), key).not.toBeNull();
+  });
+
+  it("finds nothing past F13 to F24 for a game whose file cannot name them", () => {
     const taken = Object.fromEntries(
-      WIRE_POOL.filter((key) => !key.startsWith("F"))
-        .slice(0, -1)
-        .map((key) => [key, { key }]),
+      WIRE_POOL.filter((key) => !/^F(1[3-9]|2[0-4])$/.test(key)).map((key) => [key, { key }]),
     );
     const usable = (key: string): boolean => ueKeyFor({ key }) !== null;
-    expect(freeKey(taken, usable)).toBe(WIRE_POOL.at(-1));
+    expect(freeKey(taken, usable)).toBeNull();
     expect(freeKey(taken)).toBe("F13");
   });
 

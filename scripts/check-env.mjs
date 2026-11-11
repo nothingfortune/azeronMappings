@@ -66,7 +66,13 @@ if (missingShim || mismatched.length > 0) {
   // node_modules was installed by the other shell (WSL or Windows). It is only a copy of
   // what package-lock.json names, so put back the one this shell needs and carry on.
   console.warn("node_modules was installed for another platform; installing for this one...");
-  rmSync(modules, { recursive: true, force: true });
+  try {
+    rmSync(modules, { recursive: true, force: true });
+  } catch {
+    // Windows will not delete a file something has open: a running editor, say.
+    console.error("node_modules is in use. Stop anything running from it, then: npm install");
+    process.exit(1);
+  }
   const npm = spawnSync("npm install --no-audit --no-fund", {
     cwd: root,
     stdio: "inherit",
