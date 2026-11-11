@@ -14,7 +14,7 @@ import { isMap, isSeq, parse, parseDocument } from "yaml";
 
 import { dataDirs, hostPath, posixJoin, repoPath } from "../config/paths.js";
 import type { ExportDocument } from "../types/azeron.js";
-import type { ActionSpec, ProfileData, ProfileMeta } from "../types/profile.js";
+import type { Acknowledgement, ActionSpec, ProfileData, ProfileMeta } from "../types/profile.js";
 import { SLOTS } from "../types/azeron.js";
 import { compileProfile, dumps } from "./compile.js";
 import { decompile, dumpProfile } from "./decompile.js";
@@ -1024,6 +1024,44 @@ export function addUnitToLayout(request: AddUnitRequest): {
     ),
   );
   return { set: request.set, profile: { device: device.name, path } };
+}
+
+/**
+ * Accept a finding on purpose: an entry in game.yaml's `lint.acknowledged`, written through
+ * the YAML document so the file's comments stay. The reason is required, because an
+ * acknowledgement with none is a warning switched off rather than a decision recorded.
+ */
+export function acknowledgeFinding(request: {
+  game: string;
+  rule: string;
+  profile: string;
+  position?: string | undefined;
+  key?: string | undefined;
+  reason: string;
+}): Acknowledgement {
+  const game = gameNamed(request.game);
+  const reason = request.reason.trim();
+  if (reason === "") throw new ScaffoldError("say why this is fine: the reason is kept with it");
+  if (!/^[a-z][a-z0-9-]*$/.test(request.rule)) {
+    throw new ScaffoldError(`'${request.rule}' is not a check`);
+  }
+  if (request.rule === "stale-acknowledgement") {
+    throw new ScaffoldError("a stale acknowledgement is not accepted: it is removed");
+  }
+  const entry: Acknowledgement = {
+    rule: request.rule,
+    profile: request.profile,
+    ...(request.position === undefined ? {} : { position: request.position }),
+    ...(request.key === undefined ? {} : { key: request.key }),
+    reason,
+  };
+  const path = posixJoin(game.rel, "game.yaml");
+  const doc = parseDocument(readFileSync(repoPath(path), "utf8"));
+  const existing = doc.getIn(["lint", "acknowledged"]);
+  if (isSeq(existing)) existing.add(doc.createNode(entry));
+  else doc.setIn(["lint", "acknowledged"], doc.createNode([entry]));
+  writeText(path, doc.toString());
+  return entry;
 }
 
 /**

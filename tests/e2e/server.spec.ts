@@ -8,8 +8,9 @@
  */
 
 import "../helpers/e2e-data.js";
-import { readFileSync } from "node:fs";
+import { readFileSync, rmSync } from "node:fs";
 import { request as httpRequest } from "node:http";
+import { resolve as resolvePath } from "node:path";
 
 import { expect, test } from "@playwright/test";
 
@@ -82,6 +83,28 @@ test.describe("the server's request checks", () => {
     expect(taken.status).toBe(200);
     const refused = await send("POST", "/api/unit-log", { "content-type": "text/plain" }, "e2e");
     expect(refused.status).toBe(415);
+  });
+
+  test("takes a game's settings file location into local.yaml, only where a file is", async () => {
+    const missing = await send(
+      "POST",
+      "/api/local/game-file",
+      JSON_HEADERS,
+      JSON.stringify({ game: "everspace", path: resolvePath("no/such/Input.ini") }),
+    );
+    expect(missing.status).toBe(400);
+    expect(String(missing.json.error)).toContain("there is no file at");
+    // Any file that is there will do; quotes from "Copy as path" are taken off.
+    const real = resolvePath("games/SpaceSims/everspace/game.yaml");
+    const found = await send(
+      "POST",
+      "/api/local/game-file",
+      JSON_HEADERS,
+      JSON.stringify({ game: "everspace", path: `"${real}"` }),
+    );
+    expect(found.status).toBe(200);
+    expect(readFileSync("local.yaml", "utf8")).toContain("ingame_config");
+    rmSync("local.yaml", { force: true });
   });
 
   test("keeps a direct write to a unit only when it is one, and only as JSON", async () => {

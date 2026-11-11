@@ -525,9 +525,9 @@ function renderZero(): HTMLElement {
     if (zero.offsetDegrees !== 0) {
       panel.append(
         el("div", { class: "note" }, [
-          `Suggested: stick_angle: ${String(zero.offsetDegrees)} on this device. The units ` +
-            "of analogSettings.angle are unverified -- set it, rebuild, and run this pass " +
-            "again to confirm the cardinals line up.",
+          `${saveDevice === null ? "Download" : "Save"} its map below to turn the stick ` +
+            `${String(zero.offsetDegrees)}° to match, then run this pass again to check ` +
+            "that up, down, left and right line up.",
         ]),
       );
     }

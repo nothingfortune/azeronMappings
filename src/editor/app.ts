@@ -58,7 +58,13 @@ import type {
   SetPedals,
   SetsData,
 } from "../types/pedals.js";
-import type { ActionSpec, DeviceData, PositionSpec, ProfileData } from "../types/profile.js";
+import type {
+  Acknowledgement,
+  ActionSpec,
+  DeviceData,
+  PositionSpec,
+  ProfileData,
+} from "../types/profile.js";
 import { messageOf, removeKey } from "../lib/object.js";
 import { dumpYaml } from "../lib/yaml.js";
 import { AZERON_PRODUCT_ID, alreadyGranted, hex4, requestUnits } from "../lib/hid.js";
@@ -808,7 +814,46 @@ function findingItem(finding: Finding): HTMLElement {
   const item = el("div", { class: `finding ${finding.level}` });
   item.append(el("b", {}, [findingWhere(finding)]), el("small", { class: "rule" }, [finding.rule]));
   item.append(document.createTextNode(finding.message));
+  if (canSave() && finding.rule !== "stale-acknowledgement" && finding.profile !== undefined) {
+    const accept = el("button", { class: "btn small accept-finding", type: "button" }, ["Accept"]);
+    accept.title = "This is fine in this layout: say why, and the check stops raising it.";
+    accept.addEventListener("click", () => {
+      void acceptFinding(finding);
+    });
+    item.append(accept);
+  }
   return item;
+}
+
+/** Record a finding as accepted, with the reason, and stop showing it as a problem. */
+async function acceptFinding(finding: Finding): Promise<void> {
+  const reason = window.prompt(
+    `Why is this fine here? The reason is kept with it.\n\n${finding.message}`,
+  );
+  if (reason === null || reason.trim() === "") return;
+  const game = currentGame();
+  const result = await post<{ ok?: boolean; error?: string; entry?: Acknowledgement }>(
+    "/api/acknowledge",
+    {
+      game: game.slug,
+      rule: finding.rule,
+      profile: finding.profile,
+      ...(finding.position === undefined ? {} : { position: finding.position }),
+      ...(finding.key === undefined ? {} : { key: finding.key }),
+      reason: reason.trim(),
+    },
+  );
+  if (result.ok !== true || result.entry === undefined) {
+    saveNote = `Not accepted: ${String(result.error)}`;
+    render();
+    return;
+  }
+  game.lintConfig = {
+    ...game.lintConfig,
+    acknowledged: [...(game.lintConfig.acknowledged ?? []), result.entry],
+  };
+  saveNote = "Accepted. The checks list it as acknowledged now.";
+  render();
 }
 
 /** One entry for every required action that is on no key, opening to the list. */
@@ -1406,12 +1451,21 @@ function renderInspector(): HTMLElement {
       repeat.append(el("div", { class: "field" }, [el("label", {}, ["Every (ms)"]), interval]));
     }
     panel.append(repeat);
-    if (spec.turbo_long || spec.turbo_double) {
-      panel.append(
-        el("div", { class: "note" }, [
-          "The long press or double tap also repeats; that is kept, and only editable in the YAML.",
-        ]),
-      );
+    // The long press and the double tap repeat the same way, each switched on its own; shown
+    // where that slot has an action, or already repeats.
+    for (const [slot, field, label] of [
+      ["long", "turbo_long", "Repeat the long press while held"],
+      ["double", "turbo_double", "Repeat the double tap while held"],
+    ] as const) {
+      if (spec[slot] === undefined && spec[field] !== true) continue;
+      const box = el("input", { type: "checkbox", "data-repeat": slot });
+      if (spec[field] === true) box.setAttribute("checked", "checked");
+      box.addEventListener("change", () => {
+        if (box.checked) spec[field] = true;
+        else removeKey(spec, field);
+        render();
+      });
+      panel.append(el("div", { class: "field check" }, [el("label", {}, [label]), box]));
     }
   }
 
@@ -4845,15 +4899,42 @@ function gameFileStatus(game: EditorGame): HTMLElement | null {
  */
 function gameFileMissing(game: EditorGame): HTMLElement | null {
   if (game.ingameFile?.configured !== true || game.ingameFile.found !== false) return null;
-  return el("div", { class: "note game-file-missing" }, [
-    el("b", {}, [`${game.name}'s key settings file is not on this computer`]),
+  const note = el("div", { class: "note game-file-missing" }, [
+    el("b", {}, [`${game.name}'s key settings file was not found on this computer`]),
     el("div", {}, [
-      "Compare uses the repo's own copy until it is. If the game is installed, run it once " +
-        "so it writes the file. If it keeps its settings somewhere unusual, name the file in " +
-        `local.yaml as games.${game.slug}.ingame_config (local.example.yaml shows how), ` +
-        "then reload.",
+      "If the game is installed, start it once so it writes the file. If it keeps its " +
+        "settings somewhere else, paste the file's location here.",
     ]),
   ]);
+  if (!canSave()) return note;
+  const path = el("input", {
+    type: "text",
+    placeholder: "C:\\…\\Input.ini",
+    "data-game-file": "path",
+    "aria-label": "The settings file's location",
+  });
+  const use = el("button", { class: "btn small", type: "button", "data-game-file": "use" }, [
+    "Use this file",
+  ]);
+  use.addEventListener("click", () => {
+    if (path.value.trim() === "") return;
+    void post("/api/local/game-file", { game: game.slug, path: path.value }).then(
+      async (result) => {
+        if (result.ok !== true) {
+          repoNote = `Not used: ${String(result.error)}`;
+        } else {
+          const loaded = await refreshPayload();
+          repoNote = loaded
+            ? `Found it. ${game.name}'s keys are read from that file now.`
+            : "Found it. Reload the page to use it.";
+        }
+        saveNote = repoNote;
+        render();
+      },
+    );
+  });
+  note.append(el("div", { class: "manage-row" }, [path, use]));
+  return note;
 }
 
 /** The action whose name is being typed, if any. */
