@@ -205,7 +205,13 @@ describe("adding and deleting actions", () => {
   const withWave = (): typeof PAYLOAD => {
     const payload = structuredClone(PAYLOAD);
     const game = payload.games[0];
-    if (game) game.actions.actions = { ...game.actions.actions, wave: { label: "Wave" } };
+    if (game) {
+      game.actions.actions = {
+        ...game.actions.actions,
+        wave: { label: "Wave", mode: "ship" },
+        hail: { label: "Hail", ingame: "Hail" },
+      };
+    }
     return payload;
   };
 
@@ -233,8 +239,10 @@ describe("adding and deleting actions", () => {
     });
     const body = calls.find((call) => call.path === "/api/actions")?.body as {
       changes: Record<string, unknown>;
+      add?: Record<string, unknown>;
     };
-    expect(body.changes.emote_wave).toEqual({ label: "Emote: wave" });
+    expect(body.add?.emote_wave).toEqual({ label: "Emote: wave" });
+    expect(body.changes).not.toHaveProperty("emote_wave");
   });
 
   it("offers Delete only for the game's own action that no key sends, and saves the removal", async () => {
@@ -252,5 +260,41 @@ describe("adding and deleting actions", () => {
     });
     const body = calls.find((call) => call.path === "/api/actions")?.body as { remove?: string[] };
     expect(body.remove).toEqual(["wave"]);
+  });
+
+  it("does not offer Delete for an action that names a row in the game's own file", () => {
+    start(withWave());
+    header("In-game").click();
+    expect(row("Hail").querySelector(".delete-action")).toBeNull();
+  });
+
+  it("brings a deleted action back whole when the delete is undone after saving", async () => {
+    start(withWave());
+    header("In-game").click();
+    row("Wave").querySelector<HTMLButtonElement>(".delete-action")?.click();
+    header("Save").click();
+    await vi.waitFor(() => {
+      expect(calls.filter((call) => call.path === "/api/actions")).toHaveLength(1);
+      expect(header("Saved")).toBeDefined();
+    });
+    const undo = [...document.querySelectorAll<HTMLButtonElement>("header button")].find((button) =>
+      button.title.startsWith("Take back the last change"),
+    );
+    undo?.click();
+    expect(row("Wave")).toBeDefined();
+    // Saved by hand, or by autosave once it is on.
+    [...document.querySelectorAll<HTMLButtonElement>("header button")]
+      .find((button) => button.textContent === "Save")
+      ?.click();
+    await vi.waitFor(
+      () => {
+        expect(calls.filter((call) => call.path === "/api/actions")).toHaveLength(2);
+      },
+      { timeout: 4000 },
+    );
+    const body = calls.filter((call) => call.path === "/api/actions")[1]?.body as {
+      add?: Record<string, unknown>;
+    };
+    expect(body.add?.wave).toEqual({ label: "Wave", mode: "ship" });
   });
 });

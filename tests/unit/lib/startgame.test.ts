@@ -79,7 +79,9 @@ describe("deleting and renaming layouts and games", () => {
     startLayout({ game: "zzSim", set: "v2", devices: [], copyOf: "v1" });
   };
   const layouts = (): string[] =>
-    [...new Set(new Game(SIM).loadedProfiles().map((profile) => profile.set ?? ""))].sort();
+    [
+      ...new Set(new Game(SIM).loadedProfiles().map((profile) => profile.set ?? profile.slug)),
+    ].sort();
 
   it("deletes a layout's profiles and its pedals, and leaves the other layout whole", () => {
     twoLayouts();
@@ -132,6 +134,18 @@ describe("deleting and renaming layouts and games", () => {
     deleteLayout({ game: "zzSim", set: "main" });
     const left = (new Game(SIM).config.lint?.acknowledged ?? []).map((entry) => entry.profile);
     expect(left).not.toContain("main-left");
+  });
+
+  it("finds a layout whose profile names none, by its file name, as the editor does", () => {
+    twoLayouts();
+    // v2's left unit on its own, with no set: its layout is its file name, v2-left.
+    const path = repoPath(`${SIM}/profiles/v2-left.yaml`);
+    writeFileSync(path, readFileSync(path, "utf8").replace(/^ {2}set: v2\n/m, ""));
+    expect(layouts()).toContain("v2-left");
+    renameLayout({ game: "zzSim", set: "v2-left", to: "solo" });
+    expect(layouts()).toContain("solo");
+    deleteLayout({ game: "zzSim", set: "solo" });
+    expect(layouts()).not.toContain("solo");
   });
 
   it("keeps the last game: the page needs one to open", () => {

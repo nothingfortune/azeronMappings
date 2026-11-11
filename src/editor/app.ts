@@ -2348,6 +2348,8 @@ function inGameKeyChanges(game: EditorGame): Record<string, BindingChange> {
   const loaded = game.actions.actions ?? {};
   const changes: Record<string, BindingChange> = {};
   for (const [id, spec] of Object.entries(state.workingActions ?? {})) {
+    // An action the file does not have yet is written whole, by addedActions.
+    if (!(id in loaded)) continue;
     const before = loaded[id] ?? {};
     const change: BindingChange = {};
     for (const field of ["key", "meta", "mouse"] as const) {
@@ -2444,26 +2446,35 @@ function inGameKeysPart(): SchemePart {
       const keys = changesAKey(changes);
       const names =
         removedActions(currentGame()).length > 0 ||
+        Object.keys(addedActions(currentGame())).length > 0 ||
         Object.values(changes).some((change) => "label" in change || "tags" in change);
       if (keys && names) return "Wiring and action names";
       return names ? "Action names" : "Wiring";
     },
     isDirty: () =>
       Object.keys(inGameKeyChanges(currentGame())).length > 0 ||
+      Object.keys(addedActions(currentGame())).length > 0 ||
       removedActions(currentGame()).length > 0,
     async save() {
       const game = currentGame();
       const path = `${game.rel}/actions.yaml`;
       const changes = inGameKeyChanges(game);
       const remove = removedActions(game);
+      const add = addedActions(game);
       const result = await saveResponse("/api/actions", {
         game: game.slug,
         changes,
+        ...(Object.keys(add).length > 0 ? { add } : {}),
         ...(remove.length > 0 ? { remove } : {}),
       });
       game.actions.actions = structuredClone(state.workingActions ?? {});
       // The game is only offered the keys when there is a file of its own to write them to.
-      return { path, result, inGameKeys: changesAKey(changes) && gameFileGaps(game).length === 0 };
+      const keyed =
+        changesAKey(changes) ||
+        Object.values(add).some(
+          (spec) => spec.key !== undefined || spec.meta !== undefined || spec.mouse !== undefined,
+        );
+      return { path, result, inGameKeys: keyed && gameFileGaps(game).length === 0 };
     },
   };
 }
@@ -4854,6 +4865,14 @@ function genreOf(game: EditorGame): EditorGenre | undefined {
   return state.payload.genres.find((genre) => genre.name === name);
 }
 
+/** Actions new on the page since it loaded, which a save writes whole into the file. */
+function addedActions(game: EditorGame): Record<string, ActionSpec> {
+  const working = state.workingActions;
+  if (working === null) return {};
+  const loaded = game.actions.actions ?? {};
+  return Object.fromEntries(Object.entries(working).filter(([id]) => !(id in loaded)));
+}
+
 /** Actions taken out on the page since it loaded, which a save removes from the file. */
 function removedActions(game: EditorGame): string[] {
   const working = state.workingActions;
@@ -4879,6 +4898,8 @@ function actionInUse(game: EditorGame, id: string): boolean {
  */
 function canDeleteAction(game: EditorGame, id: string): boolean {
   if (id in (genreOf(game)?.actions.actions ?? {})) return false;
+  // One that names a row in the game's own file is part of what the game is told.
+  if (game.actions.actions?.[id]?.ingame !== undefined) return false;
   return !actionInUse(game, id);
 }
 

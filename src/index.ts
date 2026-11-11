@@ -45,7 +45,7 @@ import type { HidEvent } from "./lib/hidcapture.js";
 import { readUsbPcap } from "./lib/usbpcap.js";
 import { buildProbeProfile, buildStickCalibrationProfile } from "./lib/probe.js";
 import { checkFileName } from "./lib/scaffold.js";
-import { patchActionBindings, removeActions } from "./lib/actionfile.js";
+import { addActions, patchActionBindings, removeActions } from "./lib/actionfile.js";
 import { openInChromium } from "./lib/browser.js";
 import { isWsl } from "./lib/machine.js";
 import type { BindingChange } from "./lib/actionfile.js";
@@ -934,6 +934,8 @@ function cmdServe(port: number, host: string, open = false): number {
             changes?: Record<string, BindingChange>;
             /** Actions the game added that are to be taken out again. */
             remove?: unknown;
+            /** Whole actions new to the file, every field kept. */
+            add?: unknown;
           };
           if (!parsed.game || !parsed.changes) throw new Error("needs game and changes");
           const remove = Array.isArray(parsed.remove)
@@ -943,7 +945,11 @@ function cmdServe(port: number, host: string, open = false): number {
           if (!game) throw new Error(`no game '${parsed.game}'`);
           const path = join(game.rel, "actions.yaml");
           const text = readFileSync(repoPath(path), "utf8");
-          const patched = patchActionBindings(text, parsed.changes);
+          const add =
+            typeof parsed.add === "object" && parsed.add !== null && !Array.isArray(parsed.add)
+              ? (parsed.add as Record<string, Record<string, unknown>>)
+              : {};
+          const patched = addActions(patchActionBindings(text, parsed.changes), add);
           writeFileSync(
             repoPath(path),
             remove.length > 0 ? removeActions(patched, remove) : patched,

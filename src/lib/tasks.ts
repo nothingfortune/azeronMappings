@@ -984,9 +984,9 @@ export function addUnitToLayout(request: AddUnitRequest): {
   const game = Game.discover().find((entry) => entry.slug === request.game);
   if (game === undefined) throw new ScaffoldError(`no game '${request.game}'`);
   const existing = game
-    .profilePaths()
-    .map((path) => loadProfileData(path))
-    .filter((data) => data.profile.set === request.set);
+    .loadedProfiles()
+    .filter((profile) => layoutName(profile) === request.set)
+    .map((profile) => profile.data);
   if (existing.length === 0) {
     throw new ScaffoldError(`${game.name} has no layout called '${request.set}'`);
   }
@@ -1024,6 +1024,14 @@ export function addUnitToLayout(request: AddUnitRequest): {
     ),
   );
   return { set: request.set, profile: { device: device.name, path } };
+}
+
+/**
+ * The layout a profile belongs to: its `set`, or, for a profile that names none, its own
+ * file name -- as the editor's layout list and the checks resolve it.
+ */
+function layoutName(profile: Profile): string {
+  return profile.set ?? profile.slug;
 }
 
 /** The game a request names, or a refusal that says so. */
@@ -1100,11 +1108,11 @@ function gameYamlForLayout(
 export function deleteLayout(request: { game: string; set: string }): { removed: string[] } {
   const game = gameNamed(request.game);
   const all = game.loadedProfiles();
-  const profiles = all.filter((profile) => profile.set === request.set);
+  const profiles = all.filter((profile) => layoutName(profile) === request.set);
   if (profiles.length === 0) {
     throw new ScaffoldError(`${game.name} has no layout called '${request.set}'`);
   }
-  if (all.every((profile) => profile.set === request.set)) {
+  if (all.every((profile) => layoutName(profile) === request.set)) {
     throw new ScaffoldError(
       `${request.set} is ${game.name}'s only layout. Delete the game instead, or add another layout first.`,
     );
@@ -1151,12 +1159,12 @@ export function renameLayout(request: { game: string; set: string; to: string })
   const game = gameNamed(request.game);
   const to = checkFileName("layout name", request.to);
   const all = game.loadedProfiles();
-  const profiles = all.filter((profile) => profile.set === request.set);
+  const profiles = all.filter((profile) => layoutName(profile) === request.set);
   if (profiles.length === 0) {
     throw new ScaffoldError(`${game.name} has no layout called '${request.set}'`);
   }
   if (to === request.set) return { set: to, profiles: profiles.map((profile) => profile.path) };
-  if (all.some((profile) => profile.set === to)) {
+  if (all.some((profile) => layoutName(profile) === to)) {
     throw new ScaffoldError(`${game.name} already has a layout called '${to}'`);
   }
   if (profiles.some((profile) => profile.data.profile.golden === true)) {

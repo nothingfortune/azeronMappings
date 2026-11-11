@@ -240,6 +240,72 @@ export function patchActionBindings(
   return lines.join(eol);
 }
 
+/** A field of an action as written in its flow mapping, or null for one that cannot be. */
+function flowValue(value: unknown): string | null {
+  if (typeof value === "string") return yamlScalar(value);
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  if (typeof value === "boolean") return String(value);
+  if (Array.isArray(value) && value.every((item) => typeof item === "string")) {
+    return `[${value.map((item) => yamlScalar(item)).join(", ")}]`;
+  }
+  return null;
+}
+
+/**
+ * Add whole actions to an actions.yaml, a line each: every field they carry, not only the
+ * ones the editor changes. An action deleted and then brought back by Undo keeps what
+ * named its row in the game (`ingame`, `mode`); written as a key change, it lost them.
+ * Each line is parsed back and must read as the action it was given.
+ */
+export function addActions(
+  text: string,
+  specs: Readonly<Record<string, Readonly<Record<string, unknown>>>>,
+): string {
+  const ids = Object.keys(specs);
+  if (ids.length === 0) return text;
+  const lines = text.split(/\r?\n/);
+  const start = lines.findIndex((line) => /^actions:\s*(\{\s*\})?\s*(#.*)?$/.test(line));
+  if (start === -1) throw new ActionFileError("no top-level `actions:` block");
+  const written: string[] = [];
+  for (const id of ids) {
+    if (!ACTION_ID.test(id)) throw new ActionFileError(`'${id}' is not an action id`);
+    const opener = new RegExp(`^\\s+${escape(id)}:`);
+    if (lines.some((line, index) => index > start && opener.test(line))) {
+      throw new ActionFileError(`${id} is already in actions.yaml`);
+    }
+    const spec = specs[id] ?? {};
+    const fields: string[] = [];
+    for (const [name, value] of Object.entries(spec)) {
+      if (!/^[a-z][a-z0-9_]*$/.test(name))
+        throw new ActionFileError(`${id}: '${name}' is not a field`);
+      if (value === undefined || value === null) continue;
+      const shown = flowValue(value);
+      if (shown === null) throw new ActionFileError(`${id}: ${name} cannot be written on one line`);
+      fields.push(`${name}: ${shown}`);
+    }
+    const line = `  ${id}: {${fields.join(", ")}}`;
+    const back = parse(line.trim()) as Record<string, unknown>;
+    const expected = Object.fromEntries(
+      Object.entries(spec).filter(([, value]) => value !== undefined && value !== null),
+    );
+    if (JSON.stringify(back[id]) !== JSON.stringify(expected)) {
+      throw new ActionFileError(`${id}: could not be written as it is`);
+    }
+    written.push(line);
+  }
+  // Appended where patchActionBindings appends, by the same rule.
+  const eol = text.includes("\r\n") ? "\r\n" : "\n";
+  lines[start] = (lines[start] ?? "").replace(/^actions:\s*\{\s*\}/, "actions:");
+  let end = lines.findIndex(
+    (line, index) => index > start && /^\S/.test(line) && !line.startsWith("#"),
+  );
+  if (end === -1) end = lines.length;
+  let at = end;
+  while (at - 1 > start && /^\s*(#.*)?$/.test(lines[at - 1] ?? "")) at -= 1;
+  lines.splice(at, 0, ...written);
+  return lines.join(eol);
+}
+
 /**
  * Take actions out of an actions.yaml, a line each.
  *

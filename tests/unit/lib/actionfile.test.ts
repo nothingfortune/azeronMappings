@@ -12,6 +12,7 @@ import { parse } from "yaml";
 import { repoPath } from "../../../src/config/paths.js";
 import {
   ActionFileError,
+  addActions,
   patchActionBindings,
   removeActions,
 } from "../../../src/lib/actionfile.js";
@@ -153,5 +154,31 @@ describe("removeActions", () => {
   it("refuses an action written over several lines", () => {
     const multi = "actions:\n  wave:\n    label: Wave\n";
     expect(() => removeActions(multi, ["wave"])).toThrow(/more than one line/);
+  });
+});
+
+describe("addActions", () => {
+  it("writes every field an action carries, on one line, and reads back as given", () => {
+    const spec = {
+      label: "Cycle back",
+      ingame: "CycleBack",
+      mode: "ship",
+      tags: ["combat"],
+      key: "Home",
+    };
+    const out = addActions(FILE, { cycle_back: spec });
+    expect(read(out).actions.cycle_back).toEqual(spec);
+    expect(read(out).actions.boost).toEqual(read(FILE).actions.boost);
+    expect(out).toContain("duplicate_key_allowlist:");
+  });
+
+  it("refuses an action the file already has, and a field that is not one line", () => {
+    expect(() => addActions(FILE, { boost: { label: "Boost" } })).toThrow(/already/);
+    expect(() => addActions(FILE, { odd: { label: "Odd", nested: { a: 1 } } })).toThrow(/one line/);
+  });
+
+  it("turns `actions: {}` into a block", () => {
+    const out = addActions("actions: {}\n", { wave: { label: "Wave" } });
+    expect(read(out).actions).toEqual({ wave: { label: "Wave" } });
   });
 });
