@@ -198,7 +198,8 @@ describe("checking a unit by pressing it", () => {
     while (document.querySelector(".check-bar .check-ask") !== null) barButton("Skip").click();
     expect(bar()).toContain("The right unit is not running this layout: 1 of 2 controls sent");
     expect(bar()).toContain("Index 2: sent Inventory (I); the layout has Thrust forward (W)");
-    expect(bar()).toMatch(/Import this unit's file in the Azeron app/);
+    expect(bar()).toContain("Write to units, in the header, puts this layout on it");
+    expect(bar()).not.toContain("Azeron app");
     // From the verdict, the other unit is one click away.
     barButton("Check the left unit").click();
     expect(bar()).toContain("Checking the left unit");

@@ -170,6 +170,11 @@ export class FakeUnit implements UnitTransport {
     this.options.activeSlot = slot;
   }
 
+  /** The slot the unit runs now. */
+  get running(): number {
+    return this.options.activeSlot;
+  }
+
   constructor(options: FakeUnitOptions = {}) {
     this.options = {
       firmware: options.firmware ?? 111,

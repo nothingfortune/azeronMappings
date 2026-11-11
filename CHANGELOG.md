@@ -41,6 +41,15 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Added
 
+- **The press test runs without the Azeron app.** The Press test tab used to offer two
+  files to import in the app, and to delete from the units there afterwards. **Put the
+  press test on the units** now writes both profiles into each unit over USB, each on that
+  unit's own export, and reads them back; the pass on screen decides which one a unit runs,
+  and **Take the press test off** deletes them again.
+- **A new unit is named in one click.** A unit no device map knows used to need its id
+  typed into `local.yaml`. The write bar and the press test now offer "This is the left
+  unit" / "This is the right unit", which write it there.
+
 - **A new game, or a new layout, with no Azeron app.** Starting a game used to need an
   export from the app, and so did every new layout, the next version of one included.
   - **Add a new game** (`azeron new`) takes a name, a genre and the units. Each unit's

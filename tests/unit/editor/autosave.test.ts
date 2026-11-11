@@ -143,7 +143,7 @@ describe("an edit on the served page", () => {
     expect(calls.length).toBe(1);
   });
 
-  it("leaves the files to import in the header, to be opened and ticked off", async () => {
+  it("says in the header that the units do not have a save yet, and writes them from there", async () => {
     served(() => ({
       body: {
         ...OK,
@@ -158,16 +158,11 @@ describe("an edit on the served page", () => {
     await vi.advanceTimersByTimeAsync(800);
 
     const todo = document.querySelector<HTMLButtonElement>('[data-todo="import"]');
-    expect(todo?.textContent).toBe("Re-import 1");
+    expect(todo?.textContent).toBe("Not on the units");
+    expect(document.body.textContent).not.toContain("Import in the Azeron app");
     todo?.click();
-    expect(document.querySelector(".save-report.imports")?.textContent).toContain(
-      "C:\\dist\\left.json",
-    );
-    header("I have imported them");
-    [...document.querySelectorAll<HTMLButtonElement>(".save-report button")]
-      .find((node) => node.textContent === "I have imported them")
-      ?.click();
-    expect(document.querySelector('[data-todo="import"]')).toBeNull();
+    // The pill starts Write to units, the same as the header's button.
+    expect(document.querySelector(".write-bar")).not.toBeNull();
   });
 
   it("leaves the game to be told in the header when the wiring changed", async () => {

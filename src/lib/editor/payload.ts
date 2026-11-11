@@ -44,6 +44,8 @@ export function buildPayload(): EditorPayload {
     templates[path] = loadTemplate(path);
   };
   addTemplate(DEFAULT_TEMPLATE);
+  // Each unit's own export: the press test is built on it, as a new game's profiles are.
+  for (const device of Object.values(devices)) addTemplate(device.template);
 
   const games: EditorGame[] = Game.discover().map((game) => {
     const profiles = game.profilePaths().map((path) => ({

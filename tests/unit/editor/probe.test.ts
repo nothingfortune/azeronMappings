@@ -111,7 +111,7 @@ describe("the press test", () => {
     expect(document.querySelector(".prompt b")?.textContent).toBe("Done.");
     // Left on the unit, the profile button cycles onto them and every key sends a probe key.
     expect(document.querySelector(".prompt")?.textContent).toContain(
-      "delete PROBE 1 pins and PROBE 2 stick zero from the unit's on-board profiles",
+      "take the press test off the units",
     );
   });
 

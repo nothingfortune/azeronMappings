@@ -232,13 +232,16 @@ reason. [CLAUDE.md](CLAUDE.md) has the constraint behind each rule.
 ## Less often
 
 **Press-testing a unit.** The right unit is not a mirror of the left — its thumb cluster
-is rotated half a turn — so each map is measured. `npm run azeron -- probe` writes
-`dist/probe/probe-1-pins.json`, a profile where every pin sends a different key, and
-`probe-2-stick-zero.json` for the stick. Import one onto a unit, open the editor's
-**Press test** tab, and press what it highlights; it records which pin fired and exports
-a corrected `devices/<unit>.yaml`. Then delete **PROBE 1 pins** and **PROBE 2 stick zero**
-from the unit's onboard slots, from the Write to units bar or in the Azeron app: left
-there, the unit's profile button cycles onto them and every key sends a probe key.
+is rotated half a turn — so each map is measured. Open the editor's **Press test** tab
+(`npm start`, in Chrome or Edge) and press **Put the press test on the units**. It writes
+two profiles of its own into each unit over USB, one where every pin sends a different
+key and one for the stick, and each unit runs the one for the pass on screen. Press what
+the page highlights; it records which pin fired and saves a corrected
+`devices/<unit>.yaml`. Then press **Take the press test off**: left there, a unit's
+profile button cycles onto them and every key sends a probe key. Nothing else needs to be
+installed, and any other keypad software must be closed while the page talks to the
+units. (`npm run azeron -- probe` writes the same two profiles to `dist/probe/` as files,
+for reading.)
 
 **Starting a new game.** In the Setup tab, **Add a new game**: its name, the kind of game,
 which units, and a name for the first layout. No Azeron app is involved. The game starts

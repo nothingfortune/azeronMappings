@@ -4,7 +4,7 @@
  * real game's folder, or the owner's local.yaml.
  */
 
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -18,6 +18,7 @@ import {
   LocalSettingsError,
   parseLibraryFolders,
   parseLocal,
+  setLocalDeviceId,
   setLocalGamePath,
 } from "../../../src/lib/machine.js";
 import type { MachineContext } from "../../../src/lib/machine.js";
@@ -197,6 +198,33 @@ describe("local.yaml", () => {
     setLocalGamePath("newGame", "export_to", "/mnt/c/Exports", root);
     expect(readFileSync(join(root, "local.yaml"), "utf8")).toContain("Git ignores this file");
     expect(loadLocal(root).games.newGame?.export_to).toBe("/mnt/c/Exports");
+  });
+
+  it("records a unit's id for a device map, and keeps what was there", () => {
+    writeFileSync(
+      join(root, "local.yaml"),
+      "# mine\ngames:\n  everspace:\n    export_to: x\n",
+      "utf8",
+    );
+    setLocalDeviceId("cyborg2-left", "49229", root);
+    const text = readFileSync(join(root, "local.yaml"), "utf8");
+    expect(text).toContain("# mine");
+    expect(text).toContain('software_device_id: "49229"');
+    expect(loadLocal(root)).toEqual({
+      games: { everspace: { export_to: "x" } },
+      devices: { "cyborg2-left": { software_device_id: "49229" } },
+    });
+  });
+
+  it("moves an id to the hand it is now said to be, since one unit is not two", () => {
+    setLocalDeviceId("cyborg2-left", "49229", root);
+    setLocalDeviceId("cyborg2-right", "49229", root);
+    expect(loadLocal(root).devices).toEqual({ "cyborg2-right": { software_device_id: "49229" } });
+  });
+
+  it("refuses an id that is not a unit's", () => {
+    expect(() => setLocalDeviceId("cyborg2-left", "12; rm", root)).toThrow(LocalSettingsError);
+    expect(existsSync(join(root, "local.yaml"))).toBe(false);
   });
 });
 

@@ -36,7 +36,7 @@ import type { StickModeSet } from "./stickmodes.js";
 import type { NameStatus } from "../types/pedals.js";
 import { ERROR, WARNING, formatFinding, lintGame, lintGenre } from "./lint.js";
 import type { Finding, LintResult } from "./lint.js";
-import { setLocalGamePath } from "./machine.js";
+import { setLocalDeviceId, setLocalGamePath } from "./machine.js";
 import type { MachinePathField } from "./machine.js";
 import { Game, Genre } from "./model.js";
 import type { Profile } from "./model-core.js";
@@ -294,6 +294,18 @@ export function deviceNames(): string[] {
     .filter((file) => loadInherited(posixJoin(dataDirs.devices, file)).kind !== "pedals")
     .map((file) => file.slice(0, -".yaml".length))
     .sort();
+}
+
+/**
+ * Tell this computer which hand a unit is: its id, as the unit reported it, goes in
+ * local.yaml under the device map's name. Write to units and the press test then write to
+ * it. Returns the file written.
+ */
+export function nameUnit(device: string, id: string): string {
+  if (!deviceNames().includes(device)) {
+    throw new ScaffoldError(`no keypad device map called '${device}' in devices/`);
+  }
+  return setLocalDeviceId(device, id);
 }
 
 /**
