@@ -5633,7 +5633,8 @@ function renderNewGame(): HTMLElement {
         ...(file === null
           ? {
               devices: chosenUnits,
-              ...(newGame.style === "" ? {} : { style: newGame.style }),
+              // A style lays out a pair; one unit on its own gets the genre's default.
+              ...(newGame.style === "" || chosenUnits.length < 2 ? {} : { style: newGame.style }),
               ...(newGame.pedals === "" ? {} : { pedals: newGame.pedals }),
             }
           : { device: newGame.device, exported: file.exported }),

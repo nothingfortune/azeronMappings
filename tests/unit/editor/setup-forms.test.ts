@@ -301,6 +301,23 @@ describe("starting a new game", () => {
     });
   });
 
+  it("sends no style for one unit, which gets the genre's default instead", async () => {
+    const calls = served(() => ({ ok: true, slug: "x", name: "Deep Rock", leftOff: [] }));
+    mount();
+    const right = form().querySelector<HTMLInputElement>('[data-new-game-unit="cyborg2-right"]');
+    if (!right) throw new Error("no right unit");
+    right.checked = false;
+    right.dispatchEvent(new Event("change"));
+    fill("Deep Rock");
+    create();
+    await vi.waitFor(() => {
+      expect(calls.some((call) => call.path === "/api/game")).toBe(true);
+    });
+    const body = calls.find((call) => call.path === "/api/game")?.body ?? {};
+    expect(body.devices).toEqual(["cyborg2-left"]);
+    expect(body).not.toHaveProperty("style");
+  });
+
   it("sends only the units left ticked, and says so when none is", () => {
     const calls = served(() => ({ ok: true }));
     mount();

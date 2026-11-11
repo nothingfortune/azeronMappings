@@ -184,6 +184,27 @@ describe("startGame", () => {
     expect(lintGame(new Game(SIM)).live).toEqual([]);
   });
 
+  it("started again, changes only its own layout's pedals and keeps the others'", () => {
+    const request = {
+      name: "ZZ Sim",
+      slug: "zzSim",
+      genre: "SpaceSims",
+      devices: ["cyborg2-left", "cyborg2-right"],
+      pedals: "logitech-pro-flight-pedals",
+    };
+    startGame({ ...request, set: "v1" });
+    startGame({ ...request, set: "v2", overwrite: true });
+    const both = new Game(SIM).sets.sets;
+    expect(both.v1?.pedals?.device).toBe("logitech-pro-flight-pedals");
+    expect(both.v2?.pedals?.device).toBe("logitech-pro-flight-pedals");
+    // v1 again, now with no pedals: its own are gone and v2 keeps its.
+    const { pedals: _pedals, ...noPedals } = request;
+    startGame({ ...noPedals, set: "v1", overwrite: true });
+    const after = new Game(SIM).sets.sets;
+    expect(after.v1?.pedals).toBeUndefined();
+    expect(after.v2?.pedals?.device).toBe("logitech-pro-flight-pedals");
+  });
+
   it("offers no pedals to a genre whose sticks do not say what they would take", () => {
     expect(() =>
       startGame({

@@ -10,6 +10,8 @@ import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
+import { parse } from "yaml";
+
 import { dataDirs, hostPath, posixJoin, repoPath } from "../config/paths.js";
 import type { ExportDocument } from "../types/azeron.js";
 import type { ActionSpec, ProfileData, ProfileMeta } from "../types/profile.js";
@@ -39,7 +41,7 @@ import {
 import { buildStyle, STYLE_ORDER } from "./styles.js";
 import { currentWrite, layoutFingerprint } from "./written.js";
 import type { LoadedPedals } from "./io.js";
-import { capturePedals, ingamePlan, planAxes, recordCandidateNames } from "./pedals.js";
+import { capturePedals, ingamePlan, parseSets, planAxes, recordCandidateNames } from "./pedals.js";
 import type { CaptureOptions, CaptureResult, PlannedAxis } from "./pedals.js";
 import type { StickModeSet } from "./stickmodes.js";
 import type { NameStatus } from "../types/pedals.js";
@@ -60,7 +62,7 @@ import {
   unnamedPositions,
 } from "./scaffold.js";
 import type { WrittenAction } from "./scaffold.js";
-import { addSetEntry } from "./setsfile.js";
+import { addSetEntry, patchSetPedals } from "./setsfile.js";
 import { needsWire, wireAction } from "./wiring.js";
 import { deepMerge, dumpYaml } from "./yaml.js";
 import { loadInherited } from "./yaml-io.js";
@@ -723,7 +725,10 @@ export function startGame(request: StartGameRequest): StartGameResult {
   }
 
   const madeDir = !existsSync(repoPath(gameDir));
-  const touched = owned.map((path) => ({
+  // sets.yaml holds every layout's pedals, so a game started again keeps the others' and
+  // only this layout's entry changes. It is restored with the rest on a failure.
+  const setsPath = posixJoin(gameDir, "sets.yaml");
+  const touched = [...new Set([...owned, setsPath])].map((path) => ({
     path,
     text: existsSync(repoPath(path)) ? readFileSync(repoPath(path), "utf8") : null,
   }));
@@ -746,16 +751,19 @@ export function startGame(request: StartGameRequest): StartGameResult {
       writeText(posixJoin(gameDir, "game.yaml"), dumpYaml(config, `# ${name}\n`));
     };
     writeConfig();
-    if (pedalAxis !== null && request.pedals !== undefined) {
-      writeText(
-        posixJoin(gameDir, "sets.yaml"),
-        addSetEntry(`# ${name} -- what a layout does beyond its profiles: its pedals.\n`, set, {
-          pedals: {
-            device: request.pedals,
-            assign: { [pedalAxis.axis]: { drives: pedalAxis.drives } },
-          },
-        }),
-      );
+    const setsText = touched.find((entry) => entry.path === setsPath)?.text ?? null;
+    const hasSet =
+      setsText !== null && set in parseSets((parse(setsText) as unknown) ?? {}, setsPath).sets;
+    const pedals =
+      pedalAxis !== null && request.pedals !== undefined
+        ? { device: request.pedals, assign: { [pedalAxis.axis]: { drives: pedalAxis.drives } } }
+        : null;
+    if (setsText !== null && hasSet) {
+      // Started again: this layout's pedals are what was asked for now, none included.
+      writeText(setsPath, patchSetPedals(setsText, set, pedals));
+    } else if (pedals !== null) {
+      const header = `# ${name} -- what a layout does beyond its profiles: its pedals.\n`;
+      writeText(setsPath, addSetEntry(setsText ?? header, set, { pedals }));
     }
     const profiles = layouts.map((data, index) => {
       const path = profilePaths[index] ?? "";
