@@ -11,9 +11,22 @@ import { buildPayload } from "../../../src/lib/editor/payload.js";
 const PAYLOAD = buildPayload();
 const SERVED = window as unknown as { AZERON_SERVED?: boolean };
 
-function openSingle(): void {
+/** The test data has one game; a second, its copy, is enough to switch to. */
+const TWO_GAMES = ((): typeof PAYLOAD => {
+  const payload = structuredClone(PAYLOAD);
+  const first = payload.games[0];
+  if (first) {
+    // Without single-v5, so a layout name carried over from the first game names nothing.
+    const copy = { ...structuredClone(first), slug: "other", name: "Other game" };
+    copy.profiles = copy.profiles.filter((profile) => profile.data.profile.set !== "single-v5");
+    payload.games.push(copy);
+  }
+  return payload;
+})();
+
+function openSingle(payload = PAYLOAD): void {
   document.body.innerHTML = '<div id="app"></div>';
-  start(structuredClone(PAYLOAD));
+  start(structuredClone(payload));
   const sets = document.querySelectorAll<HTMLSelectElement>("header select")[1];
   if (!sets) throw new Error("no layout picker");
   sets.value = "single-v5";
@@ -65,6 +78,41 @@ describe("a layout with one unit", () => {
       set: "single-v5",
       device: "cyborg2-right",
     });
+  });
+
+  it("keeps another game chosen while the unit was being added on its own layout", async () => {
+    SERVED.AZERON_SERVED = true;
+    let answer: (value: unknown) => void = () => undefined;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((path: string) => {
+        if (path === "/api/payload") {
+          return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(TWO_GAMES) });
+        }
+        return new Promise((resolve) => {
+          answer = resolve;
+        });
+      }),
+    );
+    openSingle(TWO_GAMES);
+    addButton()?.click();
+    // Another game, chosen before the server answers.
+    const games = document.querySelectorAll<HTMLSelectElement>("header select")[0];
+    if (!games) throw new Error("no game picker");
+    const other = [...games.options].find((option) => option.value !== games.value);
+    if (!other) throw new Error("no other game in the picker");
+    games.value = other.value;
+    games.dispatchEvent(new Event("change"));
+    answer({ ok: true, status: 200, json: () => Promise.resolve({ ok: true }) });
+    await vi.waitFor(() => {
+      expect(document.body.textContent).toContain("Added the right unit");
+    });
+    const picker = document.querySelectorAll<HTMLSelectElement>("header select")[0];
+    expect(picker?.value).toBe(other.value);
+    // On a layout the game has, so the board is drawn.
+    const layout = document.querySelectorAll<HTMLSelectElement>("header select")[1];
+    expect(layout?.value).toBe("akimbo-v10");
+    expect(document.querySelectorAll(".hand").length).toBeGreaterThan(0);
   });
 
   it("says how, where the page cannot save", () => {

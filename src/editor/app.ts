@@ -6553,14 +6553,17 @@ function renderMissingUnit(slug: string): HTMLElement | null {
 
 async function addMissingUnit(device: string, hand: string): Promise<void> {
   const set = state.setName;
-  const result = await post("/api/layout/unit", { game: currentGame().slug, set, device });
+  const game = currentGame().slug;
+  const result = await post("/api/layout/unit", { game, set, device });
   if (result.ok !== true) {
     saveNote = `The ${hand} unit was not added: ${String(result.error)}`;
     render();
     return;
   }
   const loaded = await refreshPayload();
-  state.setName = set;
+  // Only back to the layout if its game is still the one on screen: another game chosen
+  // while the unit was being added keeps the layout it opened on.
+  if (currentGame().slug === game) state.setName = set;
   saveNote = loaded
     ? `Added the ${hand} unit. Drag actions onto its keys.`
     : `Added the ${hand} unit. Reload the page to see it.`;
