@@ -45,7 +45,7 @@ import type { HidEvent } from "./lib/hidcapture.js";
 import { readUsbPcap } from "./lib/usbpcap.js";
 import { buildProbeProfile, buildStickCalibrationProfile } from "./lib/probe.js";
 import { checkFileName } from "./lib/scaffold.js";
-import { patchActionBindings } from "./lib/actionfile.js";
+import { patchActionBindings, removeActions } from "./lib/actionfile.js";
 import { openInChromium } from "./lib/browser.js";
 import { isWsl } from "./lib/machine.js";
 import type { BindingChange } from "./lib/actionfile.js";
@@ -66,6 +66,9 @@ import {
   startGame,
   startLayout,
   addUnitToLayout,
+  deleteGame,
+  deleteLayout,
+  renameLayout,
   deviceNames,
   nameUnit,
   ImportCollision,
@@ -774,13 +777,40 @@ function cmdServe(port: number, host: string, open = false): number {
         url === "/api/import" ||
         url === "/api/game" ||
         url === "/api/layout" ||
-        url === "/api/layout/unit")
+        url === "/api/layout/unit" ||
+        url === "/api/layout/delete" ||
+        url === "/api/layout/rename" ||
+        url === "/api/game/delete")
     ) {
       readBody(request, response, 20_000_000, (body) => {
         try {
           if (url === "/api/build") {
             const result = buildAll(Game.discover());
             send(200, JSON.stringify({ ok: result.errors.length === 0, ...result }));
+            return;
+          }
+          if (url === "/api/layout/delete") {
+            const asked = JSON.parse(body) as { game?: string; set?: string };
+            const result = deleteLayout({ game: asked.game ?? "", set: asked.set ?? "" });
+            send(200, JSON.stringify({ ok: true, ...result }));
+            return;
+          }
+          if (url === "/api/layout/rename") {
+            const asked = JSON.parse(body) as { game?: string; set?: string; to?: string };
+            const result = renameLayout({
+              game: asked.game ?? "",
+              set: asked.set ?? "",
+              to: asked.to ?? "",
+            });
+            // The compiled files went with the old name; build them under the new one.
+            const built = buildAll(games(asked.game ?? ""));
+            send(200, JSON.stringify({ ok: true, ...result, buildErrors: built.errors }));
+            return;
+          }
+          if (url === "/api/game/delete") {
+            const asked = JSON.parse(body) as { game?: string };
+            const result = deleteGame({ game: asked.game ?? "" });
+            send(200, JSON.stringify({ ok: true, ...result }));
             return;
           }
           if (url === "/api/layout/unit") {
@@ -902,13 +932,23 @@ function cmdServe(port: number, host: string, open = false): number {
           const parsed = JSON.parse(body) as {
             game?: string;
             changes?: Record<string, BindingChange>;
+            /** Actions the game added that are to be taken out again. */
+            remove?: unknown;
           };
           if (!parsed.game || !parsed.changes) throw new Error("needs game and changes");
+          const remove = Array.isArray(parsed.remove)
+            ? parsed.remove.filter((id): id is string => typeof id === "string")
+            : [];
           const game = games(parsed.game)[0];
           if (!game) throw new Error(`no game '${parsed.game}'`);
           const path = join(game.rel, "actions.yaml");
           const text = readFileSync(repoPath(path), "utf8");
-          writeFileSync(repoPath(path), patchActionBindings(text, parsed.changes), "utf8");
+          const patched = patchActionBindings(text, parsed.changes);
+          writeFileSync(
+            repoPath(path),
+            remove.length > 0 ? removeActions(patched, remove) : patched,
+            "utf8",
+          );
           // The file is written. What follows is the verdict on it, not a condition of it:
           // a failure here used to answer "not saved" about a file that was.
           let check: SaveCheck | { error: string };

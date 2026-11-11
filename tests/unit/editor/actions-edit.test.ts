@@ -199,3 +199,58 @@ describe("renaming an action that is on keys", () => {
     expect(header("Save").title).toContain("Right unit");
   });
 });
+
+describe("adding and deleting actions", () => {
+  /** The payload with one action of the game's own that no key uses. */
+  const withWave = (): typeof PAYLOAD => {
+    const payload = structuredClone(PAYLOAD);
+    const game = payload.games[0];
+    if (game) game.actions.actions = { ...game.actions.actions, wave: { label: "Wave" } };
+    return payload;
+  };
+
+  beforeEach(() => {
+    calls = served();
+    document.body.innerHTML = '<div id="app"></div>';
+  });
+
+  afterEach(() => {
+    (window as unknown as { AZERON_SERVED?: boolean }).AZERON_SERVED = false;
+    vi.unstubAllGlobals();
+  });
+
+  it("adds one by typing its name in the action list, and saves it as a new line", async () => {
+    start(structuredClone(PAYLOAD));
+    const input = document.querySelector<HTMLInputElement>(".palette input.new-action");
+    if (!input) throw new Error("no New action box");
+    input.value = "Emote: wave";
+    input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    const names = [...document.querySelectorAll(".palette .action b")].map((b) => b.textContent);
+    expect(names).toContain("Emote: wave");
+    header("Save").click();
+    await vi.waitFor(() => {
+      expect(calls.some((call) => call.path === "/api/actions")).toBe(true);
+    });
+    const body = calls.find((call) => call.path === "/api/actions")?.body as {
+      changes: Record<string, unknown>;
+    };
+    expect(body.changes.emote_wave).toEqual({ label: "Emote: wave" });
+  });
+
+  it("offers Delete only for the game's own action that no key sends, and saves the removal", async () => {
+    start(withWave());
+    header("In-game").click();
+    const button = (label: string): HTMLButtonElement | null =>
+      row(label).querySelector<HTMLButtonElement>(".delete-action");
+    // The genre's actions cannot be deleted: they would come back from the genre.
+    expect(button("Headlight")).toBeNull();
+    button("Wave")?.click();
+    expect(() => row("Wave")).toThrow();
+    header("Save").click();
+    await vi.waitFor(() => {
+      expect(calls.some((call) => call.path === "/api/actions")).toBe(true);
+    });
+    const body = calls.find((call) => call.path === "/api/actions")?.body as { remove?: string[] };
+    expect(body.remove).toEqual(["wave"]);
+  });
+});

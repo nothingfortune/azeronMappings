@@ -239,3 +239,40 @@ export function patchActionBindings(
   }
   return lines.join(eol);
 }
+
+/**
+ * Take actions out of an actions.yaml, a line each.
+ *
+ * Only an action the game itself added is removed this way: one the genre supplies would
+ * come back from the genre, so the page never offers that. Each must be a one-line entry,
+ * as game files are written; one that spans lines is refused, and an id with no line is
+ * nothing to remove. A block left with no entries becomes `actions: {}` again.
+ */
+export function removeActions(text: string, ids: readonly string[]): string {
+  const eol = text.includes("\r\n") ? "\r\n" : "\n";
+  const lines = text.split(/\r?\n/);
+  const start = lines.findIndex((line) => /^actions:\s*(\{\s*\})?\s*(#.*)?$/.test(line));
+  if (start === -1) throw new ActionFileError("no top-level `actions:` block");
+  const endOf = (): number => {
+    const found = lines.findIndex(
+      (line, index) => index > start && /^\S/.test(line) && !line.startsWith("#"),
+    );
+    return found === -1 ? lines.length : found;
+  };
+  for (const id of ids) {
+    if (!ACTION_ID.test(id)) throw new ActionFileError(`'${id}' is not an action id`);
+    const opener = new RegExp(`^\\s+${escape(id)}:\\s*(.*)$`);
+    const end = endOf();
+    const index = lines.findIndex((line, i) => i > start && i < end && opener.test(line));
+    if (index === -1) continue;
+    const rest = opener.exec(lines[index] ?? "")?.[1] ?? "";
+    if (!/^\{.*\}\s*(#.*)?$/.test(rest)) {
+      throw new ActionFileError(`${id} spans more than one line in actions.yaml`);
+    }
+    lines.splice(index, 1);
+  }
+  const end = endOf();
+  const left = lines.slice(start + 1, end).some((line) => /^\s+[A-Za-z_][\w]*:/.test(line));
+  if (!left) lines[start] = (lines[start] ?? "").replace(/^actions:\s*$/, "actions: {}");
+  return lines.join(eol);
+}

@@ -4,6 +4,20 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ## Unreleased
 
+### Added
+
+- **Actions, layouts and games are added, renamed and deleted from the page.** No file
+  needs editing for any of them:
+  - A New action box under the action list: type a name, press Enter, drag it onto a key.
+    The In-game tab's Delete takes out an action the game added that no key sends
+    (`removeActions`); one the genre supplies cannot be, as it would come back.
+  - The Setup tab renames the layout on screen, deletes it, or deletes the game
+    (`renameLayout`, `deleteLayout`, `deleteGame`). A rename keeps each profile's id and
+    keys and carries its `sets.yaml` entry and game.yaml's acknowledgements and
+    `ingame_set` with it (`renameSetEntry`, through the YAML document so comments stay);
+    a delete takes them out (`removeSetEntry`) along with the compiled files. A game's only
+    layout and the reference layout the checks compare against are refused.
+
 ### Fixed
 
 - **The board stays still while a unit is tested.** Test keys, Check this unit, Write to

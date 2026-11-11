@@ -10,7 +10,11 @@ import { describe, expect, it } from "vitest";
 import { parse } from "yaml";
 
 import { repoPath } from "../../../src/config/paths.js";
-import { ActionFileError, patchActionBindings } from "../../../src/lib/actionfile.js";
+import {
+  ActionFileError,
+  patchActionBindings,
+  removeActions,
+} from "../../../src/lib/actionfile.js";
 
 interface ActionsFile {
   extends?: string;
@@ -112,5 +116,34 @@ describe("patchActionBindings", () => {
     expect(() => patchActionBindings(FILE, { boost: { meta: "Shift, ingame: X" } })).toThrow(
       ActionFileError,
     );
+  });
+});
+
+describe("removeActions", () => {
+  it("takes out each action's line and nothing else", () => {
+    const out = removeActions(FILE, ["boost", "free_look"]);
+    expect(Object.keys(read(out).actions)).toEqual(["throttle_up", "interact"]);
+    expect(out).toContain("  # flight");
+    expect(out).toContain("duplicate_key_allowlist:");
+    expect(out.split("\n")).toHaveLength(FILE.split("\n").length - 2);
+  });
+
+  it("leaves an id with no line of its own alone, and refuses one that is not an id", () => {
+    expect(removeActions(FILE, ["cruise"])).toBe(FILE);
+    expect(() => removeActions(FILE, ["no such"])).toThrow(ActionFileError);
+  });
+
+  it("makes an emptied block `actions: {}` again, which a new action can be added to", () => {
+    const one = "extends: genres/FPS/actions.yaml\nactions:\n  wave: {label: Wave}\n";
+    const out = removeActions(one, ["wave"]);
+    expect(out).toBe("extends: genres/FPS/actions.yaml\nactions: {}\n");
+    expect(read(patchActionBindings(out, { wave: { label: "Wave" } })).actions.wave).toEqual({
+      label: "Wave",
+    });
+  });
+
+  it("refuses an action written over several lines", () => {
+    const multi = "actions:\n  wave:\n    label: Wave\n";
+    expect(() => removeActions(multi, ["wave"])).toThrow(/more than one line/);
   });
 });

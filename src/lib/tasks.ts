@@ -10,7 +10,7 @@ import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { parse } from "yaml";
+import { isMap, isSeq, parse, parseDocument } from "yaml";
 
 import { dataDirs, hostPath, posixJoin, repoPath } from "../config/paths.js";
 import type { ExportDocument } from "../types/azeron.js";
@@ -62,7 +62,8 @@ import {
   unnamedPositions,
 } from "./scaffold.js";
 import type { WrittenAction } from "./scaffold.js";
-import { addSetEntry, patchSetPedals } from "./setsfile.js";
+import { addSetEntry, patchSetPedals, removeSetEntry, renameSetEntry } from "./setsfile.js";
+import { leadingComments } from "./serve.js";
 import { needsWire, wireAction } from "./wiring.js";
 import { deepMerge, dumpYaml } from "./yaml.js";
 import { loadInherited } from "./yaml-io.js";
@@ -1023,6 +1024,174 @@ export function addUnitToLayout(request: AddUnitRequest): {
     ),
   );
   return { set: request.set, profile: { device: device.name, path } };
+}
+
+/** The game a request names, or a refusal that says so. */
+function gameNamed(slug: string): Game {
+  const game = Game.discover().find((entry) => entry.slug === slug);
+  if (game === undefined) throw new ScaffoldError(`no game '${slug}'`);
+  return game;
+}
+
+/**
+ * Write each file's new text, or remove it (null), putting every one back as it was if any
+ * write fails, so a change is made whole or not at all.
+ */
+function writeAll(changes: ReadonlyMap<string, string | null>): void {
+  const before = [...changes.keys()].map((path) => ({
+    path,
+    text: existsSync(repoPath(path)) ? readFileSync(repoPath(path), "utf8") : null,
+  }));
+  try {
+    for (const [path, text] of changes) {
+      if (text === null) rmSync(repoPath(path), { force: true });
+      else writeText(path, text);
+    }
+  } catch (error) {
+    for (const { path, text } of before) {
+      if (text === null) rmSync(repoPath(path), { force: true });
+      else writeFileSync(repoPath(path), text, "utf8");
+    }
+    throw error;
+  }
+}
+
+/**
+ * game.yaml with what names a layout changed: its acknowledgements and `ingame_set`. Edited
+ * through the YAML document so the file's comments stay; null when nothing changes.
+ */
+function gameYamlForLayout(text: string, set: string, to: string | null): string | null {
+  const doc = parseDocument(text);
+  let changed = false;
+  const acknowledged = doc.getIn(["lint", "acknowledged"]);
+  if (isSeq(acknowledged)) {
+    const kept = acknowledged.items.filter((item) => {
+      if (!isMap(item) || item.get("profile") !== set) return true;
+      changed = true;
+      if (to === null) return false;
+      item.set("profile", to);
+      return true;
+    });
+    acknowledged.items = kept;
+  }
+  if (doc.get("ingame_set") === set) {
+    changed = true;
+    if (to === null) doc.delete("ingame_set");
+    else doc.set("ingame_set", to);
+  }
+  return changed ? doc.toString() : null;
+}
+
+/**
+ * Delete a layout: its profiles, their compiled files, its entry in sets.yaml, and what
+ * game.yaml says about it. The game keeps at least one layout, and the reference layout the
+ * tests compare against is never deleted from here.
+ */
+export function deleteLayout(request: { game: string; set: string }): { removed: string[] } {
+  const game = gameNamed(request.game);
+  const all = game.loadedProfiles();
+  const profiles = all.filter((profile) => profile.set === request.set);
+  if (profiles.length === 0) {
+    throw new ScaffoldError(`${game.name} has no layout called '${request.set}'`);
+  }
+  if (all.every((profile) => profile.set === request.set)) {
+    throw new ScaffoldError(
+      `${request.set} is ${game.name}'s only layout. Delete the game instead, or add another layout first.`,
+    );
+  }
+  if (profiles.some((profile) => profile.data.profile.golden === true)) {
+    throw new ScaffoldError(`${request.set} is the reference layout the checks compare against`);
+  }
+  const changes = new Map<string, string | null>();
+  for (const profile of profiles) {
+    changes.set(profile.path, null);
+    const output = posixJoin(game.distDir(), profile.outputName);
+    if (existsSync(repoPath(output))) changes.set(output, null);
+  }
+  const setsPath = posixJoin(game.rel, "sets.yaml");
+  if (existsSync(repoPath(setsPath))) {
+    const text = readFileSync(repoPath(setsPath), "utf8");
+    const out = removeSetEntry(text, request.set);
+    if (out !== text) changes.set(setsPath, out);
+  }
+  const configPath = posixJoin(game.rel, "game.yaml");
+  const config = gameYamlForLayout(readFileSync(repoPath(configPath), "utf8"), request.set, null);
+  if (config !== null) changes.set(configPath, config);
+  writeAll(changes);
+  return {
+    removed: [...changes.entries()].filter(([, text]) => text === null).map(([path]) => path),
+  };
+}
+
+/**
+ * Rename a layout: each profile moves to the new name's file (its id, keys and template
+ * kept), and sets.yaml and game.yaml follow. The compiled files go; the next build writes
+ * them under the new name.
+ */
+export function renameLayout(request: { game: string; set: string; to: string }): {
+  set: string;
+  profiles: string[];
+} {
+  const game = gameNamed(request.game);
+  const to = checkFileName("layout name", request.to);
+  const all = game.loadedProfiles();
+  const profiles = all.filter((profile) => profile.set === request.set);
+  if (profiles.length === 0) {
+    throw new ScaffoldError(`${game.name} has no layout called '${request.set}'`);
+  }
+  if (to === request.set) return { set: to, profiles: profiles.map((profile) => profile.path) };
+  if (all.some((profile) => profile.set === to)) {
+    throw new ScaffoldError(`${game.name} already has a layout called '${to}'`);
+  }
+  if (profiles.some((profile) => profile.data.profile.golden === true)) {
+    throw new ScaffoldError(`${request.set} is the reference layout the checks compare against`);
+  }
+  const changes = new Map<string, string | null>();
+  const moved: string[] = [];
+  for (const profile of profiles) {
+    const unit = profile.unit ?? "left";
+    const data = structuredClone(profile.data);
+    data.profile.set = to;
+    if (data.profile.name === `${game.name} ${request.set} ${unit}`) {
+      data.profile.name = `${game.name} ${to} ${unit}`;
+    }
+    if (data.profile.output === `${game.slug}_${request.set}_${unit}.json`) {
+      data.profile.output = `${game.slug}_${to}_${unit}.json`;
+    }
+    const path = profilePathFor(game, to, unit);
+    if (existsSync(repoPath(path))) throw new ImportCollision([path], `${path} already exists`);
+    const old = readFileSync(repoPath(profile.path), "utf8");
+    changes.set(profile.path, null);
+    changes.set(path, dumpProfile(data, leadingComments(old)));
+    const output = posixJoin(game.distDir(), profile.outputName);
+    if (existsSync(repoPath(output))) changes.set(output, null);
+    moved.push(path);
+  }
+  const setsPath = posixJoin(game.rel, "sets.yaml");
+  if (existsSync(repoPath(setsPath))) {
+    const text = readFileSync(repoPath(setsPath), "utf8");
+    const out = renameSetEntry(text, request.set, to);
+    if (out !== text) changes.set(setsPath, out);
+  }
+  const configPath = posixJoin(game.rel, "game.yaml");
+  const config = gameYamlForLayout(readFileSync(repoPath(configPath), "utf8"), request.set, to);
+  if (config !== null) changes.set(configPath, config);
+  writeAll(changes);
+  return { set: to, profiles: moved };
+}
+
+/**
+ * Delete a game: its folder and its compiled files. The game whose layouts the checks
+ * compare against is never deleted from here.
+ */
+export function deleteGame(request: { game: string }): { removed: string[] } {
+  const game = gameNamed(request.game);
+  if (game.loadedProfiles().some((profile) => profile.data.profile.golden === true)) {
+    throw new ScaffoldError(`${game.name} holds the reference layout the checks compare against`);
+  }
+  const removed = [game.rel, game.distDir()].filter((path) => existsSync(repoPath(path)));
+  for (const path of removed) rmSync(repoPath(path), { recursive: true, force: true });
+  return { removed };
 }
 
 /** A layout's pedals, resolved against the device, the genre's axes and the game's rows. */
