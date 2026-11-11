@@ -60,10 +60,11 @@ Two things are yours to tell it, in a file called `local.yaml` at the top of the
 ignores it, so it never gets committed or overwritten by an update. Copy
 `local.example.yaml` to start one.
 
-- **Your keypads.** Each unit reports an id, and **Write to units** writes only to a unit
-  whose id it knows. The ids in `devices/` belong to the repo owner's units. The first time
-  you write, it lists the units it found but does not know, with their ids and the lines to
-  put in `local.yaml`. Unplug one unit to see which id belongs to which hand.
+- **Your keypads.** Each unit reports an id, and **Write to units** (and the press test)
+  writes only to a unit whose id it knows. The ids in `devices/` belong to the repo owner's
+  units. The first time, it lists the units it found but does not know, each with a
+  **This is the left unit** / **This is the right unit** button that puts its id in
+  `local.yaml` for you. Unplug one unit to see which id belongs to which hand.
 - **Anything installed somewhere unusual**, like a game from another store or a settings
   file that has been moved. When a file is not found, the page and the CLI say where they
   looked and which line of `local.yaml` would point them at it. Until then, comparing keys
@@ -92,8 +93,9 @@ before playing. It rewrites its own files while it is open.
 **Is what is on the units the layout?** After a write that read back clean, the editor
 knows: it keeps a fingerprint of what went onto each unit (`logs/units-written.json`). For
 a layout that came in through the app, it reads the app's own copy of each profile and
-compares it with the layout, key by key. While either is older than the layout, the header
-shows **Re-import N**: it lists each unit's file and every key the unit does something else
+compares it with the layout, key by key. Without the app, the header shows **Not on the
+units** after a save until the next Write to units, and clicking it starts one. With it,
+while either copy is older than the layout, the header shows **Re-import N**: it lists each unit's file and every key the unit does something else
 on — "Ring 4: the unit has Inventory (I); the layout has Ultimate (G)" — and those keys are
 marked _not on unit_ on the board. Coming back to the page checks again.
 `npm run azeron -- units` says the same in the terminal.
