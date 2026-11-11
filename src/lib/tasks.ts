@@ -962,6 +962,69 @@ export function startLayout(request: StartLayoutRequest): StartLayoutResult {
   }
 }
 
+export interface AddUnitRequest {
+  /** The game's slug. */
+  game: string;
+  /** The layout to add the unit to. */
+  set: string;
+  /** The unit's device map. */
+  device: string;
+}
+
+/**
+ * One more unit for a layout that has a hand free: an empty profile on the unit's own
+ * export, beside the ones it has. The layout keeps its name, its other unit and its
+ * entry in sets.yaml; this only adds the file for the hand that had none.
+ */
+export function addUnitToLayout(request: AddUnitRequest): {
+  set: string;
+  profile: { device: string; path: string };
+} {
+  const game = Game.discover().find((entry) => entry.slug === request.game);
+  if (game === undefined) throw new ScaffoldError(`no game '${request.game}'`);
+  const existing = game
+    .profilePaths()
+    .map((path) => loadProfileData(path))
+    .filter((data) => data.profile.set === request.set);
+  if (existing.length === 0) {
+    throw new ScaffoldError(`${game.name} has no layout called '${request.set}'`);
+  }
+  if (!deviceNames().includes(request.device)) {
+    throw new ScaffoldError(`'${request.device}' is not a unit this computer knows`);
+  }
+  const device = loadDevice(request.device);
+  if (device.template === undefined) {
+    throw new ScaffoldError(`${request.device} names no export to build an empty layout on`);
+  }
+  const unit = device.hand ?? "left";
+  if (existing.some((data) => (data.profile.unit ?? "left") === unit)) {
+    throw new ScaffoldError(`${request.set} already has a ${unit} unit`);
+  }
+  const path = profilePathFor(game, request.set, unit);
+  if (existsSync(repoPath(path))) throw new ImportCollision([path], `${path} already exists`);
+  const data: ProfileData = {
+    profile: {
+      id: randomUUID(),
+      name: `${game.name} ${request.set} ${unit}`,
+      device: device.name,
+      unit,
+      set: request.set,
+      output: `${game.slug}_${request.set}_${unit}.json`,
+      template: device.template,
+    },
+    positions: {},
+  };
+  writeText(
+    path,
+    dumpProfile(
+      data,
+      `# ${game.name} -- ${request.set}, ${unit} unit.
+`,
+    ),
+  );
+  return { set: request.set, profile: { device: device.name, path } };
+}
+
 /** A layout's pedals, resolved against the device, the genre's axes and the game's rows. */
 export interface PedalsInPlay {
   set: string;

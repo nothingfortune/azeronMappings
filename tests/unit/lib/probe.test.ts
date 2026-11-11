@@ -12,6 +12,7 @@ import type { DeviceData } from "../../../src/types/profile.js";
 import {
   buildProbeProfile,
   buildStickCalibrationProfile,
+  deviceChanges,
   deviceFromProbe,
   probeDiff,
   PROBE_KEYS,
@@ -348,5 +349,28 @@ describe("stick key encodings", () => {
     const data = decompile(exported, loadDevice("cyborg2-left"), { actions: game.actions });
     const directions = data.positions.stick?.directions ?? {};
     expect(Object.keys(directions).sort()).toEqual(["down", "left", "right", "up"]);
+  });
+});
+
+describe("deviceChanges", () => {
+  const base = {
+    device: "x",
+    positions: { a: { pin: 1 }, s: { pin: 31, pin_two: 30 } },
+  } as unknown as DeviceData;
+
+  it("is empty for the same map", () => {
+    expect(deviceChanges(base, structuredClone(base))).toEqual([]);
+  });
+
+  it("names each pin and stick change", () => {
+    const after = structuredClone(base) as DeviceData & {
+      stick_directions?: Record<string, string>;
+    };
+    after.positions.a = { ...after.positions.a, pin: 2 } as DeviceData["positions"][string];
+    after.stick_directions = { up: "up", right: "left", down: "down", left: "right" };
+    expect(deviceChanges(base, after)).toEqual([
+      "a: pin 1 → 2",
+      "stick: right reads as left, left reads as right",
+    ]);
   });
 });

@@ -384,3 +384,49 @@ describe("diagnosing a direction that does nothing", () => {
     expect(hub?.querySelector(".pin")?.textContent).toBe("click");
   });
 });
+
+describe("saving what the press test found", () => {
+  const saveButton = (): HTMLButtonElement | undefined =>
+    [...document.querySelectorAll<HTMLButtonElement>("button")].find(
+      (button) => button.textContent === "Save its map",
+    );
+
+  beforeEach(() => {
+    localStorage.clear();
+    document.body.innerHTML = '<div id="app"></div>';
+    probePayload = payload();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("saves nothing, and asks nothing, when the map already says it", () => {
+    const saved: string[] = [];
+    const confirm = vi.fn(() => true);
+    vi.stubGlobal("confirm", confirm);
+    start(probePayload, undefined, { save: (path) => saved.push(path) });
+    press(keyForPin(6));
+    saveButton()?.click();
+    expect(confirm).not.toHaveBeenCalled();
+    expect(saved).toEqual([]);
+    expect(document.body.textContent).toContain("Nothing to save");
+  });
+
+  it("shows what would change and saves only once the owner agrees", () => {
+    const saved: string[] = [];
+    const confirm = vi.fn(() => false);
+    vi.stubGlobal("confirm", confirm);
+    start(probePayload, undefined, { save: (path) => saved.push(path) });
+    // Pinky side is pin 6; a key from the computer's keyboard that happens to be pin 26's
+    // probe key is read as pin 26.
+    press(keyForPin(26));
+    saveButton()?.click();
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(String(confirm.mock.calls[0]?.[0])).toContain("pinky_side: pin 6 → 26");
+    expect(saved).toEqual([]);
+    confirm.mockReturnValue(true);
+    saveButton()?.click();
+    expect(saved).toEqual(["devices/cyborg2-left.yaml"]);
+  });
+});

@@ -137,6 +137,45 @@ export interface ProbeResult {
   stick: Partial<Record<StickDirection, StickDirection>>;
 }
 
+/**
+ * What saving a press test would change in a device map, one line per change.
+ *
+ * The press test reads every keystroke in the window, so a key pressed on the computer's
+ * own keyboard is taken as a reading too. Saving then overwrites a map that was right, so
+ * the page shows this list and asks first.
+ */
+export function deviceChanges(before: DeviceData, after: DeviceData): string[] {
+  const changes: string[] = [];
+  for (const [name, position] of Object.entries(after.positions)) {
+    const was = before.positions[name];
+    if (was === undefined) {
+      changes.push(`${name}: new, pin ${String(position.pin)}`);
+      continue;
+    }
+    if (was.pin !== position.pin) {
+      changes.push(`${name}: pin ${String(was.pin)} → ${String(position.pin)}`);
+    }
+    if (was.pin_two !== position.pin_two) {
+      changes.push(
+        `${name}: second pin ${String(was.pin_two ?? "none")} → ${String(position.pin_two ?? "none")}`,
+      );
+    }
+  }
+  const directions = (data: DeviceData): string => JSON.stringify(data.stick_directions ?? {});
+  if (directions(before) !== directions(after)) {
+    const shown = Object.entries(after.stick_directions ?? {})
+      .filter(([from, to]) => from !== to)
+      .map(([from, to]) => `${from} reads as ${to}`);
+    changes.push(`stick: ${shown.length > 0 ? shown.join(", ") : "every direction as itself"}`);
+  }
+  if (before.stick_angle !== after.stick_angle) {
+    changes.push(
+      `stick angle: ${String(before.stick_angle ?? "none")} → ${String(after.stick_angle ?? "none")}`,
+    );
+  }
+  return changes;
+}
+
 /** Rebuild a device map from what the press test observed. */
 export function deviceFromProbe(assumed: DeviceData, result: ProbeResult): DeviceData {
   // Every position comes through. One that was pressed takes the pin that fired; one that
