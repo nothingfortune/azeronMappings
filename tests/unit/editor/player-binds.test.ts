@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { start } from "../../../src/editor/app.js";
 import { buildPayload } from "../../../src/lib/editor/payload.js";
+import { showWiring } from "../../helpers/editor.js";
 
 const PAYLOAD = buildPayload();
 const SERVED = window as unknown as { AZERON_SERVED?: boolean };
@@ -88,6 +89,35 @@ describe("a keyboard-and-mouse binding", () => {
       .find((button) => button.textContent === "In-game")
       ?.click();
     expect(document.querySelector(`[data-kbm="${id}"]`)?.textContent).toBe("—");
+  });
+
+  it("gives way to a game-key capture started after it: the next key goes there", () => {
+    const id = firstAction();
+    document.querySelector<HTMLButtonElement>(`[data-kbm="${id}"]`)?.click();
+    showWiring();
+    const row = document.querySelector(`[data-kbm="${id}"]`)?.closest(".ingame-row");
+    row?.querySelector<HTMLButtonElement>(".key-chip")?.click();
+    press("KeyQ", "keydown");
+    expect(document.querySelector(`[data-kbm="${id}"]`)?.textContent).toBe("—");
+  });
+
+  it("does not bring back an action deleted while its binding was being captured", () => {
+    const payload = structuredClone(PAYLOAD);
+    const game = payload.games[0];
+    if (game) game.actions.actions = { ...game.actions.actions, wave: { label: "Wave" } };
+    document.body.innerHTML = '<div id="app"></div>';
+    start(payload);
+    [...document.querySelectorAll<HTMLButtonElement>("header .tabs button")]
+      .find((button) => button.textContent === "In-game")
+      ?.click();
+    document.querySelector<HTMLButtonElement>('[data-kbm="wave"]')?.click();
+    document
+      .querySelector('[data-kbm="wave"]')
+      ?.closest(".ingame-row")
+      ?.querySelector<HTMLButtonElement>(".delete-action")
+      ?.click();
+    press("KeyQ", "keydown");
+    expect(document.querySelector('[data-kbm="wave"]')).toBeNull();
   });
 
   it("is a modifier on its own when it is let go with nothing after it", () => {

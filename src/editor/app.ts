@@ -4871,6 +4871,8 @@ function actionKeyField(id: string): HTMLElement {
     if (capturing === id) return;
     capturing = id;
     captureProblem = null;
+    // One capture at a time: the next key goes to the field chosen last.
+    playerCapture = null;
     render();
   });
   // During capture, a mouse button pressed on the chip binds that button.
@@ -5019,13 +5021,24 @@ function gameFileMissing(game: EditorGame): HTMLElement | null {
 
 /** A keyboard-and-mouse or controller binding being captured, and for which action. */
 let playerCapture: { id: string; kind: "kbm" | "pad"; problem?: string } | null = null;
+/** End a capture of the key the keypad sends, so the next press goes to the other field. */
+function endKeyCapture(): void {
+  capturing = null;
+}
+
 /** Modifiers held during a keyboard capture, and one pressed with no key after it yet. */
 const captureHeld = new Set<string>();
 let capturePending: string | null = null;
 let playerCaptureBound = false;
 
 function setPlayerBinding(id: string, field: "kbm" | "pad", value: string | null): void {
-  const spec = (editableActions()[id] ??= {});
+  // An action deleted while its binding was being captured stays deleted.
+  const spec = editableActions()[id];
+  if (spec === undefined) {
+    playerCapture = null;
+    render();
+    return;
+  }
   if (value === null) removeKey(spec, field);
   else spec[field] = field === "kbm" ? canonicalKbm(value) : value;
   playerCapture = null;
@@ -5092,6 +5105,7 @@ function kbmField(id: string, spec: ActionSpec): HTMLElement {
     bindPlayerCapture();
     captureHeld.clear();
     capturePending = null;
+    endKeyCapture();
     playerCapture = { id, kind: "kbm" };
     render();
   });
@@ -5140,6 +5154,7 @@ function connectedPads(): (Gamepad | null)[] {
 
 /** Watch the pads for a press, for up to ten seconds; the first control pressed binds. */
 function capturePad(id: string): void {
+  endKeyCapture();
   playerCapture = { id, kind: "pad" };
   render();
   const until = Date.now() + 10_000;
@@ -5457,6 +5472,7 @@ function renderInGame(): HTMLElement {
       remove.title = "Take this action out of the game. It is on no key.";
       remove.addEventListener("click", () => {
         removeKey(editableActions(), id);
+        if (playerCapture?.id === id) playerCapture = null;
         render();
       });
       item.append(remove);
