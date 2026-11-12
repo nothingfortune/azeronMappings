@@ -476,3 +476,23 @@ describe("a control the preset lacks, with keyboard and controller bindings", ()
     expect(out.skipped.join(" ")).toMatch(/RT on the controller/);
   });
 });
+
+describe("comparing after writing a keyboard binding", () => {
+  it("agrees with the file the writer just made", () => {
+    const actions = vocab({
+      fire: { ingame: "Fire", key: "KeyF", kbm: "MouseLeft" },
+      look: { ingame: "Look", kbm: "KeyL" },
+    });
+    const out = applyBinds(
+      file(
+        button("Fire", none("Primary"), none("Secondary")),
+        button("Look", none("Primary"), none("Secondary")),
+      ),
+      actions,
+    );
+    expect(compareBinds(parseBinds(out.text), actions).map((row) => row.status)).toEqual([
+      "agrees",
+      "agrees",
+    ]);
+  });
+});

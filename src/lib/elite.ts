@@ -980,7 +980,15 @@ export function compareBinds(
       continue;
     }
     const theirs = control.slots.filter(isKeyboardOrMouse).map(bindingOf);
-    const agrees = ours === "" ? theirs.length === 0 : theirs.length === 1 && theirs[0] === ours;
+    // What the writer puts there: the keypad's binding, and the keyboard-and-mouse one when
+    // it is another. A note about what cannot be written is not wanted here.
+    const keypad = wantedBy(action, spec);
+    const extra = kbmWanted(action, spec, keypad, []);
+    const expected = [keypad, extra]
+      .filter((entry): entry is Wanted => entry !== null)
+      .map(wantedText)
+      .sort();
+    const agrees = JSON.stringify([...theirs].sort()) === JSON.stringify(expected);
     rows.push({ action, control: tag, ours, theirs, status: agrees ? "agrees" : "differs" });
   }
   return rows;

@@ -170,3 +170,34 @@ describe("a controller binding", () => {
     });
   });
 });
+
+describe("the drawings in a game with modes of play", () => {
+  it("show only the actions the open layout plays", () => {
+    const payload = structuredClone(PAYLOAD);
+    const game = payload.games[0];
+    if (!game) throw new Error("no game");
+    game.actions.actions = {
+      ...game.actions.actions,
+      fire_guns: { label: "Fire guns", mode: "ship", kbm: "KeyH" },
+      buggy_horn: { label: "Buggy horn", mode: "srv", kbm: "KeyH" },
+    };
+    const set = Object.keys(game.sets.sets)[0];
+    if (set === undefined) throw new Error("no set");
+    game.sets.sets[set] = { ...game.sets.sets[set], modes: ["ship"] };
+    document.body.innerHTML = '<div id="app"></div>';
+    start(payload);
+    const sets = document.querySelectorAll<HTMLSelectElement>("header select")[1];
+    if (sets) {
+      sets.value = set;
+      sets.dispatchEvent(new Event("change"));
+    }
+    [...document.querySelectorAll<HTMLButtonElement>("header .tabs button")]
+      .find((button) => button.textContent === "In-game")
+      ?.click();
+    const h = [...document.querySelectorAll<HTMLElement>(".keyboard-board .device-key")].find(
+      (node) => node.querySelector(".device-key-name")?.textContent === "H",
+    );
+    expect(h?.title).toBe("Fire guns");
+    expect(h?.classList.contains("shared")).toBe(false);
+  });
+});

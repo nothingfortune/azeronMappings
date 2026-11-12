@@ -345,6 +345,23 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 .player-bind { display: inline-flex; gap: 4px; align-items: center; flex-wrap: wrap; min-width: 0; }
 .player-bind .bind-kind { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
 .player-bind select { max-width: min(190px, 100%); min-width: 0; }
+/* The bindings drawn on a keyboard, a mouse and a controller. */
+.device-boards { margin: 6px 0 10px; }
+.device-boards summary { cursor: pointer; color: var(--muted); font-size: 12px; }
+.device-boards-body { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px; }
+.device-board { display: grid; gap: 3px; min-width: 0; max-width: 100%; overflow-x: auto; }
+.device-row { display: flex; gap: 3px; }
+.device-row.other-keys { flex-wrap: wrap; }
+.device-key { width: calc(var(--w, 1) * 40px); min-height: 38px; padding: 2px; border-radius: 5px;
+              border: 1px solid var(--line); background: var(--bg); color: var(--muted);
+              display: flex; flex-direction: column; align-items: center; justify-content: center;
+              font: 10px/1.15 ui-sans-serif, system-ui, sans-serif; flex: none; overflow: hidden; }
+.device-key.bound { background: var(--panel); color: var(--fg); border-color: var(--accent); cursor: pointer; }
+.device-key.shared { border-color: var(--warn); }
+.device-key-name { font-weight: 600; }
+.device-key-action { font-size: 9px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.device-caption { font-size: 10.5px; color: var(--muted); text-transform: uppercase; margin-top: 4px; }
+.ingame-row.picked { outline: 2px solid var(--accent); }
 .clear-hint { display: none; margin-top: 6px; padding: 6px; border: 1px dashed var(--line);
               border-radius: 6px; text-align: center; font-size: 11.5px; color: var(--muted); }
 body.dragging-key .clear-hint { display: block; }

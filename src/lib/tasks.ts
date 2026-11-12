@@ -7,12 +7,22 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { basename, dirname, join } from "node:path";
 
 import { isMap, isSeq, parse, parseDocument } from "yaml";
 
-import { dataDirs, hostPath, posixJoin, repoPath } from "../config/paths.js";
+import { dataDirs, hostPath, localPath, posixJoin, repoPath } from "../config/paths.js";
+import { addActions } from "./actionfile.js";
+import { discoverControls } from "./discover.js";
 import type { ExportDocument } from "../types/azeron.js";
 import type { Acknowledgement, ActionSpec, ProfileData, ProfileMeta } from "../types/profile.js";
 import { SLOTS } from "../types/azeron.js";
@@ -1079,6 +1089,69 @@ export function acknowledgeFinding(request: {
  */
 function layoutName(profile: Profile): string {
   return profile.set ?? profile.slug;
+}
+
+/**
+ * Add the controls a game's own input file lists to its actions.yaml: each one the game
+ * does not have yet, by id and by the row it is in the game's file, with its keyboard and
+ * controller keys. Nothing the game already has is touched.
+ */
+export function addDiscoveredControls(request: { game: string; path: string }): {
+  added: { id: string; label: string }[];
+  known: number;
+} {
+  const game = gameNamed(request.game);
+  const path = request.path.trim().replace(/^"(.*)"$/, "$1");
+  const file = path === "" ? null : localPath(path);
+  if (file === null || !existsSync(file) || !statSync(file).isFile()) {
+    throw new ScaffoldError(`there is no file at ${path || "that path"}`);
+  }
+  const found = discoverControls(readFileSync(file, "utf8"));
+  if (found.length === 0) {
+    throw new ScaffoldError(
+      "no controls found in that file: it is read as an Unreal input file (Input.ini or " +
+        "DefaultInput.ini), which this game may not use",
+    );
+  }
+  const have = game.actions.actions;
+  const rows = new Set(
+    Object.values(have)
+      .map((spec) =>
+        spec.ingame === undefined ? null : `${spec.ingame}@${String(spec.ingame_scale ?? 1)}`,
+      )
+      .filter((row): row is string => row !== null),
+  );
+  const fresh = found.filter(
+    (action) =>
+      !(action.id in have) &&
+      (action.ingame === undefined ||
+        !rows.has(`${action.ingame}@${String(action.ingame_scale ?? 1)}`)),
+  );
+  if (fresh.length > 0) {
+    const actionsPath = posixJoin(game.rel, "actions.yaml");
+    const text = readFileSync(repoPath(actionsPath), "utf8");
+    // A row in a category the game's file does not own is not one the editor writes: the
+    // control comes in by name and keys, without the reference that would block updates.
+    const owned = game.config.ingame_owned_categories;
+    const specs = Object.fromEntries(
+      fresh.map(({ id, category, ingame, ingame_scale, ...spec }) => {
+        const keeps =
+          ingame !== undefined &&
+          (category === undefined || owned === undefined || owned.includes(category));
+        return [
+          id,
+          keeps
+            ? { ...spec, ingame, ...(ingame_scale === undefined ? {} : { ingame_scale }) }
+            : spec,
+        ];
+      }),
+    );
+    writeText(actionsPath, addActions(text, specs));
+  }
+  return {
+    added: fresh.map((action) => ({ id: action.id, label: action.label })),
+    known: found.length - fresh.length,
+  };
 }
 
 /** The game a request names, or a refusal that says so. */

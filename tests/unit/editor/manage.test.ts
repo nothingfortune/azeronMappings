@@ -202,3 +202,37 @@ describe("managing with unsaved edits", () => {
     expect(calls.map((call) => call.path)).not.toContain("/api/layout/delete");
   });
 });
+
+describe("reading a game's controls from a file", () => {
+  it("sends the location for the open game, and says what was added", async () => {
+    SERVED.AZERON_SERVED = true;
+    calls = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((path: string, init?: { body?: string }) => {
+        if (path === "/api/payload") {
+          return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(PAYLOAD) });
+        }
+        calls.push({ path, body: init?.body === undefined ? null : JSON.parse(init.body) });
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () =>
+            Promise.resolve({ ok: true, added: [{ id: "wave", label: "Wave" }], known: 3 }),
+        });
+      }),
+    );
+    openSetup();
+    const path = document.querySelector<HTMLInputElement>('[data-discover="path"]');
+    if (!path) throw new Error("no location box");
+    path.value = "D:/Games/Some Game/Config/DefaultInput.ini";
+    document.querySelector<HTMLButtonElement>('[data-discover="read"]')?.click();
+    await vi.waitFor(() => {
+      expect(document.body.textContent).toContain("Added 1 control: Wave. 3 were already there.");
+    });
+    expect(calls.find((call) => call.path === "/api/discover")?.body).toEqual({
+      game: "everspace",
+      path: "D:/Games/Some Game/Config/DefaultInput.ini",
+    });
+  });
+});

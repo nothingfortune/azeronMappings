@@ -80,7 +80,7 @@ export function parseInput(text: string): IniFile {
 }
 
 /** Our key names to the names Unreal uses in this file. */
-const TO_UE: Record<string, string> = {
+export const TO_UE: Record<string, string> = {
   Escape: "Escape",
   Tab: "Tab",
   Space: "SpaceBar",
@@ -431,7 +431,7 @@ export function applyVocabulary(
 export const GAMEPAD_GROUP = "Gamepad";
 
 /** An Xbox-style control as Unreal names it on a button row. Stick directions are axes. */
-const UE_GAMEPAD: Readonly<Record<string, string>> = {
+export const UE_GAMEPAD: Readonly<Record<string, string>> = {
   A: "Gamepad_FaceButton_Bottom",
   B: "Gamepad_FaceButton_Right",
   X: "Gamepad_FaceButton_Left",
@@ -451,7 +451,7 @@ const UE_GAMEPAD: Readonly<Record<string, string>> = {
 };
 
 /** Mouse tokens as Unreal names them. */
-const UE_MOUSE: Readonly<Record<string, string>> = {
+export const UE_MOUSE: Readonly<Record<string, string>> = {
   MouseLeft: "LeftMouseButton",
   MouseRight: "RightMouseButton",
   MouseMiddle: "MiddleMouseButton",

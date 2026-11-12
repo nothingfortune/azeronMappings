@@ -6,6 +6,15 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Added
 
+- **A game's controls read from its own file, and drawn on the devices.** The Setup tab
+  reads a game's input file (an Unreal game's `Input.ini` or `DefaultInput.ini`, or
+  Everspace 2's own) from a location pasted in: every control it lists that the game does
+  not have becomes an action, with its keyboard-and-mouse and controller keys
+  (`discoverControls`, `addDiscoveredControls`, `/api/discover`). Nothing the game has is
+  touched. The In-game tab can show the bindings drawn on a keyboard, a mouse and a
+  controller; a bound key names its action, a control two actions share is marked, and
+  clicking one goes to that action's row.
+
 - **The game is told the keyboard and controller bindings too.** Update the game's keys…
   now writes them for the two games whose files the editor understands:
   - Everspace 2: an action's keyboard-and-mouse binding goes in its row's second key when
