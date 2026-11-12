@@ -45,7 +45,7 @@ test("a game starts from its genre, with no export", async ({ page }) => {
   await shot(page, "10-setup-new-game-no-export");
   await form.getByRole("button", { name: "Create game" }).click();
 
-  await expect(page.locator("header select").first().locator("option:checked")).toHaveText(NAME, {
+  await expect(page.locator("header .game-switch")).toContainText(NAME, {
     timeout: 120_000,
   });
   // Both units, named for the game; the left one carries the genre's layout.

@@ -23,7 +23,7 @@ const WAIT = { timeout: 15_000 };
 function mount(payload = PAYLOAD): void {
   document.body.innerHTML = '<div id="app"></div>';
   start(structuredClone(payload));
-  const select = document.querySelectorAll<HTMLSelectElement>("header select")[1];
+  const select = document.querySelectorAll<HTMLSelectElement>("header select")[0];
   if (select && select.value !== LIVE_SET) {
     select.value = LIVE_SET;
     select.dispatchEvent(new Event("change"));
@@ -368,7 +368,7 @@ describe("a write that is changed or stopped part way", () => {
     await vi.waitFor(() => {
       expect(bar()).toContain("Right unit (29993) →");
     }, WAIT);
-    const layout = document.querySelectorAll<HTMLSelectElement>("header select")[1];
+    const layout = document.querySelectorAll<HTMLSelectElement>("header select")[0];
     const other = [...(layout?.options ?? [])].find((option) => option.value !== LIVE_SET);
     if (!layout || !other) throw new Error("no second layout");
     vi.stubGlobal("confirm", () => true);
@@ -416,7 +416,7 @@ describe("what the page says is on the units, after a direct write", () => {
     );
     document.body.innerHTML = '<div id="app"></div>';
     start({ ...structuredClone(PAYLOAD), appStore: true });
-    const select = document.querySelectorAll<HTMLSelectElement>("header select")[1];
+    const select = document.querySelectorAll<HTMLSelectElement>("header select")[0];
     if (select && select.value !== LIVE_SET) {
       select.value = LIVE_SET;
       select.dispatchEvent(new Event("change"));

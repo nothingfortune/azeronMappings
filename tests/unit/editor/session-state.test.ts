@@ -57,16 +57,17 @@ const clean = (): boolean => {
   return saved?.hasAttribute("disabled") === true;
 };
 
-function gameSelect(): HTMLSelectElement {
-  const found = document.querySelector<HTMLSelectElement>("header select");
-  if (!found) throw new Error("no game selector");
-  return found;
+/** The open game's name, as the header's game button says it. */
+function gameName(): string {
+  return document.querySelector("header .game-switch")?.textContent ?? "";
 }
 
+/** A game by its place in the gallery, chosen the way the owner chooses one. */
 function chooseGame(index: number): void {
-  const select = gameSelect();
-  select.value = String(index);
-  select.dispatchEvent(new Event("change"));
+  document.querySelector<HTMLButtonElement>("header .game-switch")?.click();
+  const card = document.querySelectorAll<HTMLButtonElement>(".game-card")[index];
+  if (!card) throw new Error(`no game ${String(index)}`);
+  card.click();
 }
 
 function press(code: string): void {
@@ -159,7 +160,7 @@ describe("opening a data file", () => {
       expect(confirm).toHaveBeenCalled();
     });
     expect(confirm.mock.calls[0]?.[0] ?? "").toContain("discards edits");
-    expect(gameSelect().textContent).not.toContain("Replacement data");
+    expect(gameName()).not.toContain("Replacement data");
     expect(clean()).toBe(false);
   });
 
@@ -171,7 +172,7 @@ describe("opening a data file", () => {
     );
     choose(renamed());
     await vi.waitFor(() => {
-      expect(gameSelect().textContent).toContain("Replacement data");
+      expect(gameName()).toContain("Replacement data");
     });
     expect(clean()).toBe(true);
   });
@@ -181,7 +182,7 @@ describe("opening a data file", () => {
     vi.stubGlobal("confirm", confirm);
     choose(renamed());
     await vi.waitFor(() => {
-      expect(gameSelect().textContent).toContain("Replacement data");
+      expect(gameName()).toContain("Replacement data");
     });
     expect(confirm).not.toHaveBeenCalled();
   });

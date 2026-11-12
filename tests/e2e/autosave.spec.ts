@@ -25,7 +25,24 @@ function restore(files: Map<string, string>): void {
 
 test.describe("autosave", () => {
   // As the owner gets the page: nothing stored, so autosave is on.
-  test.use({ storageState: { cookies: [], origins: [] }, viewport: { width: 1920, height: 1080 } });
+  // Autosave's own default, which the other specs turn off; on the board, not the gallery.
+  test.use({
+    storageState: {
+      cookies: [],
+      origins: [
+        {
+          origin: `http://127.0.0.1:${process.env.E2E_PORT ?? "4179"}`,
+          localStorage: [
+            {
+              name: "azeron-editor-place",
+              value: JSON.stringify({ game: "everspace", set: "", mode: "edit" }),
+            },
+          ],
+        },
+      ],
+    },
+    viewport: { width: 1920, height: 1080 },
+  });
 
   test("an edit is written to the repo without Save being pressed, and Undo writes it back", async ({
     page,

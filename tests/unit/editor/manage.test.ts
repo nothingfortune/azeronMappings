@@ -236,3 +236,25 @@ describe("reading a game's controls from a file", () => {
     });
   });
 });
+
+describe("starting the units' mapping over", () => {
+  it("empties every key of the layout after asking, and keeps every action", () => {
+    vi.stubGlobal(
+      "confirm",
+      vi.fn(() => true),
+    );
+    const pinkyBefore = (): string =>
+      document.querySelectorAll(".hand")[0]?.querySelector('.key[data-position="pinky_1"]')
+        ?.textContent ?? "";
+    const before = document.querySelectorAll(".action").length;
+    control("start-over").click();
+    expect(pinkyBefore()).not.toContain("Escape menu");
+    expect(document.querySelector("header .tabs button.primary")?.textContent).toBe("Edit");
+    // Pinky 1 on the left unit held Escape menu.
+    const pinky = document
+      .querySelectorAll(".hand")[0]
+      ?.querySelector('.key[data-position="pinky_1"]');
+    expect(pinky?.textContent).not.toContain("Escape menu");
+    expect(document.querySelectorAll(".palette .action").length).toBeGreaterThanOrEqual(before);
+  });
+});

@@ -6,6 +6,25 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Added
 
+- **Choosing a game is the first step, from a gallery.** A first visit opens on every
+  game as a card -- its genre, layouts, units and actions -- and one to add a game; the
+  header's game drop-down is now a button naming the open game, which goes back to them.
+- **A key that is empty asks what goes on it.** Clicking it opens a chooser: the game's
+  actions, the needed ones still on no key first, with a search; or a whole keyboard, to
+  send one key exactly (the arrow keys for Helldivers' stratagems, say) -- the action
+  already on that key, or a new one named after it. A key in use has Choose action… in
+  the Key panel.
+- **A controller binding is picked from a pad**, drawn as it is held -- triggers and
+  bumpers, both sticks with their clicks, the d-pad and A B X Y -- in place of a list of
+  names that was cut off. The genre's usual control shows beside it as a hint.
+- **Start over** on the Setup tab empties every key on the units in the layout and keeps
+  every action, to lay the units out again.
+
+### Changed
+
+- **The press test is a utility, at the far right of the header**, out of the tabs used day
+  to day.
+
 - **A game's controls typed in as a list.** Most games keep no readable controls file --
   Helldivers 2, Darktide and Space Marine 2 hold their bindings in save data, and an
   Unreal game writes its input file only once something is rebound -- so the In-game tab

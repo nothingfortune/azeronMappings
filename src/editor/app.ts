@@ -35,10 +35,10 @@ import { xboxLabel } from "../lib/xbox.js";
 import { eliteKeyFor } from "../lib/elite.js";
 import type { UnitCheck, UnitDifference, UnitsReport } from "../lib/units.js";
 import { describeSent, expectedPresses, verdict } from "../lib/checkunit.js";
-import { keyboardBoard, padBoard } from "./device-boards.js";
+import { keyboardBoard, keyChooser, padBoard, padChooser } from "./device-boards.js";
+import { openPicker, pickerOpen } from "./picker.js";
 import {
   MOUSE_BUTTON_TOKENS,
-  PAD_CONTROLS,
   canonicalKbm,
   controlFromLine,
   kbmLabel,
@@ -111,7 +111,7 @@ declare global {
   }
 }
 
-type Mode = "edit" | "in-game" | "press-test" | "repo";
+type Mode = "games" | "edit" | "in-game" | "press-test" | "repo";
 
 interface State {
   payload: EditorPayload;
@@ -607,6 +607,8 @@ function keyCard(slug: string, position: string, extraClass = ""): HTMLElement {
     }
     state.selected = { slug, position };
     render();
+    // An empty key is a question -- what goes here? -- so the choices come up at once.
+    if (spec?.tap === undefined) openActionPicker(slug, position);
   });
   return card;
 }
@@ -1211,6 +1213,133 @@ function confirmDiscard(what: string): boolean {
   return window.confirm(`${what} discards edits that have not been saved. Continue?`);
 }
 
+/**
+ * What goes on a key: the game's actions, the ones still needed first, or a key of the
+ * keyboard sent as it is -- for a game that wants the arrow keys, say, whatever the action.
+ */
+function openActionPicker(slug: string, position: string): void {
+  if (profileFor(slug).device.isStick(position)) return;
+  const game = currentGame();
+  const unit = workingData(slug).profile.unit;
+  const modes = layoutModes(currentSets(game), state.setName);
+  cancelCaptures();
+  const put = (id: string): void => {
+    assignAction(slug, position, state.slot, id);
+    state.selected = { slug, position };
+    render();
+  };
+  openPicker(`What goes on ${whereLabel(unit, position)}?`, [
+    {
+      name: "Actions",
+      render: (close) => {
+        const actions = actionSetFor(game).actions;
+        const bound = boundActions();
+        const rank = (id: string, spec: ActionSpec): number => {
+          const needed = (spec.tags ?? []).includes("required");
+          if (bound.has(id)) return 2;
+          return needed ? 0 : 1;
+        };
+        const entries = Object.entries(actions)
+          .filter(([, spec]) => !spec.provided_by && playsAction(modes, spec))
+          .sort(
+            ([a, specA], [b, specB]) =>
+              rank(a, specA) - rank(b, specB) || (specA.label ?? a).localeCompare(specB.label ?? b),
+          );
+        const search = el("input", {
+          type: "search",
+          placeholder: "Find an action",
+          class: "picker-search",
+          "aria-label": "Find an action",
+        });
+        const list = el("div", { class: "picker-list" });
+        for (const [id, spec] of entries) {
+          const where = bound.get(id);
+          const item = el("button", { class: "picker-item", type: "button", "data-action": id }, [
+            el("b", {}, [spec.label ?? id]),
+            el("small", {}, [
+              where === undefined
+                ? (spec.tags ?? []).includes("required")
+                  ? "needed, on no key yet"
+                  : "on no key yet"
+                : `also on ${where.join(", ")}`,
+            ]),
+          ]);
+          item.addEventListener("click", () => {
+            close();
+            put(id);
+          });
+          list.append(item);
+        }
+        search.addEventListener("input", () => {
+          const query = search.value.trim().toLowerCase();
+          for (const item of list.querySelectorAll<HTMLElement>(".picker-item")) {
+            item.hidden = query !== "" && !item.textContent.toLowerCase().includes(query);
+          }
+        });
+        return el("div", {}, [search, list]);
+      },
+    },
+    {
+      name: "Keyboard key",
+      render: (close) =>
+        el("div", {}, [
+          el("div", { class: "muted" }, [
+            "The key this control sends, exactly: for a game that wants the arrow keys, say.",
+          ]),
+          keyChooser(
+            (code) => {
+              close();
+              put(actionForKey(code, modes));
+            },
+            { mouse: ["MouseLeft", "MouseMiddle", "MouseRight"] },
+          ),
+        ]),
+    },
+  ]);
+}
+
+/** Azeron's names for the mouse buttons it can send. */
+const AZERON_MOUSE: Readonly<Record<string, string>> = {
+  MouseLeft: "left",
+  MouseMiddle: "middle",
+  MouseRight: "right",
+};
+
+/**
+ * The action that sends exactly this key: one the game has, or a new one named after the
+ * key. A key already given to an action is that action's, so it is never sent twice.
+ */
+function actionForKey(code: string, modes: ReadonlySet<string> | null): string {
+  const actions = editableActions();
+  const mouse = AZERON_MOUSE[code];
+  const modifier = mouse === undefined && isModifier(code);
+  // Only an action the layout plays: another mode's would be put on the key and then hidden,
+  // the layout's own action for the key left wanting.
+  const found = Object.entries(actions).find(([, spec]) =>
+    !playsAction(modes, spec)
+      ? false
+      : mouse !== undefined
+        ? spec.mouse === mouse
+        : modifier
+          ? spec.meta === code && spec.key === undefined
+          : spec.key === code && spec.meta === undefined,
+  );
+  if (found !== undefined) return found[0];
+  const label = kbmLabel(code);
+  const id = newActionId(label, actions);
+  const spec: ActionSpec =
+    mouse !== undefined
+      ? { label, mouse }
+      : modifier
+        ? { label, meta: code }
+        : { label, key: code };
+  // A layout for one mode of play gets an action of that mode, live only where it is.
+  const only = modes?.size === 1 ? [...modes][0] : undefined;
+  if (only !== undefined) spec.mode = only;
+  actions[id] = spec;
+  return id;
+}
+
 function assignToSelection(actionId: string): void {
   const selection = state.selected;
   if (!selection) return;
@@ -1317,6 +1446,16 @@ function renderInspector(): HTMLElement {
       `${unitLabel(data.profile.unit)} unit · ${positionLabel(selection.position)}`,
     ]),
   );
+  if (!isStick) {
+    const choose = el("button", { class: "btn small", type: "button", "data-choose-action": "" }, [
+      "Choose action…",
+    ]);
+    choose.title = "Pick what this key does from the game's actions, or any keyboard key";
+    choose.addEventListener("click", () => {
+      openActionPicker(selection.slug, selection.position);
+    });
+    panel.append(choose);
+  }
 
   const labelInput = el("input", { type: "text", value: spec.label ?? "" });
   labelInput.addEventListener("change", () => {
@@ -1584,6 +1723,8 @@ interface Place {
   gameIndex: number;
   setName: string;
   mode: Mode;
+  /** Whether it was kept from an earlier visit, rather than the first game by default. */
+  stored: boolean;
 }
 
 function storedPlace(payload: EditorPayload): Place {
@@ -1594,6 +1735,7 @@ function storedPlace(payload: EditorPayload): Place {
     gameIndex: 0,
     setName: first ? ([...setsOf(first).keys()][0] ?? "") : "",
     mode: "edit",
+    stored: false,
   };
   let kept: unknown;
   try {
@@ -1610,7 +1752,8 @@ function storedPlace(payload: EditorPayload): Place {
   return {
     gameIndex,
     setName: typeof set === "string" && sets.includes(set) ? set : (sets[0] ?? ""),
-    mode: mode === "in-game" || mode === "repo" ? mode : "edit",
+    mode: mode === "in-game" || mode === "repo" || mode === "games" ? mode : "edit",
+    stored: true,
   };
 }
 
@@ -4536,33 +4679,27 @@ function renderHeader(): HTMLElement {
   const header = el("header");
   header.append(el("h1", {}, ["Azeron profile editor"]));
 
-  const gameSelect = el("select", {});
-  state.payload.games.forEach((game, index) => {
-    const option = el("option", { value: String(index) }, [game.name]);
-    if (index === state.gameIndex) option.setAttribute("selected", "selected");
-    gameSelect.append(option);
-  });
-  gameSelect.addEventListener("change", () => {
-    if (!confirmDiscard("Switching game")) {
-      gameSelect.value = String(state.gameIndex);
-      return;
-    }
-    resetSession();
-    // A save report is about the game it was saved in: its findings, and the Accept on
-    // each, would be read as the next game's.
-    saveReport = null;
-    saveNote = null;
-    state.gameIndex = Number(gameSelect.value);
-    state.working.clear();
-    state.workingActions = null;
-    state.workingSets = null;
-    state.selected = null;
-    state.setName = [...setsOf(currentGame()).keys()][0] ?? "";
+  // The game is chosen from the gallery, the first step; this says which, and goes back.
+  const gameButton = el(
+    "button",
+    {
+      class: `btn game-switch${state.mode === "games" ? " primary" : ""}`,
+      type: "button",
+      title: "Choose another game",
+    },
+    [`▦ ${currentGame().name}`],
+  );
+  gameButton.addEventListener("click", () => {
+    if (state.mode !== "games") resetSession();
+    state.mode = "games";
     render();
   });
   const tabs = el("div", { class: "tabs" });
-  for (const mode of ["edit", "in-game", "press-test", "repo"] as Mode[]) {
+  // The press test is a utility, run once per unit, not a step of making a layout: it sits
+  // at the far right of the header, after everything used day to day.
+  for (const mode of ["edit", "in-game", "repo"] as Mode[]) {
     const names: Record<Mode, string> = {
+      games: "Games",
       edit: "Edit",
       "in-game": "In-game",
       "press-test": "Press test",
@@ -4586,7 +4723,7 @@ function renderHeader(): HTMLElement {
 
   // Labelled: a bare "Everspace 2" beside a bare "akimbo-v10" said nothing about which
   // was which, and "set" is this repo's word, not the user's.
-  header.append(el("label", { class: "picker" }, [el("span", {}, ["Game"]), gameSelect]));
+  header.append(gameButton);
 
   const setSelect = el("select", {});
   for (const name of setsOf(currentGame()).keys()) {
@@ -4790,7 +4927,21 @@ function renderHeader(): HTMLElement {
     el("summary", { class: "btn", title: "More" }, ["⋯"]),
     items,
   ]);
-  header.append(menu, picker);
+  const pressTest = el(
+    "button",
+    {
+      class: `btn small utility press-test-tab${state.mode === "press-test" ? " primary" : ""}`,
+      type: "button",
+      title: "Find out which pin each key of a unit is wired to. Once per new unit.",
+    },
+    ["Press test"],
+  );
+  pressTest.addEventListener("click", () => {
+    if (state.mode !== "press-test") resetSession();
+    state.mode = "press-test";
+    render();
+  });
+  header.append(menu, pressTest, picker);
   return header;
 }
 
@@ -5054,6 +5205,17 @@ function setPlayerBinding(id: string, field: "kbm" | "pad", value: string | null
   render();
 }
 
+/** Stop every key or pad capture, so nothing typed next is recorded as a binding. */
+function cancelCaptures(): void {
+  endKeyCapture();
+  captureHeld.clear();
+  capturePending = null;
+  if (playerCapture !== null) {
+    playerCapture = null;
+    render();
+  }
+}
+
 /** Keys while a keyboard binding is captured: modifiers build up, the next key binds. */
 function bindPlayerCapture(): void {
   if (playerCaptureBound) return;
@@ -5067,7 +5229,8 @@ function bindPlayerCapture(): void {
   window.addEventListener(
     "keydown",
     (event) => {
-      if (playerCapture?.kind !== "kbm") return;
+      // A chooser open over the page has the keys, whatever was being captured.
+      if (playerCapture?.kind !== "kbm" || pickerOpen()) return;
       event.preventDefault();
       event.stopImmediatePropagation();
       if (event.repeat) return;
@@ -5083,7 +5246,7 @@ function bindPlayerCapture(): void {
   window.addEventListener(
     "keyup",
     (event) => {
-      if (playerCapture?.kind !== "kbm") return;
+      if (playerCapture?.kind !== "kbm" || pickerOpen()) return;
       event.preventDefault();
       event.stopImmediatePropagation();
       captureHeld.delete(event.code);
@@ -5199,17 +5362,42 @@ function capturePad(id: string): void {
 /** What an action is on for someone on a controller: pick it, or press it on a pad. */
 function padField(id: string, spec: ActionSpec): HTMLElement {
   const capturing = playerCapture?.id === id && playerCapture.kind === "pad";
-  const select = el("select", { "data-pad": id, "aria-label": "Controller" });
-  const none = el("option", { value: "" }, [
-    spec.xbox === undefined ? "—" : `— (games often use ${padLabel(spec.xbox)})`,
-  ]);
-  select.append(none);
-  for (const control of PAD_CONTROLS) {
-    select.append(el("option", { value: control }, [padLabel(control)]));
-  }
-  select.value = spec.pad ?? "";
-  select.addEventListener("change", () => {
-    setPlayerBinding(id, "pad", select.value === "" ? null : select.value);
+  // A controller binding is chosen from the pad's buttons, drawn as a pad is held.
+  const select = el(
+    "button",
+    {
+      class: `bind-chip pad-chip${spec.pad === undefined ? " unset" : ""}`,
+      type: "button",
+      "data-pad": id,
+      "data-value": spec.pad ?? "",
+      "aria-label": "Controller",
+    },
+    [spec.pad === undefined ? "—" : padLabel(spec.pad)],
+  );
+  select.addEventListener("click", () => {
+    // A capture still running would take the keys meant for the chooser, Escape included.
+    cancelCaptures();
+    openPicker(`Controller button for ${spec.label ?? id}`, [
+      {
+        name: "Controller",
+        render: (close) => {
+          const none = el("button", { class: "btn small", type: "button", "data-choose": "" }, [
+            "None",
+          ]);
+          none.addEventListener("click", () => {
+            close();
+            setPlayerBinding(id, "pad", null);
+          });
+          return el("div", {}, [
+            padChooser((control) => {
+              close();
+              setPlayerBinding(id, "pad", control);
+            }, spec.pad),
+            el("div", { class: "manage-row" }, [none]),
+          ]);
+        },
+      },
+    ]);
   });
   const press = el("button", { class: "btn small", type: "button", "data-pad-press": id }, [
     capturing && playerCapture?.problem === undefined ? "Press it on the pad…" : "Press on pad",
@@ -5219,6 +5407,10 @@ function padField(id: string, spec: ActionSpec): HTMLElement {
     capturePad(id);
   });
   const parts: HTMLElement[] = [el("span", { class: "bind-kind" }, ["Controller"]), select, press];
+  // The control games usually put this on, beside the picker rather than squeezed into it.
+  if (spec.pad === undefined && spec.xbox !== undefined) {
+    parts.push(el("span", { class: "bind-hint" }, [`usually ${padLabel(spec.xbox)}`]));
+  }
   if (capturing && playerCapture?.problem !== undefined) {
     parts.push(el("span", { class: "keybind-note bad" }, [playerCapture.problem]));
   }
@@ -6214,6 +6406,79 @@ function renderNewGame(): HTMLElement {
  * Only reachable when served: opened as a file there is nothing on the other end, and
  * the tab says so rather than offering buttons that cannot work.
  */
+/** Open another game, on its first layout: what the header's game picker used to do. */
+function switchGame(index: number): void {
+  if (index !== state.gameIndex) {
+    if (!confirmDiscard("Switching game")) return;
+    resetSession();
+    // A save report is about the game it was saved in: its findings, and the Accept on
+    // each, would be read as the next game's.
+    saveReport = null;
+    saveNote = null;
+    state.gameIndex = index;
+    state.working.clear();
+    state.workingActions = null;
+    state.workingSets = null;
+    state.selected = null;
+    state.setName = [...setsOf(currentGame()).keys()][0] ?? "";
+  }
+  state.mode = "edit";
+  render();
+}
+
+/**
+ * The first step: every game as a card, and one to add a game. Choosing one opens it on
+ * the Edit tab, on its first layout.
+ */
+function renderGames(): HTMLElement {
+  const panel = el("div", { class: "panel games" });
+  panel.append(
+    el("h2", {}, ["Choose a game"]),
+    el("div", { class: "muted" }, [
+      "Each game holds its layouts for the units, and its keyboard, mouse and controller keys.",
+    ]),
+  );
+  const grid = el("div", { class: "game-gallery" });
+  state.payload.games.forEach((game, index) => {
+    const layouts = [...setsOf(game).keys()];
+    const units = new Set(game.profiles.map((profile) => profile.data.profile.unit ?? "left"));
+    const actions = Object.keys(game.actions.actions ?? {}).length;
+    const card = el(
+      "button",
+      {
+        class: `game-card${index === state.gameIndex ? " current" : ""}`,
+        type: "button",
+        "data-game": game.slug,
+      },
+      [
+        el("b", { class: "game-name" }, [game.name]),
+        el("span", { class: "game-genre" }, [game.rel.split("/")[1] ?? ""]),
+        el("span", { class: "game-facts" }, [
+          `${String(layouts.length)} layout${layouts.length === 1 ? "" : "s"} · ` +
+            `${units.size === 2 ? "both units" : `${[...units][0] ?? "left"} unit`} · ` +
+            `${String(actions)} actions`,
+        ]),
+      ],
+    );
+    card.addEventListener("click", () => {
+      switchGame(index);
+    });
+    grid.append(card);
+  });
+  const add = el("button", { class: "game-card add", type: "button", "data-game": "" }, [
+    el("b", { class: "game-name" }, ["+ Add a new game"]),
+    el("span", { class: "game-facts" }, ["From its genre, on one unit or both"]),
+  ]);
+  add.addEventListener("click", () => {
+    resetSession();
+    state.mode = "repo";
+    render();
+  });
+  grid.append(add);
+  panel.append(grid);
+  return panel;
+}
+
 /** The name typed for the open layout, while it is being renamed. */
 let renameTo: string | null = null;
 
@@ -6419,9 +6684,18 @@ function renderManage(): HTMLElement | null {
     });
   });
 
+  // Start the units' mapping again: every key emptied, every action kept to place again.
+  const startOver = el("button", { class: "btn", type: "button", "data-manage": "start-over" }, [
+    "Start over",
+  ]);
+  startOver.title = "Empty every key on the units in this layout. The actions all stay.";
+  startOver.addEventListener("click", () => {
+    state.mode = "edit";
+    clearAllKeys();
+  });
   box.append(
     el("div", { class: "manage-row" }, [name, rename]),
-    el("div", { class: "manage-row" }, [removeLayout, removeGame]),
+    el("div", { class: "manage-row" }, [startOver, removeLayout, removeGame]),
   );
   return box;
 }
@@ -7309,6 +7583,11 @@ function draw(): void {
     return;
   }
 
+  if (state.mode === "games") {
+    root.append(el("div", { class: "workspace single" }, [renderGames()]));
+    return;
+  }
+
   if (state.mode === "press-test") {
     root.append(el("div", { class: "workspace single" }, [renderPressTest()]));
     return;
@@ -7347,7 +7626,7 @@ function draw(): void {
     document.addEventListener(
       "keydown",
       (event) => {
-        if (capturing === null) return;
+        if (capturing === null || pickerOpen()) return;
         // Every key is a candidate, Escape and Tab included -- Cancel is a button -- and
         // none of them should also do what the browser would do with it.
         event.preventDefault();
@@ -7389,7 +7668,11 @@ function draw(): void {
 }
 
 /** Mount the editor into #app. Exported so tests can drive it against a real DOM. */
-export function start(payload = window.AZERON_PAYLOAD): void {
+export function start(
+  payload = window.AZERON_PAYLOAD,
+  /** Where a visit with nowhere kept opens: the page opens on the games, tests on Edit. */
+  options: { firstScreen?: Mode } = {},
+): void {
   if (!payload) throw new Error("no payload embedded in the page");
   // Once: start() runs again whenever the page takes a fresh payload.
   if (!document.getElementById("azeron-editor-styles")) {
@@ -7422,7 +7705,7 @@ export function start(payload = window.AZERON_PAYLOAD): void {
   resetSession();
   state = {
     payload,
-    mode: place.mode,
+    mode: place.stored ? place.mode : (options.firstScreen ?? place.mode),
     workingActions: null,
     workingSets: null,
     gameIndex: place.gameIndex,

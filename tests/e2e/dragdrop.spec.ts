@@ -159,7 +159,9 @@ test.describe("adding a layout from the app's exports", () => {
 
       await expect(page.locator(".save-note")).toContainText(`Added ${NAME}`, { timeout: 20_000 });
       await expect(page.locator(".hand")).toHaveCount(2);
-      await expect(page.locator("header select").nth(1).locator("option:checked")).toHaveText(NAME);
+      await expect(page.locator("header select").first().locator("option:checked")).toHaveText(
+        NAME,
+      );
       expect(existsSync(`${GAME}/profiles/${NAME}-left.yaml`)).toBe(true);
       expect(existsSync(`${GAME}/profiles/${NAME}-right.yaml`)).toBe(true);
     } finally {

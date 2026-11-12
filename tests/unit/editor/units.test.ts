@@ -84,7 +84,7 @@ const settle = async (): Promise<void> => {
 function mount(payload: EditorPayload): void {
   document.body.innerHTML = '<div id="app"></div>';
   start(payload);
-  const select = document.querySelectorAll<HTMLSelectElement>("header select")[1];
+  const select = document.querySelectorAll<HTMLSelectElement>("header select")[0];
   if (select && select.value !== LIVE_SET) {
     select.value = LIVE_SET;
     select.dispatchEvent(new Event("change"));

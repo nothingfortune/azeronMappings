@@ -147,13 +147,33 @@ describe("a keyboard-and-mouse binding", () => {
 });
 
 describe("a controller binding", () => {
-  it("is picked from the pad's controls", () => {
+  it("is picked from the pad's buttons, drawn as a pad, not from a list of names", () => {
     const id = firstAction();
-    const select = document.querySelector<HTMLSelectElement>(`[data-pad="${id}"]`);
-    if (!select) throw new Error("no controller field");
-    select.value = "RT";
-    select.dispatchEvent(new Event("change"));
-    expect(document.querySelector<HTMLSelectElement>(`[data-pad="${id}"]`)?.value).toBe("RT");
+    document.querySelector<HTMLButtonElement>(`[data-pad="${id}"]`)?.click();
+    const rt = document.querySelector<HTMLButtonElement>('.picker-dialog [data-choose="RT"]');
+    if (!rt) throw new Error("no RT on the pad");
+    rt.click();
+    expect(document.querySelector(".picker-dialog")).toBeNull();
+    expect(document.querySelector(`[data-pad="${id}"]`)?.getAttribute("data-value")).toBe("RT");
+    expect(document.querySelector(`[data-pad="${id}"]`)?.textContent).toBe("RT");
+  });
+
+  it("stops a keyboard capture when its chooser opens, so Escape closes the chooser", () => {
+    const id = firstAction();
+    const kbm = (): HTMLElement | null => document.querySelector(`[data-kbm="${id}"]`);
+    const before = kbm()?.textContent;
+    kbm()?.click();
+    document.querySelector<HTMLButtonElement>(`[data-pad="${id}"]`)?.click();
+    expect(document.querySelector(".picker-dialog")).not.toBeNull();
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Escape", code: "Escape", bubbles: true }),
+    );
+    document.body.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Escape", code: "Escape", bubbles: true }),
+    );
+    expect(document.querySelector(".picker-dialog")).toBeNull();
+    expect(kbm()?.textContent).toBe(before);
+    expect(kbm()?.classList.contains("capturing")).toBe(false);
   });
 
   it("is read from a connected pad when asked to listen", async () => {
@@ -166,7 +186,7 @@ describe("a controller binding", () => {
     const id = firstAction();
     document.querySelector<HTMLButtonElement>(`[data-pad-press="${id}"]`)?.click();
     await vi.waitFor(() => {
-      expect(document.querySelector<HTMLSelectElement>(`[data-pad="${id}"]`)?.value).toBe("Y");
+      expect(document.querySelector(`[data-pad="${id}"]`)?.getAttribute("data-value")).toBe("Y");
     });
   });
 });
@@ -186,7 +206,7 @@ describe("the drawings in a game with modes of play", () => {
     game.sets.sets[set] = { ...game.sets.sets[set], modes: ["ship"] };
     document.body.innerHTML = '<div id="app"></div>';
     start(payload);
-    const sets = document.querySelectorAll<HTMLSelectElement>("header select")[1];
+    const sets = document.querySelectorAll<HTMLSelectElement>("header select")[0];
     if (sets) {
       sets.value = set;
       sets.dispatchEvent(new Event("change"));
@@ -216,7 +236,9 @@ describe("adding several controls from a list", () => {
         (node) => node.querySelector(".who b")?.textContent === label,
       );
     expect(row("Throw grenade")?.querySelector("[data-kbm]")?.textContent).toBe("G");
-    expect(row("Stratagem menu")?.querySelector<HTMLSelectElement>("[data-pad]")?.value).toBe("LB");
+    expect(row("Stratagem menu")?.querySelector("[data-pad]")?.getAttribute("data-value")).toBe(
+      "LB",
+    );
     [...document.querySelectorAll<HTMLButtonElement>("header button")]
       .find((button) => button.textContent === "Save")
       ?.click();

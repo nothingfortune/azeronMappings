@@ -118,23 +118,6 @@ const MOUSE = [
   "Mouse5",
 ];
 
-/** The pad's controls laid out as a pad is held: shoulders, then the two halves. */
-const PAD: readonly (readonly string[])[] = [
-  ["LT", "LB", "View", "Menu", "RB", "RT"],
-  ["LeftStickUp", "DpadUp", "LS", "RS", "Y", "RightStickUp"],
-  [
-    "LeftStickLeft",
-    "LeftStickRight",
-    "DpadLeft",
-    "DpadRight",
-    "X",
-    "B",
-    "RightStickLeft",
-    "RightStickRight",
-  ],
-  ["LeftStickDown", "DpadDown", "A", "RightStickDown"],
-];
-
 /** Which actions are on each key or control; a chord counts on the key pressed last. */
 function byBinding(
   actions: Readonly<Record<string, ActionSpec>>,
@@ -255,11 +238,127 @@ export function padBoard(
   pick: (id: string) => void,
 ): El {
   const bound = byBinding(actions, "pad");
-  const board = el("div", { class: "device-board pad-board" });
-  for (const row of PAD) {
+  return padShape("device-board pad-board", (control) =>
+    cap(padLabel(control), bound.get(control), pick, 1.6),
+  );
+}
+
+/** Three cells in a cross, the middle one optional: a stick and its click, or a d-pad. */
+function cross(
+  cell: (control: string) => El,
+  up: string,
+  left: string,
+  right: string,
+  down: string,
+  middle?: string,
+): El {
+  const grid = el("div", { class: "pad-cross" });
+  const place = (control: string | undefined, area: string): void => {
+    if (control === undefined) return;
+    const node = cell(control);
+    node.style.gridArea = area;
+    grid.append(node);
+  };
+  place(up, "1 / 2");
+  place(left, "2 / 1");
+  place(middle, "2 / 2");
+  place(right, "2 / 3");
+  place(down, "3 / 2");
+  return grid;
+}
+
+/**
+ * The pad as it is held: the left hand's trigger, bumper, stick and d-pad; View and Menu in
+ * the middle; the right hand's bumper, trigger, face buttons and stick.
+ */
+function padShape(className: string, cell: (control: string) => El): El {
+  const side = (...children: El[]): El => el("div", { class: "pad-side" }, children);
+  const row = (...controls: string[]): El => el("div", { class: "device-row" }, controls.map(cell));
+  return el("div", { class: className }, [
+    side(
+      row("LT", "LB"),
+      el("div", { class: "device-caption" }, ["Left stick"]),
+      cross(cell, "LeftStickUp", "LeftStickLeft", "LeftStickRight", "LeftStickDown", "LS"),
+      el("div", { class: "device-caption" }, ["D-pad"]),
+      cross(cell, "DpadUp", "DpadLeft", "DpadRight", "DpadDown"),
+    ),
+    side(row("View", "Menu")),
+    side(
+      row("RB", "RT"),
+      el("div", { class: "device-caption" }, ["Buttons"]),
+      cross(cell, "Y", "X", "B", "A"),
+      el("div", { class: "device-caption" }, ["Right stick"]),
+      cross(cell, "RightStickUp", "RightStickLeft", "RightStickRight", "RightStickDown", "RS"),
+    ),
+  ]);
+}
+
+/** Keys off the main block, offered when choosing a key: navigation, then the numpad. */
+const EXTRA_KEYS: readonly (readonly string[])[] = [
+  ["Insert", "Home", "PageUp", "Delete", "End", "PageDown"],
+  ["Numpad7", "Numpad8", "Numpad9", "NumpadSubtract", "Numpad4", "Numpad5", "Numpad6", "NumpadAdd"],
+  ["Numpad1", "Numpad2", "Numpad3", "Numpad0", "NumpadDecimal", "NumpadMultiply", "NumpadDivide"],
+];
+
+/** One choosable key or control: always enabled, marked when it is the current one. */
+function choice(
+  name: string,
+  value: string,
+  current: string | undefined,
+  pick: (value: string) => void,
+  width = 1,
+): El {
+  const node = el(
+    "button",
+    {
+      type: "button",
+      class: `device-key choosable${value === current ? " bound" : ""}`,
+      style: `--w: ${String(width)}`,
+      "data-choose": value,
+      title: name,
+    },
+    [el("span", { class: "device-key-name" }, [name])],
+  );
+  node.addEventListener("click", () => {
+    pick(value);
+  });
+  return node;
+}
+
+/**
+ * A whole keyboard to choose one key from: the main block, the navigation keys and the
+ * numpad, and the mouse buttons given.
+ */
+export function keyChooser(
+  pick: (code: string) => void,
+  options: { current?: string; mouse?: readonly string[] } = {},
+): El {
+  const board = el("div", { class: "device-board keyboard-board chooser" });
+  for (const row of KEYBOARD) {
     const line = el("div", { class: "device-row" });
-    for (const control of row) line.append(cap(padLabel(control), bound.get(control), pick, 1.6));
+    for (const [code, width] of row)
+      line.append(choice(shortName(code), code, options.current, pick, width));
     board.append(line);
   }
+  board.append(el("div", { class: "device-caption" }, ["Navigation and numpad"]));
+  for (const row of EXTRA_KEYS) {
+    const line = el("div", { class: "device-row" });
+    for (const code of row) line.append(choice(kbmLabel(code), code, options.current, pick, 1.6));
+    board.append(line);
+  }
+  const mouse = options.mouse ?? MOUSE;
+  if (mouse.length > 0) {
+    const line = el("div", { class: "device-row" });
+    for (const token of mouse)
+      line.append(choice(kbmLabel(token), token, options.current, pick, 1.6));
+    board.append(el("div", { class: "device-caption" }, ["Mouse"]), line);
+  }
   return board;
+}
+
+/** The pad laid out as it is held, to choose one control from. */
+export function padChooser(pick: (control: string) => void, current?: string): El {
+  return padShape("device-board pad-board chooser", (control) =>
+    choice(padLabel(control), control, current, pick, 1.6),
+  );
 }

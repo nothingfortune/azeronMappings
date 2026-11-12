@@ -6,6 +6,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { chooseGame } from "../../helpers/editor.js";
 
 import { start } from "../../../src/editor/app.js";
 import { buildPayload } from "../../../src/lib/editor/payload.js";
@@ -129,12 +130,8 @@ describe("a game whose own settings file is connected", () => {
     document.body.innerHTML = '<div id="app"></div>';
     const payload = structuredClone(PAYLOAD);
     const index = payload.games.findIndex((game) => game.slug === "everspace");
-    const select = () => document.querySelector<HTMLSelectElement>("header select");
     start(payload);
-    const picker = select();
-    if (!picker) throw new Error("no game selector");
-    picker.value = String(index);
-    picker.dispatchEvent(new Event("change"));
+    chooseGame(payload.games[index]?.slug ?? "");
     tab("In-game");
     expect(document.querySelector(".game-file")).toBeNull();
     tab("Setup");
@@ -155,10 +152,7 @@ describe("a game whose settings file is not on this computer", () => {
     if (found === undefined) delete game.ingameFile.found;
     else game.ingameFile.found = found;
     start(payload);
-    const picker = document.querySelector<HTMLSelectElement>("header select");
-    if (!picker) throw new Error("no game selector");
-    picker.value = String(payload.games.indexOf(game));
-    picker.dispatchEvent(new Event("change"));
+    chooseGame(game.slug);
     tab("Setup");
   };
   const note = (): string => document.querySelector(".game-file-missing")?.textContent ?? "";
@@ -203,10 +197,7 @@ describe("a game whose file is Elite's bindings", () => {
     if (!game) throw new Error("no everspace");
     game.ingameFile = { configured: true, ownedCategories: 0, format: "elite-binds" };
     start(payload);
-    const picker = document.querySelector<HTMLSelectElement>("header select");
-    if (!picker) throw new Error("no game selector");
-    picker.value = String(payload.games.indexOf(game));
-    picker.dispatchEvent(new Event("change"));
+    chooseGame(game.slug);
     tab("In-game");
     expect(document.querySelector(".game-file")).toBeNull();
     tab("Setup");

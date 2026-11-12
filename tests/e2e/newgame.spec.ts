@@ -50,7 +50,7 @@ async function createThroughThePage(page: Page): Promise<void> {
   await shot(page, "01-setup-add-game");
   await form.getByRole("button", { name: "Create game" }).click();
   // The page moves to the new game, on its Edit tab, when it has been made.
-  await expect(page.locator("header select").first().locator("option:checked")).toHaveText(NAME, {
+  await expect(page.locator("header .game-switch")).toContainText(NAME, {
     timeout: 120_000,
   });
 }
@@ -92,7 +92,8 @@ test.describe("a game started from an export", () => {
     page,
   }) => {
     await page.goto("/");
-    await page.locator("header select").first().selectOption({ label: NAME });
+    await page.locator("header .game-switch").click();
+    await page.locator(".game-card", { hasText: NAME }).click();
     await tab(page, "In-game");
 
     // What is missing, and what to do about it, in the owner's words.
@@ -139,7 +140,8 @@ test.describe("a game started from an export", () => {
 
     // It is on disk, so a fresh page shows it.
     await page.reload();
-    await page.locator("header select").first().selectOption({ label: NAME });
+    await page.locator("header .game-switch").click();
+    await page.locator(".game-card", { hasText: NAME }).click();
     await tab(page, "In-game");
     const again = page.locator(".ingame-row", { hasText: "Fire, primary" });
     await expect(again.locator(".tag-chip.on")).toHaveCount(2);
@@ -147,7 +149,8 @@ test.describe("a game started from an export", () => {
 
   test("says on the Setup tab why its own key settings cannot be written", async ({ page }) => {
     await page.goto("/");
-    await page.locator("header select").first().selectOption({ label: NAME });
+    await page.locator("header .game-switch").click();
+    await page.locator(".game-card", { hasText: NAME }).click();
     await tab(page, "Setup");
     await expect(page.locator(".game-file")).toContainText("not told its keys automatically");
     await expect(page.getByRole("button", { name: "Update the game's keys…" })).toHaveCount(0);

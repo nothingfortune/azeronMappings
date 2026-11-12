@@ -13,7 +13,7 @@ const PAYLOAD = buildPayload();
 function openKey(position: string): void {
   document.body.innerHTML = '<div id="app"></div>';
   start(structuredClone(PAYLOAD));
-  const sets = document.querySelectorAll<HTMLSelectElement>("header select")[1];
+  const sets = document.querySelectorAll<HTMLSelectElement>("header select")[0];
   if (!sets) throw new Error("no layout picker");
   sets.value = "single-v5";
   sets.dispatchEvent(new Event("change"));

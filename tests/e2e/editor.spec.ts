@@ -108,7 +108,7 @@ test.describe("the served editor", () => {
 
   test("applies a stick mode to both sticks at once", async ({ page }) => {
     await page.goto("/");
-    await page.locator("header select").nth(1).selectOption(LIVE_SET);
+    await page.locator("header select").first().selectOption(LIVE_SET);
     await page.locator('[data-dock-tab="pedals"]').click();
 
     // The panel is folded until it is wanted.
@@ -343,13 +343,10 @@ test.describe("the served editor", () => {
       await expect(page.locator('[data-new-game="name"]')).toHaveValue("ZZ E2E Game");
       await page.getByRole("button", { name: "Create game" }).click();
 
-      await expect(page.locator("header select").first()).toContainText("ZZ E2E Game", {
+      await expect(page.locator("header .game-switch")).toContainText("ZZ E2E Game", {
         timeout: 20_000,
       });
       await expect(page.locator(".hand")).toHaveCount(1);
-      await expect(page.locator("header select").first().locator("option:checked")).toHaveText(
-        "ZZ E2E Game",
-      );
     } finally {
       for (const path of paths) rmSync(path, { recursive: true, force: true });
     }
@@ -521,5 +518,39 @@ test.describe("the Edit workflow at 1440x900", () => {
     await page.goto("/");
     const height = await page.evaluate(() => document.documentElement.scrollHeight);
     expect(height).toBeLessThanOrEqual(1100);
+  });
+});
+
+test.describe("a first visit", () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
+
+  test("opens on the games gallery, and a card opens the game's board", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.locator(".game-card").first()).toBeVisible();
+    await expect(page.locator(".hand")).toHaveCount(0);
+    await page.locator(".game-card", { hasText: "Everspace 2" }).click();
+    await expect(page.locator(".hand").first()).toBeVisible();
+    await expect(page.locator("header .game-switch")).toContainText("Everspace 2");
+  });
+});
+
+test.describe("choosing what goes on a key", () => {
+  test("narrows the actions on screen as a name is typed", async ({ page }) => {
+    await page.goto("/");
+    await page.locator('.hand .key[data-position="pinky_5"]').first().click();
+    await expect(page.locator(".picker-dialog")).toBeVisible();
+    await page.locator(".picker-search").fill("headl");
+    await expect(page.locator(".picker-item:visible")).toHaveCount(1);
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".picker-dialog")).toHaveCount(0);
+  });
+
+  test("closes the controller chooser with Escape", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "In-game", exact: true }).click();
+    await page.locator("[data-pad]").first().click();
+    await expect(page.locator(".picker-dialog")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".picker-dialog")).toHaveCount(0);
   });
 });

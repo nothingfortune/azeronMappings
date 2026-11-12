@@ -32,7 +32,7 @@ function withModes(): EditorPayload {
 function mount(payload: EditorPayload): void {
   document.body.innerHTML = '<div id="app"></div>';
   start(payload);
-  const select = document.querySelectorAll<HTMLSelectElement>("header select")[1];
+  const select = document.querySelectorAll<HTMLSelectElement>("header select")[0];
   if (select && select.value !== LIVE_SET) {
     select.value = LIVE_SET;
     select.dispatchEvent(new Event("change"));
@@ -55,5 +55,20 @@ describe("a layout that plays one mode", () => {
   it("lists every action when the layout says nothing about modes", () => {
     mount(buildPayload());
     expect(listed()).toContain("Headlight");
+  });
+});
+
+describe("a keyboard key chosen for a key, in a layout that plays one mode", () => {
+  it("is not another mode's action, which the layout would then hide", () => {
+    // Headlight is on B, in the foot mode the live layout does not play.
+    mount(withModes());
+    document.querySelector<HTMLElement>(".hand .key[data-position]")?.click();
+    document.querySelector<HTMLButtonElement>("[data-choose-action]")?.click();
+    document.querySelector<HTMLButtonElement>('[data-picker-tab="Keyboard key"]')?.click();
+    document.querySelector<HTMLButtonElement>('.picker-dialog [data-choose="KeyB"]')?.click();
+    expect(document.querySelector(".picker-dialog")).toBeNull();
+    const chosen = document.querySelector(".hand .key[data-position]")?.textContent ?? "";
+    expect(chosen).not.toContain("Headlight");
+    expect(listed()).not.toContain("Headlight");
   });
 });

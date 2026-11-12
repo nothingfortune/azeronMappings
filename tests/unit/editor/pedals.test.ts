@@ -26,7 +26,7 @@ function uncalibrated(): typeof PAYLOAD {
 function mount(set = LIVE_SET, payload = PAYLOAD): void {
   document.body.innerHTML = '<div id="app"></div>';
   start(structuredClone(payload));
-  const select = document.querySelectorAll<HTMLSelectElement>("header select")[1];
+  const select = document.querySelectorAll<HTMLSelectElement>("header select")[0];
   if (select && select.value !== set) {
     select.value = set;
     select.dispatchEvent(new Event("change"));
@@ -392,16 +392,25 @@ describe("saving the pedals with everything else", () => {
 
   it("asks before throwing unsaved pedals away", () => {
     served(() => verdict);
-    mount();
+    // A second game to switch to: the copy of the first under another name.
+    const two = structuredClone(PAYLOAD);
+    const first = two.games[0];
+    if (first) two.games.push({ ...structuredClone(first), slug: "other", name: "Other" });
+    mount(LIVE_SET, two);
     choose("rudder", "roll");
     const confirm = vi.fn(() => false);
     vi.stubGlobal("confirm", confirm);
-    const game = document.querySelectorAll<HTMLSelectElement>("header select")[0];
-    if (game) {
-      game.value = "0";
-      game.dispatchEvent(new Event("change"));
-    }
+    // Another game, from the gallery: the edit to the pedals is asked about first.
+    document.querySelector<HTMLButtonElement>("header .game-switch")?.click();
+    const cards = document.querySelectorAll<HTMLButtonElement>(".game-card");
+    [...cards]
+      .find((card) => !card.classList.contains("current") && card.dataset.game !== "")
+      ?.click();
     expect(confirm).toHaveBeenCalled();
+    // Told no: still on this game, the edit kept, once back on the board.
+    [...document.querySelectorAll<HTMLButtonElement>("header .tabs button")]
+      .find((button) => button.textContent === "Edit")
+      ?.click();
     expect(axis("rudder").querySelector("select")?.value).toBe("roll");
   });
 
