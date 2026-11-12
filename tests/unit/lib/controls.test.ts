@@ -34,6 +34,10 @@ describe("a keyboard-and-mouse binding", () => {
     expect(parseKbm("KeyRR")).toBeNull();
     expect(parseKbm("Mouse6")).toBeNull();
     expect(parseKbm("CapsLock")).toEqual({ modifiers: [], input: "CapsLock" });
+    // Keys a keyboard has and the keypads do not.
+    for (const code of ["Backspace", "NumpadEnter", "F20", "IntlBackslash"]) {
+      expect(parseKbm(code), code).not.toBeNull();
+    }
   });
 
   it("reads in words", () => {
