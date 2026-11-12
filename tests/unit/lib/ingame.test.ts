@@ -297,3 +297,27 @@ describe("writing the keyboard-and-mouse and controller bindings", () => {
     expect(out.skipped.join(" ")).toMatch(/single keys.*sticks are axes/s);
   });
 });
+
+describe("clashes the second key makes", () => {
+  it("counts a keyboard binding in Key2 against another row's Key1", () => {
+    const out = applyVocabulary(
+      parseInput(
+        [
+          "[/Script/ES2.CustomPlayerInput]",
+          LINE("Fire", "F", "Keyboard", "1.000000", "Fire"),
+          LINE("Reload", "R", "Keyboard", "1.000000", "Reload"),
+        ].join("\n"),
+      ),
+      new ActionSet({
+        actions: {
+          fire: { key: "KeyF", ingame: "Fire", kbm: "KeyR" },
+          reload: { key: "KeyR", ingame: "Reload" },
+        },
+      }),
+      new Set([0]),
+    );
+    expect(ownedCollisions(parseInput(out.text), new Set([0]))).toEqual([
+      { key: "R", actions: ["Fire", "Reload"] },
+    ]);
+  });
+});

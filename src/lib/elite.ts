@@ -875,13 +875,28 @@ export function applyBinds(base: string, vocabulary: Record<string, ActionSpec>)
     const indent = first === undefined ? "\t" : indentOf(lines[first.line] ?? "") || "\t";
     const slotIndent = `${indent}${indent}`;
     const added = absent.flatMap(({ action, tag, wanted }) => {
-      if (wanted !== null) {
-        changes.push({ action, control: tag, slot: "Primary", from: "", to: wantedText(wanted) });
+      // A control added in full has both slots free: the keypad's key in the first, the
+      // keyboard-and-mouse binding (when it is another) in the second, as for one there.
+      const spec = vocabulary[action] ?? {};
+      const extra = kbmWanted(action, spec, wanted, skipped);
+      if (spec.pad !== undefined) {
+        skipped.push(
+          `${action}: ${spec.pad} on the controller is not written into Elite's file yet -- ` +
+            "the name the game gives a pad differs from computer to computer",
+        );
+      }
+      const first = wanted ?? extra;
+      const second = wanted === null ? null : extra;
+      if (first !== null) {
+        changes.push({ action, control: tag, slot: "Primary", from: "", to: wantedText(first) });
+      }
+      if (second !== null) {
+        changes.push({ action, control: tag, slot: "Secondary", from: "", to: wantedText(second) });
       }
       return [
         `${indent}<${tag}>`,
-        ...renderSlot("Primary", slotIndent, indent, wanted, null),
-        ...renderSlot("Secondary", slotIndent, indent, null, null),
+        ...renderSlot("Primary", slotIndent, indent, first, null),
+        ...renderSlot("Secondary", slotIndent, indent, second, null),
         `${indent}</${tag}>`,
       ];
     });

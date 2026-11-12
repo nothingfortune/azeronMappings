@@ -459,10 +459,14 @@ export function ownedCollisions(
   const byKey = new Map<string, Set<string>>();
   for (const entry of file.entries) {
     if (entry.group !== KEYBOARD_GROUP || entry.isAxis) continue;
-    if (!owned.has(entry.category) || entry.key === "None") continue;
-    const set = byKey.get(entry.key) ?? new Set<string>();
-    set.add(entry.displayName);
-    byKey.set(entry.key, set);
+    if (!owned.has(entry.category)) continue;
+    // Key2 carries a keyboard binding now, and reaches the row as surely as Key1 does.
+    for (const key of [entry.key, entry.key2]) {
+      if (key === "None") continue;
+      const set = byKey.get(key) ?? new Set<string>();
+      set.add(entry.displayName);
+      byKey.set(key, set);
+    }
   }
   return [...byKey.entries()]
     .filter(([, names]) => names.size > 1)

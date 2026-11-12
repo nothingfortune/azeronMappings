@@ -462,3 +462,17 @@ describe("applyBinds with keyboard-and-mouse and controller bindings", () => {
     expect(keys(out.text)[1]).toEqual(["Secondary", "{NoDevice}", ""]);
   });
 });
+
+describe("a control the preset lacks, with keyboard and controller bindings", () => {
+  it("is added with the keyboard binding in its second slot, and the controller noted", () => {
+    const out = applyBinds(
+      file(button("Other", none("Primary"), none("Secondary"))),
+      vocab({ fire: { ingame: "Fire", key: "KeyF", kbm: "MouseLeft", pad: "RT" } }),
+    );
+    expect(controlOf(out.text, "Fire").slots.map((s) => [s.slot, s.device, s.key])).toEqual([
+      ["Primary", "Keyboard", "Key_F"],
+      ["Secondary", "Mouse", "Mouse_1"],
+    ]);
+    expect(out.skipped.join(" ")).toMatch(/RT on the controller/);
+  });
+});
