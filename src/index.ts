@@ -66,6 +66,7 @@ import {
   startGame,
   startLayout,
   acknowledgeFinding,
+  addDiscoveredControls,
   addUnitToLayout,
   deleteGame,
   deleteLayout,
@@ -812,7 +813,8 @@ function cmdServe(port: number, host: string, open = false): number {
         url === "/api/layout/delete" ||
         url === "/api/layout/rename" ||
         url === "/api/game/delete" ||
-        url === "/api/acknowledge")
+        url === "/api/acknowledge" ||
+        url === "/api/discover")
     ) {
       readBody(request, response, 20_000_000, (body) => {
         try {
@@ -837,6 +839,16 @@ function cmdServe(port: number, host: string, open = false): number {
             // The compiled files went with the old name; build them under the new one.
             const built = buildAll(games(asked.game ?? ""));
             send(200, JSON.stringify({ ok: true, ...result, buildErrors: built.errors }));
+            return;
+          }
+          if (url === "/api/discover") {
+            // A game's controls read from its own input file, into its actions.yaml.
+            const asked = JSON.parse(body) as { game?: unknown; path?: unknown };
+            const result = addDiscoveredControls({
+              game: typeof asked.game === "string" ? asked.game : "",
+              path: typeof asked.path === "string" ? asked.path : "",
+            });
+            send(200, JSON.stringify({ ok: true, ...result }));
             return;
           }
           if (url === "/api/acknowledge") {

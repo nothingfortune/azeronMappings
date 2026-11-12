@@ -45,6 +45,7 @@ import { Game, Genre } from "../../../src/lib/model.js";
 import { ScaffoldError } from "../../../src/lib/scaffold.js";
 import {
   acknowledgeFinding,
+  addDiscoveredControls,
   addUnitToLayout,
   deleteGame,
   deleteLayout,
@@ -111,6 +112,37 @@ describe("accepting a finding from the page", () => {
     expect(() =>
       acknowledgeFinding({ game: "zzSim", rule: "x", profile: "v1", reason: "  " }),
     ).toThrow(/say why/);
+  });
+});
+
+describe("reading a game's controls from its own input file", () => {
+  const INPUT = [
+    "[/Script/Engine.InputSettings]",
+    '+ActionMappings=(ActionName="Wave",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=G)',
+    '+ActionMappings=(ActionName="Wave",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=Gamepad_DPad_Up)',
+  ].join("\n");
+
+  it("adds each control the game does not have, with its keys, and only once", () => {
+    sim();
+    const file = repoPath("input-for-test.ini");
+    writeFileSync(file, INPUT);
+    const first = addDiscoveredControls({ game: "zzSim", path: file });
+    expect(first.added).toEqual([{ id: "wave", label: "Wave" }]);
+    expect(new Game(SIM).actions.actions.wave).toMatchObject({ kbm: "KeyG", pad: "DpadUp" });
+    const again = addDiscoveredControls({ game: "zzSim", path: `"${file}"` });
+    expect(again).toEqual({ added: [], known: 1 });
+    rmSync(file);
+  });
+
+  it("refuses a path with no file, and a file with no controls in it", () => {
+    sim();
+    expect(() => addDiscoveredControls({ game: "zzSim", path: repoPath("nope.ini") })).toThrow(
+      /no file/,
+    );
+    const empty = repoPath("empty-for-test.ini");
+    writeFileSync(empty, "[Section]\nfoo=bar\n");
+    expect(() => addDiscoveredControls({ game: "zzSim", path: empty })).toThrow(/no controls/);
+    rmSync(empty);
   });
 });
 

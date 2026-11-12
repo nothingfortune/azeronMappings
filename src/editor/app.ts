@@ -35,6 +35,7 @@ import { xboxLabel } from "../lib/xbox.js";
 import { eliteKeyFor } from "../lib/elite.js";
 import type { UnitCheck, UnitDifference, UnitsReport } from "../lib/units.js";
 import { describeSent, expectedPresses, verdict } from "../lib/checkunit.js";
+import { keyboardBoard, padBoard } from "./device-boards.js";
 import {
   MOUSE_BUTTON_TOKENS,
   PAD_CONTROLS,
@@ -5223,6 +5224,37 @@ function padField(id: string, spec: ActionSpec): HTMLElement {
   return el("div", { class: "player-bind" }, parts);
 }
 
+/** Whether the keyboard and controller drawings are open on the In-game tab. */
+let boardsOpen = false;
+
+/** Bring an action's row into view, picked out for a moment. */
+function showActionRow(id: string): void {
+  const row = document.querySelector(`[data-kbm="${id}"]`)?.closest(".ingame-row");
+  if (!(row instanceof HTMLElement)) return;
+  row.scrollIntoView({ block: "center" });
+  row.classList.add("picked");
+  setTimeout(() => {
+    row.classList.remove("picked");
+  }, 1500);
+}
+
+/** The keyboard, mouse and controller with what each key does, folded away until wanted. */
+function renderDeviceBoards(actions: Readonly<Record<string, ActionSpec>>): HTMLElement {
+  const details = el("details", { class: "device-boards" });
+  if (boardsOpen) details.setAttribute("open", "open");
+  details.addEventListener("toggle", () => {
+    boardsOpen = details.open;
+  });
+  details.append(
+    el("summary", {}, ["See them on a keyboard, a mouse and a controller"]),
+    el("div", { class: "device-boards-body" }, [
+      keyboardBoard(actions, showActionRow),
+      padBoard(actions, showActionRow),
+    ]),
+  );
+  return details;
+}
+
 /** The action whose name is being typed, if any. */
 let renaming: string | null = null;
 
@@ -5454,6 +5486,8 @@ function renderInGame(): HTMLElement {
     );
   }
 
+  // The same bindings drawn on a keyboard, a mouse and a controller.
+  panel.append(renderDeviceBoards(actions.actions));
   // The game's controls, one per row: add one by name, then give it a key on each device.
   panel.append(newActionField());
   const table = el("div", { class: "ingame-list" });
@@ -6132,6 +6166,68 @@ async function afterManage(note: string, set?: string): Promise<void> {
   render();
 }
 
+/**
+ * Read a game's controls from its own input file: each one it lists becomes an action, with
+ * its keyboard and controller keys, so a new game need not be typed in control by control.
+ */
+function renderDiscover(): HTMLElement {
+  const game = currentGame();
+  const box = el("div", { class: "field discover" });
+  box.append(
+    section(
+      `Read ${game.name}'s controls from a file`,
+      "Paste the location of the game's input file (an Unreal game's Input.ini or " +
+        "DefaultInput.ini). Every control it lists that the game does not have yet is " +
+        "added, with its keyboard and controller keys. Or add controls one at a time with " +
+        "New action on the In-game tab.",
+    ),
+  );
+  const path = el("input", {
+    type: "text",
+    placeholder: "C:\\…\\Input.ini",
+    "data-discover": "path",
+    "aria-label": "The input file's location",
+  });
+  const read = el("button", { class: "btn", type: "button", "data-discover": "read" }, [
+    "Read controls",
+  ]);
+  read.addEventListener("click", () => {
+    if (path.value.trim() === "") return;
+    void settleEdits().then(async (settled) => {
+      if (!settled) {
+        repoNote = NOT_SETTLED;
+        render();
+        return;
+      }
+      const result = await post<{
+        ok?: boolean;
+        error?: string;
+        added?: { id: string; label: string }[];
+        known?: number;
+      }>("/api/discover", { game: game.slug, path: path.value });
+      if (result.ok !== true) {
+        repoNote = `Not read: ${String(result.error)}`;
+        render();
+        return;
+      }
+      const added = result.added ?? [];
+      const known = result.known ?? 0;
+      const note =
+        added.length === 0
+          ? `${game.name} already has every control that file lists.`
+          : `Added ${String(added.length)} control${added.length === 1 ? "" : "s"}: ` +
+            `${added
+              .slice(0, 8)
+              .map((entry) => entry.label)
+              .join(", ")}${added.length > 8 ? ", …" : ""}.` +
+            (known > 0 ? ` ${String(known)} were already there.` : "");
+      await afterManage(note);
+    });
+  });
+  box.append(el("div", { class: "manage-row" }, [path, read]));
+  return box;
+}
+
 /** Rename or delete the layout on screen, or delete the whole game, with no file to touch. */
 function renderManage(): HTMLElement | null {
   if (!canSave()) return null;
@@ -6274,6 +6370,7 @@ function renderRepo(): HTMLElement {
   panel.append(renderNewGame());
   const manage = renderManage();
   if (manage !== null) panel.append(manage);
+  panel.append(renderDiscover());
 
   // Importing an export: the round trip back from the Azeron app.
   const importRow = el("div", { class: "field" });
