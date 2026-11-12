@@ -64,6 +64,17 @@ export function parseKbm(token: string): KbmBinding | null {
   return { modifiers, input };
 }
 
+/**
+ * One spelling per chord: modifiers in a fixed order, so Ctrl+Shift+R and Shift+Ctrl+R --
+ * the same keys, pressed in another order -- are one binding. A token that is not a
+ * binding comes back as it was.
+ */
+export function canonicalKbm(token: string): string {
+  const parsed = parseKbm(token);
+  if (parsed === null) return token;
+  return [...[...parsed.modifiers].sort(), parsed.input].join("+");
+}
+
 export function isMouseToken(token: string): boolean {
   return (MOUSE_TOKENS as readonly string[]).includes(token);
 }

@@ -7,6 +7,7 @@ import { parse } from "yaml";
 
 import { patchActionBindings } from "../../../src/lib/actionfile.js";
 import {
+  canonicalKbm,
   isPadControl,
   kbmLabel,
   padControlFrom,
@@ -108,6 +109,16 @@ describe("checking them", () => {
         (a, b) => a === b,
       ),
     ).toEqual([]);
+  });
+
+  it("sees the same chord with its modifiers written in another order", () => {
+    expect(
+      check({
+        reload: { kbm: "ControlLeft+ShiftLeft+KeyR" },
+        revive: { kbm: "ShiftLeft+ControlLeft+KeyR" },
+      }),
+    ).toEqual(["kbm-collision"]);
+    expect(canonicalKbm("ShiftLeft+ControlLeft+KeyR")).toBe("ControlLeft+ShiftLeft+KeyR");
   });
 
   it("says when one is not a binding at all", () => {

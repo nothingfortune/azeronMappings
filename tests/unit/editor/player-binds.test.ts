@@ -77,6 +77,19 @@ describe("a keyboard-and-mouse binding", () => {
     expect(body.changes[id]).toEqual({ kbm: "ControlLeft+KeyR" });
   });
 
+  it("stops listening when the tab changes, so the next key lands nowhere", () => {
+    const id = firstAction();
+    document.querySelector<HTMLButtonElement>(`[data-kbm="${id}"]`)?.click();
+    [...document.querySelectorAll<HTMLButtonElement>("header .tabs button")]
+      .find((button) => button.textContent === "Edit")
+      ?.click();
+    press("KeyQ", "keydown");
+    [...document.querySelectorAll<HTMLButtonElement>("header .tabs button")]
+      .find((button) => button.textContent === "In-game")
+      ?.click();
+    expect(document.querySelector(`[data-kbm="${id}"]`)?.textContent).toBe("—");
+  });
+
   it("is a modifier on its own when it is let go with nothing after it", () => {
     const id = firstAction();
     document.querySelector<HTMLButtonElement>(`[data-kbm="${id}"]`)?.click();

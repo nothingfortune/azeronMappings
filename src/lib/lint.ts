@@ -6,7 +6,7 @@
  */
 
 import { DEFAULT_FEATURE_DELAY, SLOTS, STICK_MODE_CODES, TYPE_MOUSE } from "../types/azeron.js";
-import { isPadControl, kbmLabel, padLabel, parseKbm } from "./controls.js";
+import { canonicalKbm, isPadControl, kbmLabel, padLabel, parseKbm } from "./controls.js";
 import { resolveSlot } from "./binding.js";
 import * as keys from "./keys.js";
 import type { Slot } from "../types/azeron.js";
@@ -197,7 +197,9 @@ function checkPlayerBindings(actions: ActionSet, live: LiveTogether): Finding[] 
         });
         continue;
       }
-      byBinding.set(value, [...(byBinding.get(value) ?? []), id]);
+      // A chord is one binding whatever order its modifiers were written in.
+      const grouped = field === "kbm" ? canonicalKbm(value) : value;
+      byBinding.set(grouped, [...(byBinding.get(grouped) ?? []), id]);
     }
     for (const [value, ids] of byBinding) {
       const clashing = ids.filter((id, index) =>

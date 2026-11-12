@@ -38,6 +38,7 @@ import { describeSent, expectedPresses, verdict } from "../lib/checkunit.js";
 import {
   MOUSE_BUTTON_TOKENS,
   PAD_CONTROLS,
+  canonicalKbm,
   kbmLabel,
   padControlFrom,
   padLabel,
@@ -5026,7 +5027,7 @@ let playerCaptureBound = false;
 function setPlayerBinding(id: string, field: "kbm" | "pad", value: string | null): void {
   const spec = (editableActions()[id] ??= {});
   if (value === null) removeKey(spec, field);
-  else spec[field] = value;
+  else spec[field] = field === "kbm" ? canonicalKbm(value) : value;
   playerCapture = null;
   captureHeld.clear();
   capturePending = null;
@@ -6931,6 +6932,11 @@ function adoptPendingSpec(): void {
  */
 function resetSession(): void {
   capturing = null;
+  // A keyboard or controller binding being captured belongs to the game it began on: a key
+  // pressed after a change of game or tab must not land on the next one.
+  playerCapture = null;
+  captureHeld.clear();
+  capturePending = null;
   liveTester = null;
   checkRun = null;
   if (writeRun !== null && writeRun.stage !== "writing") endWrite(false);
