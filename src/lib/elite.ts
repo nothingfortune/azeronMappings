@@ -17,6 +17,7 @@
  */
 
 import type { ActionSpec } from "../types/profile.js";
+import { parseKbm } from "./controls.js";
 
 /** One place a control can be bound: a button has two, an axis one. */
 export interface EliteSlot {
@@ -756,6 +757,8 @@ export interface EliteChange {
 export interface EliteWrite {
   text: string;
   changes: EliteChange[];
+  /** Keyboard-and-mouse and controller bindings that could not be written, in words. */
+  skipped: string[];
 }
 
 /** The slot's lines as the game writes them, with `hold` kept from the slot it replaces. */
@@ -804,6 +807,7 @@ export function applyBinds(base: string, vocabulary: Record<string, ActionSpec>)
   const changes: EliteChange[] = [];
   const edits: { from: number; to: number; replacement: string[] }[] = [];
 
+  const skipped: string[] = [];
   const { found, absent } = claims(binds, vocabulary);
   for (const { action, control, wanted } of found) {
     const slots = control.slots.filter(
@@ -816,14 +820,28 @@ export function applyBinds(base: string, vocabulary: Record<string, ActionSpec>)
         `${control.tag} has both slots bound to other devices: nothing can be written for ${action}`,
       );
     }
+    // The action's keyboard-and-mouse binding, when it is another than the keypad's, goes
+    // in the next keyboard-or-mouse slot free; with none free it is said, not forced.
+    const spec = vocabulary[action] ?? {};
+    const extra = kbmWanted(action, spec, wanted, skipped);
+    const extraTarget = extra === null ? undefined : free.find((slot) => slot !== target);
+    if (extra !== null && extraTarget === undefined) {
+      skipped.push(`${action}: ${String(spec.kbm)} on the keyboard has no free slot in Elite`);
+    }
+    if (spec.pad !== undefined) {
+      skipped.push(
+        `${action}: ${spec.pad} on the controller is not written into Elite's file yet -- ` +
+          "the name the game gives a pad differs from computer to computer",
+      );
+    }
     const unit = indentOf(lines[slots[0]?.line ?? control.line] ?? "").slice(
       indentOf(lines[control.line] ?? "").length,
     );
     for (const slot of slots) {
-      const receives = slot === target;
+      const receives = slot === target || (extra !== null && slot === extraTarget);
       if (!isKeyboardOrMouse(slot) && !receives) continue;
       const own = isKeyboardOrMouse(slot) ? bindingOf(slot) : "";
-      const next = receives ? wanted : null;
+      const next = slot === target ? wanted : receives ? extra : null;
       const holdLine =
         lines
           .slice(slot.line, slot.endLine + 1)
@@ -857,13 +875,28 @@ export function applyBinds(base: string, vocabulary: Record<string, ActionSpec>)
     const indent = first === undefined ? "\t" : indentOf(lines[first.line] ?? "") || "\t";
     const slotIndent = `${indent}${indent}`;
     const added = absent.flatMap(({ action, tag, wanted }) => {
-      if (wanted !== null) {
-        changes.push({ action, control: tag, slot: "Primary", from: "", to: wantedText(wanted) });
+      // A control added in full has both slots free: the keypad's key in the first, the
+      // keyboard-and-mouse binding (when it is another) in the second, as for one there.
+      const spec = vocabulary[action] ?? {};
+      const extra = kbmWanted(action, spec, wanted, skipped);
+      if (spec.pad !== undefined) {
+        skipped.push(
+          `${action}: ${spec.pad} on the controller is not written into Elite's file yet -- ` +
+            "the name the game gives a pad differs from computer to computer",
+        );
+      }
+      const first = wanted ?? extra;
+      const second = wanted === null ? null : extra;
+      if (first !== null) {
+        changes.push({ action, control: tag, slot: "Primary", from: "", to: wantedText(first) });
+      }
+      if (second !== null) {
+        changes.push({ action, control: tag, slot: "Secondary", from: "", to: wantedText(second) });
       }
       return [
         `${indent}<${tag}>`,
-        ...renderSlot("Primary", slotIndent, indent, wanted, null),
-        ...renderSlot("Secondary", slotIndent, indent, null, null),
+        ...renderSlot("Primary", slotIndent, indent, first, null),
+        ...renderSlot("Secondary", slotIndent, indent, second, null),
         `${indent}</${tag}>`,
       ];
     });
@@ -872,7 +905,49 @@ export function applyBinds(base: string, vocabulary: Record<string, ActionSpec>)
       throw new EliteError("the bindings file has no </Root> to add controls before");
     lines.splice(closeAt, 0, ...added);
   }
-  return { text: lines.join(binds.eol), changes };
+  return { text: lines.join(binds.eol), changes, skipped };
+}
+
+/** Elite's names for the mouse tokens a keyboard-and-mouse binding may use. */
+const KBM_MOUSE: Readonly<Record<string, string>> = {
+  MouseLeft: "Mouse_1",
+  MouseRight: "Mouse_2",
+  MouseMiddle: "Mouse_3",
+  Mouse4: "Mouse_4",
+  Mouse5: "Mouse_5",
+};
+
+/**
+ * An action's keyboard-and-mouse binding as an Elite slot, or null: none, the same as the
+ * keypad's, or one Elite's slot cannot hold (the wheel is an axis there), which is said.
+ */
+function kbmWanted(
+  action: string,
+  spec: ActionSpec,
+  keypad: Wanted | null,
+  skipped: string[],
+): Wanted | null {
+  if (spec.kbm === undefined) return null;
+  const parsed = parseKbm(spec.kbm);
+  if (parsed === null) return null;
+  const modifiers = parsed.modifiers.map((name) => eliteKeyFor(name));
+  const mouse = KBM_MOUSE[parsed.input];
+  const key = mouse ?? eliteKeyFor(parsed.input);
+  if (key === null || modifiers.some((name) => name === null)) {
+    skipped.push(`${action}: ${spec.kbm} on the keyboard has no name in Elite's file`);
+    return null;
+  }
+  const wanted: Wanted = {
+    device: mouse === undefined ? "Keyboard" : "Mouse",
+    key,
+    modifiers: modifiers.filter((name): name is string => name !== null),
+  };
+  const same =
+    keypad !== null &&
+    keypad.device === wanted.device &&
+    keypad.key === wanted.key &&
+    keypad.modifiers.join("+") === wanted.modifiers.join("+");
+  return same ? null : wanted;
 }
 
 export interface EliteComparison {

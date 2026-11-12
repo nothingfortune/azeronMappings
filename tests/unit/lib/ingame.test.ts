@@ -233,3 +233,153 @@ describe("applyVocabulary", () => {
     expect(rows.filter((row) => row.status === "differs")).toEqual([]);
   });
 });
+
+describe("writing the keyboard-and-mouse and controller bindings", () => {
+  const file = (): ReturnType<typeof parseInput> =>
+    parseInput(
+      [
+        "[/Script/ES2.CustomPlayerInput]",
+        LINE("Reload", "R"),
+        LINE("Reload", "Gamepad_FaceButton_Left", "Gamepad"),
+        LINE("Jump", "SpaceBar"),
+        LINE("Jump", "Gamepad_FaceButton_Bottom", "Gamepad"),
+      ].join("\n"),
+    );
+  const owned = new Set([0]);
+  const apply = (actions: Record<string, Record<string, unknown>>) =>
+    applyVocabulary(file(), new ActionSet({ actions }), owned);
+
+  it("leaves the file as it was for actions with neither", () => {
+    const before = file();
+    const out = apply({
+      reload: { key: "KeyR", ingame: "Reload" },
+      jump: { key: "Space", ingame: "Jump" },
+    });
+    expect(out.text).toBe(before.lines.join(before.eol));
+    expect(out.skipped).toEqual([]);
+  });
+
+  it("puts a keyboard key other than the keypad's in Key2, and a controller control in the Gamepad row", () => {
+    const out = apply({
+      reload: { key: "Insert", ingame: "Reload", kbm: "KeyR", pad: "RB" },
+      jump: { key: "Space", ingame: "Jump", kbm: "Space" },
+    });
+    const rows = parseInput(out.text).entries;
+    const reload = rows.find((row) => row.action === "Reload" && row.group === "Keyboard");
+    expect([reload?.key, reload?.key2]).toEqual(["Insert", "R"]);
+    const pad = rows.find((row) => row.action === "Reload" && row.group === "Gamepad");
+    expect(pad?.key).toBe("Gamepad_RightShoulder");
+    // The same key as the keypad's is not written twice.
+    const jump = rows.find((row) => row.action === "Jump" && row.group === "Keyboard");
+    expect(jump?.key2).toBe("None");
+    // Jump has no controller binding: its Gamepad row is left as the game has it.
+    const jumpPad = rows.find((row) => row.action === "Jump" && row.group === "Gamepad");
+    expect(jumpPad?.key).toBe("Gamepad_FaceButton_Bottom");
+  });
+
+  it("writes a mouse binding by Unreal's name", () => {
+    const out = apply({
+      reload: { key: "KeyR", ingame: "Reload", kbm: "MouseRight" },
+      jump: { key: "Space", ingame: "Jump" },
+    });
+    const reload = parseInput(out.text).entries.find(
+      (row) => row.action === "Reload" && row.group === "Keyboard",
+    );
+    expect(reload?.key2).toBe("RightMouseButton");
+  });
+
+  it("says what it could not write yet, and writes the rest", () => {
+    const out = apply({
+      reload: { key: "KeyR", ingame: "Reload", kbm: "ControlLeft+KeyR", pad: "LeftStickUp" },
+      jump: { key: "Space", ingame: "Jump" },
+    });
+    expect(out.skipped).toHaveLength(2);
+    expect(out.skipped.join(" ")).toMatch(/single keys.*sticks are axes/s);
+  });
+});
+
+describe("clashes the second key makes", () => {
+  it("counts a keyboard binding in Key2 against another row's Key1", () => {
+    const out = applyVocabulary(
+      parseInput(
+        [
+          "[/Script/ES2.CustomPlayerInput]",
+          LINE("Fire", "F", "Keyboard", "1.000000", "Fire"),
+          LINE("Reload", "R", "Keyboard", "1.000000", "Reload"),
+        ].join("\n"),
+      ),
+      new ActionSet({
+        actions: {
+          fire: { key: "KeyF", ingame: "Fire", kbm: "KeyR" },
+          reload: { key: "KeyR", ingame: "Reload" },
+        },
+      }),
+      new Set([0]),
+    );
+    expect(ownedCollisions(parseInput(out.text), new Set([0]))).toEqual([
+      { key: "R", actions: ["Fire", "Reload"] },
+    ]);
+  });
+});
+
+describe("a controller button written onto one another row has", () => {
+  it("is reported as a clash; the game's own overlaps elsewhere are not", () => {
+    const out = applyVocabulary(
+      parseInput(
+        [
+          "[/Script/ES2.CustomPlayerInput]",
+          LINE("Reload", "R", "Keyboard", "1.000000", "Reload"),
+          LINE("Reload", "Gamepad_FaceButton_Left", "Gamepad", "1.000000", "Reload"),
+          LINE("Jump", "SpaceBar", "Keyboard", "1.000000", "Jump"),
+          LINE("Jump", "Gamepad_FaceButton_Bottom", "Gamepad", "1.000000", "Jump"),
+        ].join("\n"),
+      ),
+      new ActionSet({
+        actions: {
+          reload: { key: "KeyR", ingame: "Reload", pad: "A" },
+          jump: { key: "Space", ingame: "Jump" },
+        },
+      }),
+      new Set([0]),
+    );
+    expect(out.padClashes).toEqual([
+      { key: "Gamepad_FaceButton_Bottom", actions: ["Jump", "Reload"] },
+    ]);
+  });
+});
+
+describe("controller clashes, from the file as written", () => {
+  const pads = (assign: Record<string, string>) =>
+    applyVocabulary(
+      parseInput(
+        [
+          "[/Script/ES2.CustomPlayerInput]",
+          LINE("Reload", "R", "Keyboard", "1.000000", "Reload"),
+          LINE("Reload", "Gamepad_FaceButton_Left", "Gamepad", "1.000000", "Reload"),
+          LINE("Jump", "SpaceBar", "Keyboard", "1.000000", "Jump"),
+          LINE("Jump", "Gamepad_FaceButton_Bottom", "Gamepad", "1.000000", "Jump"),
+        ].join("\n"),
+      ),
+      new ActionSet({
+        actions: {
+          reload: {
+            key: "KeyR",
+            ingame: "Reload",
+            ...(assign.reload ? { pad: assign.reload } : {}),
+          },
+          jump: { key: "Space", ingame: "Jump", ...(assign.jump ? { pad: assign.jump } : {}) },
+        },
+      }),
+      new Set([0]),
+    ).padClashes;
+
+  it("finds no clash in a swap", () => {
+    expect(pads({ reload: "A", jump: "X" })).toEqual([]);
+  });
+
+  it("finds two actions moved onto one new button", () => {
+    expect(pads({ reload: "Y", jump: "Y" })).toEqual([
+      { key: "Gamepad_FaceButton_Top", actions: ["Jump", "Reload"] },
+    ]);
+  });
+});

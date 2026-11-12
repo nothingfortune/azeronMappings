@@ -2334,6 +2334,8 @@ interface GameUpdate {
     changes: { display: string; field: string; from: string; to: string }[];
     waiting: { label: string; display: string }[];
   } | null;
+  /** Keyboard-and-mouse and controller bindings the game's file cannot take yet. */
+  skipped?: string[];
 }
 
 /** What an update changed in the game's file: its keys, and the rows its pedals drive. */
@@ -2353,6 +2355,9 @@ function describeGameUpdate(result: GameUpdate): string {
     (waiting.length === 0
       ? ""
       : ` Not written, because the game's name for it is not known: ${waiting.join(", ")}.`) +
+    ((result.skipped ?? []).length === 0
+      ? ""
+      : ` Not written yet: ${(result.skipped ?? []).join("; ")}.`) +
     (result.backup === null ? "" : ` Its previous file is kept at ${result.backup}.`)
   );
 }
