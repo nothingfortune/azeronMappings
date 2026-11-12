@@ -44,3 +44,16 @@ describe("the controller", () => {
     expect(key(board, "X")?.title).toBe("Reload\nMelee");
   });
 });
+
+describe("keys off the main block", () => {
+  it("are drawn in a row of their own, so every binding shows", () => {
+    const board = keyboardBoard(
+      { quick: { label: "Quick save", kbm: "Numpad1" }, page: { label: "Map", kbm: "PageUp" } },
+      () => undefined,
+    );
+    const actionsShown = [...board.querySelectorAll(".other-keys .device-key-action")].map(
+      (node) => node.textContent,
+    );
+    expect(actionsShown.sort()).toEqual(["Map", "Quick save"]);
+  });
+});

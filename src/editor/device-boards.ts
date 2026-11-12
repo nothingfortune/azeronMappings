@@ -234,6 +234,15 @@ export function keyboardBoard(
       line.append(cap(shortName(code), bound.get(code), pick, width));
     board.append(line);
   }
+  // Keys bound off the main block -- the numpad, Insert, Page Up -- get a row of their own,
+  // so every binding shows somewhere.
+  const drawn = new Set<string>([...KEYBOARD.flat().map(([code]) => code), ...MOUSE]);
+  const others = [...bound.keys()].filter((code) => !drawn.has(code)).sort();
+  if (others.length > 0) {
+    const extra = el("div", { class: "device-row other-keys" });
+    for (const code of others) extra.append(cap(kbmLabel(code), bound.get(code), pick, 1.6));
+    board.append(el("div", { class: "device-caption" }, ["Other keys"]), extra);
+  }
   const mouse = el("div", { class: "device-row mouse-row" });
   for (const token of MOUSE) mouse.append(cap(kbmLabel(token), bound.get(token), pick, 1.6));
   board.append(el("div", { class: "device-caption" }, ["Mouse"]), mouse);

@@ -71,3 +71,14 @@ describe("discoverControls, the details", () => {
     ]);
   });
 });
+
+describe("an Everspace row with its binding in the second slot", () => {
+  it("keeps it when the first is empty", () => {
+    const line =
+      'KeybindingsConfig=(Action=Fire,ActionName="Fire",AxisName="",Category=0,bIsAxis=False,' +
+      "Key1=None,Key1Mod=None,Key2=LeftMouseButton,Key2Mod=None,Scale=1.000000,DeadZone=0.1," +
+      'Sensitivity=1.0,Exponent=1.0,bInvert=False,DisplayName=NSLOCTEXT("K", "K", "Fire"),' +
+      'GroupName="Keyboard")';
+    expect(discoverControls(`[/Script/ES2.CustomPlayerInput]\n${line}`)[0]?.kbm).toBe("MouseLeft");
+  });
+});

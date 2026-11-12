@@ -166,17 +166,18 @@ export function discoverControls(text: string): DiscoveredAction[] {
     const reverse = scale < 0;
     const id = idFrom(reverse ? `${entry.action} reverse` : entry.action);
     const label = entry.displayName === entry.action ? words(entry.action) : entry.displayName;
-    add(
-      `${entry.action}@${String(scale)}`,
-      {
-        id,
-        label,
-        ingame: entry.action,
-        ...(scale === 1 ? {} : { ingame_scale: scale }),
-        category: entry.category,
-      },
-      entry.key === "None" ? {} : sortKey(entry.key, scale),
-    );
+    const row = {
+      id,
+      label,
+      ingame: entry.action,
+      ...(scale === 1 ? {} : { ingame_scale: scale }),
+      category: entry.category,
+    };
+    // Both slots, in order: the first keeps what it finds, and Key2 fills what Key1 left --
+    // the editor itself writes a keyboard binding there.
+    for (const key of [entry.key, entry.key2]) {
+      add(`${entry.action}@${String(scale)}`, row, key === "None" ? {} : sortKey(key, scale));
+    }
   }
 
   // One id per action: a name that slugs the same as an earlier one gets a number.

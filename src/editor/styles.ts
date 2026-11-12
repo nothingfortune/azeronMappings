@@ -351,6 +351,7 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 .device-boards-body { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px; }
 .device-board { display: grid; gap: 3px; min-width: 0; max-width: 100%; overflow-x: auto; }
 .device-row { display: flex; gap: 3px; }
+.device-row.other-keys { flex-wrap: wrap; }
 .device-key { width: calc(var(--w, 1) * 40px); min-height: 38px; padding: 2px; border-radius: 5px;
               border: 1px solid var(--line); background: var(--bg); color: var(--muted);
               display: flex; flex-direction: column; align-items: center; justify-content: center;
