@@ -40,6 +40,7 @@ import {
   MOUSE_BUTTON_TOKENS,
   PAD_CONTROLS,
   canonicalKbm,
+  controlFromLine,
   kbmLabel,
   padControlFrom,
   padLabel,
@@ -5315,6 +5316,71 @@ function newActionId(label: string, taken: Record<string, unknown>): string {
   return id;
 }
 
+/** What is typed in the list of controls, kept across redraws until it is added. */
+let listDraft = "";
+let listOpen = false;
+
+/**
+ * The way in for a game whose controls cannot be read from a file: its controls listed,
+ * one per line, with a key and a controller control where they are known. Each line is an
+ * action; what a line does not say is set later on its row.
+ */
+function controlListField(): HTMLElement {
+  const details = el("details", { class: "control-list" });
+  if (listOpen) details.setAttribute("open", "open");
+  details.addEventListener("toggle", () => {
+    listOpen = details.open;
+  });
+  const area = el("textarea", {
+    rows: "6",
+    "data-control-list": "text",
+    "aria-label": "Controls, one per line",
+    placeholder: "Reload: R / X button\nSprint: Shift\nFire: Left click / RT\nStratagem menu",
+  });
+  area.value = listDraft;
+  area.addEventListener("input", () => {
+    listDraft = area.value;
+  });
+  const add = el("button", { class: "btn", type: "button", "data-control-list": "add" }, [
+    "Add these",
+  ]);
+  add.addEventListener("click", () => {
+    const actions = editableActions();
+    const added: string[] = [];
+    const unread: string[] = [];
+    for (const line of area.value.split(/\r?\n/)) {
+      const control = controlFromLine(line);
+      if (control === null) continue;
+      const id = newActionId(control.label, actions);
+      actions[id] = {
+        label: control.label,
+        ...(control.kbm === undefined ? {} : { kbm: control.kbm }),
+        ...(control.pad === undefined ? {} : { pad: control.pad }),
+      };
+      added.push(control.label);
+      for (const word of control.unread) unread.push(`${word} (${control.label})`);
+    }
+    if (added.length === 0) return;
+    listDraft = "";
+    saveNote =
+      `Added ${String(added.length)} control${added.length === 1 ? "" : "s"}.` +
+      (unread.length === 0
+        ? " Set any missing keys on their rows."
+        : ` Not read as a key or button: ${unread.join(", ")} -- set those on their rows.`);
+    render();
+  });
+  details.append(
+    el("summary", {}, ["Add several controls at once"]),
+    el("div", { class: "muted" }, [
+      "One control per line. After a colon, its key and its controller button if you know " +
+        'them: "Reload: R / X button". Leave them off and set them on the row later.',
+    ]),
+    area,
+    el("div", { class: "manage-row" }, [add]),
+  );
+  return details;
+}
+
 /** Type a name and press Enter: a new action, at the foot of the list, ready to place. */
 function newActionField(): HTMLElement {
   const input = el("input", {
@@ -5499,6 +5565,7 @@ function renderInGame(): HTMLElement {
   );
   // The game's controls, one per row: add one by name, then give it a key on each device.
   panel.append(newActionField());
+  panel.append(controlListField());
   const table = el("div", { class: "ingame-list" });
   const modes = layoutModes(currentSets(game), state.setName);
   for (const [id, spec] of Object.entries(actions.actions)) {
@@ -6187,8 +6254,8 @@ function renderDiscover(): HTMLElement {
       `Read ${game.name}'s controls from a file`,
       "Paste the location of the game's input file (an Unreal game's Input.ini or " +
         "DefaultInput.ini). Every control it lists that the game does not have yet is " +
-        "added, with its keyboard and controller keys. Or add controls one at a time with " +
-        "New action on the In-game tab.",
+        "added, with its keyboard and controller keys. Most games keep no such file: list " +
+        "their controls under Add several controls at once on the In-game tab instead.",
     ),
   );
   const path = el("input", {

@@ -7,7 +7,9 @@ import { parse } from "yaml";
 
 import { patchActionBindings } from "../../../src/lib/actionfile.js";
 import {
+  bindingFromWords,
   canonicalKbm,
+  controlFromLine,
   isPadControl,
   kbmLabel,
   padControlFrom,
@@ -145,5 +147,38 @@ describe("checking them", () => {
 
   it("is not a keypad key clash: the Azeron key and the keyboard key are apart", () => {
     expect(check({ reload: { key: "Insert", kbm: "KeyR" }, other: { key: "KeyR" } })).toEqual([]);
+  });
+});
+
+describe("a control listed in words", () => {
+  it("reads a name, a key and a controller control from one line", () => {
+    expect(controlFromLine("Reload: R / X button")).toEqual({
+      label: "Reload",
+      kbm: "KeyR",
+      pad: "X",
+      unread: [],
+    });
+    expect(controlFromLine("- Fire: Left click, RT")).toEqual({
+      label: "Fire",
+      kbm: "MouseLeft",
+      pad: "RT",
+      unread: [],
+    });
+    expect(controlFromLine("Stratagem menu")).toEqual({ label: "Stratagem menu", unread: [] });
+  });
+
+  it("reads modifiers, function keys, the numpad and the pad's other names", () => {
+    expect(bindingFromWords("Ctrl + Shift + S").kbm).toBe("ControlLeft+ShiftLeft+KeyS");
+    expect(bindingFromWords("F5").kbm).toBe("F5");
+    expect(bindingFromWords("Numpad 4").kbm).toBe("Numpad4");
+    expect(bindingFromWords("Scroll up").kbm).toBe("WheelUp");
+    expect(bindingFromWords("R2").pad).toBe("RT");
+    expect(bindingFromWords("D-pad up").pad).toBe("DpadUp");
+    expect(bindingFromWords("Left stick up").pad).toBe("LeftStickUp");
+  });
+
+  it("says what it could not read rather than guessing", () => {
+    expect(bindingFromWords("Hyper key")).toEqual({ unread: ["Hyper key"] });
+    expect(controlFromLine("   ")).toBeNull();
   });
 });

@@ -6,6 +6,16 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Added
 
+- **A game's controls typed in as a list.** Most games keep no readable controls file --
+  Helldivers 2, Darktide and Space Marine 2 hold their bindings in save data, and an
+  Unreal game writes its input file only once something is rebound -- so the In-game tab
+  has Add several controls at once: one control per line, with its key and controller
+  button after a colon where known (`Reload: R / X button`, `Fire: Left click / RT`,
+  `Stratagem menu`). Keys are read from the words people write (Ctrl + R, F5, Numpad 4,
+  Scroll up, Right click) and pad controls likewise (RT, R2, D-pad up, Left stick up);
+  anything not read is said, and set later on the action's row (`controlFromLine`,
+  `bindingFromWords`).
+
 - **A game's controls read from its own file, and drawn on the devices.** The Setup tab
   reads a game's input file (an Unreal game's `Input.ini` or `DefaultInput.ini`, or
   Everspace 2's own) from a location pasted in: every control it lists that the game does

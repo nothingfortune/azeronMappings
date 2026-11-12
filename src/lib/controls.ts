@@ -215,3 +215,170 @@ export function padControlFrom(
   }
   return best?.control ?? null;
 }
+
+/** Words a person writes for a key, lower case, to the key's code. */
+const KEY_WORDS: Readonly<Record<string, string>> = {
+  space: "Space",
+  spacebar: "Space",
+  tab: "Tab",
+  enter: "Enter",
+  return: "Enter",
+  esc: "Escape",
+  escape: "Escape",
+  backspace: "Backspace",
+  caps: "CapsLock",
+  capslock: "CapsLock",
+  shift: "ShiftLeft",
+  lshift: "ShiftLeft",
+  "left shift": "ShiftLeft",
+  rshift: "ShiftRight",
+  "right shift": "ShiftRight",
+  ctrl: "ControlLeft",
+  control: "ControlLeft",
+  lctrl: "ControlLeft",
+  "left ctrl": "ControlLeft",
+  rctrl: "ControlRight",
+  "right ctrl": "ControlRight",
+  alt: "AltLeft",
+  lalt: "AltLeft",
+  "left alt": "AltLeft",
+  ralt: "AltRight",
+  "right alt": "AltRight",
+  up: "ArrowUp",
+  down: "ArrowDown",
+  left: "ArrowLeft",
+  right: "ArrowRight",
+  "up arrow": "ArrowUp",
+  "down arrow": "ArrowDown",
+  "left arrow": "ArrowLeft",
+  "right arrow": "ArrowRight",
+  insert: "Insert",
+  ins: "Insert",
+  delete: "Delete",
+  del: "Delete",
+  home: "Home",
+  end: "End",
+  pgup: "PageUp",
+  "page up": "PageUp",
+  pgdn: "PageDown",
+  "page down": "PageDown",
+  "`": "Backquote",
+  "~": "Backquote",
+  tilde: "Backquote",
+  "-": "Minus",
+  "=": "Equal",
+  "[": "BracketLeft",
+  "]": "BracketRight",
+  ";": "Semicolon",
+  "'": "Quote",
+  ",": "Comma",
+  ".": "Period",
+  "/": "Slash",
+  "left click": "MouseLeft",
+  lmb: "MouseLeft",
+  mouse1: "MouseLeft",
+  "right click": "MouseRight",
+  rmb: "MouseRight",
+  mouse2: "MouseRight",
+  "middle click": "MouseMiddle",
+  mmb: "MouseMiddle",
+  mouse3: "MouseMiddle",
+  mouse4: "Mouse4",
+  "mouse 4": "Mouse4",
+  mouse5: "Mouse5",
+  "mouse 5": "Mouse5",
+  "wheel up": "WheelUp",
+  "scroll up": "WheelUp",
+  "wheel down": "WheelDown",
+  "scroll down": "WheelDown",
+};
+
+/** Words for the pad's controls besides their own names, lower case. */
+const PAD_WORDS: Readonly<Record<string, string>> = {
+  back: "View",
+  select: "View",
+  view: "View",
+  start: "Menu",
+  menu: "Menu",
+  l1: "LB",
+  r1: "RB",
+  l2: "LT",
+  r2: "RT",
+  l3: "LS",
+  r3: "RS",
+};
+
+/** One key written in words -- "R", "F5", "Shift", "Left click", "Numpad 4" -- or null. */
+function keyFromWord(word: string): string | null {
+  const text = word.trim().toLowerCase().replace(/\s+/g, " ");
+  if (text === "") return null;
+  const named = KEY_WORDS[text];
+  if (named !== undefined) return named;
+  if (/^[a-z]$/.test(text)) return `Key${text.toUpperCase()}`;
+  if (/^[0-9]$/.test(text)) return `Digit${text}`;
+  const fn = /^f([1-9]|1[0-9]|2[0-4])$/.exec(text);
+  if (fn?.[1] !== undefined) return `F${fn[1]}`;
+  const pad = /^num(?:pad)? ?([0-9])$/.exec(text);
+  if (pad?.[1] !== undefined) return `Numpad${pad[1]}`;
+  // Already a code, as the editor writes one: KeyR, ShiftLeft, MouseRight.
+  const code = word.trim();
+  return parseKbm(code) === null ? null : code;
+}
+
+/** A controller control written in words -- "A", "RT", "D-pad up", "Left stick up" -- or null. */
+function padFromWords(words: string): string | null {
+  const text = words.trim().toLowerCase().replace(/\s+/g, " ");
+  if (text === "") return null;
+  const word = PAD_WORDS[text];
+  if (word !== undefined) return word;
+  return (
+    PAD_CONTROLS.find(
+      (control) => control.toLowerCase() === text || padLabel(control).toLowerCase() === text,
+    ) ?? null
+  );
+}
+
+/**
+ * A binding written in words, as someone listing a game's controls would: a key with any
+ * modifiers ("Ctrl + R", "Shift"), a mouse button ("Right click"), or a controller control
+ * ("RT", "D-pad up"). A part that is neither comes back in `unread`, to be said, not guessed.
+ * A single letter is read as a key, so a pad's A, B, X and Y are written as "A button".
+ */
+export function bindingFromWords(text: string): { kbm?: string; pad?: string; unread: string[] } {
+  const out: { kbm?: string; pad?: string; unread: string[] } = { unread: [] };
+  for (const part of text.split(/\s*[/|]\s*|\s*,\s*/)) {
+    const trimmed = part.trim();
+    if (trimmed === "") continue;
+    const asButton = /^(.+?)\s+button$/i.exec(trimmed)?.[1];
+    if (asButton === undefined && out.kbm === undefined) {
+      const keys = trimmed.split(/\s*\+\s*/).map(keyFromWord);
+      if (keys.every((key): key is string => key !== null)) {
+        const chord = canonicalKbm(keys.join("+"));
+        if (parseKbm(chord) !== null) {
+          out.kbm = chord;
+          continue;
+        }
+      }
+    }
+    const pad = padFromWords(asButton ?? trimmed);
+    if (pad !== null && out.pad === undefined) {
+      out.pad = pad;
+      continue;
+    }
+    out.unread.push(trimmed);
+  }
+  return out;
+}
+
+/** One control on a line of a list: "Reload: R / X button", or just "Reload". */
+export function controlFromLine(
+  line: string,
+): { label: string; kbm?: string; pad?: string; unread: string[] } | null {
+  const trimmed = line.trim().replace(/^[-*•]\s*/, "");
+  if (trimmed === "") return null;
+  const colon = trimmed.indexOf(":");
+  const label = (colon === -1 ? trimmed : trimmed.slice(0, colon)).trim();
+  if (label === "") return null;
+  if (colon === -1) return { label, unread: [] };
+  return { label, ...bindingFromWords(trimmed.slice(colon + 1)) };
+}

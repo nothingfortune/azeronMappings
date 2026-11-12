@@ -350,6 +350,9 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 .device-boards summary { cursor: pointer; color: var(--muted); font-size: 12px; }
 .device-boards-body { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px; }
 .device-board { display: grid; gap: 3px; min-width: 0; max-width: 100%; overflow-x: auto; }
+.control-list { margin: 6px 0 10px; }
+.control-list summary { cursor: pointer; color: var(--muted); font-size: 12px; }
+.control-list textarea { width: 100%; margin-top: 6px; font: 12.5px/1.4 ui-monospace, monospace; }
 .device-row { display: flex; gap: 3px; }
 .device-row.other-keys { flex-wrap: wrap; }
 .device-key { width: calc(var(--w, 1) * 40px); min-height: 38px; padding: 2px; border-radius: 5px;
