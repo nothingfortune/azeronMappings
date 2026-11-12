@@ -1507,7 +1507,7 @@ export function applyIngame(
     text = written.text;
     pedalReport = { set: pedals.set, changes: written.changes, waiting: written.waiting };
   }
-  const collisions = ownedCollisions(parseInput(text), owned);
+  const collisions = [...ownedCollisions(parseInput(text), owned), ...keyboard.padClashes];
 
   const written: string[] = [];
   let backup: string | null = null;

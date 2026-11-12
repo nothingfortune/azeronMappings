@@ -293,7 +293,13 @@ export function applyVocabulary(
   file: IniFile,
   actions: ActionSet,
   owned: ReadonlySet<number>,
-): { text: string; changes: IngameChange[]; skipped: string[] } {
+): {
+  text: string;
+  changes: IngameChange[];
+  skipped: string[];
+  /** Controller buttons written onto one another live row already has. */
+  padClashes: { key: string; actions: string[] }[];
+} {
   const rows = keyboardRows(file);
   const byRow = new Map<string, string>();
   const problems: string[] = [];
@@ -375,6 +381,7 @@ export function applyVocabulary(
   // An action with none leaves its row as the game has it, so the pad keeps the game's own
   // layout for everything the vocabulary has not been given a control for.
   const pads = new Map<string, IniEntry>();
+  const padClashes: { key: string; actions: string[] }[] = [];
   for (const entry of file.entries) {
     if (entry.group === GAMEPAD_GROUP && !entry.isAxis) {
       pads.set(rowId(entry.action, entry.scale), entry);
@@ -389,6 +396,17 @@ export function applyVocabulary(
       skipped.push(`${id}: ${spec.pad} on the controller is not written yet (sticks are axes)`);
       continue;
     }
+    // A button the game already gives another live row is a clash, the way a key is. The
+    // game's own overlaps elsewhere are its design, and are not ours to report.
+    const others = [...pads.values()].filter(
+      (other) => other !== row && owned.has(other.category) && other.key === to,
+    );
+    if (others.length > 0) {
+      padClashes.push({
+        key: to,
+        actions: [row.displayName, ...others.map((other) => other.displayName)].sort(),
+      });
+    }
     const line = setKey(row.raw, to);
     if (line === row.raw) continue;
     lines[row.index] = line;
@@ -402,7 +420,7 @@ export function applyVocabulary(
     });
   }
   changes.sort((a, b) => a.category - b.category || a.action.localeCompare(b.action));
-  return { text: lines.join(file.eol), changes, skipped };
+  return { text: lines.join(file.eol), changes, skipped, padClashes };
 }
 
 export const GAMEPAD_GROUP = "Gamepad";

@@ -444,6 +444,7 @@ function cmdIngame(
         for (const entry of result.collisions) {
           out(`  shared on purpose: ${entry.key} -> ${entry.actions.join(" + ")}`);
         }
+        for (const line of result.skipped ?? []) out(`  not written yet: ${line}`);
         if (result.pedals !== null) {
           out(`  pedals of set ${result.pedals.set}:`);
           for (const change of result.pedals.changes) {

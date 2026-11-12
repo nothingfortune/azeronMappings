@@ -321,3 +321,29 @@ describe("clashes the second key makes", () => {
     ]);
   });
 });
+
+describe("a controller button written onto one another row has", () => {
+  it("is reported as a clash; the game's own overlaps elsewhere are not", () => {
+    const out = applyVocabulary(
+      parseInput(
+        [
+          "[/Script/ES2.CustomPlayerInput]",
+          LINE("Reload", "R", "Keyboard", "1.000000", "Reload"),
+          LINE("Reload", "Gamepad_FaceButton_Left", "Gamepad", "1.000000", "Reload"),
+          LINE("Jump", "SpaceBar", "Keyboard", "1.000000", "Jump"),
+          LINE("Jump", "Gamepad_FaceButton_Bottom", "Gamepad", "1.000000", "Jump"),
+        ].join("\n"),
+      ),
+      new ActionSet({
+        actions: {
+          reload: { key: "KeyR", ingame: "Reload", pad: "A" },
+          jump: { key: "Space", ingame: "Jump" },
+        },
+      }),
+      new Set([0]),
+    );
+    expect(out.padClashes).toEqual([
+      { key: "Gamepad_FaceButton_Bottom", actions: ["Jump", "Reload"] },
+    ]);
+  });
+});
