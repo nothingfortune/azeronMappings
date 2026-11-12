@@ -3272,9 +3272,15 @@ function lightTester(): void {
     const hand = hands[slugs.indexOf(slug)];
     if (hand === undefined) return null;
     const [position = "", direction] = name.split(":");
-    return direction === undefined
-      ? hand.querySelector(`.key[data-position="${position}"]`)
-      : hand.querySelector(`.stick-dial .dir.${direction}`);
+    if (direction !== undefined) return hand.querySelector(`.stick-dial .dir.${direction}`);
+    // The stick pressed in is drawn as the dial's hub, not as a key.
+    const stickPress = profileFor(slug).device.isStick(position)
+      ? null
+      : handLayout(profileFor(slug).device).stickPress;
+    return (
+      hand.querySelector(`.key[data-position="${position}"]`) ??
+      (position === stickPress ? hand.querySelector(".stick-dial .dir.hub") : null)
+    );
   };
   // Pressed at least once: stays marked, so what is left to press is what is unmarked.
   for (const id of tester.seen) control(id)?.classList.add("tested");
@@ -3283,15 +3289,7 @@ function lightTester(): void {
       tester.lit.delete(id);
       continue;
     }
-    const [slug = "", control = ""] = id.split("|");
-    const hand = hands[slugs.indexOf(slug)];
-    if (hand === undefined) continue;
-    const [position = "", direction] = control.split(":");
-    const node =
-      direction === undefined
-        ? hand.querySelector(`.key[data-position="${position}"]`)
-        : hand.querySelector(`.stick-dial .dir.${direction}`);
-    node?.classList.add("live-hit");
+    control(id)?.classList.add("live-hit");
   }
 }
 

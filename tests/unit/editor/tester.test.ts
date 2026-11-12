@@ -113,6 +113,23 @@ describe("the live key tester", () => {
     expect(strip()).toMatch(/^.*0 of \d+ controls seen, 1 press the layout does not send/s);
   });
 
+  it("marks the stick pressed in, drawn as the dial's hub, once it is tested", () => {
+    const profile = game.loadedProfiles().find((entry) => entry.path === live("left"));
+    if (!profile) throw new Error("no live left profile");
+    const press = expectedPresses(profile.data, profile.device, game.actions).find(
+      (entry) =>
+        entry.position === "stick_press" &&
+        entry.sends.kind === "key" &&
+        entry.sends.modifiers.length === 0,
+    );
+    if (press?.sends.kind !== "key") throw new Error("no plain key on the stick press");
+    header(/^Test keys$/).click();
+    key(press.sends.code, "keydown");
+    key(press.sends.code, "keyup");
+    const hub = document.querySelectorAll(".hand")[0]?.querySelector(".stick-dial .dir.hub");
+    expect(hub?.classList.contains("tested")).toBe(true);
+  });
+
   it("counts a press the layout does not send as wrong", () => {
     header(/^Test keys$/).click();
     key("F24", "keydown");
