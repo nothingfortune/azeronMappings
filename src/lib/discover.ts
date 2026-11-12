@@ -180,6 +180,22 @@ export function discoverControls(text: string): DiscoveredAction[] {
     }
   }
 
+  // Everspace's stick bindings sit on axis rows (`MoveForward` on `Gamepad_LeftY`), apart from
+  // the two direction rows the actions above came from: each direction takes its half.
+  for (const entry of parseInput(text).entries) {
+    if (!entry.isAxis) continue;
+    const axis = STICK_AXES[entry.key];
+    if (axis === undefined) continue;
+    const [forward, back] = entry.scale < 0 ? [axis[1], axis[0]] : axis;
+    for (const [scale, pad] of [
+      [1, forward],
+      [-1, back],
+    ] as const) {
+      const known = found.get(`${entry.action}@${String(scale)}`);
+      if (known !== undefined && known.pad === undefined) known.pad = pad;
+    }
+  }
+
   // One id per action: a name that slugs the same as an earlier one gets a number.
   const taken = new Set<string>();
   return [...found.values()].map((action) => {

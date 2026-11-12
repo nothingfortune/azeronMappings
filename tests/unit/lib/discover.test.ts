@@ -82,3 +82,15 @@ describe("an Everspace row with its binding in the second slot", () => {
     expect(discoverControls(`[/Script/ES2.CustomPlayerInput]\n${line}`)[0]?.kbm).toBe("MouseLeft");
   });
 });
+
+describe("Everspace's stick axes", () => {
+  it("give the direction actions their halves of the stick", () => {
+    const text = readFileSync(repoPath("dist/SpaceSims/everspace/Input.ini"), "utf8");
+    const found = discoverControls(text);
+    const forward = found.find((a) => a.ingame === "MoveForward" && a.ingame_scale === undefined);
+    const back = found.find((a) => a.ingame === "MoveForward" && a.ingame_scale === -1);
+    expect(forward?.pad).toMatch(/^LeftStick(Up|Down)$/);
+    expect(back?.pad).toMatch(/^LeftStick(Up|Down)$/);
+    expect(back?.pad).not.toBe(forward?.pad);
+  });
+});

@@ -5487,7 +5487,16 @@ function renderInGame(): HTMLElement {
   }
 
   // The same bindings drawn on a keyboard, a mouse and a controller.
-  panel.append(renderDeviceBoards(actions.actions));
+  // Only the actions the layout plays, as the list below shows them: an action of a mode
+  // this layout does not play would be drawn, and clash, with nowhere to go when clicked.
+  const playing = layoutModes(currentSets(game), state.setName);
+  panel.append(
+    renderDeviceBoards(
+      Object.fromEntries(
+        Object.entries(actions.actions).filter(([, spec]) => playsAction(playing, spec)),
+      ),
+    ),
+  );
   // The game's controls, one per row: add one by name, then give it a key on each device.
   panel.append(newActionField());
   const table = el("div", { class: "ingame-list" });
