@@ -152,6 +152,13 @@ Three inputs meet in the compiler, and are kept separate:
    write profiles with fresh UUIDs and an explicit `output`, and undo every write on a
    failure. A game with no actions of its own writes `actions: {}`, which
    `patchActionBindings` turns into a block on the first key.
+   Beside the Azeron key, an action may carry `kbm:` (a keyboard key with modifiers, a
+   modifier alone, or a mouse token: `ControlLeft+KeyR`, `MouseRight`, `WheelUp`) and
+   `pad:` (an Xbox-style control: `A`, `RT`, `LeftStickUp`) -- what a person playing
+   without the keypads presses. `src/lib/controls.ts` names and checks them and reads a
+   pad through the browser's Gamepad API; the In-game tab captures both. The compiler
+   never reads them, so they cannot change a compiled layout. `kbm-collision` and
+   `pad-collision` warn on two live actions sharing one.
    `azeron import` is the other way in, from an export: it stores the export in `templates/`,
    seeds an action per distinct key it sends (named after the key, since an export
    cannot say what a key does in game), and decompiles the profile. `export_to` in

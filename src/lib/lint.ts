@@ -6,6 +6,7 @@
  */
 
 import { DEFAULT_FEATURE_DELAY, SLOTS, STICK_MODE_CODES, TYPE_MOUSE } from "../types/azeron.js";
+import { isPadControl, kbmLabel, padLabel, parseKbm } from "./controls.js";
 import { resolveSlot } from "./binding.js";
 import * as keys from "./keys.js";
 import type { Slot } from "../types/azeron.js";
@@ -167,6 +168,55 @@ export function checkActions(actions: ActionSet, live: LiveTogether = () => true
         `${culprit ?? "?"} is sent by ${String(clashing.length)} different actions ` +
         `(${[...clashing].sort().join(", ")}). Move one to another key, or accept this if it is on purpose.`,
     });
+  }
+  findings.push(...checkPlayerBindings(actions, live));
+  return findings;
+}
+
+/**
+ * The keyboard-and-mouse and controller bindings: what a person playing without the keypads
+ * presses. Two actions live together on one of them is a clash, as for the keypads' keys;
+ * a binding that is not one is reported, since nothing can be written from it.
+ */
+function checkPlayerBindings(actions: ActionSet, live: LiveTogether): Finding[] {
+  const findings: Finding[] = [];
+  for (const [field, rule, words] of [
+    ["kbm", "kbm-collision", "keyboard and mouse"],
+    ["pad", "pad-collision", "controller"],
+  ] as const) {
+    const byBinding = new Map<string, string[]>();
+    for (const [id, spec] of Object.entries(actions.actions)) {
+      const value = spec[field];
+      if (value === undefined) continue;
+      const valid = field === "kbm" ? parseKbm(value) !== null : isPadControl(value);
+      if (!valid) {
+        findings.push({
+          level: ERROR,
+          rule: `${field}-unknown`,
+          message: `${id}'s ${words} binding '${value}' is not one this editor knows.`,
+        });
+        continue;
+      }
+      byBinding.set(value, [...(byBinding.get(value) ?? []), id]);
+    }
+    for (const [value, ids] of byBinding) {
+      const clashing = ids.filter((id, index) =>
+        ids.some(
+          (other, at) =>
+            at !== index && actionsLiveTogether(live, actions.actions[id], actions.actions[other]),
+        ),
+      );
+      if (clashing.length < 2) continue;
+      const shown = field === "kbm" ? kbmLabel(value) : padLabel(value);
+      findings.push({
+        level: WARNING,
+        rule,
+        key: value,
+        message:
+          `On ${words}, ${shown} is bound to ${String(clashing.length)} actions ` +
+          `(${[...clashing].sort().join(", ")}). Move one, unless the game allows it.`,
+      });
+    }
   }
   return findings;
 }

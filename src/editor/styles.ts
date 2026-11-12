@@ -170,12 +170,12 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 .unit-settings { margin-top: 10px; display: grid; gap: 4px; }
 .unit-settings .row2 { flex-wrap: wrap; align-items: center; }
 .keybind { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.key-chip { min-width: 96px; padding: 5px 12px; border-radius: 7px; border: 1px solid var(--line);
+.key-chip, .bind-chip { min-width: 96px; padding: 5px 12px; border-radius: 7px; border: 1px solid var(--line);
             border-bottom-width: 3px; background: var(--panel); color: var(--fg);
             font: 600 13px/1.2 ui-sans-serif, system-ui, sans-serif; cursor: pointer; text-align: center; }
-.key-chip:hover { border-color: var(--accent); }
-.key-chip.unset { color: var(--muted); font-weight: 400; font-style: italic; }
-.key-chip.capturing { border-color: var(--accent); color: var(--accent);
+.key-chip:hover, .bind-chip:hover { border-color: var(--accent); }
+.key-chip.unset, .bind-chip.unset { color: var(--muted); font-weight: 400; font-style: italic; }
+.key-chip.capturing, .bind-chip.capturing { border-color: var(--accent); color: var(--accent);
                       box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
 .btn.small { padding: 3px 8px; font-size: 12px; }
 .keybind-note { flex-basis: 100%; font-size: 11px; color: var(--warn); }
@@ -340,6 +340,11 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 .new-action-row { margin-top: 8px; }
 .new-action-row input { width: 100%; }
 .ingame-row .delete-action { align-self: center; }
+/* What the action is on for a keyboard and mouse, and for a controller. */
+.player-binds { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; grid-column: 1 / -1; min-width: 0; }
+.player-bind { display: inline-flex; gap: 4px; align-items: center; flex-wrap: wrap; min-width: 0; }
+.player-bind .bind-kind { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.player-bind select { max-width: min(190px, 100%); min-width: 0; }
 .clear-hint { display: none; margin-top: 6px; padding: 6px; border: 1px dashed var(--line);
               border-radius: 6px; text-align: center; font-size: 11.5px; color: var(--muted); }
 body.dragging-key .clear-hint { display: block; }
