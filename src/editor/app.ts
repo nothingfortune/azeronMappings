@@ -35,6 +35,14 @@ import { xboxLabel } from "../lib/xbox.js";
 import { eliteKeyFor } from "../lib/elite.js";
 import type { UnitCheck, UnitDifference, UnitsReport } from "../lib/units.js";
 import { describeSent, expectedPresses, verdict } from "../lib/checkunit.js";
+import {
+  MOUSE_BUTTON_TOKENS,
+  PAD_CONTROLS,
+  canonicalKbm,
+  kbmLabel,
+  padControlFrom,
+  padLabel,
+} from "../lib/controls.js";
 import { hitName, matchSent } from "../lib/keytester.js";
 import type { UnitPresses } from "../lib/keytester.js";
 import type { ExpectedPress, Sent } from "../lib/checkunit.js";
@@ -2429,6 +2437,9 @@ function inGameKeyChanges(game: EditorGame): Record<string, BindingChange> {
       if ((spec[field] ?? null) !== (before[field] ?? null)) change[field] = spec[field] ?? null;
     }
     if (spec.label !== undefined && spec.label !== before.label) change.label = spec.label;
+    for (const field of ["kbm", "pad"] as const) {
+      if ((spec[field] ?? null) !== (before[field] ?? null)) change[field] = spec[field] ?? null;
+    }
     // A list with nothing in it is a change when the loaded one had something: it is how a
     // tag the genre supplies is taken away.
     const tags = spec.tags ?? [];
@@ -4860,6 +4871,8 @@ function actionKeyField(id: string): HTMLElement {
     if (capturing === id) return;
     capturing = id;
     captureProblem = null;
+    // One capture at a time: the next key goes to the field chosen last.
+    playerCapture = null;
     render();
   });
   // During capture, a mouse button pressed on the chip binds that button.
@@ -5004,6 +5017,205 @@ function gameFileMissing(game: EditorGame): HTMLElement | null {
   });
   note.append(el("div", { class: "manage-row" }, [path, use]));
   return note;
+}
+
+/** A keyboard-and-mouse or controller binding being captured, and for which action. */
+let playerCapture: { id: string; kind: "kbm" | "pad"; problem?: string } | null = null;
+/** End a capture of the key the keypad sends, so the next press goes to the other field. */
+function endKeyCapture(): void {
+  capturing = null;
+}
+
+/** Modifiers held during a keyboard capture, and one pressed with no key after it yet. */
+const captureHeld = new Set<string>();
+let capturePending: string | null = null;
+let playerCaptureBound = false;
+
+function setPlayerBinding(id: string, field: "kbm" | "pad", value: string | null): void {
+  // An action deleted while its binding was being captured stays deleted.
+  const spec = editableActions()[id];
+  if (spec === undefined) {
+    playerCapture = null;
+    render();
+    return;
+  }
+  if (value === null) removeKey(spec, field);
+  else spec[field] = field === "kbm" ? canonicalKbm(value) : value;
+  playerCapture = null;
+  captureHeld.clear();
+  capturePending = null;
+  render();
+}
+
+/** Keys while a keyboard binding is captured: modifiers build up, the next key binds. */
+function bindPlayerCapture(): void {
+  if (playerCaptureBound) return;
+  playerCaptureBound = true;
+  // A modifier let go while the window was not looking never sends its keyup: forget what
+  // was held, or the next key would be recorded as a chord nobody pressed.
+  window.addEventListener("blur", () => {
+    captureHeld.clear();
+    capturePending = null;
+  });
+  window.addEventListener(
+    "keydown",
+    (event) => {
+      if (playerCapture?.kind !== "kbm") return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (event.repeat) return;
+      if (isModifier(event.code)) {
+        captureHeld.add(event.code);
+        capturePending ??= event.code;
+        return;
+      }
+      setPlayerBinding(playerCapture.id, "kbm", [...captureHeld, event.code].join("+"));
+    },
+    true,
+  );
+  window.addEventListener(
+    "keyup",
+    (event) => {
+      if (playerCapture?.kind !== "kbm") return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      captureHeld.delete(event.code);
+      // A modifier pressed and let go with nothing after it is the binding itself.
+      if (capturePending === event.code) setPlayerBinding(playerCapture.id, "kbm", event.code);
+    },
+    true,
+  );
+}
+
+/** What an action is on for someone on a keyboard and mouse: click, then press or click. */
+function kbmField(id: string, spec: ActionSpec): HTMLElement {
+  const capturing = playerCapture?.id === id && playerCapture.kind === "kbm";
+  const chip = el(
+    "button",
+    {
+      class: `bind-chip kbm-chip${capturing ? " capturing" : ""}${spec.kbm === undefined ? " unset" : ""}`,
+      type: "button",
+      "data-kbm": id,
+      title: capturing
+        ? "Press a key (with Shift, Ctrl or Alt if you like), or click or scroll on this"
+        : "The key or mouse button for this on a keyboard and mouse",
+    },
+    [capturing ? "Press a key or click…" : spec.kbm === undefined ? "—" : kbmLabel(spec.kbm)],
+  );
+  chip.addEventListener("click", (event) => {
+    if (capturing) {
+      // A click on the chip while capturing is the left button being bound.
+      event.preventDefault();
+      return;
+    }
+    bindPlayerCapture();
+    captureHeld.clear();
+    capturePending = null;
+    endKeyCapture();
+    playerCapture = { id, kind: "kbm" };
+    render();
+  });
+  chip.addEventListener("mousedown", (event) => {
+    if (!capturing) return;
+    const token = MOUSE_BUTTON_TOKENS[event.button];
+    if (token === undefined) return;
+    event.preventDefault();
+    setPlayerBinding(id, "kbm", [...captureHeld, token].join("+"));
+  });
+  chip.addEventListener("wheel", (event) => {
+    if (!capturing) return;
+    event.preventDefault();
+    setPlayerBinding(
+      id,
+      "kbm",
+      [...captureHeld, event.deltaY < 0 ? "WheelUp" : "WheelDown"].join("+"),
+    );
+  });
+  chip.addEventListener("contextmenu", (event) => {
+    if (capturing) event.preventDefault();
+  });
+  const parts: HTMLElement[] = [el("span", { class: "bind-kind" }, ["Keyboard"]), chip];
+  if (capturing) {
+    const cancel = el("button", { class: "btn small", type: "button" }, ["Cancel"]);
+    cancel.addEventListener("click", () => {
+      playerCapture = null;
+      render();
+    });
+    parts.push(cancel);
+  } else if (spec.kbm !== undefined) {
+    const clear = el("button", { class: "btn small", type: "button", title: "Unbind" }, ["×"]);
+    clear.addEventListener("click", () => {
+      setPlayerBinding(id, "kbm", null);
+    });
+    parts.push(clear);
+  }
+  return el("div", { class: "player-bind" }, parts);
+}
+
+/** Navigator's pads, where the browser has the Gamepad API. */
+function connectedPads(): (Gamepad | null)[] {
+  const nav = navigator as Navigator & { getGamepads?: () => (Gamepad | null)[] };
+  return typeof nav.getGamepads === "function" ? [...nav.getGamepads()] : [];
+}
+
+/** Watch the pads for a press, for up to ten seconds; the first control pressed binds. */
+function capturePad(id: string): void {
+  endKeyCapture();
+  playerCapture = { id, kind: "pad" };
+  render();
+  const until = Date.now() + 10_000;
+  const look = (): void => {
+    if (playerCapture?.id !== id || playerCapture.kind !== "pad") return;
+    for (const pad of connectedPads()) {
+      if (pad === null) continue;
+      const control = padControlFrom(pad.buttons, pad.axes);
+      if (control !== null) {
+        setPlayerBinding(id, "pad", control);
+        return;
+      }
+    }
+    if (Date.now() > until) {
+      playerCapture = {
+        id,
+        kind: "pad",
+        problem:
+          "No controller press seen. Is a pad plugged in? Press any button on it once first.",
+      };
+      render();
+      return;
+    }
+    requestAnimationFrame(look);
+  };
+  requestAnimationFrame(look);
+}
+
+/** What an action is on for someone on a controller: pick it, or press it on a pad. */
+function padField(id: string, spec: ActionSpec): HTMLElement {
+  const capturing = playerCapture?.id === id && playerCapture.kind === "pad";
+  const select = el("select", { "data-pad": id, "aria-label": "Controller" });
+  const none = el("option", { value: "" }, [
+    spec.xbox === undefined ? "—" : `— (games often use ${padLabel(spec.xbox)})`,
+  ]);
+  select.append(none);
+  for (const control of PAD_CONTROLS) {
+    select.append(el("option", { value: control }, [padLabel(control)]));
+  }
+  select.value = spec.pad ?? "";
+  select.addEventListener("change", () => {
+    setPlayerBinding(id, "pad", select.value === "" ? null : select.value);
+  });
+  const press = el("button", { class: "btn small", type: "button", "data-pad-press": id }, [
+    capturing && playerCapture?.problem === undefined ? "Press it on the pad…" : "Press on pad",
+  ]);
+  press.title = "Press the button or push the stick on a connected controller";
+  press.addEventListener("click", () => {
+    capturePad(id);
+  });
+  const parts: HTMLElement[] = [el("span", { class: "bind-kind" }, ["Controller"]), select, press];
+  if (capturing && playerCapture?.problem !== undefined) {
+    parts.push(el("span", { class: "keybind-note bad" }, [playerCapture.problem]));
+  }
+  return el("div", { class: "player-bind" }, parts);
 }
 
 /** The action whose name is being typed, if any. */
@@ -5237,6 +5449,8 @@ function renderInGame(): HTMLElement {
     );
   }
 
+  // The game's controls, one per row: add one by name, then give it a key on each device.
+  panel.append(newActionField());
   const table = el("div", { class: "ingame-list" });
   const modes = layoutModes(currentSets(game), state.setName);
   for (const [id, spec] of Object.entries(actions.actions)) {
@@ -5257,12 +5471,14 @@ function renderInGame(): HTMLElement {
       if (spec.provided_by) item.append(el("div", { class: "muted" }, [spec.provided_by]));
       else item.append(actionKeyField(id));
     }
+    item.append(el("div", { class: "player-binds" }, [kbmField(id, spec), padField(id, spec)]));
     item.append(actionTagField(id, spec));
     if (canDeleteAction(game, id)) {
       const remove = el("button", { class: "btn small delete-action", type: "button" }, ["Delete"]);
       remove.title = "Take this action out of the game. It is on no key.";
       remove.addEventListener("click", () => {
         removeKey(editableActions(), id);
+        if (playerCapture?.id === id) playerCapture = null;
         render();
       });
       item.append(remove);
@@ -6738,6 +6954,11 @@ function adoptPendingSpec(): void {
  */
 function resetSession(): void {
   capturing = null;
+  // A keyboard or controller binding being captured belongs to the game it began on: a key
+  // pressed after a change of game or tab must not land on the next one.
+  playerCapture = null;
+  captureHeld.clear();
+  capturePending = null;
   liveTester = null;
   checkRun = null;
   if (writeRun !== null && writeRun.stage !== "writing") endWrite(false);

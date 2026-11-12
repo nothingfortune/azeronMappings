@@ -12,6 +12,8 @@
 
 import { parse } from "yaml";
 
+import { isPadControl, parseKbm } from "./controls.js";
+
 export class ActionFileError extends Error {}
 
 /**
@@ -26,10 +28,12 @@ export interface BindingChange {
   mouse?: string | null;
   label?: string | null;
   tags?: string[] | null;
+  kbm?: string | null;
+  pad?: string | null;
 }
 
 const KEY_FIELDS = ["key", "meta", "mouse"] as const;
-const FIELDS = [...KEY_FIELDS, "label", "tags"] as const;
+const FIELDS = [...KEY_FIELDS, "label", "tags", "kbm", "pad"] as const;
 type Field = (typeof FIELDS)[number];
 
 /** A key name as it may appear unquoted in a flow mapping. */
@@ -93,6 +97,22 @@ function checkChange(id: string, change: unknown): BindingChange {
       throw new ActionFileError(`${id}: ${field} must be a key name or null`);
     }
     if (!TOKEN.test(value)) throw new ActionFileError(`${id}: '${value}' is not a key name`);
+  }
+  const kbm = given.kbm;
+  if (kbm !== undefined && kbm !== null) {
+    if (typeof kbm !== "string" || parseKbm(kbm) === null) {
+      throw new ActionFileError(
+        `${id}: '${typeof kbm === "string" ? kbm : "that"}' is not a key, mouse button or chord`,
+      );
+    }
+  }
+  const pad = given.pad;
+  if (pad !== undefined && pad !== null) {
+    if (typeof pad !== "string" || !isPadControl(pad)) {
+      throw new ActionFileError(
+        `${id}: '${typeof pad === "string" ? pad : "that"}' is not a controller control`,
+      );
+    }
   }
   const label = given.label;
   if (label !== undefined && label !== null) {

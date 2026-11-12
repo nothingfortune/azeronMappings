@@ -57,6 +57,18 @@ export interface ActionSpec {
    * `LeftStickUp`): reference for the controller-style layout, never sent. See xbox.ts.
    */
   xbox?: string;
+  /**
+   * What the action is on for someone playing on a keyboard and mouse: a key with any
+   * modifiers (`ControlLeft+KeyR`), a modifier alone, or a mouse token (`MouseRight`,
+   * `WheelUp`). See bindings.ts. Never sent by a unit; the compiler does not read it.
+   */
+  kbm?: string;
+  /**
+   * What the action is on for someone playing on a controller: an Xbox-style control
+   * (`A`, `RT`, `LeftStickUp`). Where `xbox` is the genre's suggestion, this is the game's
+   * binding. Never sent by a unit.
+   */
+  pad?: string;
 }
 
 export interface DuplicateKeyAllowance {

@@ -4,7 +4,16 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ## Unreleased
 
-### Changed
+### Added
+
+- **Keyboard, mouse and controller bindings for every action.** Each row on the In-game tab
+  now has a Keyboard field (click, then press a key with any modifiers, or click or scroll
+  on it for a mouse button or the wheel) and a Controller field (pick a control, or Press
+  on pad to read it from a connected controller through the browser's Gamepad API; the
+  genre's usual control is shown as a hint). They are saved as `kbm:` and `pad:` on the
+  action, checked for clashes (`kbm-collision`, `pad-collision`), and never sent to the
+  units: the compiler does not read them, so every compiled layout is unchanged. The New
+  action box is on the In-game tab too.
 
 - **One test for the units.** Test keys counts as it goes: every control pressed stays
   marked green, in any order and on both units at once, and the tray says "18 of 63
