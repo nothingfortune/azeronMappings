@@ -201,3 +201,32 @@ describe("the drawings in a game with modes of play", () => {
     expect(h?.classList.contains("shared")).toBe(false);
   });
 });
+
+describe("adding several controls from a list", () => {
+  it("adds one action per line, with the keys it reads, and says what it could not read", async () => {
+    const box = document.querySelector<HTMLTextAreaElement>('[data-control-list="text"]');
+    if (!box) throw new Error("no list box");
+    box.value = "Stratagem menu: Ctrl / LB\nThrow grenade: G\nEmote: Hyper key";
+    box.dispatchEvent(new Event("input"));
+    document.querySelector<HTMLButtonElement>('[data-control-list="add"]')?.click();
+    expect(document.body.textContent).toContain("Added 3 controls.");
+    expect(document.body.textContent).toContain("Hyper key (Emote)");
+    const row = (label: string) =>
+      [...document.querySelectorAll(".ingame-row")].find(
+        (node) => node.querySelector(".who b")?.textContent === label,
+      );
+    expect(row("Throw grenade")?.querySelector("[data-kbm]")?.textContent).toBe("G");
+    expect(row("Stratagem menu")?.querySelector<HTMLSelectElement>("[data-pad]")?.value).toBe("LB");
+    [...document.querySelectorAll<HTMLButtonElement>("header button")]
+      .find((button) => button.textContent === "Save")
+      ?.click();
+    await vi.waitFor(() => {
+      expect(calls.some((call) => call.path === "/api/actions")).toBe(true);
+    });
+    const body = calls.find((call) => call.path === "/api/actions")?.body as {
+      add?: Record<string, unknown>;
+    };
+    expect(body.add?.throw_grenade).toEqual({ label: "Throw grenade", kbm: "KeyG" });
+    expect(body.add?.emote).toEqual({ label: "Emote" });
+  });
+});
