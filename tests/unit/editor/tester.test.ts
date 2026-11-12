@@ -99,6 +99,20 @@ describe("the live key tester", () => {
     expect(marked?.classList.contains("tested")).toBe(true);
   });
 
+  it("lights a key sent with a modifier the layout does not have, but counts it as wrong", () => {
+    const { position, code } = plainKey();
+    header(/^Test keys$/).click();
+    // Ctrl held, then the key: the unit is not sending what the layout says.
+    key("ControlLeft", "keydown");
+    key(code, "keydown");
+    const lit = document
+      .querySelectorAll(".hand")[0]
+      ?.querySelector(`.key[data-position="${position}"]`);
+    expect(lit?.classList.contains("live-hit")).toBe(true);
+    expect(lit?.classList.contains("tested")).toBe(false);
+    expect(strip()).toMatch(/^.*0 of \d+ controls seen, 1 press the layout does not send/s);
+  });
+
   it("counts a press the layout does not send as wrong", () => {
     header(/^Test keys$/).click();
     key("F24", "keydown");

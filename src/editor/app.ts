@@ -3231,11 +3231,13 @@ function testerPress(sent: Sent, holdKey: string | null): void {
   });
   tester.recent.length = Math.min(tester.recent.length, TESTER_RECENT);
   const until = Date.now() + TESTER_FLASH_MS;
-  for (const hit of hits) {
-    tester.lit.set(`${hit.slug}|${hit.press.id}`, holdKey ?? until);
-    tester.seen.add(`${hit.slug}|${hit.press.id}`);
-  }
-  if (hits.length === 0) tester.wrong += 1;
+  // Every hit lights, so a near miss still shows where it came from; only an exact one
+  // counts as the control doing what the layout says. A key with a modifier the layout
+  // does not have is a different press, and is counted as wrong.
+  const exact = hits.filter((hit) => !hit.loose);
+  for (const hit of hits) tester.lit.set(`${hit.slug}|${hit.press.id}`, holdKey ?? until);
+  for (const hit of exact) tester.seen.add(`${hit.slug}|${hit.press.id}`);
+  if (exact.length === 0) tester.wrong += 1;
   if (holdKey === null) {
     setTimeout(() => {
       if (liveTester === tester) render();
