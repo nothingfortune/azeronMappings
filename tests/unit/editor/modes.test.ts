@@ -57,3 +57,18 @@ describe("a layout that plays one mode", () => {
     expect(listed()).toContain("Headlight");
   });
 });
+
+describe("a keyboard key chosen for a key, in a layout that plays one mode", () => {
+  it("is not another mode's action, which the layout would then hide", () => {
+    // Headlight is on B, in the foot mode the live layout does not play.
+    mount(withModes());
+    document.querySelector<HTMLElement>(".hand .key[data-position]")?.click();
+    document.querySelector<HTMLButtonElement>("[data-choose-action]")?.click();
+    document.querySelector<HTMLButtonElement>('[data-picker-tab="Keyboard key"]')?.click();
+    document.querySelector<HTMLButtonElement>('.picker-dialog [data-choose="KeyB"]')?.click();
+    expect(document.querySelector(".picker-dialog")).toBeNull();
+    const chosen = document.querySelector(".hand .key[data-position]")?.textContent ?? "";
+    expect(chosen).not.toContain("Headlight");
+    expect(listed()).not.toContain("Headlight");
+  });
+});

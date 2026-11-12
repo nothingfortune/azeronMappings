@@ -1221,6 +1221,7 @@ function openActionPicker(slug: string, position: string): void {
   if (profileFor(slug).device.isStick(position)) return;
   const game = currentGame();
   const unit = workingData(slug).profile.unit;
+  const modes = layoutModes(currentSets(game), state.setName);
   cancelCaptures();
   const put = (id: string): void => {
     assignAction(slug, position, state.slot, id);
@@ -1232,7 +1233,6 @@ function openActionPicker(slug: string, position: string): void {
       name: "Actions",
       render: (close) => {
         const actions = actionSetFor(game).actions;
-        const modes = layoutModes(currentSets(game), state.setName);
         const bound = boundActions();
         const rank = (id: string, spec: ActionSpec): number => {
           const needed = (spec.tags ?? []).includes("required");
@@ -1289,7 +1289,7 @@ function openActionPicker(slug: string, position: string): void {
           keyChooser(
             (code) => {
               close();
-              put(actionForKey(code));
+              put(actionForKey(code, modes));
             },
             { mouse: ["MouseLeft", "MouseMiddle", "MouseRight"] },
           ),
@@ -1309,26 +1309,34 @@ const AZERON_MOUSE: Readonly<Record<string, string>> = {
  * The action that sends exactly this key: one the game has, or a new one named after the
  * key. A key already given to an action is that action's, so it is never sent twice.
  */
-function actionForKey(code: string): string {
+function actionForKey(code: string, modes: ReadonlySet<string> | null): string {
   const actions = editableActions();
   const mouse = AZERON_MOUSE[code];
   const modifier = mouse === undefined && isModifier(code);
+  // Only an action the layout plays: another mode's would be put on the key and then hidden,
+  // the layout's own action for the key left wanting.
   const found = Object.entries(actions).find(([, spec]) =>
-    mouse !== undefined
-      ? spec.mouse === mouse
-      : modifier
-        ? spec.meta === code && spec.key === undefined
-        : spec.key === code && spec.meta === undefined,
+    !playsAction(modes, spec)
+      ? false
+      : mouse !== undefined
+        ? spec.mouse === mouse
+        : modifier
+          ? spec.meta === code && spec.key === undefined
+          : spec.key === code && spec.meta === undefined,
   );
   if (found !== undefined) return found[0];
   const label = kbmLabel(code);
   const id = newActionId(label, actions);
-  actions[id] =
+  const spec: ActionSpec =
     mouse !== undefined
       ? { label, mouse }
       : modifier
         ? { label, meta: code }
         : { label, key: code };
+  // A layout for one mode of play gets an action of that mode, live only where it is.
+  const only = modes?.size === 1 ? [...modes][0] : undefined;
+  if (only !== undefined) spec.mode = only;
+  actions[id] = spec;
   return id;
 }
 
