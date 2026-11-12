@@ -177,6 +177,12 @@ describe("a control listed in words", () => {
     expect(bindingFromWords("Left stick up").pad).toBe("LeftStickUp");
   });
 
+  it("reads a slash or a comma written on its own as the key", () => {
+    expect(controlFromLine("Map: /")?.kbm).toBe("Slash");
+    expect(controlFromLine("Previous: ,")?.kbm).toBe("Comma");
+    expect(controlFromLine("Map: / / X button")).toMatchObject({ kbm: "Slash", pad: "X" });
+  });
+
   it("says what it could not read rather than guessing", () => {
     expect(bindingFromWords("Hyper key")).toEqual({ unread: ["Hyper key"] });
     expect(controlFromLine("   ")).toBeNull();

@@ -346,7 +346,9 @@ function padFromWords(words: string): string | null {
  */
 export function bindingFromWords(text: string): { kbm?: string; pad?: string; unread: string[] } {
   const out: { kbm?: string; pad?: string; unread: string[] } = { unread: [] };
-  for (const part of text.split(/\s*[/|]\s*|\s*,\s*/)) {
+  // A key and a pad control are parted by " / ", "|" or ", ": a slash or a comma on its own,
+  // with no space after it, is the key itself ("Map: /").
+  for (const part of text.trim().split(/\s+\/\s+|\s*\|\s*|,\s+/)) {
     const trimmed = part.trim();
     if (trimmed === "") continue;
     const asButton = /^(.+?)\s+button$/i.exec(trimmed)?.[1];
