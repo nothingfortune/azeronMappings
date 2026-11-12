@@ -120,6 +120,15 @@ describe("a keyboard-and-mouse binding", () => {
     expect(document.querySelector('[data-kbm="wave"]')).toBeNull();
   });
 
+  it("forgets a modifier let go of while the window was not looking", () => {
+    const id = firstAction();
+    document.querySelector<HTMLButtonElement>(`[data-kbm="${id}"]`)?.click();
+    press("ControlLeft", "keydown");
+    window.dispatchEvent(new Event("blur"));
+    press("KeyR", "keydown");
+    expect(document.querySelector(`[data-kbm="${id}"]`)?.textContent).toBe("R");
+  });
+
   it("is a modifier on its own when it is let go with nothing after it", () => {
     const id = firstAction();
     document.querySelector<HTMLButtonElement>(`[data-kbm="${id}"]`)?.click();

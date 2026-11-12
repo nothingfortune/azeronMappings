@@ -5051,6 +5051,12 @@ function setPlayerBinding(id: string, field: "kbm" | "pad", value: string | null
 function bindPlayerCapture(): void {
   if (playerCaptureBound) return;
   playerCaptureBound = true;
+  // A modifier let go while the window was not looking never sends its keyup: forget what
+  // was held, or the next key would be recorded as a chord nobody pressed.
+  window.addEventListener("blur", () => {
+    captureHeld.clear();
+    capturePending = null;
+  });
   window.addEventListener(
     "keydown",
     (event) => {
