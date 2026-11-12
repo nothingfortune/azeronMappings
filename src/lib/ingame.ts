@@ -382,6 +382,8 @@ export function applyVocabulary(
   // layout for everything the vocabulary has not been given a control for.
   const pads = new Map<string, IniEntry>();
   const padClashes: { key: string; actions: string[] }[] = [];
+  /** The buttons written in this update: only clashes on one of them are ours to report. */
+  const assigned = new Set<string>();
   for (const entry of file.entries) {
     if (entry.group === GAMEPAD_GROUP && !entry.isAxis) {
       pads.set(rowId(entry.action, entry.scale), entry);
@@ -396,17 +398,7 @@ export function applyVocabulary(
       skipped.push(`${id}: ${spec.pad} on the controller is not written yet (sticks are axes)`);
       continue;
     }
-    // A button the game already gives another live row is a clash, the way a key is. The
-    // game's own overlaps elsewhere are its design, and are not ours to report.
-    const others = [...pads.values()].filter(
-      (other) => other !== row && owned.has(other.category) && other.key === to,
-    );
-    if (others.length > 0) {
-      padClashes.push({
-        key: to,
-        actions: [row.displayName, ...others.map((other) => other.displayName)].sort(),
-      });
-    }
+    assigned.add(to);
     const line = setKey(row.raw, to);
     if (line === row.raw) continue;
     lines[row.index] = line;
@@ -418,6 +410,19 @@ export function applyVocabulary(
       to,
       by: id,
     });
+  }
+  // Clashes in the file as written, every assignment made: a swap is no clash, two actions
+  // moved onto one new button is. The game's own overlaps elsewhere are its design.
+  const byButton = new Map<string, Set<string>>();
+  for (const entry of parseInput(lines.join(file.eol)).entries) {
+    if (entry.group !== GAMEPAD_GROUP || entry.isAxis || !owned.has(entry.category)) continue;
+    if (!assigned.has(entry.key)) continue;
+    const names = byButton.get(entry.key) ?? new Set<string>();
+    names.add(entry.displayName);
+    byButton.set(entry.key, names);
+  }
+  for (const [key, names] of byButton) {
+    if (names.size > 1) padClashes.push({ key, actions: [...names].sort() });
   }
   changes.sort((a, b) => a.category - b.category || a.action.localeCompare(b.action));
   return { text: lines.join(file.eol), changes, skipped, padClashes };

@@ -347,3 +347,39 @@ describe("a controller button written onto one another row has", () => {
     ]);
   });
 });
+
+describe("controller clashes, from the file as written", () => {
+  const pads = (assign: Record<string, string>) =>
+    applyVocabulary(
+      parseInput(
+        [
+          "[/Script/ES2.CustomPlayerInput]",
+          LINE("Reload", "R", "Keyboard", "1.000000", "Reload"),
+          LINE("Reload", "Gamepad_FaceButton_Left", "Gamepad", "1.000000", "Reload"),
+          LINE("Jump", "SpaceBar", "Keyboard", "1.000000", "Jump"),
+          LINE("Jump", "Gamepad_FaceButton_Bottom", "Gamepad", "1.000000", "Jump"),
+        ].join("\n"),
+      ),
+      new ActionSet({
+        actions: {
+          reload: {
+            key: "KeyR",
+            ingame: "Reload",
+            ...(assign.reload ? { pad: assign.reload } : {}),
+          },
+          jump: { key: "Space", ingame: "Jump", ...(assign.jump ? { pad: assign.jump } : {}) },
+        },
+      }),
+      new Set([0]),
+    ).padClashes;
+
+  it("finds no clash in a swap", () => {
+    expect(pads({ reload: "A", jump: "X" })).toEqual([]);
+  });
+
+  it("finds two actions moved onto one new button", () => {
+    expect(pads({ reload: "Y", jump: "Y" })).toEqual([
+      { key: "Gamepad_FaceButton_Top", actions: ["Jump", "Reload"] },
+    ]);
+  });
+});
