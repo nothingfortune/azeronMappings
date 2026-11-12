@@ -80,11 +80,15 @@ describe("what goes on a key", () => {
     expect(document.querySelector(".picker-dialog")).not.toBeNull();
   });
 
-  it("closes on Escape, putting nothing on the key", () => {
+  it("closes on Escape wherever focus is, putting nothing on the key", () => {
     key("pinky_5")?.click();
-    document
-      .querySelector(".picker-overlay")
-      ?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    // Pressed on the page behind, as when focus never reached the chooser.
+    document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
     expect(document.querySelector(".picker-dialog")).toBeNull();
+  });
+
+  it("takes focus into the chooser, the search box first", () => {
+    key("pinky_5")?.click();
+    expect(document.activeElement?.classList.contains("picker-search")).toBe(true);
   });
 });

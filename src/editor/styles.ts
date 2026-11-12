@@ -137,6 +137,7 @@ select, .btn {
                padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg);
                color: var(--fg); cursor: pointer; }
 .picker-item:hover { border-color: var(--accent); }
+.picker-item[hidden] { display: none; }
 .picker-item small { color: var(--muted); font-size: 11px; }
 .device-key.choosable { cursor: pointer; color: var(--fg); }
 .device-key.choosable:hover { border-color: var(--accent); }

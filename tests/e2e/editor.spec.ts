@@ -533,3 +533,24 @@ test.describe("a first visit", () => {
     await expect(page.locator("header .game-switch")).toContainText("Everspace 2");
   });
 });
+
+test.describe("choosing what goes on a key", () => {
+  test("narrows the actions on screen as a name is typed", async ({ page }) => {
+    await page.goto("/");
+    await page.locator('.hand .key[data-position="pinky_5"]').first().click();
+    await expect(page.locator(".picker-dialog")).toBeVisible();
+    await page.locator(".picker-search").fill("headl");
+    await expect(page.locator(".picker-item:visible")).toHaveCount(1);
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".picker-dialog")).toHaveCount(0);
+  });
+
+  test("closes the controller chooser with Escape", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "In-game", exact: true }).click();
+    await page.locator("[data-pad]").first().click();
+    await expect(page.locator(".picker-dialog")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".picker-dialog")).toHaveCount(0);
+  });
+});

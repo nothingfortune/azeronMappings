@@ -23,9 +23,17 @@ function el(
   return node;
 }
 
+/** Escape closes the chooser wherever focus is, while one is open. */
+function onEscape(event: KeyboardEvent): void {
+  if (event.key !== "Escape" || open === null) return;
+  event.stopPropagation();
+  closePicker();
+}
+
 export function closePicker(): void {
   open?.remove();
   open = null;
+  document.removeEventListener("keydown", onEscape, true);
 }
 
 export function pickerOpen(): boolean {
@@ -53,7 +61,11 @@ export function openPicker(title: string, tabs: readonly PickerTab[], first = 0)
     }
     const tab = tabs[index];
     body.replaceChildren(tab === undefined ? "" : tab.render(close));
-    body.querySelector<HTMLElement>("input")?.focus();
+    // Into the chooser: its search box, or else its first button, so the keyboard -- and
+    // Escape -- work in it and not on the page behind.
+    (
+      body.querySelector<HTMLElement>("input") ?? dialog.querySelector<HTMLElement>("button")
+    )?.focus();
   };
   tabs.forEach((tab, index) => {
     const button = el(
@@ -73,13 +85,8 @@ export function openPicker(title: string, tabs: readonly PickerTab[], first = 0)
   overlay.addEventListener("mousedown", (event) => {
     if (event.target === overlay) close();
   });
-  overlay.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") {
-      event.stopPropagation();
-      close();
-    }
-  });
   document.body.append(overlay);
   open = overlay;
+  document.addEventListener("keydown", onEscape, true);
   show(Math.min(first, Math.max(0, tabs.length - 1)));
 }
