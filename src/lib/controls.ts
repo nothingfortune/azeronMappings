@@ -53,7 +53,9 @@ export interface KbmBinding {
  * Read a `kbm` binding: `KeyR`, `ControlLeft+KeyR`, `MouseRight`, `ShiftLeft+WheelUp`, or a
  * modifier on its own (`ShiftLeft`). Null for anything else.
  */
-export function parseKbm(token: string): KbmBinding | null {
+export function parseKbm(token: unknown): KbmBinding | null {
+  // A hand edit can leave a number or nothing here: that is not a binding, not a crash.
+  if (typeof token !== "string") return null;
   const parts = token.split("+");
   if (parts.some((part) => !CODE.test(part))) return null;
   const input = parts.at(-1);
@@ -80,9 +82,9 @@ export function isMouseToken(token: string): boolean {
 }
 
 /** A binding in words: "Ctrl + R", "Right click", "Shift + Wheel up". */
-export function kbmLabel(token: string): string {
+export function kbmLabel(token: unknown): string {
   const parsed = parseKbm(token);
-  if (parsed === null) return token;
+  if (parsed === null) return typeof token === "string" ? token : "—";
   const name = (part: string): string => MOUSE_LABELS[part] ?? keyLabel(part);
   return [...parsed.modifiers, parsed.input].map(name).join(" + ");
 }
@@ -90,8 +92,8 @@ export function kbmLabel(token: string): string {
 /** The pad's controls, in the order a pad is read: face buttons first. */
 export const PAD_CONTROLS: readonly string[] = Object.keys(XBOX_CONTROLS);
 
-export function isPadControl(control: string): boolean {
-  return control in XBOX_CONTROLS;
+export function isPadControl(control: unknown): boolean {
+  return typeof control === "string" && control in XBOX_CONTROLS;
 }
 
 export const padLabel = xboxLabel;

@@ -121,6 +121,16 @@ describe("checking them", () => {
     expect(canonicalKbm("ShiftLeft+ControlLeft+KeyR")).toBe("ControlLeft+ShiftLeft+KeyR");
   });
 
+  it("reports a number or an empty value left by a hand edit, rather than breaking", () => {
+    expect(check({ reload: { kbm: 1 }, revive: { kbm: null, pad: 7 } })).toEqual([
+      "kbm-unknown",
+      "kbm-unknown",
+      "pad-unknown",
+    ]);
+    expect(kbmLabel(1)).toBe("—");
+    expect(parseKbm(null)).toBeNull();
+  });
+
   it("says when one is not a binding at all", () => {
     expect(check({ reload: { kbm: "Ctrl+R" } })).toEqual(["kbm-unknown"]);
   });

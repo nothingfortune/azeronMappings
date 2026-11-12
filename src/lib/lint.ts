@@ -186,14 +186,15 @@ function checkPlayerBindings(actions: ActionSet, live: LiveTogether): Finding[] 
   ] as const) {
     const byBinding = new Map<string, string[]>();
     for (const [id, spec] of Object.entries(actions.actions)) {
-      const value = spec[field];
+      // Read as found: a hand edit can leave a number or nothing, which is reported.
+      const value: unknown = spec[field];
       if (value === undefined) continue;
       const valid = field === "kbm" ? parseKbm(value) !== null : isPadControl(value);
-      if (!valid) {
+      if (!valid || typeof value !== "string") {
         findings.push({
           level: ERROR,
           rule: `${field}-unknown`,
-          message: `${id}'s ${words} binding '${value}' is not one this editor knows.`,
+          message: `${id}'s ${words} binding ${value === null ? "(nothing)" : JSON.stringify(value)} is not one this editor knows.`,
         });
         continue;
       }
