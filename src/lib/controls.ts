@@ -6,7 +6,7 @@
  * compiler reads) and never reach the units: the compiler does not read them, so the
  * compiled layouts are unchanged by anything here. Node-free, because the editor imports it.
  */
-import { isModifier, keyLabel } from "./keys.js";
+import { ANALOG_KEYCODES, isModifier, keyLabel } from "./keys.js";
 import { XBOX_CONTROLS, xboxLabel } from "./xbox.js";
 
 /** Mouse buttons and the wheel, as a `kbm` binding names them. */
@@ -39,6 +39,27 @@ export const MOUSE_BUTTON_TOKENS: Readonly<Record<number, string>> = {
   4: "Mouse5",
 };
 
+/** Keys a keyboard has that the keypads' keycode table leaves out. */
+const OTHER_KEYS = new Set([
+  "CapsLock",
+  "MetaLeft",
+  "MetaRight",
+  "ContextMenu",
+  "PrintScreen",
+  "ScrollLock",
+  "Pause",
+  "NumLock",
+]);
+
+function isKnownInput(input: string): boolean {
+  return (
+    input in ANALOG_KEYCODES ||
+    OTHER_KEYS.has(input) ||
+    isModifier(input) ||
+    (MOUSE_TOKENS as readonly string[]).includes(input)
+  );
+}
+
 /** A key as `KeyboardEvent.code` spells it, as far as a binding needs to check. */
 const CODE = /^[A-Z][A-Za-z0-9]*$/;
 
@@ -62,6 +83,8 @@ export function parseKbm(token: unknown): KbmBinding | null {
   if (input === undefined) return null;
   const modifiers = parts.slice(0, -1);
   if (!modifiers.every((part) => isModifier(part))) return null;
+  // A real key or mouse button, not anything that looks like one: `KeyRR` is a typo.
+  if (!isKnownInput(input)) return null;
   if (new Set(modifiers).size !== modifiers.length || modifiers.includes(input)) return null;
   return { modifiers, input };
 }

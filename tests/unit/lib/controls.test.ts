@@ -30,6 +30,10 @@ describe("a keyboard-and-mouse binding", () => {
     expect(parseKbm("ShiftLeft+ShiftLeft")).toBeNull();
     expect(parseKbm("shift+r")).toBeNull();
     expect(parseKbm("")).toBeNull();
+    // Spelled like a key, but no key is spelled so.
+    expect(parseKbm("KeyRR")).toBeNull();
+    expect(parseKbm("Mouse6")).toBeNull();
+    expect(parseKbm("CapsLock")).toEqual({ modifiers: [], input: "CapsLock" });
   });
 
   it("reads in words", () => {
