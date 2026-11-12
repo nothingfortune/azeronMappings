@@ -158,6 +158,24 @@ describe("a controller binding", () => {
     expect(document.querySelector(`[data-pad="${id}"]`)?.textContent).toBe("RT");
   });
 
+  it("stops a keyboard capture when its chooser opens, so Escape closes the chooser", () => {
+    const id = firstAction();
+    const kbm = (): HTMLElement | null => document.querySelector(`[data-kbm="${id}"]`);
+    const before = kbm()?.textContent;
+    kbm()?.click();
+    document.querySelector<HTMLButtonElement>(`[data-pad="${id}"]`)?.click();
+    expect(document.querySelector(".picker-dialog")).not.toBeNull();
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Escape", code: "Escape", bubbles: true }),
+    );
+    document.body.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Escape", code: "Escape", bubbles: true }),
+    );
+    expect(document.querySelector(".picker-dialog")).toBeNull();
+    expect(kbm()?.textContent).toBe(before);
+    expect(kbm()?.classList.contains("capturing")).toBe(false);
+  });
+
   it("is read from a connected pad when asked to listen", async () => {
     const buttons = Array.from({ length: 16 }, (_, index) => ({ pressed: index === 3 }));
     // happy-dom has no Gamepad API: give it one pad holding Y.

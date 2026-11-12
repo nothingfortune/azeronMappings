@@ -36,7 +36,7 @@ import { eliteKeyFor } from "../lib/elite.js";
 import type { UnitCheck, UnitDifference, UnitsReport } from "../lib/units.js";
 import { describeSent, expectedPresses, verdict } from "../lib/checkunit.js";
 import { keyboardBoard, keyChooser, padBoard, padChooser } from "./device-boards.js";
-import { openPicker } from "./picker.js";
+import { openPicker, pickerOpen } from "./picker.js";
 import {
   MOUSE_BUTTON_TOKENS,
   canonicalKbm,
@@ -1221,6 +1221,7 @@ function openActionPicker(slug: string, position: string): void {
   if (profileFor(slug).device.isStick(position)) return;
   const game = currentGame();
   const unit = workingData(slug).profile.unit;
+  cancelCaptures();
   const put = (id: string): void => {
     assignAction(slug, position, state.slot, id);
     state.selected = { slug, position };
@@ -5196,6 +5197,17 @@ function setPlayerBinding(id: string, field: "kbm" | "pad", value: string | null
   render();
 }
 
+/** Stop every key or pad capture, so nothing typed next is recorded as a binding. */
+function cancelCaptures(): void {
+  endKeyCapture();
+  captureHeld.clear();
+  capturePending = null;
+  if (playerCapture !== null) {
+    playerCapture = null;
+    render();
+  }
+}
+
 /** Keys while a keyboard binding is captured: modifiers build up, the next key binds. */
 function bindPlayerCapture(): void {
   if (playerCaptureBound) return;
@@ -5209,7 +5221,8 @@ function bindPlayerCapture(): void {
   window.addEventListener(
     "keydown",
     (event) => {
-      if (playerCapture?.kind !== "kbm") return;
+      // A chooser open over the page has the keys, whatever was being captured.
+      if (playerCapture?.kind !== "kbm" || pickerOpen()) return;
       event.preventDefault();
       event.stopImmediatePropagation();
       if (event.repeat) return;
@@ -5225,7 +5238,7 @@ function bindPlayerCapture(): void {
   window.addEventListener(
     "keyup",
     (event) => {
-      if (playerCapture?.kind !== "kbm") return;
+      if (playerCapture?.kind !== "kbm" || pickerOpen()) return;
       event.preventDefault();
       event.stopImmediatePropagation();
       captureHeld.delete(event.code);
@@ -5354,6 +5367,8 @@ function padField(id: string, spec: ActionSpec): HTMLElement {
     [spec.pad === undefined ? "—" : padLabel(spec.pad)],
   );
   select.addEventListener("click", () => {
+    // A capture still running would take the keys meant for the chooser, Escape included.
+    cancelCaptures();
     openPicker(`Controller button for ${spec.label ?? id}`, [
       {
         name: "Controller",
@@ -7603,7 +7618,7 @@ function draw(): void {
     document.addEventListener(
       "keydown",
       (event) => {
-        if (capturing === null) return;
+        if (capturing === null || pickerOpen()) return;
         // Every key is a candidate, Escape and Tab included -- Cancel is a button -- and
         // none of them should also do what the browser would do with it.
         event.preventDefault();

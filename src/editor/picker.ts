@@ -25,7 +25,7 @@ function el(
 
 /** Escape closes the chooser wherever focus is, while one is open. */
 function onEscape(event: KeyboardEvent): void {
-  if (event.key !== "Escape" || open === null) return;
+  if (event.key !== "Escape" || !pickerOpen()) return;
   event.stopPropagation();
   closePicker();
 }
@@ -36,8 +36,9 @@ export function closePicker(): void {
   document.removeEventListener("keydown", onEscape, true);
 }
 
+/** Whether a chooser is on the page: one taken off with the page around it is not. */
 export function pickerOpen(): boolean {
-  return open !== null;
+  return open?.isConnected === true;
 }
 
 export function openPicker(title: string, tabs: readonly PickerTab[], first = 0): void {
