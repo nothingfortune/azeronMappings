@@ -134,6 +134,30 @@ describe("reading a game's controls from its own input file", () => {
     rmSync(file);
   });
 
+  it("leaves out the row of a control in a category the game's file does not own", () => {
+    sim();
+    const config = repoPath(`${SIM}/game.yaml`);
+    const doc = parseDocument(readFileSync(config, "utf8"));
+    doc.set("ingame_owned_categories", [0]);
+    writeFileSync(config, doc.toString());
+    const row = (action: string, category: number): string =>
+      `KeybindingsConfig=(Action=${action},ActionName="${action}",AxisName="",Category=${String(category)},` +
+      "bIsAxis=False,Key1=G,Key1Mod=None,Key2=None,Key2Mod=None,Scale=1.000000,DeadZone=0.1," +
+      `Sensitivity=1.0,Exponent=1.0,bInvert=False,DisplayName=NSLOCTEXT("K", "K", "${action}"),` +
+      'GroupName="Keyboard")';
+    const file = repoPath("rows-for-test.ini");
+    writeFileSync(
+      file,
+      ["[/Script/ES2.CustomPlayerInput]", row("Wave", 0), row("Cancel", 5)].join("\n"),
+    );
+    addDiscoveredControls({ game: "zzSim", path: file });
+    const actions = new Game(SIM).actions.actions;
+    expect(actions.wave?.ingame).toBe("Wave");
+    expect(actions.cancel?.ingame).toBeUndefined();
+    expect(actions.cancel?.kbm).toBe("KeyG");
+    rmSync(file);
+  });
+
   it("refuses a path with no file, and a file with no controls in it", () => {
     sim();
     expect(() => addDiscoveredControls({ game: "zzSim", path: repoPath("nope.ini") })).toThrow(

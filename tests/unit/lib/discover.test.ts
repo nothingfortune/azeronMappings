@@ -52,3 +52,22 @@ describe("discoverControls", () => {
     expect(discoverControls("[Section]\nfoo=bar\n")).toEqual([]);
   });
 });
+
+describe("discoverControls, the details", () => {
+  it("keeps the modifiers a mapping asks to be held, as a chord", () => {
+    const found = discoverControls(
+      '+ActionMappings=(ActionName="QuickSave",bShift=False,bCtrl=True,bAlt=False,bCmd=False,Key=S)',
+    );
+    expect(found[0]?.kbm).toBe("ControlLeft+KeyS");
+  });
+
+  it("turns a stick round when its scale is negative", () => {
+    const found = discoverControls(
+      '+AxisMappings=(AxisName="LookUp",Scale=-1.000000,Key=Gamepad_RightY)',
+    );
+    expect(found.map((action) => [action.id, action.pad])).toEqual([
+      ["look_up", "RightStickDown"],
+      ["look_up_reverse", "RightStickUp"],
+    ]);
+  });
+});

@@ -10,6 +10,7 @@
  * Each control becomes an action with a name, the keyboard-and-mouse and controller keys
  * the file gives it, and, for Everspace's rows, the row it is (`ingame`). Node-free.
  */
+import { canonicalKbm } from "./controls.js";
 import { parseInput, TO_UE, UE_GAMEPAD, UE_MOUSE, ueKeyFor } from "./ingame.js";
 
 export interface DiscoveredAction {
@@ -20,6 +21,8 @@ export interface DiscoveredAction {
   /** The row in the game's own file, for a file the editor can write back into. */
   ingame?: string;
   ingame_scale?: number;
+  /** The category of that row, so a game that owns only some categories can tell. */
+  category?: number;
 }
 
 /** Every key Unreal names, back to the `KeyboardEvent.code` the editor uses. */
@@ -110,14 +113,32 @@ export function discoverControls(text: string): DiscoveredAction[] {
       const name = FIELD(trimmed, "ActionName");
       const key = FIELD(trimmed, "Key");
       if (name === null || key === null) continue;
-      add(name, { id: idFrom(name), label: words(name) }, sortKey(key, 1));
+      const keys = sortKey(key, 1);
+      // The modifiers the mapping asks to be held, as the chord a binding spells.
+      const held = (
+        [
+          ["bCtrl", "ControlLeft"],
+          ["bShift", "ShiftLeft"],
+          ["bAlt", "AltLeft"],
+          ["bCmd", "MetaLeft"],
+        ] as const
+      )
+        .filter(([flag]) => FIELD(trimmed, flag) === "True")
+        .map(([, code]) => code);
+      if (keys.kbm !== undefined && held.length > 0) {
+        keys.kbm = canonicalKbm([...held, keys.kbm].join("+"));
+      }
+      add(name, { id: idFrom(name), label: words(name) }, keys);
     } else if (trimmed.startsWith("AxisMappings=") || trimmed.startsWith("+AxisMappings=")) {
       const name = FIELD(trimmed, "AxisName");
       const key = FIELD(trimmed, "Key");
       if (name === null || key === null) continue;
       const scale = Number(FIELD(trimmed, "Scale") ?? "1");
       // A stick drives both ways from one line; a key drives one way, by its scale.
-      const stick = STICK_AXES[key];
+      const axis = STICK_AXES[key];
+      // A negative scale turns the stick round: its up drives the axis down.
+      const stick: readonly [string, string] | undefined =
+        axis === undefined ? undefined : scale < 0 ? [axis[1], axis[0]] : axis;
       if (stick !== undefined) {
         add(`${name}+`, { id: idFrom(name), label: words(name) }, { pad: stick[0] });
         add(
@@ -152,6 +173,7 @@ export function discoverControls(text: string): DiscoveredAction[] {
         label,
         ingame: entry.action,
         ...(scale === 1 ? {} : { ingame_scale: scale }),
+        category: entry.category,
       },
       entry.key === "None" ? {} : sortKey(entry.key, scale),
     );

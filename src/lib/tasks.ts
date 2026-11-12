@@ -1130,7 +1130,22 @@ export function addDiscoveredControls(request: { game: string; path: string }): 
   if (fresh.length > 0) {
     const actionsPath = posixJoin(game.rel, "actions.yaml");
     const text = readFileSync(repoPath(actionsPath), "utf8");
-    const specs = Object.fromEntries(fresh.map(({ id, ...spec }) => [id, spec]));
+    // A row in a category the game's file does not own is not one the editor writes: the
+    // control comes in by name and keys, without the reference that would block updates.
+    const owned = game.config.ingame_owned_categories;
+    const specs = Object.fromEntries(
+      fresh.map(({ id, category, ingame, ingame_scale, ...spec }) => {
+        const keeps =
+          ingame !== undefined &&
+          (category === undefined || owned === undefined || owned.includes(category));
+        return [
+          id,
+          keeps
+            ? { ...spec, ingame, ...(ingame_scale === undefined ? {} : { ingame_scale }) }
+            : spec,
+        ];
+      }),
+    );
     writeText(actionsPath, addActions(text, specs));
   }
   return {
