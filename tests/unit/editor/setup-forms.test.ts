@@ -123,6 +123,27 @@ describe("updating the game's keys from the Setup tab", () => {
     expect(note()).toContain("Thrust axis (bInvert) True → False");
     expect(note()).toContain("Input.ini.bak");
   });
+
+  it("says which keyboard or controller bindings the game's file could not take", async () => {
+    served(() => ({
+      ok: true,
+      result: {
+        changes: [],
+        backup: null,
+        pedals: null,
+        skipped: ["reload: LeftStickUp on the controller is not written yet (sticks are axes)"],
+      },
+    }));
+    vi.stubGlobal(
+      "confirm",
+      vi.fn(() => true),
+    );
+    mount();
+    button(UPDATE).click();
+    await vi.waitFor(() => {
+      expect(note()).toContain("Not written yet: reload: LeftStickUp on the controller");
+    });
+  });
 });
 
 describe("adding a layout from the Azeron app's exports", () => {

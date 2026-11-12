@@ -16,6 +16,7 @@
 import type { NameStatus } from "../types/pedals.js";
 import type { ActionSpec } from "../types/profile.js";
 import type { ActionSet } from "./model-core.js";
+import { parseKbm } from "./controls.js";
 
 export const KEYBOARD_GROUP = "Keyboard";
 
@@ -292,7 +293,7 @@ export function applyVocabulary(
   file: IniFile,
   actions: ActionSet,
   owned: ReadonlySet<number>,
-): { text: string; changes: IngameChange[] } {
+): { text: string; changes: IngameChange[]; skipped: string[] } {
   const rows = keyboardRows(file);
   const byRow = new Map<string, string>();
   const problems: string[] = [];
@@ -343,13 +344,21 @@ export function applyVocabulary(
 
   const lines = [...file.lines];
   const changes: IngameChange[] = [];
+  const skipped: string[] = [];
   for (const [key, row] of rows) {
     const id = byRow.get(key);
     if (id === undefined) continue;
     const spec = actions.actions[id];
     const to = (spec ? ueKeyFor(spec) : null) ?? "None";
+    // Key2 carries the action's keyboard-and-mouse binding when it is another key than the
+    // keypad's; otherwise it is cleared, so nothing reaches the row by a second route.
+    const second = spec?.kbm === undefined ? null : ueKbmFor(spec.kbm);
+    if (spec?.kbm !== undefined && second === null) {
+      skipped.push(`${id}: ${spec.kbm} on the keyboard is not written yet (only single keys)`);
+    }
+    const key2 = second === null || second === to ? "None" : second;
     let line = setKey(row.raw, to);
-    if (row.key2 !== "None") line = setKey2(line, "None");
+    if (row.key2 !== key2) line = setKey2(line, key2);
     if (line === row.raw) continue;
     lines[row.index] = line;
     changes.push({
@@ -357,12 +366,86 @@ export function applyVocabulary(
       display: row.displayName,
       category: row.category,
       from: row.key2 === "None" ? row.key : `${row.key} / ${row.key2}`,
+      to: key2 === "None" ? to : `${to} / ${key2}`,
+      by: id,
+    });
+  }
+
+  // The Gamepad group: only the rows whose action has a controller binding are written.
+  // An action with none leaves its row as the game has it, so the pad keeps the game's own
+  // layout for everything the vocabulary has not been given a control for.
+  const pads = new Map<string, IniEntry>();
+  for (const entry of file.entries) {
+    if (entry.group === GAMEPAD_GROUP && !entry.isAxis) {
+      pads.set(rowId(entry.action, entry.scale), entry);
+    }
+  }
+  for (const [id, spec] of Object.entries(actions.actions)) {
+    if (spec.pad === undefined || spec.ingame === undefined) continue;
+    const row = pads.get(rowId(spec.ingame, spec.ingame_scale));
+    if (row === undefined || !owned.has(row.category)) continue;
+    const to = UE_GAMEPAD[spec.pad];
+    if (to === undefined) {
+      skipped.push(`${id}: ${spec.pad} on the controller is not written yet (sticks are axes)`);
+      continue;
+    }
+    const line = setKey(row.raw, to);
+    if (line === row.raw) continue;
+    lines[row.index] = line;
+    changes.push({
+      action: row.action,
+      display: `${row.displayName} (controller)`,
+      category: row.category,
+      from: row.key,
       to,
       by: id,
     });
   }
   changes.sort((a, b) => a.category - b.category || a.action.localeCompare(b.action));
-  return { text: lines.join(file.eol), changes };
+  return { text: lines.join(file.eol), changes, skipped };
+}
+
+export const GAMEPAD_GROUP = "Gamepad";
+
+/** An Xbox-style control as Unreal names it on a button row. Stick directions are axes. */
+const UE_GAMEPAD: Readonly<Record<string, string>> = {
+  A: "Gamepad_FaceButton_Bottom",
+  B: "Gamepad_FaceButton_Right",
+  X: "Gamepad_FaceButton_Left",
+  Y: "Gamepad_FaceButton_Top",
+  LB: "Gamepad_LeftShoulder",
+  RB: "Gamepad_RightShoulder",
+  LT: "Gamepad_LeftTrigger",
+  RT: "Gamepad_RightTrigger",
+  LS: "Gamepad_LeftThumbstick",
+  RS: "Gamepad_RightThumbstick",
+  View: "Gamepad_Special_Left",
+  Menu: "Gamepad_Special_Right",
+  DpadUp: "Gamepad_DPad_Up",
+  DpadDown: "Gamepad_DPad_Down",
+  DpadLeft: "Gamepad_DPad_Left",
+  DpadRight: "Gamepad_DPad_Right",
+};
+
+/** Mouse tokens as Unreal names them. */
+const UE_MOUSE: Readonly<Record<string, string>> = {
+  MouseLeft: "LeftMouseButton",
+  MouseRight: "RightMouseButton",
+  MouseMiddle: "MiddleMouseButton",
+  Mouse4: "ThumbMouseButton",
+  Mouse5: "ThumbMouseButton2",
+  WheelUp: "MouseScrollUp",
+  WheelDown: "MouseScrollDown",
+};
+
+/**
+ * A keyboard-and-mouse binding as one Unreal key, or null: a chord would need `Key2Mod`,
+ * which the game has not been seen to honour, so it is not written.
+ */
+export function ueKbmFor(token: string): string | null {
+  const parsed = parseKbm(token);
+  if (parsed === null || parsed.modifiers.length > 0) return null;
+  return UE_MOUSE[parsed.input] ?? ueKeyFor({ key: parsed.input });
 }
 
 /**

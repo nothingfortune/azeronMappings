@@ -233,3 +233,67 @@ describe("applyVocabulary", () => {
     expect(rows.filter((row) => row.status === "differs")).toEqual([]);
   });
 });
+
+describe("writing the keyboard-and-mouse and controller bindings", () => {
+  const file = (): ReturnType<typeof parseInput> =>
+    parseInput(
+      [
+        "[/Script/ES2.CustomPlayerInput]",
+        LINE("Reload", "R"),
+        LINE("Reload", "Gamepad_FaceButton_Left", "Gamepad"),
+        LINE("Jump", "SpaceBar"),
+        LINE("Jump", "Gamepad_FaceButton_Bottom", "Gamepad"),
+      ].join("\n"),
+    );
+  const owned = new Set([0]);
+  const apply = (actions: Record<string, Record<string, unknown>>) =>
+    applyVocabulary(file(), new ActionSet({ actions }), owned);
+
+  it("leaves the file as it was for actions with neither", () => {
+    const before = file();
+    const out = apply({
+      reload: { key: "KeyR", ingame: "Reload" },
+      jump: { key: "Space", ingame: "Jump" },
+    });
+    expect(out.text).toBe(before.lines.join(before.eol));
+    expect(out.skipped).toEqual([]);
+  });
+
+  it("puts a keyboard key other than the keypad's in Key2, and a controller control in the Gamepad row", () => {
+    const out = apply({
+      reload: { key: "Insert", ingame: "Reload", kbm: "KeyR", pad: "RB" },
+      jump: { key: "Space", ingame: "Jump", kbm: "Space" },
+    });
+    const rows = parseInput(out.text).entries;
+    const reload = rows.find((row) => row.action === "Reload" && row.group === "Keyboard");
+    expect([reload?.key, reload?.key2]).toEqual(["Insert", "R"]);
+    const pad = rows.find((row) => row.action === "Reload" && row.group === "Gamepad");
+    expect(pad?.key).toBe("Gamepad_RightShoulder");
+    // The same key as the keypad's is not written twice.
+    const jump = rows.find((row) => row.action === "Jump" && row.group === "Keyboard");
+    expect(jump?.key2).toBe("None");
+    // Jump has no controller binding: its Gamepad row is left as the game has it.
+    const jumpPad = rows.find((row) => row.action === "Jump" && row.group === "Gamepad");
+    expect(jumpPad?.key).toBe("Gamepad_FaceButton_Bottom");
+  });
+
+  it("writes a mouse binding by Unreal's name", () => {
+    const out = apply({
+      reload: { key: "KeyR", ingame: "Reload", kbm: "MouseRight" },
+      jump: { key: "Space", ingame: "Jump" },
+    });
+    const reload = parseInput(out.text).entries.find(
+      (row) => row.action === "Reload" && row.group === "Keyboard",
+    );
+    expect(reload?.key2).toBe("RightMouseButton");
+  });
+
+  it("says what it could not write yet, and writes the rest", () => {
+    const out = apply({
+      reload: { key: "KeyR", ingame: "Reload", kbm: "ControlLeft+KeyR", pad: "LeftStickUp" },
+      jump: { key: "Space", ingame: "Jump" },
+    });
+    expect(out.skipped).toHaveLength(2);
+    expect(out.skipped.join(" ")).toMatch(/single keys.*sticks are axes/s);
+  });
+});

@@ -430,3 +430,35 @@ describe("reading comments", () => {
     expect(binds.controls.map((c) => c.tag)).toEqual(["Fire"]);
   });
 });
+
+describe("applyBinds with keyboard-and-mouse and controller bindings", () => {
+  const two = file(button("Fire", none("Primary"), none("Secondary")));
+  const keys = (text: string): [string, string, string][] =>
+    controlOf(text, "Fire").slots.map((s) => [s.slot, s.device, s.key]);
+
+  it("puts a keyboard binding other than the keypad's in the second slot", () => {
+    const out = applyBinds(
+      two,
+      vocab({ fire: { ingame: "Fire", key: "Insert", kbm: "MouseLeft" } }),
+    );
+    expect(keys(out.text)).toEqual([
+      ["Primary", "Keyboard", "Key_Insert"],
+      ["Secondary", "Mouse", "Mouse_1"],
+    ]);
+    expect(out.skipped).toEqual([]);
+  });
+
+  it("writes nothing twice when the keyboard binding is the keypad's own key", () => {
+    const out = applyBinds(two, vocab({ fire: { ingame: "Fire", key: "KeyF", kbm: "KeyF" } }));
+    expect(keys(out.text)[1]).toEqual(["Secondary", "{NoDevice}", ""]);
+  });
+
+  it("says, rather than forces, what it cannot write: the wheel, a controller", () => {
+    const out = applyBinds(
+      two,
+      vocab({ fire: { ingame: "Fire", key: "KeyF", kbm: "WheelUp", pad: "RT" } }),
+    );
+    expect(out.skipped.join(" ")).toMatch(/WheelUp.*no name.*RT on the controller/s);
+    expect(keys(out.text)[1]).toEqual(["Secondary", "{NoDevice}", ""]);
+  });
+});

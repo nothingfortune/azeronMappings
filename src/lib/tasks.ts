@@ -1443,6 +1443,11 @@ export interface IngameApplyResult {
    * captured game name, which write nothing; null when the game's set has no pedals.
    */
   pedals: { set: string; changes: PedalChange[]; waiting: PedalWaiting[] } | null;
+  /**
+   * Keyboard-and-mouse and controller bindings that could not be written into the file
+   * yet -- a chord, a stick direction -- each said in words. Absent when there were none.
+   */
+  skipped?: string[];
 }
 
 /**
@@ -1524,7 +1529,15 @@ export function applyIngame(
       written.push(live);
     }
   }
-  return { source, changes, collisions, written, backup, pedals: pedalReport };
+  return {
+    source,
+    changes,
+    collisions,
+    written,
+    backup,
+    pedals: pedalReport,
+    ...(keyboard.skipped.length > 0 ? { skipped: keyboard.skipped } : {}),
+  };
 }
 
 export interface CapturePedalsRequest extends CaptureOptions {
@@ -1862,6 +1875,7 @@ function applyElite(
     backup: backups[0] ?? null,
     backups,
     pedals: null,
+    ...(result.skipped.length > 0 ? { skipped: result.skipped } : {}),
   };
 }
 

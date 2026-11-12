@@ -6,6 +6,18 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Added
 
+- **The game is told the keyboard and controller bindings too.** Update the game's keys…
+  now writes them for the two games whose files the editor understands:
+  - Everspace 2: an action's keyboard-and-mouse binding goes in its row's second key when
+    it is another than the keypad's, and its controller binding in the row's Gamepad
+    entry. Rows of actions with neither are left exactly as they were, so the committed
+    file is unchanged.
+  - Elite Dangerous: the keyboard-and-mouse binding goes in the control's other free slot.
+  - What cannot be written yet is said after the update instead of being forced: a chord
+    on the keyboard (Everspace has not been seen to honour Key2Mod), a stick direction on
+    the controller (those are axis rows), the mouse wheel in Elite (an axis there), and any
+    controller binding in Elite (the name it gives a pad differs between computers).
+
 - **Keyboard, mouse and controller bindings for every action.** Each row on the In-game tab
   now has a Keyboard field (click, then press a key with any modifiers, or click or scroll
   on it for a mouse button or the wheel) and a Controller field (pick a control, or Press
