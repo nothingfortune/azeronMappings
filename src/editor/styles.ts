@@ -319,6 +319,8 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
                                background: color-mix(in srgb, var(--accent) 22%, var(--panel)); }
 .tester-bar .tester-recent { margin: 0 0 0 18px; padding: 0; font-size: 13px; }
 .tester-bar .tester-recent li.unmatched { color: var(--warn); }
+/* A control pressed during a test: stays marked, so what is left is what is unmarked. */
+.hand .key.tested, .stick-dial .dir.tested { box-shadow: inset 0 0 0 2px var(--ok); }
 .test-keys.primary { outline: 2px solid var(--accent); }
 .key.check-bad, .dir.check-bad { box-shadow: inset 0 0 0 2px var(--error); }
 @keyframes check-pulse { 50% { outline-color: color-mix(in srgb, var(--accent) 35%, transparent); } }

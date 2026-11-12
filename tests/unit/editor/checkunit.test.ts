@@ -61,6 +61,20 @@ function click(button: number, target: Element = document.body): void {
   target.dispatchEvent(new MouseEvent("mousedown", { button, bubbles: true, cancelable: true }));
 }
 
+/** Start the key test, then its step-by-step check of one unit. */
+function testKeys(): void {
+  [...document.querySelectorAll<HTMLButtonElement>("header button")]
+    .find((button) => button.textContent === "Test keys")
+    ?.click();
+}
+
+function checkStepByStep(hand: "left" | "right"): void {
+  if (document.querySelector(".tester-bar") === null) testKeys();
+  [...document.querySelectorAll<HTMLButtonElement>(".tester-bar .check-unit")]
+    .find((button) => button.textContent === `Check the ${hand} unit step by step`)
+    ?.click();
+}
+
 beforeEach(() => {
   vi.spyOn(Date, "now").mockImplementation(() => clock);
   mount();
@@ -71,13 +85,20 @@ afterEach(() => {
 });
 
 describe("checking a unit by pressing it", () => {
-  it("is offered on each unit", () => {
-    expect(hand(0).querySelector(".check-unit")?.textContent).toBe("Check this unit");
-    expect(hand(1).querySelector(".check-unit")?.textContent).toBe("Check this unit");
+  it("is offered for each unit from the key test, not on the board", () => {
+    expect(document.querySelector(".hand .check-unit")).toBeNull();
+    testKeys();
+    const offered = [...document.querySelectorAll(".tester-bar .check-unit")].map(
+      (node) => node.textContent,
+    );
+    expect(offered).toEqual([
+      "Check the left unit step by step",
+      "Check the right unit step by step",
+    ]);
   });
 
   it("asks for each control in turn, and marks what each one sent", () => {
-    hand(1).querySelector<HTMLButtonElement>(".check-unit")?.click();
+    checkStepByStep("right");
     expect(bar()).toContain("Checking the right unit: press Index side on it");
     expect(bar()).toContain("The layout has Boost (Left Shift) there.");
     expect(key(1, "index_side").classList.contains("check-next")).toBe(true);
@@ -101,7 +122,7 @@ describe("checking a unit by pressing it", () => {
   });
 
   it("reads one press once: a key the unit repeats, or two keys in a burst, is one reading", () => {
-    hand(1).querySelector<HTMLButtonElement>(".check-unit")?.click();
+    checkStepByStep("right");
     press("ShiftLeft");
     clock += 1_000;
     window.dispatchEvent(new KeyboardEvent("keydown", { code: "KeyW", bubbles: true }));
@@ -115,7 +136,7 @@ describe("checking a unit by pressing it", () => {
   });
 
   it("reads a turbo key, which sends a stream of presses while held, as one press", () => {
-    hand(1).querySelector<HTMLButtonElement>(".check-unit")?.click();
+    checkStepByStep("right");
     clock += 1_000;
     for (let pulse = 0; pulse < 20; pulse += 1) {
       window.dispatchEvent(new KeyboardEvent("keydown", { code: "ShiftLeft", bubbles: true }));
@@ -130,7 +151,7 @@ describe("checking a unit by pressing it", () => {
   });
 
   it("asks to point at the board when the control is a mouse button", () => {
-    hand(1).querySelector<HTMLButtonElement>(".check-unit")?.click();
+    checkStepByStep("right");
     press("ShiftLeft");
     press("KeyW");
     expect(bar()).toContain("Fire secondary (Right mouse button)");
@@ -143,7 +164,7 @@ describe("checking a unit by pressing it", () => {
   });
 
   it("goes back, skips, and stops, from its own buttons, which a click on still reaches", () => {
-    hand(1).querySelector<HTMLButtonElement>(".check-unit")?.click();
+    checkStepByStep("right");
     press("ShiftLeft");
     barButton("Skip").click();
     expect(key(1, "index_3").classList.contains("check-next")).toBe(true);
@@ -157,7 +178,7 @@ describe("checking a unit by pressing it", () => {
   it("keeps the page out of it: a key from the unit is not Undo, a click is not a selection", () => {
     // Make a change, so Undo has something to take back.
     key(1, "ring_1").click();
-    hand(1).querySelector<HTMLButtonElement>(".check-unit")?.click();
+    checkStepByStep("right");
     window.dispatchEvent(
       new KeyboardEvent("keydown", {
         code: "KeyZ",
@@ -178,7 +199,7 @@ describe("checking a unit by pressing it", () => {
     const right = game.loadedProfiles().find((p) => p.set === LIVE_SET && p.unit === "right");
     if (!right) throw new Error("no right unit");
     const presses = expectedPresses(right.data, right.device, game.actions);
-    hand(1).querySelector<HTMLButtonElement>(".check-unit")?.click();
+    checkStepByStep("right");
     for (const expected of presses) {
       const sends = expected.sends;
       if (sends.kind === "mouse") click(BUTTONS[sends.button] ?? 0);
@@ -192,7 +213,7 @@ describe("checking a unit by pressing it", () => {
   });
 
   it("says when it is not, which controls, and what to do", () => {
-    hand(1).querySelector<HTMLButtonElement>(".check-unit")?.click();
+    checkStepByStep("right");
     press("ShiftLeft");
     press("KeyI");
     while (document.querySelector(".check-bar .check-ask") !== null) barButton("Skip").click();
@@ -206,7 +227,7 @@ describe("checking a unit by pressing it", () => {
   });
 
   it("ends with a change of tab", () => {
-    hand(1).querySelector<HTMLButtonElement>(".check-unit")?.click();
+    checkStepByStep("right");
     const tab = (name: string): void => {
       [...document.querySelectorAll<HTMLButtonElement>("header .tabs button")]
         .find((button) => button.textContent === name)

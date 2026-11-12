@@ -677,18 +677,6 @@ function renderHand(slug: string): HTMLElement {
     el("b", {}, [data.profile.name ?? slug]),
     el("span", {}, [`${unitLabel(data.profile.unit)} unit`]),
   ]);
-  if (state.mode === "edit" && checkRun === null) {
-    // What the unit runs is in its own memory; pressing it is how the page finds out.
-    const check = el("button", { class: "btn small check-unit", type: "button" }, [
-      "Check this unit",
-    ]);
-    check.title =
-      "Press each key on the unit when asked, and see whether it is running this layout.";
-    check.addEventListener("click", () => {
-      startCheck(slug);
-    });
-    title.append(check);
-  }
   wrap.append(title);
 
   const layout = handLayout(device);
@@ -3184,6 +3172,10 @@ interface LiveTester {
   /** Lit controls, "slug|id" to the key holding them lit, or a time for a flash. */
   lit: Map<string, string | number>;
   recent: { text: string; matched: boolean }[];
+  /** Every control pressed so far, "slug|id": they stay marked, in any order. */
+  seen: Set<string>;
+  /** Presses no control of the layout sends. */
+  wrong: number;
 }
 
 let liveTester: LiveTester | null = null;
@@ -3195,7 +3187,14 @@ function startTester(): void {
   if (checkRun !== null || writeRun !== null) return;
   capturing = null;
   state.selected = null;
-  liveTester = { held: new Set(), pendingModifier: null, lit: new Map(), recent: [] };
+  liveTester = {
+    held: new Set(),
+    pendingModifier: null,
+    lit: new Map(),
+    recent: [],
+    seen: new Set(),
+    wrong: 0,
+  };
   bindTester();
   render();
 }
@@ -3232,7 +3231,11 @@ function testerPress(sent: Sent, holdKey: string | null): void {
   });
   tester.recent.length = Math.min(tester.recent.length, TESTER_RECENT);
   const until = Date.now() + TESTER_FLASH_MS;
-  for (const hit of hits) tester.lit.set(`${hit.slug}|${hit.press.id}`, holdKey ?? until);
+  for (const hit of hits) {
+    tester.lit.set(`${hit.slug}|${hit.press.id}`, holdKey ?? until);
+    tester.seen.add(`${hit.slug}|${hit.press.id}`);
+  }
+  if (hits.length === 0) tester.wrong += 1;
   if (holdKey === null) {
     setTimeout(() => {
       if (liveTester === tester) render();
@@ -3262,6 +3265,17 @@ function lightTester(): void {
   const now = Date.now();
   const slugs = slugsInSet();
   const hands = document.querySelectorAll(".hand");
+  const control = (id: string): Element | null => {
+    const [slug = "", name = ""] = id.split("|");
+    const hand = hands[slugs.indexOf(slug)];
+    if (hand === undefined) return null;
+    const [position = "", direction] = name.split(":");
+    return direction === undefined
+      ? hand.querySelector(`.key[data-position="${position}"]`)
+      : hand.querySelector(`.stick-dial .dir.${direction}`);
+  };
+  // Pressed at least once: stays marked, so what is left to press is what is unmarked.
+  for (const id of tester.seen) control(id)?.classList.add("tested");
   for (const [id, holder] of tester.lit) {
     if (typeof holder === "number" && holder < now) {
       tester.lit.delete(id);
@@ -3364,11 +3378,27 @@ function renderTesterBar(tester: LiveTester): HTMLElement {
   stop.addEventListener("click", () => {
     stopTester();
   });
+  const total = testerUnits().reduce((sum, unit) => sum + unit.presses.length, 0);
+  const seen = tester.seen.size;
   const bar = el("div", { class: "check-bar tester-bar" }, [
     el("div", { class: "check-ask" }, [
-      "Key tester: press anything on a unit, and the control that sends it lights up. ",
-      "The page's own keys and clicks are off until you stop it.",
+      "Press every control on the units, in any order: each one that sends what the layout " +
+        "says turns green. The page's own keys and clicks are off until you stop.",
     ]),
+    el(
+      "div",
+      {
+        class: `check-verdict tester-progress ${tester.wrong > 0 ? "bad" : seen === total ? "ok" : ""}`,
+      },
+      [
+        `${String(seen)} of ${String(total)} controls seen` +
+          (tester.wrong > 0
+            ? `, ${String(tester.wrong)} press${tester.wrong === 1 ? "" : "es"} the layout does not send`
+            : seen === total
+              ? ": every control does what the layout says."
+              : "."),
+      ],
+    ),
   ]);
   const list = el("ol", { class: "tester-recent" });
   if (tester.recent.length === 0) {
@@ -3377,7 +3407,22 @@ function renderTesterBar(tester: LiveTester): HTMLElement {
   for (const entry of tester.recent) {
     list.append(el("li", { class: entry.matched ? "" : "unmatched" }, [entry.text]));
   }
-  bar.append(list, el("div", { class: "check-buttons" }, [stop]));
+  // The step-by-step check asks for one control at a time, so it also catches two keys
+  // swapped with each other, which pressing in any order cannot tell apart.
+  const steps =
+    state.mode === "edit"
+      ? slugsInSet().map((slug) => {
+          const unit = unitLabel(workingData(slug).profile.unit).toLowerCase();
+          const step = el("button", { class: "btn small check-unit", type: "button" }, [
+            `Check the ${unit} unit step by step`,
+          ]);
+          step.addEventListener("click", () => {
+            startCheck(slug);
+          });
+          return step;
+        })
+      : [];
+  bar.append(list, el("div", { class: "check-buttons" }, [stop, ...steps]));
   return bar;
 }
 
