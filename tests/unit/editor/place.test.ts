@@ -34,8 +34,16 @@ const choose = (index: number, value: string): void => {
   select.value = value;
   select.dispatchEvent(new Event("change"));
 };
+/** A game by its place in the gallery, as the owner chooses one. */
+const pickGame = (index: number): void => {
+  document.querySelector<HTMLButtonElement>("header .game-switch")?.click();
+  document.querySelectorAll<HTMLButtonElement>(".game-card")[index]?.click();
+};
+const gameName = (): string =>
+  (document.querySelector("header .game-switch")?.textContent ?? "").replace(/^▦ /, "");
+const PAYLOAD_NAMES = twoGames().games.map((game) => game.name);
 const tab = (name: string): void => {
-  const button = [...document.querySelectorAll<HTMLButtonElement>("header .tabs button")].find(
+  const button = [...document.querySelectorAll<HTMLButtonElement>("header button")].find(
     (entry) => entry.textContent === name,
   );
   if (!button) throw new Error(`no tab ${name}`);
@@ -43,28 +51,28 @@ const tab = (name: string): void => {
 };
 const openTab = (): string =>
   document.querySelector("header .tabs button.primary")?.textContent ?? "";
-const layouts = (): string[] => [...(selects()[1]?.options ?? [])].map((option) => option.value);
+const layouts = (): string[] => [...(selects()[0]?.options ?? [])].map((option) => option.value);
 
 describe("where the page was, across a reload", () => {
   it("opens on the game, the layout and the tab it was on", () => {
     mount(twoGames());
-    choose(0, "1");
+    pickGame(1);
     const layout = layouts().at(-1) ?? "";
     expect(layouts().length).toBeGreaterThan(1);
-    choose(1, layout);
+    choose(0, layout);
     tab("In-game");
     mount(twoGames());
-    expect(selects()[0]?.value).toBe("1");
-    expect(selects()[1]?.value).toBe(layout);
+    expect(gameName()).toBe(PAYLOAD_NAMES[1]);
+    expect(selects()[0]?.value).toBe(layout);
     expect(openTab()).toBe("In-game");
   });
 
   it("opens on the first game and its first layout when the one kept has gone", () => {
     mount(twoGames());
-    choose(0, "1");
+    pickGame(1);
     mount();
-    expect(selects()[0]?.value).toBe("0");
-    expect(selects()[1]?.value).toBe(layouts()[0]);
+    expect(gameName()).toBe(PAYLOAD_NAMES[0]);
+    expect(selects()[0]?.value).toBe(layouts()[0]);
   });
 
   it("opens on the game's first layout when the layout kept has gone", () => {
@@ -73,7 +81,7 @@ describe("where the page was, across a reload", () => {
       JSON.stringify({ game: PAYLOAD.games[0]?.slug, set: "gone", mode: "edit" }),
     );
     mount();
-    expect(selects()[1]?.value).toBe(layouts()[0]);
+    expect(selects()[0]?.value).toBe(layouts()[0]);
   });
 
   it("opens on Edit after a reload on the press test, which is a run, not a place", () => {
@@ -86,7 +94,7 @@ describe("where the page was, across a reload", () => {
   it("takes what it cannot read for nothing kept", () => {
     window.localStorage.setItem("azeron-editor-place", "{not json");
     mount();
-    expect(selects()[0]?.value).toBe("0");
+    expect(gameName()).toBe(PAYLOAD_NAMES[0]);
     expect(openTab()).toBe("Edit");
   });
 
@@ -98,8 +106,9 @@ describe("where the page was, across a reload", () => {
       tab("Edit");
       tab("Edit");
       expect(setItem.mock.calls.filter(([key]) => key === "azeron-editor-place")).toHaveLength(0);
-      choose(0, "1");
-      expect(setItem.mock.calls.filter(([key]) => key === "azeron-editor-place")).toHaveLength(1);
+      // Two moves: to the gallery, then into the other game.
+      pickGame(1);
+      expect(setItem.mock.calls.filter(([key]) => key === "azeron-editor-place")).toHaveLength(2);
     } finally {
       setItem.mockRestore();
     }

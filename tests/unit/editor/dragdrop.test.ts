@@ -15,7 +15,7 @@ const PAYLOAD = buildPayload();
 function mount(): void {
   document.body.innerHTML = '<div id="app"></div>';
   start(structuredClone(PAYLOAD));
-  const select = document.querySelectorAll<HTMLSelectElement>("header select")[1];
+  const select = document.querySelectorAll<HTMLSelectElement>("header select")[0];
   if (select && select.value !== LIVE_SET) {
     select.value = LIVE_SET;
     select.dispatchEvent(new Event("change"));

@@ -18,3 +18,23 @@ export function showDockTab(tab: "checks" | "pedals"): void {
   const button = document.querySelector<HTMLButtonElement>(`[data-dock-tab="${tab}"]`);
   if (button !== null && !button.classList.contains("active")) button.click();
 }
+
+/**
+ * Open a game the way the owner does: the header's game button, then its card in the
+ * gallery. `which` is the game's name, or its slug.
+ */
+export function chooseGame(which: string): void {
+  document.querySelector<HTMLButtonElement>("header .game-switch")?.click();
+  const card = [...document.querySelectorAll<HTMLButtonElement>(".game-card")].find(
+    (node) =>
+      node.getAttribute("data-game") === which ||
+      node.querySelector(".game-name")?.textContent === which,
+  );
+  if (!card) throw new Error(`no game ${which} in the gallery`);
+  card.click();
+}
+
+/** The name of the game open now, as the header's game button says it. */
+export function currentGameName(): string {
+  return (document.querySelector("header .game-switch")?.textContent ?? "").replace(/^▦ /, "");
+}

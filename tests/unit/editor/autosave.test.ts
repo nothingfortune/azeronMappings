@@ -48,7 +48,7 @@ function served(reply: (call: Call) => { status?: number; body: unknown } = () =
 function mount(): void {
   document.body.innerHTML = '<div id="app"></div>';
   start(structuredClone(PAYLOAD));
-  const select = document.querySelectorAll<HTMLSelectElement>("header select")[1];
+  const select = document.querySelectorAll<HTMLSelectElement>("header select")[0];
   if (select && select.value !== LIVE_SET) {
     select.value = LIVE_SET;
     select.dispatchEvent(new Event("change"));
@@ -283,7 +283,7 @@ describe("taking a change back", () => {
     mount();
     place(emptyKey());
     expect(undoButton().disabled).toBe(false);
-    const layout = document.querySelectorAll<HTMLSelectElement>("header select")[1];
+    const layout = document.querySelectorAll<HTMLSelectElement>("header select")[0];
     const other = [...(layout?.options ?? [])].find((option) => option.value !== LIVE_SET);
     if (!layout || !other) throw new Error("no second layout");
     vi.stubGlobal(

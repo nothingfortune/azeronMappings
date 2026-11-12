@@ -122,6 +122,37 @@ select, .btn {
 .save-report .import-path code { user-select: all; overflow-wrap: anywhere; color: var(--fg); }
 .save-note .dismiss { flex: none; }
 .workspace.single { display: block; }
+/* A chooser over the page: what goes on a key, a controller button. */
+.picker-overlay { position: fixed; inset: 0; z-index: 20; background: rgba(0, 0, 0, .45);
+                  display: flex; align-items: flex-start; justify-content: center; padding: 6vh 16px; }
+.picker-dialog { background: var(--panel); color: var(--fg); border: 1px solid var(--line);
+                 border-radius: 12px; width: min(760px, 100%); max-height: 86vh; display: flex;
+                 flex-direction: column; box-shadow: 0 18px 50px rgba(0, 0, 0, .35); }
+.picker-head { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px 6px; }
+.picker-tabs { display: flex; gap: 6px; padding: 0 14px 8px; }
+.picker-body { overflow: auto; padding: 0 14px 14px; }
+.picker-search { width: 100%; margin-bottom: 8px; }
+.picker-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px; }
+.picker-item { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left;
+               padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg);
+               color: var(--fg); cursor: pointer; }
+.picker-item:hover { border-color: var(--accent); }
+.picker-item small { color: var(--muted); font-size: 11px; }
+.device-key.choosable { cursor: pointer; color: var(--fg); }
+.device-key.choosable:hover { border-color: var(--accent); }
+/* The games, as a gallery: the first step. */
+.game-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+                gap: 12px; margin-top: 12px; }
+.game-card { display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+             padding: 14px; min-height: 110px; text-align: left; cursor: pointer;
+             border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--fg); }
+.game-card:hover { border-color: var(--accent); }
+.game-card.current { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent); }
+.game-card.add { border-style: dashed; color: var(--muted); }
+.game-card .game-name { font-size: 15px; }
+.game-card .game-genre { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.game-card .game-facts { font-size: 12px; color: var(--muted); }
+header .game-switch { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Unit runs and save notes: over the foot of the window, scrolling in themselves, so
    nothing above them moves. The page is padded by the tray's height while it shows. */
 .run-tray { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; max-height: 45vh;
@@ -344,7 +375,8 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 .player-binds { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; grid-column: 1 / -1; min-width: 0; }
 .player-bind { display: inline-flex; gap: 4px; align-items: center; flex-wrap: wrap; min-width: 0; }
 .player-bind .bind-kind { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
-.player-bind select { max-width: min(190px, 100%); min-width: 0; }
+.player-bind select { width: auto; max-width: 100%; min-width: 0; }
+.player-bind .bind-hint { font-size: 11px; color: var(--muted); }
 /* The bindings drawn on a keyboard, a mouse and a controller. */
 .device-boards { margin: 6px 0 10px; }
 .device-boards summary { cursor: pointer; color: var(--muted); font-size: 12px; }
@@ -354,6 +386,10 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
 .control-list summary { cursor: pointer; color: var(--muted); font-size: 12px; }
 .control-list textarea { width: 100%; margin-top: 6px; font: 12.5px/1.4 ui-monospace, monospace; }
 .device-row { display: flex; gap: 3px; }
+.pad-board { display: flex; gap: 22px; align-items: flex-start; flex-wrap: wrap; }
+.pad-side { display: grid; gap: 4px; justify-items: center; }
+.pad-cross { display: grid; grid-template-columns: repeat(3, 64px); grid-auto-rows: 38px; gap: 3px; }
+.pad-cross .device-key { width: 64px; }
 .device-row.other-keys { flex-wrap: wrap; }
 .device-key { width: calc(var(--w, 1) * 40px); min-height: 38px; padding: 2px; border-radius: 5px;
               border: 1px solid var(--line); background: var(--bg); color: var(--muted);

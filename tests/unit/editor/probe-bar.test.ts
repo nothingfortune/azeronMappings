@@ -31,7 +31,7 @@ function click(label: string | RegExp, scope = ".probe-units"): void {
 function openPressTest(payload = PAYLOAD): void {
   document.body.innerHTML = '<div id="app"></div>';
   start(structuredClone(payload));
-  click("Press test", "header .tabs");
+  click("Press test", "header");
 }
 
 const slotNames = (device: FakeHidDevice): string[] =>

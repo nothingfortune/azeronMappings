@@ -60,7 +60,7 @@ describe("the in-game bindings editor", () => {
     expect(chip("Consumable 1").textContent).toBe("5");
     // Which position carries it is a layout choice, so the row is checked against the
     // payload rather than against a position name that a revision is free to move.
-    const set = (document.querySelectorAll("header select")[1] as HTMLSelectElement).value;
+    const set = (document.querySelectorAll("header select")[0] as HTMLSelectElement).value;
     const expected = PAYLOAD.games
       .flatMap((game) => game.profiles)
       .filter((profile) => profile.data.profile.set === set)

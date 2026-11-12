@@ -231,7 +231,7 @@ describe("adding a layout from the Azeron app's exports", () => {
     ]);
     // On the Edit tab, with the new layout selected and both hands drawn.
     expect(document.querySelectorAll(".hand").length).toBe(2);
-    const layout = document.querySelectorAll<HTMLSelectElement>("header select")[1];
+    const layout = document.querySelectorAll<HTMLSelectElement>("header select")[0];
     expect(layout?.selectedOptions[0]?.textContent).toBe("pair-test");
   });
 

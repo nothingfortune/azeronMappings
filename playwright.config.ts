@@ -47,7 +47,16 @@ export default defineConfig({
       origins: [
         {
           origin: `http://127.0.0.1:${String(PORT)}`,
-          localStorage: [{ name: "azeron-autosave", value: "off" }],
+          // A first visit opens on the games gallery; the specs are about the board, so
+          // they start where a returning owner would, on the first game's Edit tab. The
+          // gallery spec clears this to see a first visit.
+          localStorage: [
+            { name: "azeron-autosave", value: "off" },
+            {
+              name: "azeron-editor-place",
+              value: JSON.stringify({ game: "everspace", set: "", mode: "edit" }),
+            },
+          ],
         },
       ],
     },

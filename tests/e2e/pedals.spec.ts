@@ -185,7 +185,7 @@ test.describe("the pedals in the editor", () => {
   test("offers to add pedals to a layout that has none", async ({ page }) => {
     await page.goto("/");
     await openPedals(page);
-    await page.locator("header select").nth(1).selectOption("single-v5");
+    await page.locator("header select").first().selectOption("single-v5");
     await expect(page.locator(".pedal-axis")).toHaveCount(0);
     await page.getByRole("button", { name: "Add pedals" }).click();
     await expect(pedalAxis(page, "rudder").locator("select")).toHaveValue("yaw");

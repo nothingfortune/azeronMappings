@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { start } from "../../../src/editor/app.js";
 import { buildPayload } from "../../../src/lib/editor/payload.js";
+import { chooseGame, currentGameName } from "../../helpers/editor.js";
 
 const PAYLOAD = buildPayload();
 const SERVED = window as unknown as { AZERON_SERVED?: boolean };
@@ -27,7 +28,7 @@ const TWO_GAMES = ((): typeof PAYLOAD => {
 function openSingle(payload = PAYLOAD): void {
   document.body.innerHTML = '<div id="app"></div>';
   start(structuredClone(payload));
-  const sets = document.querySelectorAll<HTMLSelectElement>("header select")[1];
+  const sets = document.querySelectorAll<HTMLSelectElement>("header select")[0];
   if (!sets) throw new Error("no layout picker");
   sets.value = "single-v5";
   sets.dispatchEvent(new Event("change"));
@@ -103,12 +104,7 @@ describe("a layout with one unit", () => {
       expect(answer).not.toBeNull();
     });
     // Another game, chosen before the server answers.
-    const games = document.querySelectorAll<HTMLSelectElement>("header select")[0];
-    if (!games) throw new Error("no game picker");
-    const other = [...games.options].find((option) => option.value !== games.value);
-    if (!other) throw new Error("no other game in the picker");
-    games.value = other.value;
-    games.dispatchEvent(new Event("change"));
+    chooseGame("other");
     (answer as ((value: unknown) => void) | null)?.({
       ok: true,
       status: 200,
@@ -118,10 +114,9 @@ describe("a layout with one unit", () => {
       expect(refreshed).toBe(1);
     });
     await new Promise((resolve) => setTimeout(resolve, 0));
-    const picker = document.querySelectorAll<HTMLSelectElement>("header select")[0];
-    expect(picker?.value).toBe(other.value);
+    expect(currentGameName()).toBe("Other game");
     // On a layout the game has, so the board is drawn.
-    const layout = document.querySelectorAll<HTMLSelectElement>("header select")[1];
+    const layout = document.querySelectorAll<HTMLSelectElement>("header select")[0];
     expect(layout?.value).toBe("akimbo-v10");
     expect(document.querySelectorAll(".hand").length).toBeGreaterThan(0);
   });

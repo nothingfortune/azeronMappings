@@ -28,7 +28,7 @@ describe("the editor", () => {
   });
 
   it("draws both units of an akimbo set side by side", () => {
-    const setSelect = document.querySelectorAll("header select")[1] as HTMLSelectElement;
+    const setSelect = document.querySelectorAll("header select")[0] as HTMLSelectElement;
     setSelect.value = LIVE_SET;
     setSelect.dispatchEvent(new Event("change"));
 
@@ -95,9 +95,12 @@ describe("the editor's modes", () => {
     return found as HTMLButtonElement;
   }
 
-  it("offers edit, in-game, press test and setup from one page, and no sheet", () => {
+  it("offers edit, in-game and setup as the steps, and the press test as a utility", () => {
     const names = [...document.querySelectorAll("header .tabs button")].map((b) => b.textContent);
-    expect(names).toEqual(["Edit", "In-game", "Press test", "Setup"]);
+    expect(names).toEqual(["Edit", "In-game", "Setup"]);
+    // Far right of the header, after everything used day to day.
+    const buttons = [...document.querySelectorAll("header button")];
+    expect(buttons.at(-1)?.textContent).toBe("Press test");
   });
 
   it("shows the press test without leaving the page", () => {
@@ -123,7 +126,7 @@ describe("key cards", () => {
   });
 
   function show(set: string): void {
-    const sets = document.querySelectorAll("header select")[1] as HTMLSelectElement;
+    const sets = document.querySelectorAll("header select")[0] as HTMLSelectElement;
     sets.value = set;
     sets.dispatchEvent(new Event("change"));
   }
@@ -202,14 +205,15 @@ describe("data sources", () => {
     mount();
   });
 
-  it("lists every game in the payload, not just the first", () => {
-    const select = document.querySelector<HTMLSelectElement>("header select");
-    expect(select?.options.length).toBeGreaterThanOrEqual(1);
-    expect([...(select?.options ?? [])].map((o) => o.textContent)).toContain("Everspace 2");
+  it("lists every game in the payload in the gallery, and one to add a game", () => {
+    document.querySelector<HTMLButtonElement>("header .game-switch")?.click();
+    const names = [...document.querySelectorAll(".game-card .game-name")].map((n) => n.textContent);
+    expect(names).toContain("Everspace 2");
+    expect(names.at(-1)).toBe("+ Add a new game");
   });
 
   it("lists each set in the selected game", () => {
-    const sets = document.querySelectorAll("header select")[1] as HTMLSelectElement;
+    const sets = document.querySelectorAll("header select")[0] as HTMLSelectElement;
     const names = [...sets.options].map((option) => option.value);
     expect(names).toContain(LIVE_SET);
     expect(names).toContain("single-v5");
@@ -224,7 +228,7 @@ describe("data sources", () => {
   });
 
   it("switching set redraws the pair from the same payload", () => {
-    const sets = document.querySelectorAll("header select")[1] as HTMLSelectElement;
+    const sets = document.querySelectorAll("header select")[0] as HTMLSelectElement;
     sets.value = "single-v5";
     sets.dispatchEvent(new Event("change"));
     expect(document.querySelectorAll(".hand").length).toBe(1);
@@ -348,7 +352,7 @@ describe("stick modes in the editor", () => {
   beforeEach(() => {
     mount();
     showDockTab("pedals");
-    const sets = document.querySelectorAll("header select")[1] as HTMLSelectElement;
+    const sets = document.querySelectorAll("header select")[0] as HTMLSelectElement;
     sets.value = LIVE_SET;
     sets.dispatchEvent(new Event("change"));
   });
@@ -390,7 +394,7 @@ describe("stick modes in the editor", () => {
 describe("assigning an action", () => {
   beforeEach(() => {
     mount();
-    const sets = document.querySelectorAll("header select")[1] as HTMLSelectElement;
+    const sets = document.querySelectorAll("header select")[0] as HTMLSelectElement;
     sets.value = "single-v5";
     sets.dispatchEvent(new Event("change"));
   });
@@ -795,7 +799,7 @@ describe("unsaved edits", () => {
 describe("the inspector in plain words", () => {
   beforeEach(() => {
     mount();
-    const sets = document.querySelectorAll("header select")[1] as HTMLSelectElement;
+    const sets = document.querySelectorAll("header select")[0] as HTMLSelectElement;
     sets.value = "single-v5";
     sets.dispatchEvent(new Event("change"));
   });
@@ -896,10 +900,11 @@ describe("unit settings", () => {
 });
 
 describe("the header", () => {
-  it("labels the two selectors", () => {
+  it("labels the layout selector, and names the game on its own button", () => {
     mount();
     const names = [...document.querySelectorAll("header .picker span")].map((n) => n.textContent);
-    expect(names).toEqual(["Game", "Layout"]);
+    expect(names).toEqual(["Layout"]);
+    expect(document.querySelector("header .game-switch")?.textContent).toContain("Everspace 2");
   });
 });
 
@@ -954,7 +959,7 @@ describe("the press test tab", () => {
     expect(second).not.toBe(first);
 
     // Anything that redraws the page will do; the layout selector is one.
-    const sets = document.querySelectorAll("header select")[1] as HTMLSelectElement;
+    const sets = document.querySelectorAll("header select")[0] as HTMLSelectElement;
     sets.dispatchEvent(new Event("change"));
     expect(prompt()).toBe(second);
   });
@@ -978,7 +983,7 @@ describe("the checks, from anywhere", () => {
 
   it("folds the stick modes away, still saying which one is in use", () => {
     mount();
-    const sets = document.querySelectorAll("header select")[1] as HTMLSelectElement;
+    const sets = document.querySelectorAll("header select")[0] as HTMLSelectElement;
     sets.value = LIVE_SET;
     sets.dispatchEvent(new Event("change"));
     showDockTab("pedals");
