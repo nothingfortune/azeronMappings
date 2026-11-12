@@ -65,7 +65,7 @@ describe("the live key tester", () => {
   it("lights the control a key comes from while it is held, and says what it is", () => {
     const { position, code } = plainKey();
     header(/^Test keys$/).click();
-    expect(strip()).toContain("Key tester");
+    expect(strip()).toContain("Press every control on the units, in any order");
     key(code, "keydown");
     const lit = document
       .querySelectorAll(".hand")[0]
@@ -77,6 +77,63 @@ describe("the live key tester", () => {
       .querySelectorAll(".hand")[0]
       ?.querySelector(`.key[data-position="${position}"]`);
     expect(after?.classList.contains("live-hit")).toBe(false);
+  });
+
+  it("counts the controls seen, in any order, and keeps each one marked", () => {
+    const { position, code } = plainKey();
+    header(/^Test keys$/).click();
+    const seen = (): number => Number(/(\d+) of \d+ controls seen/.exec(strip())?.[1] ?? -1);
+    expect(seen()).toBe(0);
+    key(code, "keydown");
+    key(code, "keyup");
+    // Every control that sends the key counts as seen: the same key may be on two.
+    const once = seen();
+    expect(once).toBeGreaterThan(0);
+    // Pressed again: nothing new.
+    key(code, "keydown");
+    key(code, "keyup");
+    expect(seen()).toBe(once);
+    const marked = document
+      .querySelectorAll(".hand")[0]
+      ?.querySelector(`.key[data-position="${position}"]`);
+    expect(marked?.classList.contains("tested")).toBe(true);
+  });
+
+  it("lights a key sent with a modifier the layout does not have, but counts it as wrong", () => {
+    const { position, code } = plainKey();
+    header(/^Test keys$/).click();
+    // Ctrl held, then the key: the unit is not sending what the layout says.
+    key("ControlLeft", "keydown");
+    key(code, "keydown");
+    const lit = document
+      .querySelectorAll(".hand")[0]
+      ?.querySelector(`.key[data-position="${position}"]`);
+    expect(lit?.classList.contains("live-hit")).toBe(true);
+    expect(lit?.classList.contains("tested")).toBe(false);
+    expect(strip()).toMatch(/^.*0 of \d+ controls seen, 1 press the layout does not send/s);
+  });
+
+  it("marks the stick pressed in, drawn as the dial's hub, once it is tested", () => {
+    const profile = game.loadedProfiles().find((entry) => entry.path === live("left"));
+    if (!profile) throw new Error("no live left profile");
+    const press = expectedPresses(profile.data, profile.device, game.actions).find(
+      (entry) =>
+        entry.position === "stick_press" &&
+        entry.sends.kind === "key" &&
+        entry.sends.modifiers.length === 0,
+    );
+    if (press?.sends.kind !== "key") throw new Error("no plain key on the stick press");
+    header(/^Test keys$/).click();
+    key(press.sends.code, "keydown");
+    key(press.sends.code, "keyup");
+    const hub = document.querySelectorAll(".hand")[0]?.querySelector(".stick-dial .dir.hub");
+    expect(hub?.classList.contains("tested")).toBe(true);
+  });
+
+  it("counts a press the layout does not send as wrong", () => {
+    header(/^Test keys$/).click();
+    key("F24", "keydown");
+    expect(strip()).toContain("1 press the layout does not send");
   });
 
   it("says when no control of the layout sends what arrived", () => {

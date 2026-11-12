@@ -6,6 +6,12 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Changed
 
+- **One test for the units.** Test keys counts as it goes: every control pressed stays
+  marked green, in any order and on both units at once, and the tray says "18 of 63
+  controls seen" and how many presses the layout does not send. The step-by-step check,
+  which also catches two keys swapped with each other, moved from a button on each unit
+  into the same tray ("Check the left unit step by step").
+
 - **The page speaks to a player, not to the repo.** About thirty messages are rewritten,
   among them "RC transmitter", "with-pedals variant", "wiring" (now "game keys"),
   "PROBE 1 pins", "developer work", "Run `azeron serve`" and every check message that said
