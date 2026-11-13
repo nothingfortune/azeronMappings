@@ -6,6 +6,14 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Added
 
+- **The units send the keys a game already uses, when its settings cannot be written.**
+  Most games keep their key settings where the repo cannot change them, and used to be
+  given out-of-the-way keys (Insert, the numpad) to set one by one in the game's controls
+  screen. Now a control sends the action's Keyboard binding -- R to reload, Shift to
+  sprint, the left button to fire -- so the game needs no changes. New games start that
+  way; an existing one gets Send the game's keys on the In-game tab. Only what a unit
+  cannot send (the scroll wheel) or a key another action already has still takes an
+  out-of-the-way key.
 - **Five more genres, for the rest of the library.** Action (third person: Days Gone, The
   Last of Us, The Witcher 3, Space Marine 2), Survival (Subnautica 2, Project Zomboid),
   Mech (Armored Core VI), RPG (Baldur's Gate 3, Rogue Trader) and Strategy (Stellaris,

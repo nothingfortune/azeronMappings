@@ -196,7 +196,15 @@ so reordering it would re-deal keys. The editor does this the moment an action i
 (`wire()` in `app.ts`), saves it into the game's `actions.yaml` with the rest of the
 layout, and `Update the game's keys…` writes it into the game. A key, once given, is never
 re-dealt: the compiled layouts, the golden fixture and the game's file all depend on an
-action keeping the key it has. `action-sends-nothing` is the lint error for a control whose
+action keeping the key it has. **A game whose own file cannot be written** (anything but Everspace 2 and Elite, and every
+game `startGame` makes) is wired the other way: a control sends the key the game already
+has the action on, its `kbm` (`wireFromGame`, through `unitSendFor`: a key, a modifier,
+one modifier with a key, or the left, middle or right button), so nothing is changed in
+the game; only a binding a unit cannot send (the wheel, two modifiers) or one another live
+action already sends takes the pool. `startGame` fills `kbm` from the genre's `keyboard:`
+before it wires. Keys are still never re-dealt on their own: the In-game tab's Send the
+game's keys (`useGameKeys`) is the one place they are, when the owner asks, for a game
+with no file. `action-sends-nothing` is the lint error for a control whose
 action has no key, which is what a hand edit runs into. The In-game tab hides the keys
 while there is a game file to write them into, and shows them when there is not, because
 then they have to be set in the game by hand.

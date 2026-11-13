@@ -74,7 +74,7 @@ import {
 import type { WrittenAction } from "./scaffold.js";
 import { addSetEntry, patchSetPedals, removeSetEntry, renameSetEntry } from "./setsfile.js";
 import { leadingComments } from "./serve.js";
-import { needsWire, wireAction } from "./wiring.js";
+import { needsWire, wireAction, wireFromGame } from "./wiring.js";
 import { usualBindings } from "./usual.js";
 import { deepMerge, dumpYaml } from "./yaml.js";
 import { loadInherited } from "./yaml-io.js";
@@ -696,6 +696,13 @@ export function startGame(request: StartGameRequest): StartGameResult {
     vocabulary[id] = merged;
     keys[id] = fields;
   }
+  // Someone on a keyboard and mouse, or on a controller, starts with the genre's usual
+  // bindings: every action, placed on the units or not. They come first, because they are
+  // what the units are wired from.
+  for (const [id, usual] of Object.entries(usualBindings(vocabulary))) {
+    keys[id] = { ...keys[id], ...usual };
+    vocabulary[id] = { ...vocabulary[id], ...usual };
+  }
   const unsendable = new Set<string>();
   // Required actions first, so if the pool runs short it is something optional left off.
   const required = (id: string): number =>
@@ -703,15 +710,27 @@ export function startGame(request: StartGameRequest): StartGameResult {
   const placed = [...new Set(layouts.flatMap(actionsPlaced))].sort(
     (a, b) => required(a) - required(b),
   );
+  // A stick direction sends a plain key: an action on one cannot take Shift or a mouse button.
+  const onStick = new Set(
+    layouts.flatMap((data) =>
+      Object.values(data.positions).flatMap((spec) =>
+        Object.values(spec.directions ?? {}).filter(
+          (value): value is string => typeof value === "string",
+        ),
+      ),
+    ),
+  );
   for (const id of placed) {
+    // A new game has no binding file the repo can write, so each control sends the key the
+    // game already listens for, and only what a unit cannot send that way takes the pool.
+    const fromGame = wireFromGame(vocabulary, id, undefined, onStick.has(id));
+    if (fromGame !== null) {
+      keys[id] = { ...keys[id], ...fromGame };
+      continue;
+    }
     const key = wireAction(vocabulary, id);
     if (key !== null) keys[id] = { ...keys[id], key };
     else if (needsWire(vocabulary[id])) unsendable.add(id);
-  }
-  // Someone on a keyboard and mouse, or on a controller, starts with the genre's usual
-  // bindings: every action, placed on the units or not.
-  for (const [id, usual] of Object.entries(usualBindings(vocabulary))) {
-    keys[id] = { ...keys[id], ...usual };
   }
   // The pool of out-of-the-way keys is smaller than a whole default layout. An action left
   // without one is taken off its control rather than placed sending nothing, so the game

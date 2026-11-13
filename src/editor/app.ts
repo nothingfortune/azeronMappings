@@ -30,7 +30,14 @@ import {
 import { describeDirection } from "../lib/binding.js";
 import type { BindingChange } from "../lib/actionfile.js";
 import { ueKeyFor } from "../lib/ingame.js";
-import { needsWire, wireAction } from "../lib/wiring.js";
+import {
+  needsWire,
+  sendsSomething,
+  unitSendFor,
+  wireAction,
+  wireFromGame,
+  type UnitSend,
+} from "../lib/wiring.js";
 import { xboxLabel } from "../lib/xbox.js";
 import { eliteKeyFor } from "../lib/elite.js";
 import type { UnitCheck, UnitDifference, UnitsReport } from "../lib/units.js";
@@ -383,6 +390,10 @@ function wire(actionId: string): void {
   const connected = gameFileGaps(game).length === 0;
   // In a game with modes of play, only actions live at the same time hold a key against it.
   const live = liveTogether(currentSets(game));
+  // A game the repo cannot tell its keys is sent the key it already listens for, so nothing
+  // has to be changed in the game; the pool only when a unit cannot send that.
+  const onStick = actionsOnUnits(game).onStick.has(actionId);
+  if (!connected && wireFromGame(editableActions(), actionId, live, onStick) !== null) return;
   const key = wireAction(
     editableActions(),
     actionId,
@@ -5125,6 +5136,139 @@ function gameFileGaps(game: EditorGame): string[] {
 }
 
 /**
+ * The actions the game's layouts put on the units, and those on a stick direction (which
+ * sends a plain key only), with this page's unsaved edits.
+ */
+function actionsOnUnits(game: EditorGame): { placed: Set<string>; onStick: Set<string> } {
+  const placed = new Set<string>();
+  const onStick = new Set<string>();
+  const current = game === currentGame();
+  for (const profile of game.profiles) {
+    const data = current ? (state.working.get(profile.slug) ?? profile.data) : profile.data;
+    for (const spec of Object.values(data.positions)) {
+      for (const slot of SLOTS) {
+        const value = spec[slot];
+        if (typeof value === "string") placed.add(value);
+      }
+      for (const value of Object.values(spec.directions ?? {})) {
+        if (typeof value !== "string") continue;
+        placed.add(value);
+        onStick.add(value);
+      }
+    }
+  }
+  return { placed, onStick };
+}
+
+/** Whether a unit already sends exactly this for an action. */
+function sendsAs(spec: ActionSpec, send: UnitSend): boolean {
+  return (
+    (spec.key ?? undefined) === send.key &&
+    (spec.meta ?? undefined) === send.meta &&
+    (spec.mouse ?? undefined) === send.mouse
+  );
+}
+
+/**
+ * Put every action the units send on the key the game has it on (its Keyboard binding), for
+ * a game whose own settings cannot be written. The one place a key is dealt again: only
+ * when asked, and only to make the units agree with the game. An action whose binding a
+ * unit cannot send, or that another action live with it is already sent on, keeps its key.
+ */
+function useGameKeys(
+  actions: Record<string, ActionSpec>,
+  game: EditorGame,
+): { changed: string[]; unresolved: string[] } {
+  const live = liveTogether(currentSets(game));
+  const { placed, onStick } = actionsOnUnits(game);
+  const changed: string[] = [];
+  // Passes until nothing moves: an action blocked by one that moves later goes next time.
+  for (let moved = true; moved;) {
+    moved = false;
+    for (const [id, spec] of Object.entries(actions)) {
+      if (!placed.has(id)) continue;
+      const send = unitSendFor(spec.kbm);
+      if (send === null || !sendsSomething(spec) || sendsAs(spec, send)) continue;
+      const bare: ActionSpec = { ...spec };
+      removeKey(bare, "key");
+      removeKey(bare, "meta");
+      removeKey(bare, "mouse");
+      actions[id] = bare;
+      if (wireFromGame(actions, id, live, onStick.has(id)) === null) {
+        actions[id] = spec;
+      } else {
+        changed.push(id);
+        moved = true;
+      }
+    }
+  }
+  // Still sent on a key the game is not known to have it on: set in the game by hand.
+  const unresolved = Object.entries(actions)
+    .filter(([id, spec]) => {
+      if (!placed.has(id) || !sendsSomething(spec)) return false;
+      const send = unitSendFor(spec.kbm);
+      return send === null || !sendsAs(spec, send);
+    })
+    .map(([id]) => id);
+  return { changed, unresolved };
+}
+
+/** How many actions the units send on a key the game does not use, and the fix. */
+function gameKeysField(game: EditorGame): HTMLElement {
+  // Worked out on a copy: drawing must not start an edit.
+  const copy = structuredClone(actionSetFor(game).actions);
+  const preview = useGameKeys(copy, game);
+  const row = el("div", { class: "game-keys" });
+  // What is left even after the click: the wheel, a chord a unit cannot send, a key another
+  // action has, or an action with no Keyboard binding to go by.
+  const left = preview.unresolved;
+  const leftNote = (): HTMLElement => {
+    const names = left.slice(0, 6).map((id) => {
+      const spec = copy[id];
+      const sent = spec === undefined ? null : bindingLabel(spec);
+      return `${spec?.label ?? id} (${sent ?? "nothing"})`;
+    });
+    const more = left.length > 6 ? ", and more" : "";
+    return el("div", { class: "game-keys-left" }, [
+      `${String(left.length)} action(s) are not sent on a key the game is known to use. Set ` +
+        "these in the game's controls screen, or give each its Keyboard binding below: " +
+        `${names.join(", ")}${more}.`,
+    ]);
+  };
+  if (preview.changed.length === 0) {
+    row.append(
+      left.length === 0
+        ? el("span", { class: "muted" }, ["Every action the units send is on the game's own key."])
+        : leftNote(),
+    );
+    return row;
+  }
+  const use = el("button", { class: "btn small primary", type: "button", "data-game-keys": "" }, [
+    "Send the game's keys",
+  ]);
+  use.title =
+    "Change what the units send for these actions to each one's Keyboard binding, so the " +
+    "game needs no changes.";
+  use.addEventListener("click", () => {
+    const done = useGameKeys(editableActions(), game);
+    saveNote =
+      `${String(done.changed.length)} action(s) now send the game's own key.` +
+      (done.unresolved.length > 0
+        ? ` ${String(done.unresolved.length)} still have to be set in the game's controls screen.`
+        : "");
+    render();
+  });
+  row.append(
+    el("span", {}, [
+      `${String(preview.changed.length)} action(s) are sent on a key the game does not use. `,
+    ]),
+    use,
+  );
+  if (left.length > 0) row.append(leftNote());
+  return row;
+}
+
+/**
  * Says plainly why a game's own settings cannot be written yet, and what to do instead.
  * Null for a game that is set up for it.
  */
@@ -5132,12 +5276,14 @@ function gameFileStatus(game: EditorGame): HTMLElement | null {
   const gaps = gameFileGaps(game);
   if (gaps.length === 0) return null;
   const box = el("div", { class: "note game-file" }, [
-    el("b", {}, [`${game.name} is not told its keys automatically`]),
+    el("b", {}, [`${game.name} keeps its own keys`]),
     el("div", {}, [
-      "Set each key below in the game's own controls screen. Everspace 2 and Elite " +
-        "Dangerous are told for you; other games are not yet.",
+      "The page cannot change this game's key settings, so the units send the keys the game " +
+        "already uses: each action's Keyboard binding below. If you change a key in the game, " +
+        "change it here to match.",
     ]),
   ]);
+  box.append(gameKeysField(game));
   const why = el("details", {}, [el("summary", {}, ["Why not this game?"])]);
   const list = el("ul", {});
   for (const gap of gaps) list.append(el("li", {}, [gap]));
