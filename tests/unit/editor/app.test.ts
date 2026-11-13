@@ -370,6 +370,29 @@ describe("stick modes in the editor", () => {
     expect(modeButton("Mode 1")).toBeDefined();
   });
 
+  it("puts a stick that was the pointer back on keys when a mode is applied", () => {
+    const payload = structuredClone(PAYLOAD);
+    const game = payload.games[0];
+    if (game === undefined) throw new Error("no game");
+    for (const profile of game.profiles) {
+      const stick = profile.data.positions.stick;
+      if (stick) {
+        stick.mode = "mouse";
+        stick.raw = { types: ["40", "0", "0"] };
+      }
+    }
+    document.body.innerHTML = '<div id="app"></div>';
+    start(payload);
+    showDockTab("pedals");
+    const sets = document.querySelectorAll("header select")[0] as HTMLSelectElement;
+    sets.value = LIVE_SET;
+    sets.dispatchEvent(new Event("change"));
+    modeButton("Mode 2").click();
+    for (const head of document.querySelectorAll(".thumb-group .head")) {
+      if (head.textContent.startsWith("thumbstick")) expect(head.textContent).toContain("keyboard");
+    }
+  });
+
   it("sets both sticks from one click", () => {
     modeButton("Mode 2").click();
     const dials = [...document.querySelectorAll(".stick-dial")];

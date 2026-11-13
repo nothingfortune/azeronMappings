@@ -319,6 +319,23 @@ function roleOf(actions: ActionSet, spec: PositionSpec | undefined): string | nu
   return ROLE_TAGS.find((tag) => tags.has(tag)) ?? null;
 }
 
+/**
+ * Every way a stick's mode changes goes through here: the Stick sends picker, an action
+ * dropped on a direction, a stick mode applied to the pair.
+ */
+function setStickMode(spec: PositionSpec, mode: string): void {
+  spec.mode = mode;
+  // An Xbox stick or the pointer sends no keys: its directions would be drawn on the board
+  // and checked as keys that send nothing. Undo brings them back.
+  if (mode !== "keyboard") removeKey(spec, "directions");
+  // A mode the stick came in with from an export rides in raw.types and would be written
+  // over the one chosen here.
+  const head = spec.raw?.types?.[0];
+  if (head !== undefined && Object.values(STICK_MODE_CODES).includes(head)) {
+    removeKey(spec, "raw");
+  }
+}
+
 const STICK_MODE_NAMES: Readonly<Record<string, string>> = {
   keyboard: "Keys (its four directions)",
   xbox: "Xbox stick",
@@ -345,16 +362,7 @@ function stickModeField(spec: PositionSpec): HTMLElement {
     select.append(option);
   }
   select.addEventListener("change", () => {
-    spec.mode = select.value;
-    // An Xbox stick or the pointer sends no keys: its directions would be drawn on the board
-    // and checked as keys that send nothing. Undo brings them back.
-    if (spec.mode !== "keyboard") removeKey(spec, "directions");
-    // A mode the stick came in with from an export rides in raw.types and would be
-    // written over the one chosen here.
-    const head = spec.raw?.types?.[0];
-    if (head !== undefined && Object.values(STICK_MODE_CODES).includes(head)) {
-      removeKey(spec, "raw");
-    }
+    setStickMode(spec, select.value);
     render();
   });
   const field = el("div", { class: "stick-mode" }, [
@@ -610,6 +618,10 @@ function dropActionOnDirection(
   actionId: string,
 ): void {
   const spec = (workingData(slug).positions[position] ??= { mode: "keyboard" });
+  // A direction is a key the stick sends: dropping an action on one asks for keys, so a
+  // stick that was an Xbox stick or the pointer goes back to keys, rather than showing an
+  // action it would not send.
+  if ((spec.mode ?? "keyboard") !== "keyboard") setStickMode(spec, "keyboard");
   spec.directions ??= {};
   spec.directions[direction] = actionId;
   wire(actionId);
@@ -1223,6 +1235,12 @@ function renderStickModes(): HTMLElement | null {
         [right, "right"],
       ] as const) {
         const data = workingData(slug);
+        // A stick mode is four pairs of keys: a stick that was an Xbox stick or the pointer
+        // goes back to keys first.
+        const before = data.positions.stick;
+        if (before !== undefined && (before.mode ?? "keyboard") !== "keyboard") {
+          setStickMode(before, "keyboard");
+        }
         data.positions.stick = applyMode(data.positions.stick, set, mode, hand, carry);
         wireSpec(data.positions.stick);
       }
