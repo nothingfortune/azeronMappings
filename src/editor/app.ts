@@ -388,8 +388,9 @@ function stickModeField(spec: PositionSpec): HTMLElement {
     speed.addEventListener("change", () => {
       const value = Number(speed.value);
       if (!Number.isInteger(value) || value < 1 || value > 255) return;
-      if (value === 5) removeKey(spec, "mouse_sensitivity");
-      else spec.mouse_sensitivity = value;
+      // Kept even at the app's default: the template may hold another speed, and only a
+      // value the profile gives is written over it.
+      spec.mouse_sensitivity = value;
       render();
     });
     field.append(
