@@ -6,6 +6,13 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Added
 
+- **Write to units works on firmware 112.** The Azeron app 2.0.3 makes a unit on 111
+  read-only, so units get updated; the app was recorded writing on 112 and sends exactly the
+  reports this repo does, so 112 is allowed. Two things the recording showed are fixed with
+  it: a control with a Disabled slot (the Everspace thumb pad) is now written rather than
+  skipped, which had left the unit with whatever the slot held before; and the message
+  counter wraps from 254 to 0, as the app's does. A key the app 2.0.3 marks Disabled can be
+  bound like an empty one.
 - **The units send the keys a game already uses, when its settings cannot be written.**
   Most games keep their key settings where the repo cannot change them, and used to be
   given out-of-the-way keys (Insert, the numpad) to set one by one in the game's controls

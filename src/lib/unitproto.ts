@@ -1,5 +1,6 @@
 /**
- * The Cyborg II's configuration protocol, as Azeron Software 2.0.2 speaks it to firmware 111.
+ * The Cyborg II's configuration protocol, as Azeron Software 2.0.2 speaks it to firmware 111
+ * and 2.0.3 to firmware 112 (the same reports; checked against a capture on 2026-11-13).
  *
  * Recovered on 2026-10-14 by logging every HID report the app sent and received while it
  * connected to a unit, read its onboard profiles, and wrote one into a free slot -- and by
@@ -20,7 +21,7 @@ export const CONFIG_USAGE_PAGE = 0xff01;
 export const CONFIG_USAGE = 0x0001;
 
 /** Firmware this module has been checked against. Anything else is refused. */
-export const KNOWN_FIRMWARE = [111] as const;
+export const KNOWN_FIRMWARE = [111, 112] as const;
 /** keypadType the unit reports: 8 is the Cyborg II. */
 export const CYBORG2_KEYPAD_TYPE = 8;
 
@@ -139,6 +140,14 @@ export class ProtocolError extends Error {}
  * Byte 0 was 0 in every report the app sent, all of them under 256 bytes long; a longer
  * payload is refused rather than guessed at.
  */
+/**
+ * The sequence number `step` reports after `seq`. The app counts 0 to 254 and then 0 again:
+ * it was never seen to send 255 (captures of 2026-11-13, every one wrapping 254 -> 0).
+ */
+export function nextSeq(seq: number, step = 1): number {
+  return (seq + step) % 255;
+}
+
 export function hostReports(command: number, firstSeq: number, payload: Uint8Array): Uint8Array[] {
   if (!SENDABLE_COMMANDS.has(command)) {
     throw new ProtocolError(
@@ -158,7 +167,7 @@ export function hostReports(command: number, firstSeq: number, payload: Uint8Arr
     report[0] = 0;
     report[1] = payload.length;
     report[2] = command;
-    report[3] = (firstSeq + part) & 0xff;
+    report[3] = nextSeq(firstSeq, part);
     report[4] = parts;
     report[5] = part + 1;
     report[6] = chunk.length;
@@ -366,6 +375,8 @@ export function keyName(code: number): string {
 /** types[] codes a record may be written with; the app writes nothing else either. */
 const WRITABLE_TYPES = new Map<string, number>([
   ["1", 1],
+  // Disabled: an empty slot the app 2.0.3 writes as 6 rather than 11, otherwise the same.
+  ["6", 6],
   ["11", 11],
   ["15", 15],
 ]);

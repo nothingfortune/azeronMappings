@@ -472,3 +472,17 @@ describe("what decompiling must not lose", () => {
     expect(back.positions.middle_1?.turbo_interval_long).toBe(120);
   });
 });
+
+describe("a key the Azeron app 2.0.3 marked Disabled", () => {
+  it("is an empty key the compiler may bind, like one marked None", async () => {
+    const { isRebindableRecord } = await import("../../../src/types/azeron.js");
+    const disabled = { types: ["6", "6", "6"] } as unknown as Parameters<
+      typeof isRebindableRecord
+    >[0];
+    expect(isRebindableRecord(disabled)).toBe(true);
+    // Still not the profile switch, the wheel or an Xbox button.
+    for (const type of ["2", "29", "22"]) {
+      expect(isRebindableRecord({ types: [type, "11", "11"] } as typeof disabled)).toBe(false);
+    }
+  });
+});

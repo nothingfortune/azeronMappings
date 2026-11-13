@@ -63,6 +63,14 @@ describe("identifying a unit", () => {
     );
   });
 
+  it("takes firmware 112, which the app 2.0.3 writes to in the same reports", async () => {
+    const identity = await new UnitSession(unit("left", { firmware: 112 })).identify();
+    expect(identity.firmware).toBe(112);
+    await expect(new UnitSession(unit("left", { firmware: 113 })).identify()).rejects.toThrow(
+      /firmware 113/,
+    );
+  });
+
   it("says so when the unit stops answering", async () => {
     await expect(new UnitSession(unit("left", { goSilentAfter: 1 })).identify()).rejects.toThrow(
       UnitError,
