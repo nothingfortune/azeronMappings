@@ -382,11 +382,11 @@ header .picker select { font-weight: 600; }
   .workspace.board .hand-body.thumb-right .thumb-row,
   .workspace.board .hand-body.thumb-left .thumb-row { align-items: center; }
 }
-.hand { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
-        padding: 8px 10px 10px; }
+.hand { background: linear-gradient(180deg, var(--panel), var(--plate)); border: 1px solid var(--line);
+        border-radius: 16px; padding: 8px 10px 10px; box-shadow: var(--shadow-2); }
 .hand > .title { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
-.hand > .title b { font-size: 13px; }
-.hand > .title span { color: var(--muted); font-size: 11.5px; }
+.hand > .title b { font-size: var(--fs-2); font-weight: 700; }
+.hand > .title span { color: var(--muted); font-size: var(--fs-1); }
 /* Scoped to the board: the press test draws a hand too, with its own .hand-body, and an
    unscoped rule here stacked its columns into one. */
 .workspace.board .hand-body { display: flex; flex-direction: column; gap: 8px; }
@@ -397,21 +397,40 @@ header .picker select { font-weight: 600; }
 .col { display: flex; flex-direction: column; gap: 4px; }
 .col.side { margin-top: 22px; }
 .col .head, .hand .head {
-  font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted);
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--muted);
   text-align: center; height: 13px; white-space: nowrap;
 }
 /* Every key is one size, whatever is on it: the board is a picture of the unit, and a key
    that grew with its label pushed the ones under it out of line. */
+/* A keycap: a face lit from above, a highlight along its top edge and a darker lip along its
+   bottom, so it stands off the plate. The role is the stripe down its left edge. */
 .key {
-  width: var(--key-w); height: var(--key-h); border: 1px solid var(--line); border-radius: 7px;
-  background: var(--bg); padding: 3px 6px; cursor: pointer; text-align: left; display: flex;
-  flex-direction: column; gap: 1px; border-left-width: 3px; border-left-color: var(--line);
+  width: var(--key-w); height: var(--key-h); border: 1px solid var(--line); border-radius: 8px;
+  background: linear-gradient(180deg, var(--key-top), var(--key-bottom)); color: var(--fg);
+  padding: 3px 6px 4px; cursor: pointer; text-align: left; display: flex;
+  flex-direction: column; gap: 1px; border-left-width: 3px; border-left-color: var(--line-strong);
   overflow: hidden;
+  box-shadow: inset 0 1px 0 var(--key-glint), inset 0 -2px 0 var(--key-lip), var(--shadow-1);
 }
-.key:hover { border-color: var(--accent); }
-.key.selected { outline: 2px solid var(--accent); outline-offset: 1px; }
-.key.empty { opacity: .3; border-style: dashed; border-left-style: dashed;
-             justify-content: center; }
+/* Hover lifts the edge but leaves the role stripe its colour. */
+.key:hover { border-top-color: var(--line-strong); border-right-color: var(--line-strong);
+             border-bottom-color: var(--line-strong);
+             background: linear-gradient(180deg, var(--hover), var(--key-top)); }
+.key:active { box-shadow: inset 0 1px 2px var(--key-lip); }
+.key.selected { outline: 2px solid var(--accent); outline-offset: 2px;
+                border-top-color: var(--accent); border-right-color: var(--accent);
+                border-bottom-color: var(--accent);
+                background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 22%, var(--key-top)),
+                                                    color-mix(in srgb, var(--accent) 12%, var(--key-bottom))); }
+/* Nothing on it: no cap, just the socket -- quiet, but plainly somewhere to put something. */
+.key.empty { background: color-mix(in srgb, var(--sunken) 60%, transparent); box-shadow: none;
+             border-style: dashed; border-color: var(--line-strong); border-left-style: dashed;
+             border-left-color: var(--line-strong); justify-content: center; }
+.key.empty .pos { color: color-mix(in srgb, var(--muted) 75%, transparent); }
+.key.empty:hover { border-color: var(--accent); border-left-color: var(--accent);
+                   background: var(--accent-soft); }
+.key.empty:hover .pos { color: var(--accent); }
+.key.empty.selected { border-style: solid; }
 .key.empty .name { display: none; }
 /* Each line is its own block; as inline spans they ran together into one string. */
 .key .pos { display: block; font-size: 10px; color: var(--muted); line-height: 1.2; }
@@ -470,7 +489,10 @@ header .picker select { font-weight: 600; }
 .units-report .unit-differences li { margin: 2px 0; }
 /* Drag and drop: what is being carried, and where it may be put down. */
 .key[draggable="true"], .action[draggable="true"] { cursor: grab; }
-.drop-over { outline: 2px dashed var(--accent); outline-offset: 1px; }
+.drop-over { outline: 2px solid var(--accent); outline-offset: 2px; }
+.key.drop-over, .stick-dial .dir.drop-over {
+  border-color: var(--accent); border-style: solid; background: color-mix(in srgb, var(--accent) 24%, var(--panel));
+  box-shadow: 0 0 0 4px var(--accent-soft); }
 .manage-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 6px; }
 .btn.danger { color: var(--error); border-color: var(--error); }
 .new-action-row { margin-top: 8px; }
@@ -519,8 +541,8 @@ body.dragging-key .palette.drop-over { outline: none; }
 /* The thumb cluster is two devices and some spare keys. Each gets its own labelled
    group, and the stick is drawn as a dial so it never reads as another d-pad. */
 .thumb-cluster { display: flex; gap: 8px; align-items: flex-start; }
-.thumb-group { border: 1px solid var(--line); border-radius: 9px; padding: 6px;
-               background: color-mix(in srgb, var(--bg) 60%, transparent); }
+.thumb-group { border: 1px solid var(--line); border-radius: 12px; padding: 6px;
+               background: var(--sunken); box-shadow: inset 0 1px 3px rgb(0 0 0 / .12); }
 .thumb-group > .head { margin-bottom: 4px; }
 .dpad { display: grid; grid-template-columns: repeat(3, var(--key-w)); gap: 4px; }
 .dpad .up { grid-area: 1 / 2; }
@@ -531,17 +553,32 @@ body.dragging-key .palette.drop-over { outline: none; }
 .aux { display: flex; flex-direction: column; gap: 4px; }
 
 .stick-dial {
-  display: grid; gap: 3px;
+  display: grid; gap: 3px; position: relative; isolation: isolate;
   grid-template-columns: repeat(3, var(--key-w)); grid-template-rows: repeat(3, var(--key-h));
 }
-.stick-dial.selected { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px; }
+/* The stick's well: a round socket behind the four directions, so the cross reads as one
+   dial rather than five keys. */
+.workspace.board .stick-dial::before {
+  content: ""; position: absolute; z-index: -1; left: 50%; top: 50%;
+  width: calc(var(--key-h) * 3 - 4px); aspect-ratio: 1; transform: translate(-50%, -50%);
+  border-radius: 50%; border: 1px solid var(--line);
+  background: radial-gradient(circle, var(--panel) 0 30%, var(--sunken) 31% 100%);
+  box-shadow: inset 0 2px 6px rgb(0 0 0 / .18);
+}
+.stick-dial.selected { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 12px; }
 .stick-dial .dir {
-  border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: inherit;
+  border: 1px solid var(--line); border-radius: 8px; color: inherit;
+  background: linear-gradient(180deg, var(--key-top), var(--key-bottom));
+  box-shadow: inset 0 1px 0 var(--key-glint), inset 0 -2px 0 var(--key-lip), var(--shadow-1);
   padding: 4px 5px; cursor: pointer; display: flex; flex-direction: column; align-items: center;
   justify-content: center; gap: 1px; height: var(--key-h); text-align: center; overflow: hidden;
 }
-.stick-dial .dir:hover { border-color: var(--accent); }
-.stick-dial .dir.empty { opacity: .35; border-style: dashed; }
+.stick-dial .dir:hover { border-color: var(--line-strong);
+                         background: linear-gradient(180deg, var(--hover), var(--key-top)); }
+.stick-dial .dir.empty { background: color-mix(in srgb, var(--sunken) 60%, transparent);
+                         box-shadow: none; border-style: dashed; border-color: var(--line-strong); }
+.stick-dial .dir.empty .glyph { opacity: .6; }
+.stick-dial .dir.empty:hover { border-color: var(--accent); background: var(--accent-soft); }
 .stick-dial .glyph { font-size: 13px; line-height: 1; color: var(--movement); }
 .stick-dial .dir .name { font-size: 11px; font-weight: 600; line-height: 1.15;
                          overflow-wrap: anywhere; }
@@ -552,20 +589,25 @@ body.dragging-key .palette.drop-over { outline: none; }
 /* The hub is the stick pressed in, drawn as the wheel the Azeron software shows. */
 /* The stick pressed in. Its wheel sits beside its name: every cell is one key high, and a
    wheel above two lines of text does not fit in that. */
-.stick-dial .hub { grid-area: 2 / 2; border: none; background: none; gap: 5px;
+.stick-dial .hub { grid-area: 2 / 2; border: none; background: none; box-shadow: none; gap: 6px;
                    flex-direction: row; padding: 2px 3px; }
+.stick-dial .hub:hover { background: none; }
 .stick-dial .hub .name { text-align: left; }
+/* The knob: a domed cap with eight ticks round its rim, lit from above. */
 .stick-dial .hub .wheel {
-  width: 24px; height: 24px; flex: none; border-radius: 50%; border: 2px solid var(--line);
+  width: 26px; height: 26px; flex: none; border-radius: 50%; border: 2px solid var(--line-strong);
+  box-shadow: 0 2px 4px rgb(0 0 0 / .28), inset 0 1px 0 var(--key-glint);
   background:
-    radial-gradient(circle at center, var(--panel) 0 26%, transparent 27%),
+    radial-gradient(circle at 50% 38%, var(--key-top) 0 30%, var(--key-bottom) 46%, transparent 47%),
     conic-gradient(from -22.5deg,
-      var(--line) 0 45deg, transparent 45deg 90deg,
-      var(--line) 90deg 135deg, transparent 135deg 180deg,
-      var(--line) 180deg 225deg, transparent 225deg 270deg,
-      var(--line) 270deg 315deg, transparent 315deg 360deg);
+      var(--line-strong) 0 45deg, var(--sunken) 45deg 90deg,
+      var(--line-strong) 90deg 135deg, var(--sunken) 135deg 180deg,
+      var(--line-strong) 180deg 225deg, var(--sunken) 225deg 270deg,
+      var(--line-strong) 270deg 315deg, var(--sunken) 315deg 360deg);
 }
 .stick-dial .hub:hover .wheel { border-color: var(--accent); }
+.stick-dial .hub.selected .wheel, .stick-dial .hub.drop-over .wheel { border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft); }
 .stick-dial .hub.empty .wheel { opacity: .5; }
 
 /* Columns, so the groups pack with no empty cells and the list is as tall as it needs to be
