@@ -135,7 +135,7 @@ export function describeWheel(fields: Partial<WheelFields>): KeySlotSpec | null 
 export function isDeviceBinding(spec: object): boolean {
   const binding = spec as KeySlotSpec;
   return (
-    (binding.xbox !== null && binding.xbox !== undefined) ||
+    (binding.xinput !== null && binding.xinput !== undefined) ||
     (binding.wheel !== null && binding.wheel !== undefined)
   );
 }
@@ -169,13 +169,13 @@ export function resolveSlot(
   // Only a binding written on the key itself sends an Xbox control or scrolls. An action's
   // `xbox:` is the genre's suggestion of a pad control, which the compiler never reads.
   const inline: KeySlotSpec | null = typeof spec === "string" ? null : binding;
-  if (typeof inline?.xbox === "string") {
-    const bit = XBOX_BUTTON_BITS[inline.xbox];
+  if (typeof inline?.xinput === "string") {
+    const bit = XBOX_BUTTON_BITS[inline.xinput];
     if (bit !== undefined) return [TYPE_XBOX_BUTTON, String(bit), keys.NONE_TOKEN];
-    const trigger = XBOX_TRIGGERS[inline.xbox];
+    const trigger = XBOX_TRIGGERS[inline.xinput];
     if (trigger !== undefined) return [TYPE_XBOX_TRIGGER, trigger, keys.NONE_TOKEN];
     throw new BindingError(
-      `'${inline.xbox}' is not an Xbox button or trigger a key can send ` +
+      `'${inline.xinput}' is not an Xbox button or trigger a key can send ` +
         `(${XBOX_SLOT_CONTROLS.join(", ")})`,
     );
   }
@@ -222,14 +222,14 @@ export function describeSlot(typeCode: string, keyToken: string, metaToken: stri
     if (name === undefined || !emptyMeta) {
       return { spec: { type_raw: typeCode, key_raw: keyToken, meta_raw: metaToken }, exact: false };
     }
-    return { spec: { xbox: name[0] }, exact: true };
+    return { spec: { xinput: name[0] }, exact: true };
   }
   if (typeCode === TYPE_XBOX_TRIGGER) {
     const name = Object.entries(XBOX_TRIGGERS).find(([, token]) => token === keyToken);
     if (name === undefined || !emptyMeta) {
       return { spec: { type_raw: typeCode, key_raw: keyToken, meta_raw: metaToken }, exact: false };
     }
-    return { spec: { xbox: name[0] }, exact: true };
+    return { spec: { xinput: name[0] }, exact: true };
   }
 
   if (typeCode === TYPE_MOUSE) {

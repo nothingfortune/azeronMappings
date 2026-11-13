@@ -431,14 +431,18 @@ array of per-key records.
   mouse button, an Xbox button or trigger, scroll, or a stick (keyboard, Xbox or mouse
   mode) are ever rewritten (`isRebindableRecord`); a macro, sequence or layer switch, which
   the app runs on the PC, passes through.
-- A key sends an Xbox button or trigger with `{xbox: A}` (`"22"` with XInput's button bit,
+- A key sends an Xbox button or trigger with `{xinput: A}` (`"22"` with XInput's button bit,
   `"23"` with `T1`/`T2`; `XBOX_BUTTON_BITS` in `binding.ts`) and scrolls with
   `{wheel: up, speed: 1-100}` (`"35"`, tap only, `x`/`y`/`interval`/`yInterval` beside the
-  keys; `wheelFields`). **Only a binding written on the key does this**: an action's
-  `xbox:` is the genre's suggestion of a pad control and the compiler never reads it. A
+  keys; `wheelFields`). **Only a binding written on the key does this**, and the field is
+  `xinput`, not `xbox`, on purpose: an action's `xbox:` is the genre's suggestion of a pad
+  control, which the compiler never reads (two readers that took one for the other put
+  pad buttons on every key). A scroll the repo cannot name is kept as `type_raw: "35"`. A
   stick's `mode` is `keyboard` (`"4"`), `xbox` (`"21"`) or `mouse` (`"40"`, with
-  `mouse_sensitivity` into `analogSettings.mouseSensitivity`). `stick-not-keyboard` asks
-  for keyboard by name, not "any known mode".
+  `mouse_sensitivity` into `analogSettings.mouseSensitivity`); which Xbox stick follows the
+  app's one "side" setting, `isRightAnalog` (the left unit's export, false, sent the left
+  stick; the right side is inferred). `stick-not-keyboard` asks for keyboard by name, not
+  "any known mode".
 - Key values mix `KeyboardEvent.code` strings (`KeyF`, `Digit1`, `Escape`) with legacy
   numeric JS keyCodes (arrows as `"37"`–`"40"`, Shift as `"16"`). `keys.ts` records which
   encoding the app actually uses per key; a token that does not survive name→token→name

@@ -29,9 +29,12 @@ import {
   isWritableInput,
 } from "../../../src/lib/unitproto.js";
 import { compareStored } from "../../../src/lib/unitsession.js";
-import type { InputRecord } from "../../../src/types/azeron.js";
+import type { ExportDocument, ExportProfile, InputRecord } from "../../../src/types/azeron.js";
 import { isRebindableRecord } from "../../../src/types/azeron.js";
 import type { PositionSpec } from "../../../src/types/profile.js";
+import { repoPath } from "../../../src/config/paths.js";
+import { UnitSession } from "../../../src/lib/unitsession.js";
+import { FakeUnit } from "../../helpers/fakeunit.js";
 
 interface Captured {
   capture: string;
@@ -97,11 +100,11 @@ describe("the unit's records for Xbox output, scroll and the stick's modes", () 
 
 describe("a key's Xbox and scroll bindings", () => {
   it("names a button by XInput's bit and a trigger as the export does", () => {
-    expect(resolveSlot({ xbox: "A" }, null)).toEqual(["22", "4096", "0"]);
-    expect(resolveSlot({ xbox: "Guide" }, null)).toEqual(["22", "1024", "0"]);
-    expect(resolveSlot({ xbox: "RT" }, null)).toEqual(["23", "T2", "0"]);
-    expect(resolveSlot({ xbox: "LT" }, null)).toEqual(["23", "T1", "0"]);
-    expect(() => resolveSlot({ xbox: "LeftStickUp" }, null)).toThrow(/not an Xbox button/);
+    expect(resolveSlot({ xinput: "A" }, null)).toEqual(["22", "4096", "0"]);
+    expect(resolveSlot({ xinput: "Guide" }, null)).toEqual(["22", "1024", "0"]);
+    expect(resolveSlot({ xinput: "RT" }, null)).toEqual(["23", "T2", "0"]);
+    expect(resolveSlot({ xinput: "LT" }, null)).toEqual(["23", "T1", "0"]);
+    expect(() => resolveSlot({ xinput: "LeftStickUp" }, null)).toThrow(/not an Xbox button/);
   });
 
   it("agrees with what the app exported for A and the right trigger", () => {
@@ -147,8 +150,8 @@ describe("compiling and decompiling them", () => {
   }
 
   function onboard(positions: Record<string, PositionSpec>): void {
-    positions.pinky_1 = { label: "Jump", tap: { xbox: "A" }, long: { xbox: "Y" } };
-    positions.pinky_2 = { label: "Fire", tap: { xbox: "RT" } };
+    positions.pinky_1 = { label: "Jump", tap: { xinput: "A" }, long: { xinput: "Y" } };
+    positions.pinky_2 = { label: "Fire", tap: { xinput: "RT" } };
     positions.pinky_3 = { label: "Next", tap: { wheel: "up", speed: 33 } };
     positions.stick = { mode: "mouse", mouse_sensitivity: 2 };
   }
@@ -171,9 +174,9 @@ describe("compiling and decompiling them", () => {
   it("comes back out of the export as the same bindings, and builds the same again", () => {
     const { game, profile, template, built } = build(onboard);
     const data = decompile(built, profile.device, { actions: game.actions });
-    expect(data.positions.pinky_1?.tap).toEqual({ xbox: "A" });
-    expect(data.positions.pinky_1?.long).toEqual({ xbox: "Y" });
-    expect(data.positions.pinky_2?.tap).toEqual({ xbox: "RT" });
+    expect(data.positions.pinky_1?.tap).toEqual({ xinput: "A" });
+    expect(data.positions.pinky_1?.long).toEqual({ xinput: "Y" });
+    expect(data.positions.pinky_2?.tap).toEqual({ xinput: "RT" });
     expect(data.positions.pinky_3?.tap).toEqual({ wheel: "up", speed: 33 });
     expect(data.positions.stick?.mode).toBe("mouse");
     expect(data.positions.stick?.mouse_sensitivity).toBe(2);
@@ -271,5 +274,164 @@ describe("Everspace 2's rule that its stick is keyboard only", () => {
         mode,
       ).toBe(true);
     }
+  });
+});
+
+describe("an export of the Azeron app 2.0.3 with every kind in it", () => {
+  /**
+   * The app's own export of the profile it wrote while recorded: Xbox buttons on each
+   * press, a trigger, three scroll keys (one moving neither axis), the stick as a mouse,
+   * and a macro, a sequence and a layer switch the app runs on the PC.
+   */
+  function roundTrip(exported: ExportDocument): { before: InputRecord[]; after: InputRecord[] } {
+    const game = new Game("games/SpaceSims/everspace");
+    const device = loadProfile("games/SpaceSims/everspace/profiles/single-v5.yaml", game).device;
+    const data = decompile(exported, device, { actions: null });
+    const profile = new Profile(data, device, { path: "recon.yaml", game });
+    const built = compileProfile(profile, { template: exported, actions: null });
+    return { before: exported.profiles[0]?.inputs ?? [], after: built.profiles[0]?.inputs ?? [] };
+  }
+
+  it("keeps a scroll it cannot name, on a key with nothing else to say about it", () => {
+    const exported = JSON.parse(
+      readFileSync("tests/fixtures/unit-protocol/recon-112-export.json", "utf8"),
+    ) as ExportDocument;
+    // Scroll on both axes at once, unlabelled: nothing in the YAML but the scroll itself.
+    const both = exported.profiles[0]?.inputs.find((input) => input.id === 4);
+    if (both === undefined) throw new Error("no input 4");
+    delete both.label;
+    Object.assign(both, { x: 1, y: 1, interval: 75, yInterval: 75, doubleDelay: 150 });
+    const { after } = roundTrip(exported);
+    const kept = after.find((input) => input.id === 4);
+    expect(kept?.types[0]).toBe("35");
+    expect([kept?.x, kept?.y, kept?.interval, kept?.yInterval]).toEqual([1, 1, 75, 75]);
+  });
+
+  it("builds back from its decompiled YAML exactly as it was", () => {
+    const game = new Game("games/SpaceSims/everspace");
+    const device = loadProfile("games/SpaceSims/everspace/profiles/single-v5.yaml", game).device;
+    const exported = JSON.parse(
+      readFileSync("tests/fixtures/unit-protocol/recon-112-export.json", "utf8"),
+    ) as ExportDocument;
+    const data = decompile(exported, device, { actions: null });
+    const profile = new Profile(data, device, { path: "recon.yaml", game });
+    const built = compileProfile(profile, { template: exported, actions: null });
+    const before = exported.profiles[0]?.inputs ?? [];
+    const after = built.profiles[0]?.inputs ?? [];
+    expect(after).toHaveLength(before.length);
+    before.forEach((record, index) => {
+      const rebuilt = after[index];
+      if (rebuilt === undefined) throw new Error(`no input ${String(record.id)}`);
+      if (record.analogSettings !== undefined && record.types[0] === "40") {
+        // The stick's directions come back as the integer keycodes the compiler emits
+        // ("KeyW" as 87): the same key, so the unit is given the same bytes.
+        expect(hex(encodeInputRecord(5, rebuilt)), "the stick").toBe(
+          hex(encodeInputRecord(5, record)),
+        );
+        return;
+      }
+      expect(JSON.stringify(rebuilt), `input ${String(record.id)}`).toBe(JSON.stringify(record));
+    });
+  });
+});
+
+describe("writing them to a unit and reading the slot back", () => {
+  /**
+   * How a unit stores these is inferred, not captured: a key-like record keeps its value
+   * where a key's code goes, and a stick keeps its own layout whatever its mode. A unit that
+   * stored them otherwise shows as a difference after the write -- never as success.
+   */
+  const akimbo = (): ExportDocument =>
+    JSON.parse(
+      readFileSync(repoPath("dist/SpaceSims/everspace/everspace_akimbo_v10_left.json"), "utf8"),
+    ) as ExportDocument;
+
+  function akimboProfile(): ExportProfile {
+    const profile = akimbo().profiles[0];
+    if (profile === undefined) throw new Error("no profile");
+    return profile;
+  }
+
+  function withOnboard(): InputRecord[] {
+    const profile = akimbo().profiles[0];
+    if (profile === undefined) throw new Error("no profile");
+    const keys = profile.inputs.filter((input) => input.types[0] === "1");
+    const [first, second] = keys;
+    if (first === undefined || second === undefined) throw new Error("no keys");
+    first.types = ["22", "11", "11"];
+    first.keyValues = ["4096", "0", "0", "0"];
+    second.types = ["23", "11", "11"];
+    second.keyValues = ["T2", "0", "0", "0"];
+    const stick = profile.inputs.find((input) => input.types[0] === "4");
+    if (stick?.analogSettings === undefined) throw new Error("no stick");
+    stick.types = ["40", "0", "0"];
+    stick.analogSettings.mouseSensitivity = 2;
+    return profile.inputs;
+  }
+
+  async function ready(): Promise<{
+    fake: FakeUnit;
+    session: UnitSession;
+    slots: Awaited<ReturnType<UnitSession["readAll"]>>;
+  }> {
+    const fake = new FakeUnit({ deviceId: 49229 });
+    for (const name of ["Basic", "Joystick", "Everspace 2 akimbo"]) {
+      fake.seed(name, akimbo().profiles[0]?.inputs ?? []);
+    }
+    const session = new UnitSession(fake);
+    await session.identify();
+    const slots = await session.readAll();
+    return { fake, session, slots };
+  }
+
+  it("writes an Xbox button, a trigger and the stick as a mouse over a slot of keys", async () => {
+    const { session } = await ready();
+    const profile = akimboProfile();
+    profile.inputs = withOnboard();
+    const report = await session.writeProfile({
+      slot: 2,
+      name: "ES2 akimbo",
+      profile,
+      unknownPins: [0, 28, 29],
+    });
+    expect(report.problems).toEqual([]);
+  });
+
+  it("shows what replacing keys with them would change, in either direction, without throwing", async () => {
+    const { slots } = await ready();
+    const held = slots.find((slot) => slot.slot === 2);
+    if (held === undefined) throw new Error("no slot 2");
+    const wanted = withOnboard().filter((input) => isWritableInput(input, [0, 28, 29]));
+    const forward = compareStored(wanted, held);
+    expect(forward.some((difference) => difference.field === "types")).toBe(true);
+    // And back: a slot holding Xbox output, a layout of keys.
+    const xboxSlot = {
+      ...held,
+      inputs: held.inputs.map((input) =>
+        input.types[0] === "1"
+          ? { ...input, types: ["22", "11", "11"], keyValues: ["4096", "0", "0", "0"] }
+          : input,
+      ),
+    };
+    const keysWanted = (akimbo().profiles[0]?.inputs ?? []).filter((input) =>
+      isWritableInput(input, [0, 28, 29]),
+    );
+    expect(() => compareStored(keysWanted, xboxSlot)).not.toThrow();
+    expect(compareStored(keysWanted, xboxSlot).length).toBeGreaterThan(0);
+  });
+
+  it("refuses a layout with scroll before sending anything", async () => {
+    const { fake, session } = await ready();
+    const profile = akimboProfile();
+    const inputs = withOnboard();
+    const key = inputs.find((input) => input.types[0] === "1");
+    if (key === undefined) throw new Error("no key");
+    Object.assign(key, { types: ["35", "11", "11"], x: 0, y: 1, interval: 150, yInterval: 75 });
+    profile.inputs = inputs;
+    fake.received.length = 0;
+    await expect(
+      session.writeProfile({ slot: 2, name: "ES2 akimbo", profile, unknownPins: [0, 28, 29] }),
+    ).rejects.toThrow(/cannot be read back/);
+    expect(fake.received).toHaveLength(0);
   });
 });

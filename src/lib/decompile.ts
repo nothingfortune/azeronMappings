@@ -25,6 +25,7 @@ import {
   TYPE_STICK_MOUSE,
   TYPE_WHEEL,
   activeAnalogKeys,
+  isRebindableRecord,
 } from "../types/azeron.js";
 import type { ActionSpec, PositionSpec, ProfileData, ProfileMeta } from "../types/profile.js";
 import { describeSlot, describeWheel, matchAction, resolveSlot } from "./binding.js";
@@ -108,8 +109,9 @@ export function decompilePosition(
           interval: Number(record.interval ?? 150),
           yInterval: Number(record.yInterval ?? 150),
         });
-        // A scroll this cannot name (two axes at once) stays raw and passes through.
-        if (wheel !== null) spec[slot] = wheel;
+        // A scroll this cannot name (two axes at once, or neither) is kept by its type, so
+        // the build writes the type back and leaves its direction fields as they are.
+        spec[slot] = wheel ?? { type_raw: typeCode, key_raw: "0", meta_raw: "0" };
         return;
       }
       const described = describeSlot(
@@ -184,6 +186,9 @@ export function decompile(
     if (device.unknownPins.has(position.pin)) continue;
     const record = byPin.get(position.pin);
     if (!record) continue;
+    // What the compiler will not rewrite (a macro, a layer switch, the d-pad type) passes
+    // through from the export as it is. Naming it would make a profile that refuses to build.
+    if (!isRebindableRecord(record)) continue;
     const spec = decompilePosition(record, options.actions ?? null, device.isStick(name));
     if (Object.keys(spec).length > 0) positions[name] = spec;
   }

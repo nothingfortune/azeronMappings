@@ -189,7 +189,7 @@ both; scroll only on a tap).
 **What this repo writes of these** (`tests/fixtures/unit-protocol/onboard-112.json` holds
 the app's own records, and the encoder reproduces every one byte for byte):
 
-- A key's `{xbox: A}` (any button by its XInput bit, `LT` / `RT` as `T1` / `T2`) on any press.
+- A key's `{xinput: A}` (any button by its XInput bit, `LT` / `RT` as `T1` / `T2`) on any press.
 - `{wheel: up, speed: 33}` on a tap. The app turns a speed of 0 to 100 into
   `interval = (100 - speed) * 1.5` for the moving axis and 150 for the other, sends the
   interval whole (100.5 went as 100), and stores the direction as `x` 1 right / -1 left and
@@ -200,10 +200,13 @@ the app's own records, and the encoder reproduces every one byte for byte):
 - A stick's `mode: xbox` (type 21) and `mode: mouse` (type 40, `mouse_sensitivity` into the
   byte at 16; the owner's "super sensitive" stored 2). Which Xbox stick a right unit's
   drives is not captured: the left unit's export named the left stick.
-- Reading a slot back, a record of a type whose stored layout is not known (scroll, so
-  far) is kept by its id, pins and types and reported as one that cannot be checked,
-  rather than misread. A slot the app filled with them used to stop every slot after it
-  from being read.
+- **Reading them back is inferred, not captured**: an Xbox button or trigger is read where
+  a key's code is stored (little-endian, as every stored value), and a stick in Xbox or
+  mouse mode in the keyboard stick's layout with its own type byte. A unit that stores them
+  otherwise shows as a difference after the write, never as a pass.
+- A record of a type whose stored layout is not known (scroll, so far) is kept by its id,
+  pins and types and reported as one that cannot be checked, rather than misread: reading
+  on could run off its end and stop every slot after it from being read.
 - App 2.0.3 exports the stick's hold key by name (`"ShiftLeft"`) and sends it as that key's
   code.
 

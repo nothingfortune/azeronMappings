@@ -607,10 +607,16 @@ const DEFAULTS: Record<string, unknown> = {
  */
 function canonical(token: unknown, type: string | null): string {
   const value = typeof token === "number" || typeof token === "string" ? token : "0";
-  if (type === "15" || type === "22" || type === "23") {
-    return String(triggerKeyCode(type, value));
+  try {
+    if (type === "15" || type === "22" || type === "23") {
+      return String(triggerKeyCode(type, value));
+    }
+    return String(storedKeyCode(value));
+  } catch {
+    // A token this cannot turn into a code is compared as it is written: a difference is
+    // reported, never thrown, since this also runs to show what a write would change.
+    return `?${String(value)}`;
   }
-  return String(storedKeyCode(value));
 }
 
 /** One way a slot differs from the layout: what the unit holds where the layout wants another. */
@@ -680,7 +686,11 @@ export function compareStored(
       continue;
     }
     KEY_LISTS.forEach((list, index) => {
-      const type = list.startsWith("key") ? (input.types[Math.floor(index / 2)] ?? null) : null;
+      const trigger = Math.floor(index / 2);
+      // A trigger of another type holds another kind of value (a key's code, a button's
+      // bit); the types differ, which is reported above, and its values are not compared.
+      if (held.types[trigger] !== input.types[trigger]) return;
+      const type = list.startsWith("key") ? (input.types[trigger] ?? null) : null;
       const wanted = (input[list] as unknown[] | undefined) ?? [];
       held[list].forEach((token, i) => {
         if (canonical(wanted[i] ?? "0", type) !== canonical(token, type)) {

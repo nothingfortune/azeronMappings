@@ -19,8 +19,12 @@ export interface KeySlotSpec {
   key?: string | null;
   meta?: string | null;
   mouse?: string | null;
-  /** An Xbox button or trigger the unit sends itself: `A`, `LB`, `RT`, `DpadUp`, `Guide`. */
-  xbox?: string | null;
+  /**
+   * An Xbox button or trigger the unit sends itself: `A`, `LB`, `RT`, `DpadUp`, `Guide`.
+   * Named after the app's XInput types, and not `xbox`, which an action uses for the pad
+   * control a genre suggests -- a field the compiler never reads.
+   */
+  xinput?: string | null;
   /** Scroll: `up`, `down`, `left` or `right`, at `speed` (1 to 100, the app's scale). */
   wheel?: string | null;
   speed?: number;

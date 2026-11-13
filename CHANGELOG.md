@@ -8,17 +8,24 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 - **Xbox buttons, triggers, sticks, scroll and the stick as a mouse, on the unit itself.**
   Firmware 112 stores all of them, so they work with nothing running on the PC. A key can
-  send an Xbox button or trigger (`tap: {xbox: A}`, on any press) or scroll
+  send an Xbox button or trigger (`tap: {xinput: A}`, on any press) or scroll
   (`tap: {wheel: up, speed: 33}`), and the stick can be an Xbox stick (`mode: xbox`) or move
   the pointer (`mode: mouse`, with `mouse_sensitivity`). Each was recorded from the Azeron
   app and is written byte for byte as it writes it. Not yet: scroll through Write to units
   (it cannot be read back to check yet -- import through the app), scroll down or left on a
-  unit, and which Xbox stick a right unit's drives. Everspace 2 still refuses any stick but
+  unit, and which Xbox stick a right unit's drives (it should follow the stick's side
+  setting). How a unit stores the new kinds is inferred, so the read-back after a write
+  would show a difference rather than pass if it stores them otherwise. Everspace 2 still
+  refuses any stick but
   keyboard; with mouse and Xbox modes now known, that rule would otherwise have let them
   through.
-- **Reading a unit no longer stops at a record it does not know.** A slot the Azeron app
-  filled with scroll keys holds a shorter record; reading on misread it, or ran off its end
-  and stopped every slot after it from being read.
+- **Reading a unit no longer trips on a record it does not know.** A slot the Azeron app
+  filled with scroll keys would hold a record of another shape; reading on would misread
+  it, or run off its end and stop every slot after it from being read. Such a record is now
+  kept by its id and type and reported as one that cannot be checked.
+- **Decompiling an export with a macro, layer switch or d-pad key on a mapped control**
+  makes a profile that builds. It used to name the record, and the build then refused to
+  write over it; such records now pass through from the export, as the build already did.
 
 - **Write to units works on firmware 112.** The Azeron app 2.0.3 makes a unit on 111
   read-only, so units get updated; the app was recorded writing on 112 and sends exactly the
