@@ -23,8 +23,10 @@ import {
   parseDeviceReport,
   profileNamePayload,
   holdKeyCode,
+  isStickRecord,
   stickKeyCode,
   storedKeyCode,
+  triggerKeyCode,
 } from "./unitproto.js";
 import type { DeviceReport, StoredInput, StoredProfile } from "./unitproto.js";
 
@@ -426,6 +428,15 @@ export class UnitSession {
   async writeProfile(plan: WritePlan): Promise<WriteReport> {
     const { slot, name, profile, unknownPins } = plan;
     const inputs = profile.inputs.filter((input) => isWritableInput(input, unknownPins));
+    // A slot is checked by reading it back, and how a unit stores scroll is not captured
+    // yet: a write that cannot be checked is not made.
+    const scrolling = inputs.find((input) => input.types[0] === "35");
+    if (scrolling !== undefined) {
+      throw new ProtocolError(
+        `input ${String(scrolling.id)} scrolls, and a unit's scroll cannot be read back to ` +
+          "check yet: import this layout through the Azeron app for now",
+      );
+    }
     // Everything is encoded before anything is sent, so a profile the unit cannot hold
     // fails here and the slot is untouched.
     const records = inputs.map((input) => ({ input, bytes: encodeInputRecord(slot, input) }));
@@ -589,10 +600,17 @@ const DEFAULTS: Record<string, unknown> = {
   turboIntervalDouble: 0,
 };
 
-/** A key as the unit would store it, so "16" and "ShiftLeft" compare equal. */
-function canonical(token: unknown, mouse: boolean): string {
+/**
+ * A trigger's key as the unit would store it, so "16" and "ShiftLeft" compare equal, and
+ * "T2" and the 2 a stored Xbox trigger holds. `type` is the trigger's, or null for a
+ * modifier.
+ */
+function canonical(token: unknown, type: string | null): string {
   const value = typeof token === "number" || typeof token === "string" ? token : "0";
-  return mouse ? String(value) : String(storedKeyCode(value));
+  if (type === "15" || type === "22" || type === "23") {
+    return String(triggerKeyCode(type, value));
+  }
+  return String(storedKeyCode(value));
 }
 
 /** One way a slot differs from the layout: what the unit holds where the layout wants another. */
@@ -650,17 +668,22 @@ export function compareStored(
         `${String(input.pinOne)}/${String(input.pinTwo)}`,
       );
     }
-    if (input.types[0] === "4") {
+    if (isStickRecord(input)) {
+      if (held.types[0] !== input.types[0]) differ("types[0]", held.types[0], input.types[0]);
       compareStick(input, held, differ);
       continue;
     }
     if (held.types.join() !== input.types.join())
       differ("types", held.types.join("/"), input.types.join("/"));
+    if (held.undecoded === true) {
+      differ("record", "a kind this cannot read back yet", "a record it can check");
+      continue;
+    }
     KEY_LISTS.forEach((list, index) => {
-      const mouse = input.types[Math.floor(index / 2)] === "15" && list.startsWith("key");
+      const type = list.startsWith("key") ? (input.types[Math.floor(index / 2)] ?? null) : null;
       const wanted = (input[list] as unknown[] | undefined) ?? [];
       held[list].forEach((token, i) => {
-        if (canonical(wanted[i] ?? "0", mouse) !== canonical(token, mouse)) {
+        if (canonical(wanted[i] ?? "0", type) !== canonical(token, type)) {
           differ(
             `${list}[${String(i)}]`,
             token,

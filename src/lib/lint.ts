@@ -362,7 +362,8 @@ export function checkProfile(profile: Profile, actions: ActionSet, config: LintC
     for (const [position, spec] of Object.entries(profile.positions)) {
       if (!device.isStick(position)) continue;
       const mode = spec.mode;
-      if (mode === undefined || !(mode in STICK_MODE_CODES)) {
+      // Keyboard only: Xbox and mouse modes are real modes now, and both are what failed.
+      if (mode !== "keyboard") {
         findings.push({
           level: ERROR,
           rule: "stick-not-keyboard",

@@ -480,8 +480,8 @@ describe("a key the Azeron app 2.0.3 marked Disabled", () => {
       typeof isRebindableRecord
     >[0];
     expect(isRebindableRecord(disabled)).toBe(true);
-    // Still not the profile switch, the wheel or an Xbox button.
-    for (const type of ["2", "29", "22"]) {
+    // Still not the profile switch, the wheel's own records or a macro.
+    for (const type of ["2", "29", "16"]) {
       expect(isRebindableRecord({ types: [type, "11", "11"] } as typeof disabled)).toBe(false);
     }
   });

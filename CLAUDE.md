@@ -427,8 +427,18 @@ array of per-key records.
   `"29"`/`"30"` mouse wheel up/down, `"35"` button mouse wheel, `"37"` input sequence,
   `"40"` stick as mouse; `docs/guides/unit-protocol.md` says which are stored on a unit.
   Codes this repo does not write yet are **preserved via `raw.types` and template
-  passthrough, never invented.** Only records whose type is a plain key, mouse button or
-  stick are ever rewritten.
+  passthrough, never invented.** Only records whose type is a plain key, an empty slot, a
+  mouse button, an Xbox button or trigger, scroll, or a stick (keyboard, Xbox or mouse
+  mode) are ever rewritten (`isRebindableRecord`); a macro, sequence or layer switch, which
+  the app runs on the PC, passes through.
+- A key sends an Xbox button or trigger with `{xbox: A}` (`"22"` with XInput's button bit,
+  `"23"` with `T1`/`T2`; `XBOX_BUTTON_BITS` in `binding.ts`) and scrolls with
+  `{wheel: up, speed: 1-100}` (`"35"`, tap only, `x`/`y`/`interval`/`yInterval` beside the
+  keys; `wheelFields`). **Only a binding written on the key does this**: an action's
+  `xbox:` is the genre's suggestion of a pad control and the compiler never reads it. A
+  stick's `mode` is `keyboard` (`"4"`), `xbox` (`"21"`) or `mouse` (`"40"`, with
+  `mouse_sensitivity` into `analogSettings.mouseSensitivity`). `stick-not-keyboard` asks
+  for keyboard by name, not "any known mode".
 - Key values mix `KeyboardEvent.code` strings (`KeyF`, `Digit1`, `Escape`) with legacy
   numeric JS keyCodes (arrows as `"37"`–`"40"`, Shift as `"16"`). `keys.ts` records which
   encoding the app actually uses per key; a token that does not survive name→token→name
@@ -659,6 +669,11 @@ the reports, `src/lib/unitsession.ts` runs the exchanges, and the header's **Wri
 It finds the units the page has been given, and knows which is which by the id each one
 reports; each hand goes into the slot that already has the layout's name.
 
+- Write to units sends Xbox buttons and triggers and the stick's three modes, each checked
+  byte for byte against the app's own write (`tests/fixtures/unit-protocol/onboard-112.json`).
+  It refuses a layout with scroll: how a unit stores scroll is not captured, so the slot
+  could not be read back to check. A stored record of a type it cannot read
+  (`decodeStoredRecord`) comes back `undecoded`, never misread.
 - `hostReports` sends only the eleven commands the app was seen to send, in the shapes it sent
   them. Reset, DFU, the device id and the details save cannot be built. Do not add a command
   to `SENDABLE_COMMANDS` without a capture of the app sending it.

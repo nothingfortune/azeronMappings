@@ -89,6 +89,13 @@ export const TYPE_DISABLED = "6";
 export const TYPE_KEYBOARD = "1";
 export const TYPE_MOUSE = "15";
 export const TYPE_STICK_KEYBOARD = "4";
+/** An Xbox button, an Xbox trigger and scroll from a key: stored on the unit (firmware 112). */
+export const TYPE_XBOX_BUTTON = "22";
+export const TYPE_XBOX_TRIGGER = "23";
+export const TYPE_WHEEL = "35";
+/** The stick as an Xbox stick, and the stick moving the mouse pointer. */
+export const TYPE_STICK_XBOX = "21";
+export const TYPE_STICK_MOUSE = "40";
 
 /** The app's defaults for an untouched key. */
 export const DEFAULT_FEATURE_DELAY = 500;
@@ -147,12 +154,26 @@ export const TURBO_INTERVAL_FIELDS: Record<
 };
 
 /**
- * Stick mode name to types[0] code. Only keyboard mode is verified; gamepad mode is
- * forbidden for Everspace 2 anyway (it made the game stutter), and mouse mode has never
- * been captured from a real export.
+ * Stick mode name to types[0] code, each one taken from an export of the app 2.0.3 setting
+ * it (2026-11-13). `xbox` is the Xbox stick the left unit's export named "left stick";
+ * which stick a right unit's drives is not captured yet. Gamepad and mouse modes are both
+ * forbidden for Everspace 2 (`stick-not-keyboard`).
  */
-export const STICK_MODES: Record<string, string> = { [TYPE_STICK_KEYBOARD]: "keyboard" };
-export const STICK_MODE_CODES: Record<string, string> = { keyboard: TYPE_STICK_KEYBOARD };
+export const STICK_MODES: Record<string, string> = {
+  [TYPE_STICK_KEYBOARD]: "keyboard",
+  [TYPE_STICK_XBOX]: "xbox",
+  [TYPE_STICK_MOUSE]: "mouse",
+};
+export const STICK_MODE_CODES: Record<string, string> = {
+  keyboard: TYPE_STICK_KEYBOARD,
+  xbox: TYPE_STICK_XBOX,
+  mouse: TYPE_STICK_MOUSE,
+};
+/**
+ * The app's default pointer speed for a stick in mouse mode. The owner's "super sensitive"
+ * stored 2, so lower looks faster; the range is not known yet.
+ */
+export const DEFAULT_MOUSE_SENSITIVITY = 5;
 
 /**
  * The `analogKeys` block the unit actually reads.
@@ -173,17 +194,24 @@ export function activeAnalogKeys(settings: AnalogSettings): AnalogDirections {
  * Pin 0 carries type `"2"`, the profile switch, which the Azeron software repairs if it is
  * overwritten -- a probe that rebound it produced a profile the app had to fix on import.
  * `"6"` is Disabled -- an empty slot, as the Azeron app 2.0.3 writes every unused one -- and
- * is rebindable like `"11"`. Anything whose type is not a plain key, an empty slot, a mouse
- * button or a stick is left exactly as the template has it, however the device map names
- * its pin.
+ * is rebindable like `"11"`. So are the types a unit stores and this repo writes: an Xbox
+ * button or trigger, scroll, and a stick in keyboard, Xbox or mouse mode. Anything else (a
+ * macro, a layer switch -- which the app runs on the PC) is left exactly as the template
+ * has it, however the device map names its pin.
  */
+const REBINDABLE_TYPES = new Set([
+  TYPE_KEYBOARD,
+  TYPE_NONE,
+  TYPE_DISABLED,
+  TYPE_MOUSE,
+  TYPE_XBOX_BUTTON,
+  TYPE_XBOX_TRIGGER,
+  TYPE_WHEEL,
+  TYPE_STICK_KEYBOARD,
+  TYPE_STICK_XBOX,
+  TYPE_STICK_MOUSE,
+]);
+
 export function isRebindableRecord(record: InputRecord): boolean {
-  const type = String(record.types[0]);
-  return (
-    type === TYPE_KEYBOARD ||
-    type === TYPE_NONE ||
-    type === TYPE_DISABLED ||
-    type === TYPE_MOUSE ||
-    type === TYPE_STICK_KEYBOARD
-  );
+  return REBINDABLE_TYPES.has(String(record.types[0]));
 }

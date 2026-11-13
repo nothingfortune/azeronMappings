@@ -6,6 +6,20 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Added
 
+- **Xbox buttons, triggers, sticks, scroll and the stick as a mouse, on the unit itself.**
+  Firmware 112 stores all of them, so they work with nothing running on the PC. A key can
+  send an Xbox button or trigger (`tap: {xbox: A}`, on any press) or scroll
+  (`tap: {wheel: up, speed: 33}`), and the stick can be an Xbox stick (`mode: xbox`) or move
+  the pointer (`mode: mouse`, with `mouse_sensitivity`). Each was recorded from the Azeron
+  app and is written byte for byte as it writes it. Not yet: scroll through Write to units
+  (it cannot be read back to check yet -- import through the app), scroll down or left on a
+  unit, and which Xbox stick a right unit's drives. Everspace 2 still refuses any stick but
+  keyboard; with mouse and Xbox modes now known, that rule would otherwise have let them
+  through.
+- **Reading a unit no longer stops at a record it does not know.** A slot the Azeron app
+  filled with scroll keys holds a shorter record; reading on misread it, or ran off its end
+  and stopped every slot after it from being read.
+
 - **Write to units works on firmware 112.** The Azeron app 2.0.3 makes a unit on 111
   read-only, so units get updated; the app was recorded writing on 112 and sends exactly the
   reports this repo does, so 112 is allowed. Two things the recording showed are fixed with

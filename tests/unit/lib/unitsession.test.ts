@@ -431,6 +431,8 @@ describe("the stick's hold key", () => {
     expect(holdKeyCode("16")).toBe(0xe002);
     expect(holdKeyCode("17")).toBe(0x11);
     expect(holdKeyCode("0")).toBe(0);
-    expect(() => holdKeyCode("ShiftLeft")).toThrow(/not one the app was seen to send/);
+    // The app 2.0.3 exports it by name, and sent "ShiftLeft" as Shift's code (2026-11-13).
+    expect(holdKeyCode("ShiftLeft")).toBe(0xe002);
+    expect(() => holdKeyCode("Banana")).toThrow(/not one the app was seen to send/);
   });
 });
