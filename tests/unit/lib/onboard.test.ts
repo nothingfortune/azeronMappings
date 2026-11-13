@@ -194,17 +194,27 @@ describe("compiling and decompiling them", () => {
     expect(record("stick")?.types[0]).toBe("21");
   });
 
-  it("refuses scroll on a long press, and mouse speed on a stick that is not the mouse", () => {
+  it("refuses scroll on a long press", () => {
     expect(() =>
       build((positions) => {
         positions.pinky_3 = { long: { wheel: "down" } };
       }),
     ).toThrow(/tap only/);
-    expect(() =>
-      build((positions) => {
-        positions.stick = { mode: "keyboard", mouse_sensitivity: 2 };
-      }),
-    ).toThrow(/mouse mode/);
+  });
+
+  it("keeps a pointer speed on a stick switched out of mouse mode, where it does nothing", () => {
+    const { game, profile, template, built, record } = build((positions) => {
+      positions.stick = { mode: "keyboard", mouse_sensitivity: 2 };
+    });
+    expect(record("stick")?.types[0]).toBe("4");
+    expect(record("stick")?.analogSettings?.mouseSensitivity).toBe(2);
+    const data = decompile(built, profile.device, { actions: game.actions });
+    expect(data.positions.stick?.mouse_sensitivity).toBe(2);
+    const again = compileProfile(new Profile(data, profile.device, { path: profile.path, game }), {
+      template,
+      actions: game.actions.actions,
+    });
+    expect(JSON.stringify(again)).toBe(JSON.stringify(built));
   });
 
   it("goes to a unit byte for byte as the app sent the same bindings", () => {

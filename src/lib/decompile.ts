@@ -22,7 +22,6 @@ import {
   STICK_MODE_CODES,
   DEFAULT_MOUSE_SENSITIVITY,
   TYPE_NONE,
-  TYPE_STICK_MOUSE,
   TYPE_WHEEL,
   activeAnalogKeys,
   isRebindableRecord,
@@ -45,11 +44,7 @@ function stickSpec(record: InputRecord, actions: ActionSet | null): PositionSpec
   const mode = STICK_MODES[String(record.types[0])];
   spec.mode = mode ?? "unknown";
   const sensitivity = record.analogSettings?.mouseSensitivity;
-  if (
-    String(record.types[0]) === TYPE_STICK_MOUSE &&
-    typeof sensitivity === "number" &&
-    sensitivity !== DEFAULT_MOUSE_SENSITIVITY
-  ) {
+  if (typeof sensitivity === "number" && sensitivity !== DEFAULT_MOUSE_SENSITIVITY) {
     spec.mouse_sensitivity = sensitivity;
   }
 

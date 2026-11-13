@@ -23,7 +23,6 @@ import {
   SLOT_FIELDS,
   STICK_DIRECTIONS,
   STICK_MODE_CODES,
-  TYPE_STICK_MOUSE,
 } from "../types/azeron.js";
 import type { ActionSpec, KeySlotSpec, PositionSpec, SlotSpec } from "../types/profile.js";
 import { BindingError, blankRecord, resolveSlot, wheelFields } from "./binding.js";
@@ -74,10 +73,9 @@ function applyStick(
   // unverified, so an unmeasured device leaves whatever the template had.
   if (analogSettings && device.stickAngle !== undefined) analogSettings.angle = device.stickAngle;
   if (!analogSettings) throw new CompileError(`${position}: template record has no analogSettings`);
+  // Every stick record carries the pointer speed; it only does anything in mouse mode, and
+  // is kept in the others so a stick switched away from the mouse and back keeps it.
   if (spec.mouse_sensitivity !== undefined) {
-    if (code !== TYPE_STICK_MOUSE) {
-      throw new CompileError(`${position}: mouse_sensitivity is for a stick in mouse mode`);
-    }
     const value = spec.mouse_sensitivity;
     if (!Number.isInteger(value) || value < 1 || value > 255) {
       throw new CompileError(
