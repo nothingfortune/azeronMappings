@@ -58,7 +58,9 @@ test.describe("autosave", () => {
       await expect(key.locator(".name")).toHaveText("Headlight");
 
       await expect.poll(() => readFileSync(PROFILE, "utf8")).toContain("tap: headlight");
-      await expect(page.locator("header button", { hasText: /^Saved$/ })).toBeVisible();
+      await expect(page.locator("header .save-status")).toHaveText("Saved");
+      // Saving is not something to press while it happens on its own.
+      await expect(page.locator("header button", { hasText: /^Saved?$/ })).toHaveCount(0);
       // No report is put on screen; what is left to do is in the header.
       await expect(page.locator(".save-report")).toHaveCount(0);
       await expect(page.locator('[data-todo="import"]')).toHaveText("Not on the units");

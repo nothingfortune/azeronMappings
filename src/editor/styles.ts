@@ -518,6 +518,8 @@ body.dragging-key .palette.drop-over { outline: none; }
 .finding.note { border-left-color: var(--muted); }
 .finding b { display: block; font-size: 10.5px; letter-spacing: .03em; }
 .pill { font-size: 10.5px; padding: 2px 7px; border-radius: 99px; border: 1px solid var(--line); }
+.save-status { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.save-status.pending { font-style: italic; }
 .pill.ok { color: var(--ok); border-color: var(--ok); }
 /* Something saving has left for the owner to do. A button, so it is dressed as one. */
 .pill.todo { background: none; color: var(--accent); border-color: var(--accent); cursor: pointer;

@@ -310,7 +310,10 @@ Saving is one thing, because a layout is one control scheme: both keypads and th
 keys. `schemeParts()` in `app.ts` is the list of what belongs to it -- each part says
 whether it is dirty and how to write itself -- and the header's Save, the unsaved marker,
 the single report and the unload guard all follow from that list. Adding a part (pedals)
-is adding an entry there. Telling the game stays outside Save on purpose: it writes
+is adding an entry there. The served page saves on its own (autosave, on unless turned off from the menu), and then
+the header has no Save button at all: a status says Saving… or Saved, and a Retry save
+button appears only for edits a save was refused, since those are not tried again on their
+own. Telling the game stays outside Save on purpose: it writes
 outside the repo and needs the game closed, so the report and the menu offer it and it asks.
 
 The Edit board is laid out by CSS and one function. `fitStage` narrows the keys (`--key-w`,

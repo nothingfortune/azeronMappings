@@ -4808,15 +4808,28 @@ function renderHeader(): HTMLElement {
     // unsaved marker says which parts it would write.
     const unsaved = unsavedParts();
     const dirty = unsaved.length > 0;
-    const save = el("button", { class: `btn primary${dirty ? " dirty" : ""}`, type: "button" }, [
-      dirty ? "Save" : "Saved",
-    ]);
-    if (dirty) save.title = `Unsaved: ${unsaved.map((part) => part.name).join(", ")}`;
-    else save.setAttribute("disabled", "disabled");
-    save.addEventListener("click", () => {
-      void saveScheme();
-    });
-    header.append(save);
+    // A save refused for exactly these edits will not be tried again on its own: say so.
+    const refused = dirty && failedSnapshot !== null && failedSnapshot === snapshot();
+    if (autosaveOn() && !refused) {
+      // Saving happens on its own, so there is nothing to press: only where it has got to.
+      const status = el("span", { class: `save-status${dirty ? " pending" : ""}` }, [
+        dirty ? "Saving…" : "Saved",
+      ]);
+      status.title = "Changes are saved as you make them. Autosave can be turned off in the menu.";
+      header.append(status);
+    } else {
+      const save = el(
+        "button",
+        { class: `btn primary${dirty ? " dirty" : ""}`, type: "button", "data-save": "" },
+        [refused ? "Retry save" : dirty ? "Save" : "Saved"],
+      );
+      if (dirty) save.title = `Unsaved: ${unsaved.map((part) => part.name).join(", ")}`;
+      else save.setAttribute("disabled", "disabled");
+      save.addEventListener("click", () => {
+        void saveScheme();
+      });
+      header.append(save);
+    }
   } else {
     const get = el("button", { class: "btn primary", type: "button" }, ["Download for the app"]);
     get.addEventListener("click", downloadAll);

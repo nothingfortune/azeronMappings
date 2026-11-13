@@ -38,6 +38,8 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Changed
 
+- **No Save button while autosave is on.** The header says Saving… or Saved instead; a
+  save that fails shows Retry save, and turning autosave off in the menu brings Save back.
 - **The press test is a utility, at the far right of the header**, out of the tabs used day
   to day.
 
