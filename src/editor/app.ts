@@ -5225,7 +5225,8 @@ function gameKeysField(game: EditorGame): HTMLElement {
   const leftNote = (): HTMLElement => {
     const names = left.slice(0, 6).map((id) => {
       const spec = copy[id];
-      return `${spec?.label ?? id} (${spec === undefined ? "?" : bindingLabel(spec)})`;
+      const sent = spec === undefined ? null : bindingLabel(spec);
+      return `${spec?.label ?? id} (${sent ?? "nothing"})`;
     });
     const more = left.length > 6 ? ", and more" : "";
     return el("div", { class: "game-keys-left" }, [
