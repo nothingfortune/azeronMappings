@@ -688,6 +688,13 @@ body.dragging-key .palette.drop-over { outline: none; }
 .finding.error { border-left-color: var(--error); background: color-mix(in srgb, var(--error) 8%, var(--sunken)); }
 .finding.warning { border-left-color: var(--warn); background: color-mix(in srgb, var(--warn) 8%, var(--sunken)); }
 .finding.grouped summary { cursor: pointer; list-style-position: inside; }
+.ingame-tools { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; margin: 4px 0 10px; }
+.ingame-help { flex: 1 1 320px; }
+.ingame-help summary { cursor: pointer; font-size: var(--fs-1); color: var(--muted); padding: 4px 0; }
+.ingame-help .note { margin: 4px 0; }
+.finding-more { margin-top: 6px; }
+.finding-more summary { cursor: pointer; font-size: 11px; font-weight: 600; color: var(--muted); }
+.finding-more .finding { margin-top: 4px; background: transparent; border-left-width: 2px; }
 .finding.grouped summary b { display: inline; font-size: 11.5px; letter-spacing: 0; }
 .finding.grouped .muted { margin: 4px 0; }
 .missing-list { margin: 0; padding-left: 18px; font-size: 11px; }
@@ -708,7 +715,9 @@ body.dragging-key .palette.drop-over { outline: none; }
 .pill.bad { color: var(--error); border-color: color-mix(in srgb, var(--error) 55%, transparent);
             background: color-mix(in srgb, var(--error) 10%, var(--panel)); }
 .muted { color: var(--muted); }
-.empty-state { color: var(--muted); font-size: var(--fs-1); padding: 16px; text-align: center;
+.empty-state .tips { text-align: left; margin: 8px 0 0; padding-left: 18px; }
+.empty-state .tips li { margin: 2px 0; }
+.empty-state { color: var(--muted); font-size: var(--fs-1); padding: 12px 14px; text-align: center;
                border: 1px dashed var(--line-strong); border-radius: var(--r-md); background: var(--sunken); }
 code { font-family: var(--mono); font-size: 11.5px; background: var(--sunken);
        border-radius: 4px; padding: 0 4px; }

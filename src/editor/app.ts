@@ -783,7 +783,7 @@ function findingWhere(finding: Finding): string {
 }
 
 /** What the page shows for a finding: itself, or one line standing for many alike. */
-type Shown = { finding: Finding } | { missing: Finding[] };
+type Shown = { finding: Finding } | { missing: Finding[] } | { alike: Finding[] };
 
 /**
  * Findings as the page lays them out. The linter reports one `missing-required` error per
@@ -795,9 +795,24 @@ type Shown = { finding: Finding } | { missing: Finding[] };
 function shownFindings(findings: readonly Finding[]): Shown[] {
   const shown: Shown[] = [];
   let group: Finding[] | null = null;
+  // One rule on one control, said once per stick direction or slot -- four paragraphs that
+  // differ in a word -- is shown as one entry that opens to the rest.
+  const alike = new Map<string, Finding[]>();
   for (const finding of findings) {
     if (finding.rule !== "missing-required") {
-      shown.push({ finding });
+      if (finding.position === undefined) {
+        shown.push({ finding });
+        continue;
+      }
+      const key = [finding.rule, finding.level, finding.profile ?? "", finding.position].join("|");
+      const same = alike.get(key);
+      if (same !== undefined) {
+        same.push(finding);
+        continue;
+      }
+      const fresh = [finding];
+      alike.set(key, fresh);
+      shown.push({ alike: fresh });
       continue;
     }
     if (group === null) {
@@ -926,10 +941,30 @@ function missingGroup(missing: readonly Finding[]): HTMLElement {
 /** The findings, laid out; used by the Checks panel and by the report after a save. */
 function appendFindings(box: HTMLElement, findings: readonly Finding[], acceptable = false): void {
   for (const entry of shownFindings(findings)) {
-    box.append(
-      "missing" in entry ? missingGroup(entry.missing) : findingItem(entry.finding, acceptable),
-    );
+    if ("missing" in entry) box.append(missingGroup(entry.missing));
+    else if ("finding" in entry) box.append(findingItem(entry.finding, acceptable));
+    else box.append(alikeGroup(entry.alike, acceptable));
   }
+}
+
+/** Findings of one rule on one control: the first in full, the rest folded under it. */
+function alikeGroup(alike: readonly Finding[], acceptable: boolean): HTMLElement {
+  const [first, ...rest] = alike;
+  if (first === undefined) return el("div");
+  const item = findingItem(first, acceptable);
+  if (rest.length === 0) return item;
+  const more = el("details", { class: "finding-more" }, [
+    el("summary", {}, [`${String(rest.length)} more like this on ${findingWhere(first)}`]),
+  ]);
+  for (const finding of rest) {
+    const inner = findingItem(finding, acceptable);
+    // The place is the group's; each one below says only what differs.
+    inner.querySelector("b")?.remove();
+    inner.querySelector(".rule")?.remove();
+    more.append(inner);
+  }
+  item.append(more);
+  return item;
 }
 
 function boundActions(): Map<string, string[]> {
@@ -1434,7 +1469,19 @@ function renderInspector(): HTMLElement {
   panel.append(el("h2", {}, ["Key"]));
   const selection = state.selected;
   if (!selection) {
-    panel.append(el("div", { class: "empty-state" }, ["Pick a key to edit it."]));
+    // What there is to do, rather than a large empty box.
+    panel.append(
+      el("div", { class: "empty-state" }, [
+        "Pick a key to edit it.",
+        el("ul", { class: "tips" }, [
+          el("li", {}, ["Drag an action from the list onto a key, or a key onto another to swap."]),
+          el("li", {}, ["A key can do three things: a tap, a long press and a double tap."]),
+          el("li", {}, [
+            autosaveOn() ? "Ctrl+Z undoes; the page saves on its own." : "Ctrl+Z undoes.",
+          ]),
+        ]),
+      ]),
+    );
     const settings = renderUnitSettings();
     if (settings !== null) panel.append(settings);
     return panel;
@@ -5891,11 +5938,7 @@ function usualBindingsField(game: EditorGame): HTMLElement {
     }
     render();
   });
-  return el("div", { class: "note usual-note" }, [
-    "Playing on a keyboard and mouse, or a controller? Start from the keys and buttons games " +
-      "like this usually use, then change any below. ",
-    fill,
-  ]);
+  return fill;
 }
 
 function renderInGame(): HTMLElement {
@@ -5908,12 +5951,16 @@ function renderInGame(): HTMLElement {
   const connected = gameFileGaps(game).length === 0;
   const wiring = wiringShown ?? !connected;
   panel.append(el("h2", {}, [`${game.name} — actions`]));
-  panel.append(
+  // The page's buttons in one row, and what the page is for folded away under them: the
+  // explanations used to stand above the actions and push every one of them off screen.
+  const tools = el("div", { class: "ingame-tools" });
+  const help = el("details", { class: "ingame-help" }, [
+    el("summary", {}, ["How this page works"]),
     el("div", { class: "note" }, [
       "Click a name to rename it. The role switches tell the checks what each action is " +
         "for, so a menu never lands on a combat key.",
     ]),
-  );
+  ]);
   const toggle = el("button", { class: "btn small", type: "button", "data-wiring": "toggle" }, [
     wiring ? "Hide game keys" : "Show game keys",
   ]);
@@ -5921,7 +5968,7 @@ function renderInGame(): HTMLElement {
     wiringShown = !wiring;
     render();
   });
-  panel.append(
+  help.append(
     el("div", { class: "note wiring-note" }, [
       wiring
         ? "The key each action reaches the game on. Click one and press another key to " +
@@ -5931,9 +5978,14 @@ function renderInGame(): HTMLElement {
             : "Set the same keys in the game's own controls screen. ")
         : "Each action reaches the game on a key the editor picks for it, and Update the " +
           "game's keys… tells the game, so there is nothing to set here. ",
-      toggle,
+    ]),
+    el("div", { class: "note usual-note" }, [
+      "Playing on a keyboard and mouse, or a controller? Fill in the usual bindings starts " +
+        "from the keys and buttons games like this usually use; change any below.",
     ]),
   );
+  tools.append(toggle, usualBindingsField(game), help);
+  panel.append(tools);
   const gameFile = gameFileStatus(game);
   if (gameFile !== null) panel.append(gameFile);
   const unnamed = Object.values(actions.actions).filter((spec) =>
@@ -5947,8 +5999,6 @@ function renderInGame(): HTMLElement {
       ]),
     );
   }
-
-  panel.append(usualBindingsField(game));
 
   // The same bindings drawn on a keyboard, a mouse and a controller.
   // Only the actions the layout plays, as the list below shows them: an action of a mode
