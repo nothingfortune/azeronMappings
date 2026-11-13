@@ -1,0 +1,43 @@
+# What a new survival game starts with: a pair of units, in one of two styles. See
+# genres/FPS/layouts.yaml for what each part means.
+controller:
+  label: Like a controller
+  note: >-
+    Left stick moves, right stick looks, RT uses the tool, A jumps, Y interacts -- an Xbox
+    pad laid over the pair, with the hotbar and building in banks under the fingers.
+  actions:
+    use_tool: {provided_by: null, mouse: left}
+    alt_use: {provided_by: null, mouse: right}
+  acknowledge:
+    reason: The thumb pads are a pad's d-pad and its A B X Y, which do different jobs.
+    positions: [dpad_up, dpad_down, dpad_left, dpad_right, stick_press, thumb_aux_upper]
+  left:
+    middle_2: {label: Hotbar 1, tap: hotbar_1}
+    middle_3: {label: Hotbar 2, tap: hotbar_2}
+    middle_4: {label: Hotbar 3, tap: hotbar_3}
+    pinky_1: {label: Deconstruct, tap: deconstruct}
+    pinky_2: {label: Rotate piece, tap: rotate_piece}
+    pinky_3: {label: Drop, tap: drop}
+    middle_5: {label: Crafting, tap: crafting}
+    ring_5: {label: Map, tap: map}
+  right:
+    middle_2: {label: Hotbar 4, tap: hotbar_4}
+    middle_3: {label: Hotbar 5, tap: hotbar_5}
+    middle_4: {label: Holster, tap: holster}
+    pinky_side: {label: Push to talk, tap: push_to_talk}
+
+keyboard:
+  label: Like a keyboard
+  note: >-
+    The left unit is the keyboard half. The right unit looks with its stick and uses the
+    tool on its side keys.
+  actions:
+    use_tool: {provided_by: null, mouse: left}
+    alt_use: {provided_by: null, mouse: right}
+  left: default
+  right:
+    stick:
+      mode: keyboard
+      directions: {up: look_up, right: look_right, down: look_down, left: look_left}
+    index_side: {label: Use tool, tap: use_tool}
+    pinky_side: {label: Aim / alternate use, tap: alt_use}

@@ -1,0 +1,44 @@
+# What a new action game starts with: a pair of units, in one of two styles. See
+# genres/FPS/layouts.yaml for what each part means.
+controller:
+  label: Like a controller
+  note: >-
+    Left stick moves, right stick looks, A jumps, RT attacks, B dodges -- an Xbox pad laid
+    over the pair, with weapons and abilities in banks under the fingers.
+  actions:
+    attack: {provided_by: null, mouse: left}
+    aim: {provided_by: null, mouse: right}
+  acknowledge:
+    reason: The thumb pads are a pad's d-pad and its A B X Y, which do different jobs.
+    positions: [dpad_up, dpad_down, dpad_left, dpad_right, stick_press, thumb_aux_upper]
+  left:
+    index_1: {label: Ability 1, tap: ability_1}
+    index_4: {label: Ability 2, tap: ability_2}
+    middle_2: {label: Weapon 1, tap: weapon_1}
+    middle_3: {label: Weapon 2, tap: weapon_2}
+    middle_4: {label: Throw, tap: throwable}
+    ring_3: {label: Sense, tap: sense}
+    pinky_3: {label: Mount, tap: mount}
+    middle_5: {label: Inventory, tap: inventory}
+    ring_5: {label: Journal, tap: journal}
+  right:
+    thumb_aux_lower: {label: Crouch, tap: crouch}
+    middle_3: {label: Weapon 3, tap: weapon_3}
+    middle_4: {label: Weapon 4, tap: weapon_4}
+    middle_5: {label: Character, tap: character}
+
+keyboard:
+  label: Like a keyboard
+  note: >-
+    The left unit is the keyboard half: moving on the stick, weapons and abilities in banks
+    under the fingers. The right unit looks with its stick and attacks on its side keys.
+  actions:
+    attack: {provided_by: null, mouse: left}
+    aim: {provided_by: null, mouse: right}
+  left: default
+  right:
+    stick:
+      mode: keyboard
+      directions: {up: look_up, right: look_right, down: look_down, left: look_left}
+    index_side: {label: Attack, tap: attack}
+    pinky_side: {label: Aim / block, tap: aim}

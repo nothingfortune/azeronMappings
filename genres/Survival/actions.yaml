@@ -1,0 +1,64 @@
+# Shared action vocabulary for survival and crafting games: Subnautica 2, Project Zomboid,
+# Outpost: Infinity Siege and the like -- getting about, gathering with a tool in hand,
+# building, and keeping fed.
+#
+# No keys here: a genre says which ROLES a game has, a game says which keys they are
+# bound to. Start a game's actions.yaml with `extends: genres/Survival/actions.yaml`.
+#
+# `xbox:` is the Xbox pad control a game usually puts the action on, and `keyboard:` the key
+# or mouse button on a keyboard and mouse. Both are suggestions, never sent: see
+# genres/FPS/actions.yaml.
+#
+# Using the tool in hand and its second use are on the mouse, so they are marked
+# `provided_by` and excluded from the coverage check; a layout with no mouse sends them as
+# mouse buttons from keys.
+genre: Survival
+
+actions:
+  # --- movement -----------------------------------------------------------------
+  move_forward:   {label: Move forward, keyboard: KeyW, xbox: LeftStickUp, tags: [movement, required]}
+  move_back:      {label: Move back, keyboard: KeyS, xbox: LeftStickDown, tags: [movement, required]}
+  move_left:      {label: Move left, keyboard: KeyA, xbox: LeftStickLeft, tags: [movement, required]}
+  move_right:     {label: Move right, keyboard: KeyD, xbox: LeftStickRight, tags: [movement, required]}
+  sprint:         {label: Sprint, keyboard: ShiftLeft, xbox: LS, tags: [movement]}
+  jump:           {label: Jump / swim up, keyboard: Space, xbox: A, tags: [movement, required]}
+  crouch:         {label: Crouch / swim down, keyboard: ControlLeft, xbox: B, tags: [movement]}
+  look:           {label: Look, provided_by: mouse, axis: mouse_xy, tags: [movement]}
+  look_up:        {label: Look up, xbox: RightStickUp, tags: [movement]}
+  look_down:      {label: Look down, xbox: RightStickDown, tags: [movement]}
+  look_left:      {label: Look left, xbox: RightStickLeft, tags: [movement]}
+  look_right:     {label: Look right, xbox: RightStickRight, tags: [movement]}
+
+  # --- the tool in hand ---------------------------------------------------------
+  use_tool:       {label: Use tool / attack, provided_by: mouse, keyboard: MouseLeft, xbox: RT, tags: [combat, required]}
+  alt_use:        {label: Aim / alternate use, provided_by: mouse, keyboard: MouseRight, xbox: LT, tags: [combat]}
+  reload:         {label: Reload, keyboard: KeyR, xbox: X, tags: [combat]}
+  hotbar_next:    {label: Next tool, keyboard: WheelDown, xbox: RB, tags: [combat]}
+  hotbar_prev:    {label: Previous tool, keyboard: WheelUp, xbox: LB, tags: [combat]}
+  hotbar_1:       {label: Hotbar 1, keyboard: Digit1, tags: [combat]}
+  hotbar_2:       {label: Hotbar 2, keyboard: Digit2, tags: [combat]}
+  hotbar_3:       {label: Hotbar 3, keyboard: Digit3, tags: [combat]}
+  hotbar_4:       {label: Hotbar 4, keyboard: Digit4, tags: [combat]}
+  hotbar_5:       {label: Hotbar 5, keyboard: Digit5, tags: [combat]}
+  holster:        {label: Holster, keyboard: KeyQ, tags: [combat]}
+  quick_heal:     {label: Eat / heal, keyboard: KeyH, xbox: DpadUp, tags: [combat]}
+
+  # --- the world ----------------------------------------------------------------
+  interact:       {label: Interact / pick up, keyboard: KeyE, xbox: Y, tags: [utility, required]}
+  build:          {label: Build, keyboard: KeyB, xbox: DpadRight, tags: [utility]}
+  deconstruct:    {label: Deconstruct, keyboard: KeyX, tags: [utility]}
+  rotate_piece:   {label: Rotate piece, keyboard: KeyT, tags: [utility]}
+  drop:           {label: Drop item, keyboard: KeyG, tags: [utility]}
+  flashlight:     {label: Flashlight, keyboard: KeyF, xbox: DpadDown, tags: [utility]}
+  scan:           {label: Scan, keyboard: KeyV, xbox: RS, tags: [utility]}
+  ping:           {label: Ping / mark, keyboard: MouseMiddle, xbox: DpadLeft, tags: [utility]}
+  push_to_talk:   {label: Push to talk, keyboard: KeyN, tags: [utility]}
+
+  # --- menus --------------------------------------------------------------------
+  inventory:      {label: Inventory, keyboard: Tab, xbox: View, tags: [menu]}
+  crafting:       {label: Crafting, keyboard: KeyC, tags: [menu]}
+  map:            {label: Map, keyboard: KeyM, tags: [menu]}
+  journal:        {label: Journal / log, keyboard: KeyJ, tags: [menu]}
+  quick_save:     {label: Quick save, keyboard: F5, tags: [menu]}
+  menu_main:      {label: Main menu, keyboard: Escape, xbox: Menu, tags: [menu],
+                   note: "Constraint 5 -- this is Escape. Keep it off anything mashable."}

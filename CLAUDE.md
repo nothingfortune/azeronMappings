@@ -176,6 +176,13 @@ Three inputs meet in the compiler, and are kept separate:
    fields the YAML speaks about, so unknown and unverified fields (macros, turbo,
    `subType`, analog tuning, the records for unidentified pins) survive untouched.
 
+**The genres** are FPS, SpaceSims, Flight, Action (third person), Survival, Mech, RPG and
+Strategy, chosen to cover the owner's library rather than one per game. RPG and Strategy
+are played with a mouse, so they have no `xbox:` controls and no `layouts.yaml`: a layout
+is one unit beside the mouse, and a second unit starts empty. A new genre is checked by
+starting a game from it in a scratch `AZERON_DATA` (one unit, and a pair in each style) and
+linting it `--strict`; no test reads the real `genres/`.
+
 Profiles map position to action id, never position to raw key.
 
 **A layout and its wiring.** What the owner edits is the _layout_: which control does which

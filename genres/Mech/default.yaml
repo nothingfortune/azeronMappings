@@ -1,0 +1,48 @@
+# Default single-unit layout for a mech game, with a mouse in the other hand to aim.
+#
+# The arm weapons can stay on the mouse buttons as the game has them; the keypad carries
+# them as well, with the back weapons and the boosts under the fingers. Tap only, so a
+# quick boost never waits on a delay window (constraint 4).
+profile:
+  name: Mech default (left)
+  device: cyborg2-left
+  unit: left
+  set: Mech-default
+
+lint:
+  require_keyboard_stick: true
+
+positions:
+  stick:
+    mode: keyboard
+    directions: {up: move_forward, right: move_right, down: move_back, left: move_left}
+
+  # Index: the boosts, with jump on the resting row.
+  index_1: {label: Assault boost, tap: assault_boost}
+  index_2: {label: Jump, tap: jump}
+  index_3: {label: Quick boost, tap: quick_boost}
+  index_4: {label: Boost on / off, tap: boost}
+
+  # Middle: the four weapons.
+  middle_1: {label: Left back, tap: left_back}
+  middle_2: {label: Right back, tap: right_back}
+  middle_3: {label: Left arm, tap: left_arm}
+  middle_4: {label: Right arm, tap: right_arm}
+
+  # Ring: the bays, repair and scan.
+  ring_1: {label: Left bay, tap: left_bay}
+  ring_2: {label: Right bay, tap: right_bay}
+  ring_3: {label: Repair, tap: repair}
+  ring_4: {label: Scan, tap: scan}
+
+  # Side keys.
+  pinky_side: {label: Core expansion, tap: core_expansion}
+  index_side: {label: Hard lock, tap: hard_lock}
+
+  # Thumb pad.
+  dpad_up:    {label: Interact, tap: interact}
+  dpad_down:  {label: Reset camera, tap: camera_reset}
+
+  # Bottom row: menus only.
+  pinky_5: {label: Main menu, tap: menu_main}
+  index_5: {label: Map, tap: map}
