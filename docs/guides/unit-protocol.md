@@ -158,6 +158,42 @@ With the app's live view open, a unit sends `BTN_POS` (`0x39`), `[input id][1 pr
 released]`, and `JOYSTICK_POSITION` (`0x37`), x and y as LE16 from 0 to about 1023, centred
 near 512. The repo does not ask for either; Test keys reads the keystrokes instead.
 
+## Firmware 112 and app 2.0.3 (captured 2026-11-13)
+
+The app 2.0.3 makes a unit on 111 read-only, so the owner updated to 112, and the app was
+recorded writing five profiles into the left unit (`tests/fixtures/unit-protocol/write-112.json`
+holds the first, an Everspace 2 layout into slot 4):
+
+- **The write is unchanged.** Every `OBM_COPY` is byte for byte what `encodeInputRecord`
+  and `encodeStickRecord` build, and the framing is the same.
+- **The sequence number skips 255.** Every capture wraps 254 to 0; `nextSeq` does the same.
+- **`"6"` is Disabled**, an empty slot. The app writes a record with a Disabled slot (the
+  Everspace thumb pad's double tap) with type byte 6 where `"11"` would put 11, and nothing
+  else different. This repo used to skip such a record altogether, so the unit kept what the
+  slot held before.
+
+What the app stores on the unit, each in the record layout above unless said:
+
+| Type | What                | On the wire                                                                                                   |
+| ---- | ------------------- | ------------------------------------------------------------------------------------------------------------- |
+| 22   | Xbox button         | type 0x16, the key field the XInput bit (A 0x1000, B 0x2000, d-pad left 0x0400)                               |
+| 23   | Xbox trigger        | type 0x17, key field 1 or 2 (`T2` is the right trigger)                                                       |
+| 21   | Stick as Xbox stick | the 134-byte stick record with type 0x15                                                                      |
+| 40   | Stick as mouse      | the stick record with type 0x28; mouse sensitivity is the byte at 16 (default 5)                              |
+| 35   | Button mouse wheel  | a 55-byte record: type 0x23, x, y, 0, interval (u16 BE), y interval (u16 BE), then the long and double blocks |
+| 12   | DirectInput d-pad   | type 0x0c                                                                                                     |
+
+Each works on a long press or double tap as well as the tap.
+
+**Not stored on the unit**: a macro (16), an input sequence (37) and a layer switch (24).
+The app writes each as an empty record and does the work itself on the PC: it types the
+macro, or it sends `SWITCH_PROFILE` when the layer key is pressed (seen seven times while
+the owner tried one). A macro's steps, in the export, are `{type, duration, keyCode,
+direction: Full | Down | Up}`.
+
+Also seen: `0x2c` sets the LED colours (sent over and over while a colour is picked), `0x2f`
+saves a slot's colours, and `0x06` / `0x0e` go with a profile switch.
+
 ## Not known yet
 
 - **Writing the sensor and DPI** (`sensor:`, `dpi:`), for a keypad that has a sensor. The

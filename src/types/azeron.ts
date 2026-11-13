@@ -84,6 +84,8 @@ export interface ExportDocument {
 
 /** types[] codes. Anything not listed is unknown and is preserved, never invented. */
 export const TYPE_NONE = "11";
+/** Disabled: what the Azeron app 2.0.3 puts in every unused slot; an empty slot, like `"11"`. */
+export const TYPE_DISABLED = "6";
 export const TYPE_KEYBOARD = "1";
 export const TYPE_MOUSE = "15";
 export const TYPE_STICK_KEYBOARD = "4";
@@ -170,15 +172,17 @@ export function activeAnalogKeys(settings: AnalogSettings): AnalogDirections {
  *
  * Pin 0 carries type `"2"`, the profile switch, which the Azeron software repairs if it is
  * overwritten -- a probe that rebound it produced a profile the app had to fix on import.
- * The codes `"6"`, `"29"` and `"30"` are not understood at all. Anything whose type is not
- * a plain key, an empty slot, a mouse button or a stick is left exactly as the template
- * has it, however the device map names its pin.
+ * `"6"` is Disabled -- an empty slot, as the Azeron app 2.0.3 writes every unused one -- and
+ * is rebindable like `"11"`. Anything whose type is not a plain key, an empty slot, a mouse
+ * button or a stick is left exactly as the template has it, however the device map names
+ * its pin.
  */
 export function isRebindableRecord(record: InputRecord): boolean {
   const type = String(record.types[0]);
   return (
     type === TYPE_KEYBOARD ||
     type === TYPE_NONE ||
+    type === TYPE_DISABLED ||
     type === TYPE_MOUSE ||
     type === TYPE_STICK_KEYBOARD
   );

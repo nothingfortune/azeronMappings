@@ -15,10 +15,13 @@ import {
   Command,
   ProfileStream,
   ProtocolError,
+  KNOWN_FIRMWARE,
   encodeInputRecord,
+  encodeStickRecord,
   hostReports,
   isWritableInput,
   keyCode,
+  nextSeq,
   parseDeviceReport,
   profileNamePayload,
 } from "../../../src/lib/unitproto.js";
@@ -101,6 +104,33 @@ describe("writing a profile, against the app's own write", () => {
     expect(isWritableInput({ ...base, pinOne: 28 }, [0, 28, 29])).toBe(false);
     expect(isWritableInput({ ...base, types: ["29", "11", "11"] })).toBe(false);
     expect(isWritableInput(base)).toBe(true);
+  });
+});
+
+describe("writing a profile on firmware 112, against the app 2.0.3's own write", () => {
+  const write112 = fixture("write-112.json") as WriteCapture;
+
+  it("frames every input exactly as the app did, Disabled slots included", () => {
+    for (const copy of write112.copies) {
+      expect(isWritableInput(copy.input, [0, 28, 29]), `input ${String(copy.input.id)}`).toBe(true);
+      const first = bytes(copy.frames[0] ?? "");
+      const record =
+        copy.input.types[0] === "4"
+          ? encodeStickRecord(copy.slot, copy.input)
+          : encodeInputRecord(copy.slot, copy.input);
+      const reports = hostReports(Command.OBM_COPY, first[3] ?? 0, record);
+      expect(reports.map(hex), `input ${String(copy.input.id)}`).toEqual(copy.frames);
+    }
+  });
+
+  it("writes every input the app wrote, the six with a Disabled slot among them", () => {
+    const disabled = write112.copies.filter((copy) => copy.input.types.includes("6"));
+    expect(disabled.map((copy) => copy.input.id)).toEqual([15, 22, 28, 29, 30, 31]);
+    expect(write112.copies).toHaveLength(31);
+  });
+
+  it("is firmware this module was checked against", () => {
+    expect(KNOWN_FIRMWARE).toContain(112);
   });
 });
 
@@ -253,5 +283,16 @@ describe("reading profiles, against the app's own decoding", () => {
     expect(s.keys[7]?.[0]).toBe(keys.right?.left?.[0]);
     // isCombinedAnalog, isHoldTrigger, isAngleLock and invertXAxis were all set: four bits.
     expect(s.flags.toString(2).replace(/0/g, "")).toHaveLength(4);
+  });
+});
+
+describe("the sequence number", () => {
+  it("counts as the app does, 254 then 0, never 255", () => {
+    expect(nextSeq(0)).toBe(1);
+    expect(nextSeq(253)).toBe(254);
+    expect(nextSeq(254)).toBe(0);
+    expect(nextSeq(254, 2)).toBe(1);
+    const reports = hostReports(Command.OBM_COPY, 254, new Uint8Array(68));
+    expect(reports.map((report) => report[3])).toEqual([254, 0]);
   });
 });

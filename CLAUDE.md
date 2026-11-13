@@ -420,8 +420,13 @@ array of per-key records.
 
 - `types` codes: `"1"` keyboard, `"11"` none, `"15"` mouse button, `"4"` keyboard-mode
   stick. `"2"` is the profile switch, on pin 0 — identified when a probe that rebound it
-  produced a profile the software repaired on import. Codes `"6"`, `"0"`, `"29"`, `"30"`
-  and `subType: "29"`/`"31"` are still **unknown — preserved via `raw.types` and template
+  produced a profile the software repaired on import. `"6"` is **Disabled**, an empty slot
+  (app 2.0.3 marks every unused slot with it): rebindable, and written to a unit like
+  `"11"`. The app's own table (read from its interface code, 2026-11-13) names the rest:
+  `"16"` macro, `"21"`/`"22"`/`"23"` Xbox stick/button/trigger, `"24"` profile switch,
+  `"29"`/`"30"` mouse wheel up/down, `"35"` button mouse wheel, `"37"` input sequence,
+  `"40"` stick as mouse; `docs/guides/unit-protocol.md` says which are stored on a unit.
+  Codes this repo does not write yet are **preserved via `raw.types` and template
   passthrough, never invented.** Only records whose type is a plain key, mouse button or
   stick are ever rewritten.
 - Key values mix `KeyboardEvent.code` strings (`KeyF`, `Digit1`, `Escape`) with legacy
@@ -658,7 +663,9 @@ reports; each hand goes into the slot that already has the layout's name.
   them. Reset, DFU, the device id and the details save cannot be built. Do not add a command
   to `SENDABLE_COMMANDS` without a capture of the app sending it.
 - A unit says who it is (`KEYPAD_DETAILS` carries the id in `software_device_id`), and
-  nothing is written to a unit its device map does not name, or on firmware other than 111.
+  nothing is written to a unit its device map does not name, or on firmware other than 111
+  and 112 (112 was checked against a capture of the app 2.0.3 writing: the same reports).
+  The sequence number runs 0 to 254 and wraps to 0, as the app's does (`nextSeq`).
   The ids in `devices/` are the owner's units. `local.yaml` gives another person's
   (`loadDevice` merges it). The write bar and the press test list any unit they do not
   know (`namingNote` in `app.ts`); served, a "This is the left unit" button per hand posts

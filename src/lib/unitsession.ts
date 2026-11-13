@@ -18,6 +18,7 @@ import {
   commandName,
   encodeInputRecord,
   hostReports,
+  nextSeq,
   isWritableInput,
   parseDeviceReport,
   profileNamePayload,
@@ -147,7 +148,7 @@ export class UnitSession {
 
   private async send(command: number, payload: Uint8Array): Promise<void> {
     const reports = hostReports(command, this.seq, payload);
-    this.seq = (this.seq + reports.length) & 0xff;
+    this.seq = nextSeq(this.seq, reports.length);
     for (const report of reports) {
       this.trace(`→ ${commandName(command)} ${hex(report, 7 + Math.min(report[6] ?? 0, 16))}`);
       try {
