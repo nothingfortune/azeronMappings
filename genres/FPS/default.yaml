@@ -12,8 +12,6 @@ profile:
   unit: left
   set: FPS-default
 
-lint:
-  require_keyboard_stick: true
 
 positions:
   stick:

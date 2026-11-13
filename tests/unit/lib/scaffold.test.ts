@@ -79,9 +79,9 @@ describe("gameConfig", () => {
     expect(gameConfig({ ...base, exportTo: "/games/x" }).export_to).toBe("/games/x");
   });
 
-  it("starts a new game with the stick rule on", () => {
-    expect(gameConfig({ name: "X", slug: "x", genre: "FPS", template: "t" }).lint).toEqual({
-      require_keyboard_stick: true,
-    });
+  it("starts a new game free to use any stick mode", () => {
+    // Keyboard only is Everspace 2's rule (its stutter, constraint 1), written into its own
+    // game.yaml; a new game's stick may be an Xbox stick or the mouse.
+    expect(gameConfig({ name: "X", slug: "x", genre: "FPS", template: "t" }).lint).toBeUndefined();
   });
 });

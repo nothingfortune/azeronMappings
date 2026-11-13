@@ -948,6 +948,9 @@ export function lintProfiles(
       ),
     );
   }
+  for (const key of [...bySet.keys()].sort()) {
+    findings = findings.concat(checkMixedInput(bySet.get(key) ?? [], key));
+  }
   if (layouts !== undefined) findings = findings.concat(checkLayouts(layouts, actions, bySet));
 
   // Only acknowledgements for what is being linted. One for a profile left out of this
@@ -965,6 +968,64 @@ export function lintProfiles(
       (layouts !== undefined || !LAYOUT_RULES.has(ack.rule ?? "")),
   );
   return applyAcknowledgements(findings, relevant);
+}
+
+/**
+ * What a layout's controls send: Xbox output (a key's `xinput`, a stick in Xbox mode), or
+ * keyboard and mouse (an action, an inline key or button, scroll, a stick sending keys or
+ * moving the pointer).
+ */
+function outputKinds(profile: Profile): { pad: string[]; keyboard: string[] } {
+  const pad: string[] = [];
+  const keyboard: string[] = [];
+  for (const [position, spec] of Object.entries(profile.positions)) {
+    if (spec.mode !== undefined) {
+      if (spec.mode === "xbox") pad.push(position);
+      else if (spec.mode === "mouse" || Object.keys(spec.directions ?? {}).length > 0)
+        keyboard.push(position);
+      continue;
+    }
+    for (const slot of SLOTS) {
+      const value = spec[slot];
+      if (value === undefined || value === null) continue;
+      if (typeof value === "object" && "xinput" in value && typeof value.xinput === "string") {
+        pad.push(position);
+      } else {
+        keyboard.push(position);
+      }
+    }
+  }
+  return { pad, keyboard };
+}
+
+/**
+ * A layout that sends Xbox output and keyboard or mouse together. Many games show the
+ * prompts of, and some take input from, only the device they heard last, and flip between
+ * them as both arrive: Everspace 2 stuttered doing exactly that (constraint 1). A warning,
+ * not an error: some games take both, and a controller layout with one scroll key is fine
+ * in many.
+ */
+function checkMixedInput(profiles: readonly Profile[], set: string): Finding[] {
+  const pad: string[] = [];
+  const keyboard: string[] = [];
+  for (const profile of profiles) {
+    const kinds = outputKinds(profile);
+    pad.push(...kinds.pad);
+    keyboard.push(...kinds.keyboard);
+  }
+  if (pad.length === 0 || keyboard.length === 0) return [];
+  return [
+    {
+      level: WARNING,
+      rule: "mixed-input",
+      profile: set,
+      message:
+        `this layout sends Xbox output (${String(pad.length)} control(s)) and keyboard or ` +
+        `mouse (${String(keyboard.length)}) together. Many games switch their prompts, and ` +
+        "some their controls, to whichever they heard last, and flip as both arrive. Fine if " +
+        "this game takes both at once; otherwise make the layout all one or the other.",
+    },
+  ];
 }
 
 /** Everything the pedal rules need, read from disk for a game. */

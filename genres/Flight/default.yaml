@@ -15,8 +15,6 @@ profile:
   unit: left
   set: Flight-default
 
-lint:
-  require_keyboard_stick: true
 
 positions:
   stick:

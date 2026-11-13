@@ -8,8 +8,6 @@ profile:
   unit: left
   set: Survival-default
 
-lint:
-  require_keyboard_stick: true
 
 positions:
   stick:

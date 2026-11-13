@@ -832,12 +832,61 @@ describe("the inspector in plain words", () => {
     expect(labels()).toContain("Every (ms)");
   });
 
-  it("says nothing of a stick's mode while it sends keys, the only mode allowed", () => {
+  it("offers keys, an Xbox stick or the pointer, and keeps Everspace 2 on keys", () => {
     document.querySelector<HTMLButtonElement>(".stick-dial .dir.up")?.click();
-    const labels = [...document.querySelectorAll(".field label")].map((node) => node.textContent);
-    expect(labels).not.toContain("Stick sends");
+    const mode = document.querySelector<HTMLSelectElement>("select[data-stick-mode=select]");
+    expect(mode?.value).toBe("keyboard");
+    const options = [...(mode?.options ?? [])];
+    expect(options.map((option) => option.value)).toEqual(["keyboard", "xbox", "mouse"]);
+    // The fixture is Everspace 2, whose checks require a keyboard stick (constraint 1).
+    expect(options.filter((option) => option.disabled).map((option) => option.value)).toEqual([
+      "xbox",
+      "mouse",
+    ]);
     // Its four directions are still offered.
     expect(document.querySelector(".inspector .field-grid")).not.toBeNull();
+  });
+
+  it("makes a stick the pointer, with its speed, and takes its directions off", () => {
+    const payload = structuredClone(PAYLOAD);
+    const game = payload.games[0];
+    if (game === undefined) throw new Error("no game");
+    game.lintConfig = { ...game.lintConfig, require_keyboard_stick: false };
+    document.body.innerHTML = '<div id="app"></div>';
+    start(payload);
+    document.querySelector<HTMLButtonElement>(".stick-dial .dir.up")?.click();
+    const mode = document.querySelector<HTMLSelectElement>("select[data-stick-mode=select]");
+    if (!mode) throw new Error("no mode select");
+    mode.value = "mouse";
+    mode.dispatchEvent(new Event("change"));
+    expect(document.querySelector(".inspector .field-grid")).toBeNull();
+    const speed = document.querySelector<HTMLInputElement>("input[data-stick-mode=speed]");
+    expect(speed?.value).toBe("5");
+    // The board says what the stick does now, with no directions on it.
+    const dial = document.querySelector(".stick-dial");
+    expect(dial?.closest(".thumb-group")?.querySelector(".head")?.textContent).toContain("mouse");
+    expect(dial?.querySelector(".dir.up .name")?.textContent ?? "").toBe("");
+  });
+
+  it("sends an Xbox button from a key's press instead of an action", () => {
+    const card = [...document.querySelectorAll<HTMLButtonElement>(".key")].find(
+      (key) => key.dataset.position === "pinky_1",
+    );
+    card?.click();
+    const send = document.querySelector<HTMLSelectElement>("select[data-device-send=tap]");
+    if (!send) throw new Error("no send select");
+    // Scroll is offered on the tap only: how a unit holds it on another press is not captured.
+    expect([...send.options].some((option) => option.value === "wheel:up")).toBe(true);
+    const long = document.querySelector<HTMLSelectElement>("select[data-device-send=long]");
+    expect([...(long?.options ?? [])].some((option) => option.value.startsWith("wheel:"))).toBe(
+      false,
+    );
+    send.value = "xinput:A";
+    send.dispatchEvent(new Event("change"));
+    const updated = [...document.querySelectorAll<HTMLButtonElement>(".key")].find(
+      (key) => key.dataset.position === "pinky_1",
+    );
+    expect(updated?.title).toContain("Xbox A");
   });
 
   it("offers to put a stick in another mode back to keyboard, which the linter requires", () => {

@@ -8,7 +8,3 @@ template: templates/everspace2-akimbo-left.json
 # keys, which the owner's file has not changed, so the unit works with the game as
 # installed. A key rebound in the game is a one-line edit there.
 
-lint:
-  # The compiler can only write a stick in keyboard mode, and a stick in gamepad mode next
-  # to keyboard and mouse is what made Everspace 2 flip input modes (constraint 1).
-  require_keyboard_stick: true

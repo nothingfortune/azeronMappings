@@ -375,7 +375,12 @@ These came from real play sessions; each one is a lint rule now.
    _mouse_ mode was tried 2026-09-30 and **spins**: the game steers by where the pointer
    is, a stick moves it at a rate, and letting go leaves it off centre, so the ship keeps
    turning with no way back. Keyboard mode with the game's `Yaw`/`Pitch` keys is the
-   stick's rate control. → `stick-not-keyboard` (error)
+   stick's rate control. → `stick-not-keyboard` (error), on where a game's `game.yaml` sets
+   `lint.require_keyboard_stick` -- Everspace 2's. It is not a default: a new game's stick
+   may be an Xbox stick or the pointer (Helldivers 2 looks with the mouse), and the editor
+   offers all three, showing the barred ones disabled with why. What does carry over from
+   the stutter is `mixed-input`, a warning on a layout that sends Xbox output and keys
+   together.
 2. Everspace 2 in KB/M mode reads **only two analog axes** (mouse X/Y). Everything else is
    digital, and no remapper can add axes without a virtual gamepad — which re-triggers
    constraint 1.
@@ -442,7 +447,9 @@ array of per-key records.
   `mouse_sensitivity` into `analogSettings.mouseSensitivity`); which Xbox stick follows the
   app's one "side" setting, `isRightAnalog` (the left unit's export, false, sent the left
   stick; the right side is inferred). `stick-not-keyboard` asks for keyboard by name, not
-  "any known mode".
+  "any known mode". In the editor the Key panel's Stick sends picks the mode (and the
+  pointer speed), and taking a stick off keys takes its directions off with it; each press
+  of a key has "or send instead" for an Xbox button or trigger, and on the tap for scroll.
 - Key values mix `KeyboardEvent.code` strings (`KeyF`, `Digit1`, `Escape`) with legacy
   numeric JS keyCodes (arrows as `"37"`–`"40"`, Shift as `"16"`). `keys.ts` records which
   encoding the app actually uses per key; a token that does not survive name→token→name

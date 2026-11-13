@@ -8,10 +8,6 @@ template: templates/everspace2-akimbo-left.json
 # a key changed in the game's Options > Keyboard is a one-line edit there.
 
 lint:
-  # The compiler can only write a stick in keyboard mode, and a stick in gamepad mode next
-  # to keyboard keys is what made Everspace 2 flip input modes (constraint 1).
-  require_keyboard_stick: true
-
   acknowledged:
     - {profile: default-left, rule: duplicate-output-key, key: KeyS,
        reason: "Decelerate on index_1 as well as the stick, on purpose: a high-G turn is both

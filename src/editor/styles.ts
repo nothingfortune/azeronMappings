@@ -688,6 +688,11 @@ body.dragging-key .palette.drop-over { outline: none; }
 .finding.error { border-left-color: var(--error); background: color-mix(in srgb, var(--error) 8%, var(--sunken)); }
 .finding.warning { border-left-color: var(--warn); background: color-mix(in srgb, var(--warn) 8%, var(--sunken)); }
 .finding.grouped summary { cursor: pointer; list-style-position: inside; }
+.field.slot { flex-wrap: wrap; }
+/* Under the press it belongs to, lined up with its button: beside it, it squeezed the button. */
+.field.slot select[data-device-send] { order: 9; flex: 1 0 100%; margin-left: 82px; max-width: calc(100% - 82px);
+  font-size: var(--fs-1); padding: 2px 6px; color: var(--muted); background: transparent; }
+.stick-mode .note { margin: 4px 0 8px; }
 .ingame-tools { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; margin: 4px 0 10px; }
 .ingame-help { flex: 1 1 320px; }
 .ingame-help summary { cursor: pointer; font-size: var(--fs-1); color: var(--muted); padding: 4px 0; }
