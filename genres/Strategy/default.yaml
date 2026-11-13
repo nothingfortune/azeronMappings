@@ -1,0 +1,54 @@
+# Default single-unit layout for a strategy game, with the mouse in the other hand.
+#
+# The stick pans the camera; groups are on the index row, orders on the middle, abilities
+# on the ring; the thumb rotates the camera and pauses. Menus are on the bottom row. Tap
+# only (constraints 4 and 6).
+profile:
+  name: Strategy default (left)
+  device: cyborg2-left
+  unit: left
+  set: Strategy-default
+
+lint:
+  require_keyboard_stick: true
+
+positions:
+  stick:
+    mode: keyboard
+    directions: {up: camera_up, right: camera_right, down: camera_down, left: camera_left}
+
+  # Index: the groups.
+  index_1: {label: Group 1, tap: group_1}
+  index_2: {label: Group 2, tap: group_2}
+  index_3: {label: Group 3, tap: group_3}
+  index_4: {label: Group 4, tap: group_4}
+
+  # Middle: orders.
+  middle_1: {label: Group 5, tap: group_5}
+  middle_2: {label: Attack move, tap: attack_move}
+  middle_3: {label: Stop, tap: stop}
+  middle_4: {label: Hold position, tap: hold_position}
+
+  # Ring: abilities.
+  ring_1: {label: Ability 1, tap: ability_1}
+  ring_2: {label: Ability 2, tap: ability_2}
+  ring_3: {label: Ability 3, tap: ability_3}
+  ring_4: {label: Ability 4, tap: ability_4}
+
+  # Pinky bank: finding things.
+  pinky_1: {label: Retreat, tap: retreat}
+  pinky_2: {label: Select idle, tap: select_idle}
+  pinky_3: {label: Slower, tap: speed_down}
+  pinky_4: {label: Faster, tap: speed_up}
+
+  # Thumb pad: the camera, and time.
+  dpad_left:  {label: Rotate left, tap: rotate_left}
+  dpad_right: {label: Rotate right, tap: rotate_right}
+  dpad_up:    {label: Centre on selection, tap: focus}
+  dpad_press: {label: Pause, tap: pause}
+
+  # Bottom row: menus only.
+  pinky_5:  {label: Main menu, tap: menu_main}
+  ring_5:   {label: Research, tap: research}
+  middle_5: {label: Outliner, tap: outliner}
+  index_5:  {label: Map, tap: map}

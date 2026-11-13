@@ -1,0 +1,55 @@
+# Default single-unit layout for a survival game, with a mouse in the other hand.
+#
+# The tool in hand is on the mouse; the keypad owns moving, the hotbar, building, and the
+# menus on the bottom row. Tap only (constraints 4 and 6).
+profile:
+  name: Survival default (left)
+  device: cyborg2-left
+  unit: left
+  set: Survival-default
+
+lint:
+  require_keyboard_stick: true
+
+positions:
+  stick:
+    mode: keyboard
+    directions: {up: move_forward, right: move_right, down: move_back, left: move_left}
+
+  # Pinky bank: building.
+  pinky_1: {label: Build, tap: build}
+  pinky_2: {label: Deconstruct, tap: deconstruct}
+  pinky_3: {label: Rotate piece, tap: rotate_piece}
+  pinky_4: {label: Drop, tap: drop}
+
+  # Ring and middle: the hotbar.
+  ring_1: {label: Hotbar 1, tap: hotbar_1}
+  ring_2: {label: Hotbar 2, tap: hotbar_2}
+  ring_3: {label: Hotbar 3, tap: hotbar_3}
+  ring_4: {label: Hotbar 4, tap: hotbar_4}
+  middle_1: {label: Hotbar 5, tap: hotbar_5}
+  middle_2: {label: Reload, tap: reload}
+  middle_3: {label: Interact, tap: interact}
+  middle_4: {label: Scan, tap: scan}
+
+  # Index: moving, with sprint on the resting row.
+  index_1: {label: Push to talk, tap: push_to_talk}
+  index_2: {label: Jump, tap: jump}
+  index_3: {label: Sprint, tap: sprint}
+  index_4: {label: Crouch, tap: crouch}
+
+  # Side keys.
+  pinky_side: {label: Holster, tap: holster}
+  index_side: {label: Eat / heal, tap: quick_heal}
+
+  # Thumb pad.
+  dpad_up:    {label: Next tool, tap: hotbar_next}
+  dpad_down:  {label: Previous tool, tap: hotbar_prev}
+  dpad_left:  {label: Ping, tap: ping}
+  dpad_right: {label: Flashlight, tap: flashlight}
+
+  # Bottom row: menus only.
+  pinky_5:  {label: Main menu, tap: menu_main}
+  ring_5:   {label: Crafting, tap: crafting}
+  middle_5: {label: Inventory, tap: inventory}
+  index_5:  {label: Map, tap: map}

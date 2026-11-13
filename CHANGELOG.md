@@ -6,6 +6,14 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Added
 
+- **Five more genres, for the rest of the library.** Action (third person: Days Gone, The
+  Last of Us, The Witcher 3, Space Marine 2), Survival (Subnautica 2, Project Zomboid),
+  Mech (Armored Core VI), RPG (Baldur's Gate 3, Rogue Trader) and Strategy (Stellaris,
+  Distant Worlds 2, Dawn of War, Battlefleet Gothic, Nebulous). Each has its actions with
+  the usual keyboard key and controller button, and an Azeron layout for one unit; Action,
+  Survival and Mech also lay out a pair like a controller or like a keyboard. RPG and
+  Strategy are played with a mouse, so they are one unit beside it. Every layout a new
+  game can start with passes the checks with no warnings.
 - **Usual keyboard and controller bindings to start from.** Every genre (shooters, space
   sims, flight) says which keyboard key or mouse button each action is usually on
   (`keyboard:`), as it already said which pad control (`xbox:`). A new game starts with both

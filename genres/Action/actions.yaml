@@ -1,0 +1,71 @@
+# Shared action vocabulary for third-person action and adventure games: Days Gone, The Last
+# of Us, The Witcher 3, Space Marine 2, Cyberpunk 2077 and the like -- moving, fighting up
+# close and at range, and a world to search.
+#
+# No keys here: a genre says which ROLES a game has, a game says which keys they are
+# bound to. Start a game's actions.yaml with `extends: genres/Action/actions.yaml`.
+#
+# `xbox:` is the Xbox pad control a game usually puts the action on. It is never sent:
+# it is where the controller-style layout places the action (layouts.yaml, src/lib/xbox.ts).
+#
+# `keyboard:` is the key or mouse button a game usually puts the action on for someone on a
+# keyboard and mouse. Like `xbox:` it is a suggestion, never sent and never written into a
+# game by itself: a new game starts with both as its own `kbm:` and `pad:`, and the In-game
+# tab's Fill in the usual bindings copies them into a game that has none.
+#
+# Attacking and aiming are on the mouse, so they are marked `provided_by` and excluded from
+# the coverage check. A layout with no mouse sends them as mouse buttons from keys, which
+# the game's actions.yaml says (`provided_by: null`, `mouse: left`).
+genre: Action
+
+actions:
+  # --- movement -----------------------------------------------------------------
+  move_forward:   {label: Move forward, keyboard: KeyW, xbox: LeftStickUp, tags: [movement, required]}
+  move_back:      {label: Move back, keyboard: KeyS, xbox: LeftStickDown, tags: [movement, required]}
+  move_left:      {label: Move left, keyboard: KeyA, xbox: LeftStickLeft, tags: [movement, required]}
+  move_right:     {label: Move right, keyboard: KeyD, xbox: LeftStickRight, tags: [movement, required]}
+  sprint:         {label: Sprint, keyboard: ShiftLeft, xbox: LS, tags: [movement],
+                   note: "Constraint 6: a latched sprint stays on until pressed again."}
+  jump:           {label: Jump / climb, keyboard: Space, xbox: A, tags: [movement, required]}
+  crouch:         {label: Crouch / sneak, keyboard: ControlLeft, tags: [movement]}
+  dodge:          {label: Dodge / roll, keyboard: AltLeft, xbox: B, tags: [movement]}
+  mount:          {label: Call mount / vehicle, keyboard: KeyX, tags: [movement]}
+  look:           {label: Look, provided_by: mouse, axis: mouse_xy, tags: [movement]}
+  # Looking on keys, for a pair played with no mouse: the right stick, as on a pad.
+  look_up:        {label: Look up, xbox: RightStickUp, tags: [movement]}
+  look_down:      {label: Look down, xbox: RightStickDown, tags: [movement]}
+  look_left:      {label: Look left, xbox: RightStickLeft, tags: [movement]}
+  look_right:     {label: Look right, xbox: RightStickRight, tags: [movement]}
+
+  # --- fighting -----------------------------------------------------------------
+  attack:         {label: Attack / fire, provided_by: mouse, keyboard: MouseLeft, xbox: RT, tags: [combat, required]}
+  aim:            {label: Aim / block, provided_by: mouse, keyboard: MouseRight, xbox: LT, tags: [combat]}
+  heavy_attack:   {label: Heavy attack, keyboard: KeyF, xbox: RB, tags: [combat]}
+  lock_on:        {label: Lock on, keyboard: MouseMiddle, xbox: RS, tags: [combat]}
+  reload:         {label: Reload, keyboard: KeyR, xbox: X, tags: [combat]}
+  throwable:      {label: Throw, keyboard: KeyG, tags: [combat]}
+  ability_1:      {label: Ability 1, keyboard: KeyQ, tags: [combat]}
+  ability_2:      {label: Ability 2, keyboard: KeyZ, tags: [combat]}
+  weapon_1:       {label: Weapon 1, keyboard: Digit1, tags: [combat]}
+  weapon_2:       {label: Weapon 2, keyboard: Digit2, tags: [combat]}
+  weapon_3:       {label: Weapon 3, keyboard: Digit3, tags: [combat]}
+  weapon_4:       {label: Weapon 4, keyboard: Digit4, tags: [combat]}
+  weapon_next:    {label: Next weapon, keyboard: WheelDown, xbox: DpadRight, tags: [combat]}
+  weapon_prev:    {label: Previous weapon, keyboard: WheelUp, xbox: DpadLeft, tags: [combat]}
+  item_wheel:     {label: Item wheel, keyboard: Tab, xbox: LB, tags: [combat]}
+  heal:           {label: Heal, keyboard: KeyH, xbox: DpadUp, tags: [combat]}
+
+  # --- the world ----------------------------------------------------------------
+  interact:       {label: Interact / pick up, keyboard: KeyE, xbox: Y, tags: [utility, required]}
+  sense:          {label: Sense / listen mode, keyboard: KeyV, tags: [utility]}
+  flashlight:     {label: Flashlight, keyboard: KeyL, xbox: DpadDown, tags: [utility]}
+
+  # --- menus --------------------------------------------------------------------
+  map:            {label: Map, keyboard: KeyM, xbox: View, tags: [menu]}
+  inventory:      {label: Inventory, keyboard: KeyI, tags: [menu]}
+  journal:        {label: Journal / quests, keyboard: KeyJ, tags: [menu]}
+  character:      {label: Character / skills, keyboard: KeyK, tags: [menu]}
+  quick_save:     {label: Quick save, keyboard: F5, tags: [menu]}
+  quick_load:     {label: Quick load, keyboard: F9, tags: [menu]}
+  menu_main:      {label: Main menu, keyboard: Escape, xbox: Menu, tags: [menu],
+                   note: "Constraint 5 -- this is Escape. Keep it off anything mashable."}

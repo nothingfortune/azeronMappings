@@ -1,0 +1,65 @@
+# Shared action vocabulary for party RPGs played from above: Baldur's Gate 3, Rogue Trader,
+# Inquisitor - Martyr and the like -- a party moved and pointed with the mouse, a hotbar of
+# abilities, turns to end, and a lot of menus.
+#
+# No keys here: a genre says which ROLES a game has, a game says which keys they are
+# bound to. Start a game's actions.yaml with `extends: genres/RPG/actions.yaml`.
+#
+# `keyboard:` is the key or mouse button a game usually puts the action on; a suggestion,
+# never sent: see genres/FPS/actions.yaml. There is no `xbox:` and no layouts.yaml: these
+# games are played with a mouse, so a layout is one unit beside it. A second unit starts
+# empty, for whatever the game wants it for.
+#
+# Moving the party, choosing a target and the context menu are the mouse's, `provided_by`
+# and excluded from the coverage check. The stick pans the camera.
+genre: RPG
+
+actions:
+  # --- the mouse ----------------------------------------------------------------
+  select_move:    {label: Select / move / attack, provided_by: mouse, keyboard: MouseLeft, tags: [movement, required]}
+  context:        {label: Context menu / cancel, provided_by: mouse, keyboard: MouseRight, tags: [utility]}
+
+  # --- the camera ---------------------------------------------------------------
+  camera_up:      {label: Camera forward, keyboard: KeyW, tags: [movement]}
+  camera_down:    {label: Camera back, keyboard: KeyS, tags: [movement]}
+  camera_left:    {label: Camera left, keyboard: KeyA, tags: [movement]}
+  camera_right:   {label: Camera right, keyboard: KeyD, tags: [movement]}
+  rotate_left:    {label: Rotate camera left, keyboard: KeyQ, tags: [movement]}
+  rotate_right:   {label: Rotate camera right, keyboard: KeyE, tags: [movement]}
+  camera_centre:  {label: Centre camera, keyboard: KeyO, tags: [movement]}
+  zoom_in:        {label: Zoom in, keyboard: WheelUp, tags: [movement]}
+  zoom_out:       {label: Zoom out, keyboard: WheelDown, tags: [movement]}
+
+  # --- the party ----------------------------------------------------------------
+  character_1:    {label: Select character 1, keyboard: F1, tags: [utility]}
+  character_2:    {label: Select character 2, keyboard: F2, tags: [utility]}
+  character_3:    {label: Select character 3, keyboard: F3, tags: [utility]}
+  character_4:    {label: Select character 4, keyboard: F4, tags: [utility]}
+  jump:           {label: Jump, keyboard: KeyZ, tags: [movement]}
+  sneak:          {label: Sneak, keyboard: KeyC, tags: [movement]}
+  highlight:      {label: Show what can be used, keyboard: AltLeft, tags: [utility]}
+
+  # --- combat -------------------------------------------------------------------
+  hotbar_1:       {label: Hotbar 1, keyboard: Digit1, tags: [combat]}
+  hotbar_2:       {label: Hotbar 2, keyboard: Digit2, tags: [combat]}
+  hotbar_3:       {label: Hotbar 3, keyboard: Digit3, tags: [combat]}
+  hotbar_4:       {label: Hotbar 4, keyboard: Digit4, tags: [combat]}
+  hotbar_5:       {label: Hotbar 5, keyboard: Digit5, tags: [combat]}
+  hotbar_6:       {label: Hotbar 6, keyboard: Digit6, tags: [combat]}
+  hotbar_7:       {label: Hotbar 7, keyboard: Digit7, tags: [combat]}
+  hotbar_8:       {label: Hotbar 8, keyboard: Digit8, tags: [combat]}
+  hotbar_9:       {label: Hotbar 9, keyboard: Digit9, tags: [combat]}
+  hotbar_10:      {label: Hotbar 10, keyboard: Digit0, tags: [combat]}
+  end_turn:       {label: End turn / pause, keyboard: Space, tags: [combat]}
+  toggle_combat:  {label: Enter turn-based mode, keyboard: KeyX, tags: [combat]}
+
+  # --- menus --------------------------------------------------------------------
+  inventory:      {label: Inventory, keyboard: KeyI, tags: [menu]}
+  character:      {label: Character sheet, keyboard: KeyU, tags: [menu]}
+  spellbook:      {label: Spells / abilities, keyboard: KeyK, tags: [menu]}
+  journal:        {label: Journal, keyboard: KeyJ, tags: [menu]}
+  map:            {label: Map, keyboard: KeyM, tags: [menu]}
+  quick_save:     {label: Quick save, keyboard: F5, tags: [menu]}
+  quick_load:     {label: Quick load, keyboard: F8, tags: [menu]}
+  menu_main:      {label: Main menu, keyboard: Escape, tags: [menu],
+                   note: "Constraint 5 -- this is Escape. Keep it off anything mashable."}

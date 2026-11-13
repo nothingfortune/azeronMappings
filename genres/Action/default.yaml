@@ -1,0 +1,59 @@
+# Default single-unit layout for a third-person action game, with a mouse in the other hand.
+#
+# Attacking and aiming stay on the mouse; the keypad owns movement, the moves a fight needs
+# under the fingers, and the menus on the bottom row. Tap only -- no long-press, no
+# double-tap, no latching -- so a dodge never waits on a delay window (constraint 4) and a
+# sprint never sticks on (constraint 6).
+profile:
+  name: Action default (left)
+  device: cyborg2-left
+  unit: left
+  set: Action-default
+
+lint:
+  require_keyboard_stick: true
+
+positions:
+  stick:
+    mode: keyboard
+    directions: {up: move_forward, right: move_right, down: move_back, left: move_left}
+
+  # Pinky bank: abilities and what is thrown or drunk.
+  pinky_1: {label: Ability 1, tap: ability_1}
+  pinky_2: {label: Ability 2, tap: ability_2}
+  pinky_3: {label: Mount, tap: mount}
+  pinky_4: {label: Heal, tap: heal}
+
+  # Ring bank: weapons.
+  ring_1: {label: Weapon 1, tap: weapon_1}
+  ring_2: {label: Weapon 2, tap: weapon_2}
+  ring_3: {label: Weapon 3, tap: weapon_3}
+  ring_4: {label: Weapon 4, tap: weapon_4}
+
+  # Middle: what a fight and the world need constantly.
+  middle_1: {label: Sense, tap: sense}
+  middle_2: {label: Reload, tap: reload}
+  middle_3: {label: Interact, tap: interact}
+  middle_4: {label: Heavy attack, tap: heavy_attack}
+
+  # Index: moving, with sprint on the resting row.
+  index_1: {label: Dodge, tap: dodge}
+  index_2: {label: Jump, tap: jump}
+  index_3: {label: Sprint, tap: sprint}
+  index_4: {label: Crouch, tap: crouch}
+
+  # Side keys.
+  pinky_side: {label: Throw, tap: throwable}
+  index_side: {label: Lock on, tap: lock_on}
+
+  # Thumb pad: weapons and the item wheel, as a pad's d-pad has them.
+  dpad_up:    {label: Next weapon, tap: weapon_next}
+  dpad_down:  {label: Previous weapon, tap: weapon_prev}
+  dpad_left:  {label: Flashlight, tap: flashlight}
+  dpad_right: {label: Item wheel, tap: item_wheel}
+
+  # Bottom row: menus only.
+  pinky_5:  {label: Main menu, tap: menu_main}
+  ring_5:   {label: Journal, tap: journal}
+  middle_5: {label: Inventory, tap: inventory}
+  index_5:  {label: Map, tap: map}

@@ -1,0 +1,27 @@
+# What a new mech game starts with: a pair of units, in one of two styles. See
+# genres/FPS/layouts.yaml for what each part means.
+controller:
+  label: Like a controller
+  note: >-
+    Left stick moves, right stick turns, the triggers fire the arms and the bumpers the
+    back weapons, B quick boosts -- an Xbox pad laid over the pair, as the game has it.
+  acknowledge:
+    reason: The thumb pads are a pad's d-pad and its A B X Y, which do different jobs.
+    positions: [dpad_up, dpad_down, dpad_left, dpad_right, stick_press, thumb_aux_upper]
+  left:
+    middle_2: {label: Left bay, tap: left_bay}
+  right:
+    middle_2: {label: Right bay, tap: right_bay}
+
+keyboard:
+  label: Like a keyboard
+  note: >-
+    The left unit is the keyboard half, with all four weapons. The right unit turns with
+    its stick and fires the arms on its side keys.
+  left: default
+  right:
+    stick:
+      mode: keyboard
+      directions: {up: look_up, right: look_right, down: look_down, left: look_left}
+    index_side: {label: Right arm, tap: right_arm}
+    pinky_side: {label: Left arm, tap: left_arm}
