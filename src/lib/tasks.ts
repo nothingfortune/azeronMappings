@@ -75,6 +75,7 @@ import type { WrittenAction } from "./scaffold.js";
 import { addSetEntry, patchSetPedals, removeSetEntry, renameSetEntry } from "./setsfile.js";
 import { leadingComments } from "./serve.js";
 import { needsWire, wireAction } from "./wiring.js";
+import { usualBindings } from "./usual.js";
 import { deepMerge, dumpYaml } from "./yaml.js";
 import { loadInherited } from "./yaml-io.js";
 import { messageOf, removeKey } from "./object.js";
@@ -706,6 +707,11 @@ export function startGame(request: StartGameRequest): StartGameResult {
     const key = wireAction(vocabulary, id);
     if (key !== null) keys[id] = { ...keys[id], key };
     else if (needsWire(vocabulary[id])) unsendable.add(id);
+  }
+  // Someone on a keyboard and mouse, or on a controller, starts with the genre's usual
+  // bindings: every action, placed on the units or not.
+  for (const [id, usual] of Object.entries(usualBindings(vocabulary))) {
+    keys[id] = { ...keys[id], ...usual };
   }
   // The pool of out-of-the-way keys is smaller than a whole default layout. An action left
   // without one is taken off its control rather than placed sending nothing, so the game

@@ -252,3 +252,45 @@ describe("adding several controls from a list", () => {
     expect(body.add?.emote).toEqual({ label: "Emote" });
   });
 });
+
+describe("the usual bindings", () => {
+  const row = (id: string): Element | null =>
+    document.querySelector(`[data-kbm="${id}"]`)?.closest(".player-binds") ?? null;
+
+  it("are hinted beside an empty keyboard field, as for a controller", () => {
+    expect(row("throttle_up")?.textContent).toContain("usually W");
+    expect(row("throttle_up")?.textContent).toContain("usually Left stick up");
+  });
+
+  it("are filled in with one click and saved with the actions", async () => {
+    const fill = document.querySelector<HTMLButtonElement>('[data-usual="fill"]');
+    if (!fill) throw new Error("no Fill button");
+    expect(fill.disabled).toBe(false);
+    fill.click();
+    expect(document.querySelector('[data-kbm="throttle_up"]')?.textContent).toBe("W");
+    expect(document.querySelector('[data-pad="throttle_up"]')?.getAttribute("data-value")).toBe(
+      "LeftStickUp",
+    );
+    // Nothing left to fill, so the button says so rather than doing nothing.
+    expect(document.querySelector<HTMLButtonElement>('[data-usual="fill"]')?.disabled).toBe(true);
+    [...document.querySelectorAll<HTMLButtonElement>("header button")]
+      .find((button) => button.textContent === "Save")
+      ?.click();
+    await vi.waitFor(() => {
+      expect(calls.some((call) => call.path === "/api/actions")).toBe(true);
+    });
+    const body = calls.find((call) => call.path === "/api/actions")?.body as {
+      changes: Record<string, Record<string, unknown>>;
+    };
+    expect(body.changes.throttle_up).toEqual({ kbm: "KeyW", pad: "LeftStickUp" });
+  });
+
+  it("leave a binding already set as it is", () => {
+    const id = "throttle_up";
+    document.querySelector<HTMLButtonElement>(`[data-kbm="${id}"]`)?.click();
+    press("KeyT", "keydown");
+    press("KeyT", "keyup");
+    document.querySelector<HTMLButtonElement>('[data-usual="fill"]')?.click();
+    expect(document.querySelector(`[data-kbm="${id}"]`)?.textContent).toBe("T");
+  });
+});

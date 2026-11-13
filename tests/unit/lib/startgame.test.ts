@@ -403,7 +403,9 @@ describe("startGame", () => {
       set: "v1",
     });
     const text = readFileSync(repoPath("games/FPS/zzGun/actions.yaml"), "utf8");
-    expect(text).toMatch(/fire_primary: +\{mouse: left, provided_by: null\}/);
+    expect(text).toMatch(
+      /fire_primary: +\{mouse: left, provided_by: null, kbm: MouseLeft, pad: RT\}/,
+    );
     const game = new Game("games/FPS/zzGun");
     expect(game.actions.actions.fire_primary).toMatchObject({ mouse: "left" });
     expect(game.actions.actions.fire_primary?.provided_by).toBeUndefined();
@@ -412,7 +414,9 @@ describe("startGame", () => {
     expect(right.stick?.directions).toMatchObject({ up: "look_up", left: "look_left" });
     // Renamed on the In-game tab, the trigger still sends its mouse button.
     const renamed = patchActionBindings(text, { fire_primary: { label: "Shoot" } });
-    expect(renamed).toMatch(/fire_primary: +\{label: Shoot, mouse: left, provided_by: null\}/);
+    expect(renamed).toMatch(
+      /fire_primary: +\{label: Shoot, mouse: left, provided_by: null, kbm: MouseLeft, pad: RT\}/,
+    );
   });
 
   it("adds pedals where the genre's sticks say what they take, and flies the sticks around them", () => {
@@ -566,14 +570,26 @@ describe("startGame", () => {
     );
   });
 
-  it("starts a right-unit game with no actions of its own, which a save can still add to", () => {
+  it("starts a right-unit game with nothing placed, which a save can still give keys", () => {
     sim(["cyborg2-right"]);
     const text = readFileSync(repoPath(`${SIM}/actions.yaml`), "utf8");
-    expect(text).toContain("actions: {}");
+    // Nothing on the unit, so no key; the usual bindings are there all the same.
+    expect(text).not.toMatch(/key: /);
     expect(Object.keys(new Game(SIM).actions.actions).length).toBeGreaterThan(0);
     const patched = patchActionBindings(text, { boost: { key: "Insert" } });
-    expect(patched).toContain("actions:\n  boost: {key: Insert}");
-    expect(patched).not.toContain("{}");
+    expect(patched).toMatch(/boost: +\{key: Insert, kbm: ShiftLeft, pad: LS\}/);
+  });
+
+  it("starts every action on the genre's usual keyboard key and controller button", () => {
+    sim(["cyborg2-right"]);
+    const text = readFileSync(repoPath(`${SIM}/actions.yaml`), "utf8");
+    expect(text).toMatch(/throttle_up: +\{kbm: KeyW, pad: LeftStickUp\}/);
+    // A suggestion the genre has only for a controller gives only that.
+    expect(text).toMatch(/pitch_up: +\{pad: RightStickUp\}/);
+    const actions = new Game(SIM).actions.actions;
+    expect(actions.fire_primary).toMatchObject({ kbm: "MouseLeft", pad: "RT" });
+    // The suggestion stays the genre's; the game's own binding is a copy of it.
+    expect(actions.throttle_up?.keyboard).toBe("KeyW");
   });
 
   it("refuses what cannot be a layout", () => {
