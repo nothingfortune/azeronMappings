@@ -420,11 +420,7 @@ function deviceSendField(spec: PositionSpec, slot: Slot, onChange: () => void): 
     if (kind === "xinput" && name !== undefined) spec[slot] = { xinput: name };
     else if (kind === "wheel" && name !== undefined) spec[slot] = { wheel: name };
     else return;
-    // A key that came in from an export may carry its type codes in raw.types, which the
-    // compiler writes over what it derives: this press's code follows the new binding, and
-    // the others' (codes nothing derives) are kept.
-    const types = spec.raw?.types;
-    if (types !== undefined) types[SLOTS.indexOf(slot)] = resolveSlot(spec[slot], null)[0];
+    syncKeptType(spec, slot, null);
     onChange();
   });
   return select;
@@ -542,6 +538,25 @@ function wireSpec(spec: PositionSpec | undefined): void {
 }
 
 /** Put an action on one slot of a key, and name the key after it when the slot is the tap. */
+/**
+ * A key that came in from an export may carry its type codes in raw.types, which the
+ * compiler writes over what it derives. Whenever a press gets a new binding, its code
+ * follows it; the other presses' codes (ones nothing derives) are kept.
+ */
+function syncKeptType(
+  spec: PositionSpec,
+  slot: Slot,
+  actions: Record<string, ActionSpec> | null,
+): void {
+  const types = spec.raw?.types;
+  if (types === undefined) return;
+  try {
+    types[SLOTS.indexOf(slot)] = resolveSlot(spec[slot], actions)[0];
+  } catch {
+    // A binding that cannot be resolved is the checks' to report, not this one's.
+  }
+}
+
 function assignAction(slug: string, position: string, slot: Slot, actionId: string): void {
   if (profileFor(slug).device.isStick(position)) return;
   const spec = (workingData(slug).positions[position] ??= {});
@@ -553,6 +568,8 @@ function assignAction(slug: string, position: string, slot: Slot, actionId: stri
   // shipped profile already has a label on every position.
   if (slot === "tap") spec.label = actionSetFor(currentGame()).label(actionId);
   wire(actionId);
+  // After wiring, which may have just given the action its key.
+  syncKeptType(spec, slot, editableActions());
 }
 
 /** An action dropped on a key goes on its tap, and the key becomes the selected one. */
@@ -1703,6 +1720,7 @@ function renderInspector(): HTMLElement {
         const clear = el("button", { class: "btn small", type: "button", title: "Clear" }, ["×"]);
         clear.addEventListener("click", () => {
           removeKey(spec, slot);
+          syncKeptType(spec, slot, null);
           if (slot === "tap") removeKey(spec, "label");
           // Nothing left on any slot means nothing on the key: drop it, so it reads as
           // unbound and the compiler blanks it, rather than keeping an empty entry.

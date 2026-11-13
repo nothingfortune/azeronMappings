@@ -892,11 +892,14 @@ describe("the inspector in plain words", () => {
     if (!index3Send) throw new Error("no send select");
     index3Send.value = "xinput:B";
     index3Send.dispatchEvent(new Event("change"));
-    expect(
+    const stale = (): boolean =>
       [...document.querySelectorAll(".finding")].some((finding) =>
         finding.textContent.includes("raw-types-stale"),
-      ),
-    ).toBe(false);
+      );
+    expect(stale()).toBe(false);
+    // And back to an action from the list: the kept code follows that too.
+    document.querySelector<HTMLButtonElement>(".action")?.click();
+    expect(stale()).toBe(false);
     const updated = [...document.querySelectorAll<HTMLButtonElement>(".key")].find(
       (key) => key.dataset.position === "pinky_1",
     );
