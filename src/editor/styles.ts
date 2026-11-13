@@ -1,21 +1,50 @@
 /* Tokens first, so the dark set is written once and used by both ways into it: the user's
    choice (data-theme) and the OS (prefers-color-scheme) when the user has not chosen. */
+/* Every role and state colour is at least 4.7:1 against --bg, --panel and --raised in its
+   theme, and --panel text on it (a role switch that is on) at least 5.3:1. See
+   docs/plans/reskin-spec.md before changing one. */
 const LIGHT = `
-  --bg: #f4f6f8; --panel: #ffffff; --fg: #15181d; --muted: #5d6673; --line: #dae0e7;
-  --accent: #2f6f8f; --accent-fg: #ffffff;
-  --combat: #b8433a; --movement: #2f7d4f; --menu: #6a4fb3; --travel: #b1701c; --utility: #4a5568;
-  --error: #b8433a; --warn: #b1701c; --ok: #2f7d4f;
+  --bg: #eef1f5; --panel: #ffffff; --raised: #ffffff; --sunken: #e7ebf0; --hover: #f1f4f8;
+  --fg: #12161c; --muted: #566070; --line: #d6dce4; --line-strong: #b6c0cc;
+  --accent: #0b74b8; --accent-fg: #ffffff; --focus: #0b74b8;
+  --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
+  --combat: #c23a2b; --movement: #0d7656; --menu: #6a4bd0; --travel: #985700; --utility: #4b596e;
+  --error: #c0153c; --warn: #7f5c00; --ok: #2c7a1e;
+  --key-top: #ffffff; --key-bottom: #f0f3f7; --key-lip: rgb(20 30 45 / .16);
+  --key-glint: rgb(255 255 255 / .9); --plate: #f6f8fb;
+  --shadow-1: 0 1px 2px rgb(20 30 45 / .06), 0 1px 3px rgb(20 30 45 / .06);
+  --shadow-2: 0 6px 16px rgb(20 30 45 / .10), 0 2px 4px rgb(20 30 45 / .06);
+  --shadow-3: 0 24px 60px rgb(20 30 45 / .24), 0 4px 12px rgb(20 30 45 / .10);
+  --scrim: rgb(20 26 36 / .42);
 `;
 const DARK = `
-  --bg: #101317; --panel: #1a1e25; --fg: #e8ebf0; --muted: #98a1af; --line: #2e3540;
-  --accent: #6fb6d8; --accent-fg: #0d1014;
-  --combat: #e2786d; --movement: #6fc38f; --menu: #a98fe0; --travel: #d9a05b; --utility: #9aa5b5;
-  --error: #e2786d; --warn: #d9a05b; --ok: #6fc38f;
+  --bg: #0d1015; --panel: #151920; --raised: #1c212a; --sunken: #0f1218; --hover: #232a35;
+  --fg: #e9edf3; --muted: #98a2b3; --line: #272e39; --line-strong: #3a4352;
+  --accent: #4fb3ff; --accent-fg: #061320; --focus: #4fb3ff;
+  --accent-soft: color-mix(in srgb, var(--accent) 16%, transparent);
+  --combat: #ff7b6b; --movement: #4fd1a5; --menu: #b39dff; --travel: #f5b14c; --utility: #a2b0c6;
+  --error: #ff5a73; --warn: #ffd25e; --ok: #8bdc6e;
+  --key-top: #262c37; --key-bottom: #1d222b; --key-lip: rgb(0 0 0 / .55);
+  --key-glint: rgb(255 255 255 / .06); --plate: #12161c;
+  --shadow-1: 0 1px 2px rgb(0 0 0 / .35);
+  --shadow-2: 0 8px 20px rgb(0 0 0 / .40), 0 2px 4px rgb(0 0 0 / .30);
+  --shadow-3: 0 28px 70px rgb(0 0 0 / .60), 0 4px 14px rgb(0 0 0 / .35);
+  --scrim: rgb(0 0 0 / .62);
+`;
+
+/* Not themed: the scales. Type 12 / 13 / 15 / 18 / 24, spacing on 4, three radii. */
+const SCALES = `
+  --fs-1: 12px; --fs-2: 13px; --fs-3: 15px; --fs-4: 18px; --fs-5: 24px;
+  --r-sm: 6px; --r-md: 10px; --r-lg: 14px;
+  --ease: 150ms cubic-bezier(.2, .7, .3, 1);
+  --header-h: 56px;
+  --font: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", sans-serif;
+  --mono: ui-monospace, "Cascadia Code", Consolas, SFMono-Regular, Menlo, monospace;
 `;
 
 /** Injected by the editor at runtime so the whole page ships in one bundle. */
 export const CSS = `
-:root { ${LIGHT} --key-w: 94px; --key-h: 50px; color-scheme: light; }
+:root { ${LIGHT} ${SCALES} --key-w: 94px; --key-h: 50px; color-scheme: light; }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) { ${DARK} color-scheme: dark; }
 }
@@ -23,9 +52,29 @@ export const CSS = `
 * { box-sizing: border-box; }
 body {
   margin: 0; background: var(--bg); color: var(--fg);
-  font: 13px/1.45 -apple-system, "Segoe UI", Roboto, sans-serif;
+  font: 400 var(--fs-2)/1.5 var(--font);
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
 }
-button, select, input { font: inherit; color: inherit; }
+button, select, input, textarea { font: inherit; color: inherit; }
+h1, h2, h3 { font-weight: 700; }
+::selection { background: color-mix(in srgb, var(--accent) 35%, transparent); }
+/* One focus ring everywhere a keyboard user lands. */
+:focus { outline: none; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+/* Hover and selection ease; nothing else moves. */
+.btn, select, input, textarea, .key, .stick-dial .dir, .action, .game-card, .picker-item,
+.tag-chip, .dock-tab, .menu-item, .mode-row, .slot-pick, .key-chip, .bind-chip, .device-key,
+.link-btn, .pill {
+  transition: background-color var(--ease), border-color var(--ease), color var(--ease),
+              box-shadow var(--ease), opacity var(--ease);
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 99px;
+                            border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-track { background: transparent; }
 header {
   display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
   padding: 7px 16px; border-bottom: 1px solid var(--line); background: var(--panel);
@@ -39,7 +88,7 @@ header .tabs { display: inline-flex; border: 1px solid var(--line); border-radiu
 header .tabs .btn { border: 0; border-radius: 0; }
 header .tabs .btn + .btn { border-left: 1px solid var(--line); }
 .btn.dirty::before { content: "● "; font-size: 9px; vertical-align: middle; }
-.btn[disabled] { opacity: .55; cursor: default; }
+.btn[disabled] { opacity: .45; cursor: not-allowed; box-shadow: none; }
 .pill.lint { cursor: pointer; font: inherit; font-size: 11px; }
 .pill.lint.warn { border-color: var(--warn); color: var(--warn); }
 .pill.lint.bad { border-color: var(--error); color: var(--error); }
@@ -84,17 +133,33 @@ header .tabs .btn + .btn { border-left: 1px solid var(--line); }
 .menu-item { text-align: left; background: none; border: 0; padding: 7px 10px; border-radius: 6px;
              color: var(--fg); cursor: pointer; font: inherit; }
 .menu-item:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
-/* Text boxes take the theme too; the browser's own are white in a dark page. */
-input:not([type="checkbox"]):not([type="file"]) {
-  background: var(--bg); border: 1px solid var(--line); border-radius: 7px; padding: 5px 8px;
+/* Text boxes take the theme too; the browser's own are white in a dark page. They are wells:
+   sunken, where buttons are raised. */
+input:not([type="checkbox"]):not([type="file"]):not([type="radio"]), textarea {
+  background: var(--sunken); border: 1px solid var(--line); border-radius: var(--r-sm);
+  padding: 6px 10px;
 }
-input::placeholder { color: var(--muted); }
+input:not([type="checkbox"]):not([type="file"]):not([type="radio"]):hover, textarea:hover {
+  border-color: var(--line-strong); }
+input:not([type="checkbox"]):not([type="file"]):not([type="radio"]):focus-visible, textarea:focus-visible {
+  outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+input::placeholder, textarea::placeholder { color: var(--muted); }
+input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
 select, .btn {
-  background: var(--panel); border: 1px solid var(--line); border-radius: 7px;
-  padding: 5px 10px; cursor: pointer;
+  background: var(--raised); border: 1px solid var(--line); border-radius: var(--r-md);
+  padding: 6px 12px; cursor: pointer; font-weight: 500; line-height: 1.35;
+  box-shadow: var(--shadow-1);
 }
-.btn:hover, select:hover { border-color: var(--accent); }
-.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+select { padding-right: 8px; }
+.btn:hover, select:hover { background: var(--hover); border-color: var(--line-strong); }
+.btn:active:not([disabled]) { background: var(--sunken); box-shadow: none; }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent);
+               font-weight: 600; }
+.btn.primary:hover { background: color-mix(in srgb, var(--accent) 86%, var(--fg));
+                     border-color: color-mix(in srgb, var(--accent) 86%, var(--fg)); }
+.btn.primary:active:not([disabled]) { background: color-mix(in srgb, var(--accent) 80%, var(--bg)); }
+.btn[disabled]:hover { background: var(--raised); border-color: var(--line); }
+.btn.primary[disabled]:hover { background: var(--accent); border-color: var(--accent); }
 /* What the last thing done on this tab came to. It stays in view while the tab scrolls: the
    tab is taller than the window, and a message at its top was missed from a form below. */
 .repo-note { color: var(--fg); border-left: 3px solid var(--accent); padding: 6px 8px;
@@ -255,10 +320,11 @@ header .picker span { font-size: 9.5px; color: var(--muted); text-transform: upp
   .workspace.board.edit .dock > .palette { grid-column: 1; grid-row: 2; }
   .workspace.board.edit .dock > .dock-col { grid-column: 2; grid-row: 2; }
 }
-.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg);
+         padding: 14px; box-shadow: var(--shadow-1); }
 .panel h2 {
-  font-size: 10.5px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted);
-  margin: 0 0 9px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em;
+  color: var(--muted); margin: 0 0 10px;
 }
 /* Both units stay on one row on a landscape window, because a pair is read as a pair; the
    keys narrow to fit (see fitStage) rather than the type shrinking. On a portrait window the
@@ -497,8 +563,9 @@ body.dragging-key .palette.drop-over { outline: none; }
    its second line and the dot say the rest. Faded, it looked disabled. */
 .action-list [hidden] { display: none; }
 .action .req { font-size: 10px; color: var(--error); }
-.field { margin-bottom: 9px; }
-.field label { display: block; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 3px; }
+.field { margin-bottom: 10px; }
+.field label { display: block; font-size: 10.5px; font-weight: 600; color: var(--muted);
+               text-transform: uppercase; letter-spacing: .07em; margin-bottom: 4px; }
 /* Which slot the action palette will write to. The attribute was set and never styled,
    so clicking an action could land on a long press with nothing on screen saying so. */
 .field[data-active] { position: relative; padding-left: 8px; }
@@ -517,8 +584,9 @@ body.dragging-key .palette.drop-over { outline: none; }
 .missing-list { margin: 0; padding-left: 18px; font-size: 11px; }
 .finding.note { border-left-color: var(--muted); }
 .finding b { display: block; font-size: 10.5px; letter-spacing: .03em; }
-.pill { font-size: 10.5px; padding: 2px 7px; border-radius: 99px; border: 1px solid var(--line); }
-.save-status { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.pill { font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 99px;
+        border: 1px solid var(--line); line-height: 1.5; }
+.save-status { font-size: var(--fs-1); color: var(--muted); white-space: nowrap; }
 .save-status.pending { font-style: italic; }
 .pill.ok { color: var(--ok); border-color: var(--ok); }
 /* Something saving has left for the owner to do. A button, so it is dressed as one. */
@@ -528,7 +596,8 @@ body.dragging-key .palette.drop-over { outline: none; }
 .pill.bad { color: var(--error); border-color: var(--error); }
 .muted { color: var(--muted); }
 .empty-state { color: var(--muted); font-size: 12px; padding: 14px; text-align: center; border: 1px dashed var(--line); border-radius: 10px; }
-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
+code { font-family: var(--mono); font-size: 11.5px; background: var(--sunken);
+       border-radius: 4px; padding: 0 4px; }
 .new-game-where, .new-game-file { font-size: 11.5px; margin: 4px 0 8px; }
 .new-game .row2 { margin-top: 6px; }
 .new-game-styles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
