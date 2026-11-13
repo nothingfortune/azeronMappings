@@ -19,6 +19,15 @@ export interface KeySlotSpec {
   key?: string | null;
   meta?: string | null;
   mouse?: string | null;
+  /**
+   * An Xbox button or trigger the unit sends itself: `A`, `LB`, `RT`, `DpadUp`, `Guide`.
+   * Named after the app's XInput types, and not `xbox`, which an action uses for the pad
+   * control a genre suggests -- a field the compiler never reads.
+   */
+  xinput?: string | null;
+  /** Scroll: `up`, `down`, `left` or `right`, at `speed` (1 to 100, the app's scale). */
+  wheel?: string | null;
+  speed?: number;
 }
 
 /** An action id, an inline binding, or nothing. */
@@ -96,8 +105,10 @@ export interface PositionSpec {
   tap?: SlotSpec;
   long?: SlotSpec;
   double?: SlotSpec;
-  /** Stick only. */
+  /** Stick only: `keyboard`, `xbox` or `mouse`. */
   mode?: string;
+  /** Stick in mouse mode: the pointer speed the unit stores (the app's default is 5). */
+  mouse_sensitivity?: number;
   /**
    * An action id, an inline key, or -- for a direction whose keycode this repo does not
    * understand -- the token verbatim, so a build does not write 0 over it.

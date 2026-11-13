@@ -174,16 +174,41 @@ holds the first, an Everspace 2 layout into slot 4):
 
 What the app stores on the unit, each in the record layout above unless said:
 
-| Type | What                | On the wire                                                                                                   |
-| ---- | ------------------- | ------------------------------------------------------------------------------------------------------------- |
-| 22   | Xbox button         | type 0x16, the key field the XInput bit (A 0x1000, B 0x2000, d-pad left 0x0400)                               |
-| 23   | Xbox trigger        | type 0x17, key field 1 or 2 (`T2` is the right trigger)                                                       |
-| 21   | Stick as Xbox stick | the 134-byte stick record with type 0x15                                                                      |
-| 40   | Stick as mouse      | the stick record with type 0x28; mouse sensitivity is the byte at 16 (default 5)                              |
-| 35   | Button mouse wheel  | a 55-byte record: type 0x23, x, y, 0, interval (u16 BE), y interval (u16 BE), then the long and double blocks |
-| 12   | DirectInput d-pad   | type 0x0c                                                                                                     |
+| Type | What                | On the wire                                                                                                |
+| ---- | ------------------- | ---------------------------------------------------------------------------------------------------------- |
+| 22   | Xbox button         | type 0x16, the key field the XInput bit (A 0x1000, B 0x2000, Guide 0x0400)                                 |
+| 23   | Xbox trigger        | type 0x17, key field 1 or 2 (`T2` is the right trigger)                                                    |
+| 21   | Stick as Xbox stick | the 134-byte stick record with type 0x15                                                                   |
+| 40   | Stick as mouse      | the stick record with type 0x28; mouse sensitivity is the byte at 16 (default 5)                           |
+| 35   | Button mouse wheel  | a 55-byte record: type 0x23, x, y, interval (u16 BE), y interval (u16 BE), then the long and double blocks |
+| 12   | DirectInput d-pad   | type 0x0c                                                                                                  |
 
-Each works on a long press or double tap as well as the tap.
+Each works on a long press or double tap as well as the tap (Xbox buttons were seen on
+both; scroll only on a tap).
+
+**What this repo writes of these** (`tests/fixtures/unit-protocol/onboard-112.json` holds
+the app's own records, and the encoder reproduces every one byte for byte):
+
+- A key's `{xinput: A}` (any button by its XInput bit, `LT` / `RT` as `T1` / `T2`) on any press.
+- `{wheel: up, speed: 33}` on a tap. The app turns a speed of 0 to 100 into
+  `interval = (100 - speed) * 1.5` for the moving axis and 150 for the other, sends the
+  interval whole (100.5 went as 100), and stores the direction as `x` 1 right / -1 left and
+  `y` 1 up / -1 down. Up and right were captured; **down and left are refused on a unit**
+  until a capture shows how a negative direction goes. **No write with scroll is made at
+  all** yet, because a write is checked by reading the slot back and how a unit stores a
+  scroll record is not captured; a layout with scroll goes through the Azeron app for now.
+- A stick's `mode: xbox` (type 21) and `mode: mouse` (type 40, `mouse_sensitivity` into the
+  byte at 16; the owner's "super sensitive" stored 2). Which Xbox stick a right unit's
+  drives is not captured: the left unit's export named the left stick.
+- **Reading them back is inferred, not captured**: an Xbox button or trigger is read where
+  a key's code is stored (little-endian, as every stored value), and a stick in Xbox or
+  mouse mode in the keyboard stick's layout with its own type byte. A unit that stores them
+  otherwise shows as a difference after the write, never as a pass.
+- A record of a type whose stored layout is not known (scroll, so far) is kept by its id,
+  pins and types and reported as one that cannot be checked, rather than misread: reading
+  on could run off its end and stop every slot after it from being read.
+- App 2.0.3 exports the stick's hold key by name (`"ShiftLeft"`) and sends it as that key's
+  code.
 
 **Not stored on the unit**: a macro (16), an input sequence (37) and a layer switch (24).
 The app writes each as an empty record and does the work itself on the PC: it types the

@@ -1494,6 +1494,8 @@ function renderInspector(): HTMLElement {
     }
     modeSelect.addEventListener("change", () => {
       spec.mode = modeSelect.value;
+      // The pointer speed only means something in mouse mode; it goes with it.
+      if (spec.mode !== "mouse") delete spec.mouse_sensitivity;
       render();
     });
     panel.append(

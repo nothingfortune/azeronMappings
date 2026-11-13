@@ -12,6 +12,9 @@ import {
   TYPE_KEYBOARD,
   TYPE_MOUSE,
   TYPE_NONE,
+  TYPE_WHEEL,
+  TYPE_XBOX_BUTTON,
+  TYPE_XBOX_TRIGGER,
 } from "../types/azeron.js";
 import type {
   ActionSpec,
@@ -31,6 +34,111 @@ function isRaw(spec: object): spec is RawSlotSpec {
 }
 
 export class BindingError extends Error {}
+
+/**
+ * An Xbox button to the value the unit stores for it: XInput's own button bits, as the app's
+ * table names them (read from its interface code; A, the triggers and Guide were seen in a
+ * capture, 2026-11-13). `View` is XInput's BACK and `Menu` its START.
+ */
+export const XBOX_BUTTON_BITS: Readonly<Record<string, number>> = {
+  DpadUp: 0x0001,
+  DpadDown: 0x0002,
+  DpadLeft: 0x0004,
+  DpadRight: 0x0008,
+  Menu: 0x0010,
+  View: 0x0020,
+  LS: 0x0040,
+  RS: 0x0080,
+  LB: 0x0100,
+  RB: 0x0200,
+  Guide: 0x0400,
+  A: 0x1000,
+  B: 0x2000,
+  X: 0x4000,
+  Y: 0x8000,
+};
+
+/** The triggers, as the export names them. */
+export const XBOX_TRIGGERS: Readonly<Record<string, string>> = { LT: "T1", RT: "T2" };
+
+/** Every control a key can send as an Xbox button or trigger. */
+export const XBOX_SLOT_CONTROLS: readonly string[] = [
+  ...Object.keys(XBOX_BUTTON_BITS),
+  ...Object.keys(XBOX_TRIGGERS),
+];
+
+/**
+ * Scroll from a key. The export holds a direction per axis (`x` 1 right, -1 left; `y` 1 up,
+ * -1 down) and an interval per axis that the app works out from a speed of 0 to 100:
+ * `(100 - speed) * 1.5`, so 100 is the fastest and an axis left still reads 150. Up and
+ * right were captured (speed 33 up stored 100.5); the signs for down and left are the app's
+ * own code.
+ */
+export const WHEEL_DIRECTIONS: Readonly<Record<string, readonly [x: number, y: number]>> = {
+  up: [0, 1],
+  down: [0, -1],
+  left: [-1, 0],
+  right: [1, 0],
+};
+export const WHEEL_SPEED_MAX = 100;
+export const DEFAULT_WHEEL_SPEED = 50;
+const WHEEL_SLOWEST = 150;
+
+export function wheelInterval(speed: number): number {
+  return ((WHEEL_SPEED_MAX - speed) * WHEEL_SLOWEST) / WHEEL_SPEED_MAX;
+}
+
+export function wheelSpeed(interval: number): number {
+  return Math.round(WHEEL_SPEED_MAX - (interval * WHEEL_SPEED_MAX) / WHEEL_SLOWEST);
+}
+
+export interface WheelFields {
+  x: number;
+  y: number;
+  interval: number;
+  yInterval: number;
+}
+
+/** A scroll binding to the four fields the export keeps it in. */
+export function wheelFields(direction: string, speed = DEFAULT_WHEEL_SPEED): WheelFields {
+  const signs = WHEEL_DIRECTIONS[direction];
+  if (signs === undefined) {
+    throw new BindingError(`'${direction}' is not a scroll direction (up, down, left, right)`);
+  }
+  if (!Number.isInteger(speed) || speed < 1 || speed > WHEEL_SPEED_MAX) {
+    throw new BindingError(`scroll speed ${String(speed)} is not a whole number from 1 to 100`);
+  }
+  const [x, y] = signs;
+  return {
+    x,
+    y,
+    interval: x === 0 ? WHEEL_SLOWEST : wheelInterval(speed),
+    yInterval: y === 0 ? WHEEL_SLOWEST : wheelInterval(speed),
+  };
+}
+
+/** The four scroll fields back to a binding, or null when they are not one direction. */
+export function describeWheel(fields: Partial<WheelFields>): KeySlotSpec | null {
+  const x = fields.x ?? 0;
+  const y = fields.y ?? 0;
+  const direction = Object.entries(WHEEL_DIRECTIONS).find(([, [dx, dy]]) => dx === x && dy === y);
+  if (direction === undefined) return null;
+  const interval = (x === 0 ? fields.yInterval : fields.interval) ?? WHEEL_SLOWEST;
+  const other = (x === 0 ? fields.interval : fields.yInterval) ?? WHEEL_SLOWEST;
+  if (other !== WHEEL_SLOWEST) return null;
+  const speed = wheelSpeed(interval);
+  if (speed < 1 || wheelInterval(speed) !== interval) return null;
+  return speed === DEFAULT_WHEEL_SPEED ? { wheel: direction[0] } : { wheel: direction[0], speed };
+}
+
+/** Whether a slot binding is one the unit sends as itself rather than a key: Xbox or scroll. */
+export function isDeviceBinding(spec: object): boolean {
+  const binding = spec as KeySlotSpec;
+  return (
+    (binding.xinput !== null && binding.xinput !== undefined) ||
+    (binding.wheel !== null && binding.wheel !== undefined)
+  );
+}
 
 /** A slot spec (action id, inline binding, or null) to its export triple. */
 export function resolveSlot(
@@ -58,6 +166,23 @@ export function resolveSlot(
   }
 
   const binding = resolved;
+  // Only a binding written on the key itself sends an Xbox control or scrolls. An action's
+  // `xbox:` is the genre's suggestion of a pad control, which the compiler never reads.
+  const inline: KeySlotSpec | null = typeof spec === "string" ? null : binding;
+  if (typeof inline?.xinput === "string") {
+    const bit = XBOX_BUTTON_BITS[inline.xinput];
+    if (bit !== undefined) return [TYPE_XBOX_BUTTON, String(bit), keys.NONE_TOKEN];
+    const trigger = XBOX_TRIGGERS[inline.xinput];
+    if (trigger !== undefined) return [TYPE_XBOX_TRIGGER, trigger, keys.NONE_TOKEN];
+    throw new BindingError(
+      `'${inline.xinput}' is not an Xbox button or trigger a key can send ` +
+        `(${XBOX_SLOT_CONTROLS.join(", ")})`,
+    );
+  }
+  if (typeof inline?.wheel === "string") {
+    wheelFields(inline.wheel, inline.speed);
+    return [TYPE_WHEEL, keys.NONE_TOKEN, keys.NONE_TOKEN];
+  }
   if (binding.mouse !== null && binding.mouse !== undefined) {
     const code = keys.nameToMouse(binding.mouse);
     if (code === null) {
@@ -91,6 +216,21 @@ export function describeSlot(typeCode: string, keyToken: string, metaToken: stri
   const emptyMeta = metaToken === keys.NONE_TOKEN;
 
   if (typeCode === TYPE_NONE && emptyKey && emptyMeta) return { spec: null, exact: true };
+
+  if (typeCode === TYPE_XBOX_BUTTON) {
+    const name = Object.entries(XBOX_BUTTON_BITS).find(([, bit]) => String(bit) === keyToken);
+    if (name === undefined || !emptyMeta) {
+      return { spec: { type_raw: typeCode, key_raw: keyToken, meta_raw: metaToken }, exact: false };
+    }
+    return { spec: { xinput: name[0] }, exact: true };
+  }
+  if (typeCode === TYPE_XBOX_TRIGGER) {
+    const name = Object.entries(XBOX_TRIGGERS).find(([, token]) => token === keyToken);
+    if (name === undefined || !emptyMeta) {
+      return { spec: { type_raw: typeCode, key_raw: keyToken, meta_raw: metaToken }, exact: false };
+    }
+    return { spec: { xinput: name[0] }, exact: true };
+  }
 
   if (typeCode === TYPE_MOUSE) {
     const name = keys.mouseToName(keyToken);
@@ -145,6 +285,8 @@ export function matchAction(
 ): string | null {
   if (!spec || !actions) return null;
   if (isRaw(spec)) return null;
+  // No action names an Xbox button or scroll, and one with no key would otherwise match.
+  if (isDeviceBinding(spec)) return null;
 
   const want = spec;
   const candidates = Object.entries(actions)
@@ -214,4 +356,6 @@ export function blankRecord(record: InputRecord): void {
   }
   record.featureDelay = DEFAULT_FEATURE_DELAY;
   record.doubleDelay = DEFAULT_DOUBLE_DELAY;
+  // `x`, `y` and the intervals are left: they only mean anything on a scroll slot, which
+  // writes all four, and a scroll this repo cannot name (two axes at once) keeps them.
 }

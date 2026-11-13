@@ -24,8 +24,8 @@ import {
   STICK_DIRECTIONS,
   STICK_MODE_CODES,
 } from "../types/azeron.js";
-import type { ActionSpec, PositionSpec } from "../types/profile.js";
-import { blankRecord, resolveSlot } from "./binding.js";
+import type { ActionSpec, KeySlotSpec, PositionSpec, SlotSpec } from "../types/profile.js";
+import { BindingError, blankRecord, resolveSlot, wheelFields } from "./binding.js";
 import * as keys from "./keys.js";
 import type { Device, Profile } from "./model-core.js";
 import { messageOf } from "./object.js";
@@ -60,8 +60,8 @@ function applyStick(
     const raw = spec.raw?.types?.[0];
     if (raw === undefined) {
       throw new CompileError(
-        `${position}: stick mode '${mode}' has no known type code. Only 'keyboard' is ` +
-          "verified; capture a real export and add the code to STICK_MODES.",
+        `${position}: stick mode '${mode}' has no known type code (keyboard, xbox, mouse); ` +
+          "capture a real export and add the code to STICK_MODES.",
       );
     }
     code = raw;
@@ -73,6 +73,17 @@ function applyStick(
   // unverified, so an unmeasured device leaves whatever the template had.
   if (analogSettings && device.stickAngle !== undefined) analogSettings.angle = device.stickAngle;
   if (!analogSettings) throw new CompileError(`${position}: template record has no analogSettings`);
+  // Every stick record carries the pointer speed; it only does anything in mouse mode, and
+  // is kept in the others so a stick switched away from the mouse and back keeps it.
+  if (spec.mouse_sensitivity !== undefined) {
+    const value = spec.mouse_sensitivity;
+    if (!Number.isInteger(value) || value < 1 || value > 255) {
+      throw new CompileError(
+        `${position}: mouse_sensitivity ${String(value)} is not a whole number from 1 to 255`,
+      );
+    }
+    analogSettings.mouseSensitivity = value;
+  }
   const live: AnalogDirections = activeAnalogKeys(analogSettings);
 
   for (const direction of STICK_DIRECTIONS) {
@@ -110,6 +121,38 @@ function applyStick(
   }
 }
 
+/** A binding written on the key itself; an action id is not one (see resolveSlot). */
+function inlineSlot(spec: SlotSpec | undefined): KeySlotSpec | null {
+  if (spec === null || spec === undefined || typeof spec === "string") return null;
+  return spec as KeySlotSpec;
+}
+
+/**
+ * Scroll keeps its direction and speed beside the key fields (`x`, `y`, `interval`,
+ * `yInterval`). Only a tap is written: the unit's record for a scrolling tap was captured,
+ * one for a long or double press was not.
+ */
+function applyWheel(
+  record: InputRecord,
+  spec: SlotSpec | undefined,
+  where: string,
+  slot: Slot,
+): void {
+  const binding = inlineSlot(spec);
+  if (binding?.wheel === null || binding?.wheel === undefined) return;
+  if (slot !== "tap") {
+    throw new CompileError(
+      `${where}: scroll goes on a tap only -- how a unit holds it on a ${slot} press is not captured yet`,
+    );
+  }
+  try {
+    Object.assign(record, wheelFields(binding.wheel, binding.speed));
+  } catch (error) {
+    if (error instanceof BindingError) throw new CompileError(`${where}: ${error.message}`);
+    throw error;
+  }
+}
+
 function applyPosition(
   record: InputRecord,
   spec: PositionSpec,
@@ -135,6 +178,7 @@ function applyPosition(
       const [keyField, metaField] = SLOT_FIELDS[slot];
       tokens(record, keyField)[0] = triple[1];
       tokens(record, metaField)[0] = triple[2];
+      applyWheel(record, spec[slot], `${position}.${slot}`, slot);
     });
   }
 

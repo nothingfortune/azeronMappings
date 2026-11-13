@@ -20,11 +20,14 @@ import {
   STICK_DIRECTIONS,
   STICK_MODES,
   STICK_MODE_CODES,
+  DEFAULT_MOUSE_SENSITIVITY,
   TYPE_NONE,
+  TYPE_WHEEL,
   activeAnalogKeys,
+  isRebindableRecord,
 } from "../types/azeron.js";
 import type { ActionSpec, PositionSpec, ProfileData, ProfileMeta } from "../types/profile.js";
-import { describeSlot, matchAction, resolveSlot } from "./binding.js";
+import { describeSlot, describeWheel, matchAction, resolveSlot } from "./binding.js";
 import * as keys from "./keys.js";
 import type { ActionSet, Device } from "./model-core.js";
 
@@ -40,6 +43,10 @@ function stickSpec(record: InputRecord, actions: ActionSet | null): PositionSpec
   const spec: PositionSpec = {};
   const mode = STICK_MODES[String(record.types[0])];
   spec.mode = mode ?? "unknown";
+  const sensitivity = record.analogSettings?.mouseSensitivity;
+  if (typeof sensitivity === "number" && sensitivity !== DEFAULT_MOUSE_SENSITIVITY) {
+    spec.mouse_sensitivity = sensitivity;
+  }
 
   const directions: PositionSpec["directions"] = {};
   const settings = record.analogSettings;
@@ -90,6 +97,18 @@ export function decompilePosition(
     SLOTS.forEach((slot: Slot, index: number) => {
       const [keyField, metaField] = SLOT_FIELDS[slot];
       const typeCode = String(record.types[index]);
+      if (typeCode === TYPE_WHEEL && slot === "tap") {
+        const wheel = describeWheel({
+          x: Number(record.x ?? 0),
+          y: Number(record.y ?? 0),
+          interval: Number(record.interval ?? 150),
+          yInterval: Number(record.yInterval ?? 150),
+        });
+        // A scroll this cannot name (two axes at once, or neither) is kept by its type, so
+        // the build writes the type back and leaves its direction fields as they are.
+        spec[slot] = wheel ?? { type_raw: typeCode, key_raw: "0", meta_raw: "0" };
+        return;
+      }
       const described = describeSlot(
         typeCode,
         String(tokens(record, keyField)[0]),
@@ -162,6 +181,9 @@ export function decompile(
     if (device.unknownPins.has(position.pin)) continue;
     const record = byPin.get(position.pin);
     if (!record) continue;
+    // What the compiler will not rewrite (a macro, a layer switch, the d-pad type) passes
+    // through from the export as it is. Naming it would make a profile that refuses to build.
+    if (!isRebindableRecord(record)) continue;
     const spec = decompilePosition(record, options.actions ?? null, device.isStick(name));
     if (Object.keys(spec).length > 0) positions[name] = spec;
   }

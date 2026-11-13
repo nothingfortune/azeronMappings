@@ -62,8 +62,9 @@ function store(write: Uint8Array): Uint8Array {
   const le = (value: number): void => {
     out.push(value & 0xff, value >> 8);
   };
-  if (write[4] === 4) {
-    out.push(4, 0, 0);
+  // A stick in keyboard (4), Xbox (0x15) or mouse (0x28) mode: one layout, its type kept.
+  if (write[4] === 4 || write[4] === 0x15 || write[4] === 0x28) {
+    out.push(write[4], 0, 0);
     let at = 5;
     const u8 = (): number => write[at++] ?? 0;
     const u16 = (): number => {

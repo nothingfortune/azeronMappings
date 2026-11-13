@@ -379,11 +379,54 @@ const WRITABLE_TYPES = new Map<string, number>([
   ["6", 6],
   ["11", 11],
   ["15", 15],
+  // An Xbox button and trigger: a key record whose key is XInput's button bit, or 1 / 2
+  // for the left / right trigger (captured 2026-11-13, firmware 112).
+  ["22", 0x16],
+  ["23", 0x17],
 ]);
 const TYPE_STICK = 4;
+/** The stick in keyboard, Xbox and mouse mode: one record shape, its type byte differs. */
+const STICK_TYPES = new Map<string, number>([
+  ["4", TYPE_STICK],
+  ["21", 0x15],
+  ["40", 0x28],
+]);
+/** Scroll from a key, which has a shorter record of its own. */
+const TYPE_WHEEL = 0x23;
+const XBOX_TRIGGER_CODES: Readonly<Record<string, number>> = { T1: 1, T2: 2 };
+
+/** Whether a record is a stick, in any mode the unit stores. */
+export function isStickRecord(input: { types: readonly string[] }): boolean {
+  return STICK_TYPES.has(String(input.types[0]));
+}
+
+/**
+ * A trigger's key as the unit stores it: a key's code, a mouse button's number, an Xbox
+ * button's bit, or 1 / 2 for an Xbox trigger.
+ */
+export function triggerKeyCode(type: string | undefined, token: string | number): number {
+  if (type === "15") return Number(token);
+  if (type === "22") {
+    const bit = Number(token);
+    if (!Number.isInteger(bit) || bit < 0 || bit > 0xffff || (bit & (bit - 1)) !== 0) {
+      throw new ProtocolError(`the Xbox button "${String(token)}" is not one button bit`);
+    }
+    return bit;
+  }
+  if (type === "23") {
+    if (token === NONE_TOKEN || token === 0) return 0;
+    const code = XBOX_TRIGGER_CODES[String(token)];
+    if (code === undefined)
+      throw new ProtocolError(`the Xbox trigger "${String(token)}" is not T1 or T2`);
+    return code;
+  }
+  return keyCode(token);
+}
 
 /** The bytes OBM_COPY carries for one key-like input. */
 export const INPUT_RECORD_LENGTH = 68;
+/** The bytes OBM_COPY carries for an input whose tap scrolls. */
+export const WHEEL_RECORD_LENGTH = 55;
 /** The bytes OBM_COPY carries for a keyboard-mode stick. */
 export const STICK_RECORD_LENGTH = 134;
 
@@ -405,6 +448,12 @@ class Writer {
       throw new ProtocolError(`${what} is ${String(value)}; the unit stores it in two bytes`);
     }
     this.bytes[this.at++] = value >> 8;
+    this.bytes[this.at++] = value & 0xff;
+  }
+  i8(value: number, what: string): void {
+    if (!Number.isInteger(value) || value < -0x80 || value > 0x7f) {
+      throw new ProtocolError(`${what} is ${String(value)}; the unit stores it as a signed byte`);
+    }
     this.bytes[this.at++] = value & 0xff;
   }
   i16(value: number, what: string): void {
@@ -476,9 +525,10 @@ const DEFAULT_DELAYS: Record<string, number> = { featureDelay: 500, doubleDelay:
 export function isWritableInput(input: InputRecord, unknownPins: readonly number[] = []): boolean {
   if (input.pinOne === 255 || input.pinOne === 0) return false;
   if (unknownPins.includes(input.pinOne)) return false;
-  const type = input.types[0];
-  if (type === String(TYPE_STICK)) return true;
-  return input.types.every((t) => WRITABLE_TYPES.has(t));
+  if (isStickRecord(input)) return true;
+  const [tap, ...rest] = input.types;
+  const tapOk = tap === "35" || (tap !== undefined && WRITABLE_TYPES.has(tap));
+  return tapOk && rest.every((t) => WRITABLE_TYPES.has(t));
 }
 
 /**
@@ -487,8 +537,9 @@ export function isWritableInput(input: InputRecord, unknownPins: readonly number
  * interval]`. The tap block has no delay; long carries featureDelay and double doubleDelay.
  */
 export function encodeInputRecord(slot: number, input: InputRecord): Uint8Array {
-  if (input.types[0] === String(TYPE_STICK)) return encodeStickRecord(slot, input);
-  const w = new Writer(INPUT_RECORD_LENGTH);
+  if (isStickRecord(input)) return encodeStickRecord(slot, input);
+  const wheel = input.types[0] === "35";
+  const w = new Writer(wheel ? WHEEL_RECORD_LENGTH : INPUT_RECORD_LENGTH);
   const where = `input ${String(input.id)}`;
   w.u8(slot, "slot");
   w.u8(input.id, `${where} id`);
@@ -496,12 +547,16 @@ export function encodeInputRecord(slot: number, input: InputRecord): Uint8Array 
   w.u8(input.pinTwo, `${where} pinTwo`);
   TRIGGERS.forEach((trigger, index) => {
     const typeToken = input.types[index] ?? "11";
+    if (index === 0 && wheel) {
+      encodeWheelTap(w, input, where);
+      return;
+    }
     const type = WRITABLE_TYPES.get(typeToken);
     if (type === undefined)
       throw new ProtocolError(`${where}: type ${typeToken} is not one the app writes`);
     w.u8(type, `${where} type`);
     for (const token of tokens(input[trigger.keys], 4)) {
-      w.u16(type === 15 ? Number(token) : keyCode(token), `${where} ${trigger.keys}`);
+      w.u16(triggerKeyCode(typeToken, token), `${where} ${trigger.keys}`);
     }
     for (const token of tokens(input[trigger.metas], 3)) {
       w.u16(keyCode(token), `${where} ${trigger.metas}`);
@@ -518,6 +573,27 @@ export function encodeInputRecord(slot: number, input: InputRecord): Uint8Array 
     w.u8(num(input[trigger.turboInterval], 0), `${where} ${trigger.turboInterval}`);
   });
   return w.bytes;
+}
+
+/**
+ * A scrolling tap: `[0x23][x][y][interval][yInterval]`, the directions one signed byte each
+ * and the intervals two bytes, whole (the export's 100.5 went as 100). There is no hold,
+ * hold time or turbo for it. Seen for up and right only (2026-11-13), so a negative
+ * direction -- down or left -- is refused until a capture shows how it goes.
+ */
+function encodeWheelTap(w: Writer, input: InputRecord, where: string): void {
+  const x = num(input.x, 0);
+  const y = num(input.y, 0);
+  if (x < 0 || y < 0) {
+    throw new ProtocolError(
+      `${where}: scroll down or left is not written to a unit until a capture shows how the app sends it`,
+    );
+  }
+  w.u8(TYPE_WHEEL, `${where} type`);
+  w.i8(x, `${where} x`);
+  w.i8(y, `${where} y`);
+  w.u16(Math.trunc(num(input.interval, 150)), `${where} interval`);
+  w.u16(Math.trunc(num(input.yInterval, 150)), `${where} yInterval`);
 }
 
 const STICK_KEY_ORDER: readonly [string, string, string][] = [
@@ -568,7 +644,10 @@ export function encodeStickRecord(slot: number, input: InputRecord): Uint8Array 
   w.u8(input.id, `${where} id`);
   w.u8(input.pinOne, `${where} pinOne`);
   w.u8(input.pinTwo, `${where} pinTwo`);
-  w.u8(TYPE_STICK, `${where} type`);
+  const type = STICK_TYPES.get(String(input.types[0]));
+  if (type === undefined)
+    throw new ProtocolError(`${where}: type ${String(input.types[0])} is not a stick mode`);
+  w.u8(type, `${where} type`);
   w.u16(num(a.upperLimit, 0), `${where} upperLimit`);
   w.u16(num(a.lowerLimit, 0), `${where} lowerLimit`);
   w.i16(num(a.angle, 0), `${where} angle`);
@@ -607,11 +686,15 @@ export function encodeStickRecord(slot: number, input: InputRecord): Uint8Array 
 /**
  * A hold-trigger key as the app sends it. "16", the app's own default, goes as Shift's code
  * (0xE002) -- every slot the app wrote from a layout holds that -- while any other number
- * goes as itself ("17" was sent as 0x0011, 2026-10-14). Seen both ways; nothing else is.
+ * goes as itself ("17" was sent as 0x0011, 2026-10-14). A key's name goes as its code.
  */
 export function holdKeyCode(token: unknown): number {
   const text = typeof token === "string" || typeof token === "number" ? String(token) : "0";
   if (text === "16") return DEVICE_KEY_CODES.ShiftLeft ?? 0xe002;
+  // The app 2.0.3 exports the key by name ("ShiftLeft"), and sent that as Shift's code
+  // (2026-11-13).
+  const named = DEVICE_KEY_CODES[text];
+  if (named !== undefined) return named;
   const value = Number(text);
   if (!Number.isInteger(value))
     throw new ProtocolError(`the hold key "${text}" is not one the app was seen to send`);
@@ -736,6 +819,11 @@ export interface StoredInput {
   turboIntervalLong: number;
   turboIntervalDouble: number;
   stick?: StoredStick;
+  /**
+   * A record of a type whose stored layout is not known (scroll, a macro the app keeps):
+   * only its id, pins and types were read, so nothing else in it can be compared.
+   */
+  undecoded?: true;
   /** The record exactly as stored, page 0 then page 1. */
   raw: Uint8Array;
 }
@@ -804,20 +892,29 @@ function typeName(code: number): string {
   return String(code);
 }
 
-function decodeRecord(record: Uint8Array): StoredInput {
+/** One input as a unit stores it, page 0 then page 1. */
+export function decodeStoredRecord(record: Uint8Array): StoredInput {
   const r = new Reader(record);
   r.u8(); // 2 in every record seen
   const id = r.u8();
   const pinOne = r.u8();
   const pinTwo = r.u8();
   const types = [typeName(r.u8()), typeName(r.u8()), typeName(r.u8())];
-  if (types[0] === String(TYPE_STICK)) return decodeStick(r, { id, pinOne, pinTwo, types }, record);
+  if (isStickRecord({ types })) return decodeStick(r, { id, pinOne, pinTwo, types }, record);
+  if (!types.every((type) => STORED_KEY_TYPES.has(type))) {
+    // A unit holds what the app put there, and the app writes types this cannot read yet:
+    // scroll's record is shorter. Reading on would misread it, or run off its end and stop
+    // every slot after it from being read.
+    return { ...undecodedInput(id, pinOne, pinTwo, types), raw: record };
+  }
   const metas = (): string[] => [0, 1, 2].map(() => keyName(r.u16()));
-  // A mouse trigger stores the button number where a key trigger stores a key code.
+  // A mouse trigger stores the button number where a key trigger stores a key code, and an
+  // Xbox one its button bit or trigger number.
   const readKeys = (type: string | undefined): string[] =>
     [0, 1, 2, 3].map(() => {
       const value = r.u16();
-      return type === "15" ? String(value) : keyName(value);
+      if (type === "23") return value === 1 ? "T1" : value === 2 ? "T2" : String(value);
+      return type === "15" || type === "22" ? String(value) : keyName(value);
     });
   const keyValues = readKeys(types[0]);
   const metaValues = metas();
@@ -863,6 +960,45 @@ function decodeRecord(record: Uint8Array): StoredInput {
     turboIntervalLong,
     turboIntervalDouble,
     raw: record,
+  };
+}
+
+/** The types a stored key-like record is read for: the ones written, and DirectInput d-pad. */
+const STORED_KEY_TYPES = new Set(["0", "1", "2", "6", "11", "12", "15", "22", "23"]);
+
+function undecodedInput(
+  id: number,
+  pinOne: number,
+  pinTwo: number,
+  types: string[],
+): Omit<StoredInput, "raw"> {
+  const none = (count: number): string[] => Array.from({ length: count }, () => NONE_TOKEN);
+  return {
+    id,
+    pinOne,
+    pinTwo,
+    types,
+    keyValues: none(4),
+    metaValues: none(3),
+    keyValuesLong: none(4),
+    metaValuesLong: none(3),
+    keyValuesDouble: none(4),
+    metaValuesDouble: none(3),
+    featureDelay: 0,
+    doubleDelay: 0,
+    isHold: false,
+    isHoldLong: false,
+    isHoldDouble: false,
+    holdTime: 0,
+    holdTimeLong: 0,
+    holdTimeDouble: 0,
+    isTurbo: false,
+    isTurboLong: false,
+    isTurboDouble: false,
+    turboInterval: 0,
+    turboIntervalLong: 0,
+    turboIntervalDouble: 0,
+    undecoded: true,
   };
 }
 
@@ -1025,7 +1161,7 @@ export class ProfileStream {
       const record = new Uint8Array(page0.length + page1.length);
       record.set(page0);
       record.set(page1, page0.length);
-      inputs.push(decodeRecord(record));
+      inputs.push(decodeStoredRecord(record));
     }
     this.profiles.push({
       slot: this.current.slot,
