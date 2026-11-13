@@ -76,22 +76,37 @@ h1, h2, h3 { font-weight: 700; }
                             border: 2px solid transparent; background-clip: padding-box; }
 ::-webkit-scrollbar-track { background: transparent; }
 header {
-  display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
-  padding: 7px 16px; border-bottom: 1px solid var(--line); background: var(--panel);
-  position: sticky; top: 0; z-index: 5;
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  min-height: var(--header-h); padding: 8px 20px;
+  border-bottom: 1px solid var(--line); background: var(--panel);
+  box-shadow: var(--shadow-1); position: sticky; top: 0; z-index: 5;
 }
-header h1 { font-size: 15px; margin: 0 8px 0 0; letter-spacing: .01em; }
+/* The product's name, with a small keycap for a mark. */
+header h1 { display: flex; align-items: center; gap: 10px; font-size: var(--fs-3);
+            font-weight: 700; margin: 0 12px 0 0; letter-spacing: -.005em; white-space: nowrap; }
+header h1::before { content: ""; width: 18px; height: 18px; flex: none; border-radius: 5px;
+                    background: linear-gradient(160deg, var(--accent), color-mix(in srgb, var(--accent) 55%, var(--bg)));
+                    box-shadow: inset 0 -2px 0 rgb(0 0 0 / .25), inset 0 1px 0 rgb(255 255 255 / .25); }
 header .spacer { flex: 1; }
-header { gap: 8px; }
-/* The tabs read as one control rather than five loose buttons. */
-header .tabs { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-header .tabs .btn { border: 0; border-radius: 0; }
-header .tabs .btn + .btn { border-left: 1px solid var(--line); }
+/* The tabs read as one control rather than five loose buttons: a segmented well, with the
+   open tab raised out of it and underlined in the accent. */
+header .tabs { display: inline-flex; gap: 2px; padding: 3px; background: var(--sunken);
+               border: 1px solid var(--line); border-radius: var(--r-md); }
+header .tabs .btn { border: 0; border-radius: 7px; background: transparent; box-shadow: none;
+                    color: var(--muted); padding: 5px 14px; font-weight: 600; }
+header .tabs .btn:hover { background: var(--hover); color: var(--fg); }
+header .tabs .btn.primary { background: var(--raised); color: var(--fg);
+                            box-shadow: var(--shadow-1), inset 0 -2px 0 var(--accent); }
+header .tabs .btn.primary:hover { background: var(--raised); border-color: transparent; }
 .btn.dirty::before { content: "● "; font-size: 9px; vertical-align: middle; }
 .btn[disabled] { opacity: .45; cursor: not-allowed; box-shadow: none; }
-.pill.lint { cursor: pointer; font: inherit; font-size: 11px; }
-.pill.lint.warn { border-color: var(--warn); color: var(--warn); }
-.pill.lint.bad { border-color: var(--error); color: var(--error); }
+.pill.lint { cursor: pointer; font: inherit; font-size: var(--fs-1); font-weight: 600;
+             padding: 3px 11px; background: var(--raised); }
+.pill.lint:hover { border-color: var(--line-strong); background: var(--hover); }
+.pill.lint.warn { border-color: color-mix(in srgb, var(--warn) 55%, transparent); color: var(--warn);
+                  background: color-mix(in srgb, var(--warn) 10%, var(--panel)); }
+.pill.lint.bad { border-color: color-mix(in srgb, var(--error) 55%, transparent); color: var(--error);
+                 background: color-mix(in srgb, var(--error) 10%, var(--panel)); }
 .panel.fold > summary { display: flex; align-items: baseline; justify-content: space-between;
                         gap: 8px; cursor: pointer; list-style: none; }
 .panel.fold > summary::-webkit-details-marker { display: none; }
@@ -127,12 +142,12 @@ header .tabs .btn + .btn { border-left: 1px solid var(--line); }
 .menu { position: relative; }
 .menu > summary { list-style: none; }
 .menu > summary::-webkit-details-marker { display: none; }
-.menu-items { position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; min-width: 250px;
-              display: grid; padding: 4px; background: var(--panel); border: 1px solid var(--line);
-              border-radius: 8px; box-shadow: 0 8px 24px rgb(0 0 0 / .18); }
-.menu-item { text-align: left; background: none; border: 0; padding: 7px 10px; border-radius: 6px;
+.menu-items { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; min-width: 260px;
+              display: grid; gap: 1px; padding: 6px; background: var(--raised);
+              border: 1px solid var(--line-strong); border-radius: 12px; box-shadow: var(--shadow-3); }
+.menu-item { text-align: left; background: none; border: 0; padding: 8px 12px; border-radius: 7px;
              color: var(--fg); cursor: pointer; font: inherit; }
-.menu-item:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.menu-item:hover { background: var(--accent-soft); }
 /* Text boxes take the theme too; the browser's own are white in a dark page. They are wells:
    sunken, where buttons are raised. */
 input:not([type="checkbox"]):not([type="file"]):not([type="radio"]), textarea {
@@ -162,9 +177,10 @@ select { padding-right: 8px; }
 .btn.primary[disabled]:hover { background: var(--accent); border-color: var(--accent); }
 /* What the last thing done on this tab came to. It stays in view while the tab scrolls: the
    tab is taller than the window, and a message at its top was missed from a form below. */
-.repo-note { color: var(--fg); border-left: 3px solid var(--accent); padding: 6px 8px;
-             position: sticky; top: 52px; z-index: 2; background: var(--panel);
-             border-radius: 0 6px 6px 0; box-shadow: 0 1px 4px rgba(0, 0, 0, .18); }
+.repo-note { color: var(--fg); border-left: 3px solid var(--accent); padding: 8px 12px;
+             position: sticky; top: calc(var(--header-h) + 4px); z-index: 2;
+             background: var(--raised); border-radius: 0 var(--r-sm) var(--r-sm) 0;
+             box-shadow: var(--shadow-2); }
 .unit-exports { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
                 gap: 10px; margin: 6px 0; }
 .unit-export .dropzone { padding: 10px; margin-bottom: 6px; }
@@ -207,17 +223,37 @@ select { padding-right: 8px; }
 .device-key.choosable { cursor: pointer; color: var(--fg); }
 .device-key.choosable:hover { border-color: var(--accent); }
 /* The games, as a gallery: the first step. */
-.game-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-                gap: 12px; margin-top: 12px; }
-.game-card { display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
-             padding: 14px; min-height: 110px; text-align: left; cursor: pointer;
-             border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--fg); }
-.game-card:hover { border-color: var(--accent); }
-.game-card.current { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent); }
-.game-card.add { border-style: dashed; color: var(--muted); }
-.game-card .game-name { font-size: 15px; }
-.game-card .game-genre { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
-.game-card .game-facts { font-size: 12px; color: var(--muted); }
+/* The gallery is a page of its own: the panel steps back and the title leads. */
+.panel.games { background: none; border: 0; box-shadow: none; padding: 20px 4px; }
+.panel.games > h2 { font-size: var(--fs-5); font-weight: 700; text-transform: none;
+                    letter-spacing: -.01em; color: var(--fg); margin: 0 0 4px; }
+.panel.games > .muted { font-size: var(--fs-3); }
+.game-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+                gap: 16px; margin-top: 20px; }
+.game-card { position: relative; display: flex; flex-direction: column; align-items: flex-start;
+             gap: 6px; padding: 20px 18px 18px; min-height: 140px; text-align: left; cursor: pointer;
+             overflow: hidden; border: 1px solid var(--line); border-radius: var(--r-lg);
+             background: linear-gradient(180deg, var(--raised), var(--panel)); color: var(--fg);
+             box-shadow: var(--shadow-1); }
+/* A keycap's lit edge along the top: the card is a thing to press. */
+.game-card::before { content: ""; position: absolute; inset: 0 0 auto; height: 3px;
+                     background: var(--line-strong); }
+.game-card:hover { border-color: var(--line-strong); background: var(--hover); box-shadow: var(--shadow-2); }
+.game-card:hover::before { background: var(--accent); }
+.game-card:active { background: var(--sunken); box-shadow: none; }
+.game-card.current { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), var(--shadow-2); }
+.game-card.current::before { background: var(--accent); }
+.game-card.add { border-style: dashed; border-color: var(--line-strong); background: transparent;
+                 box-shadow: none; justify-content: center; align-items: center; text-align: center;
+                 color: var(--muted); }
+.game-card.add::before { display: none; }
+.game-card.add:hover { border-color: var(--accent); color: var(--fg); background: var(--accent-soft); }
+.game-card .game-name { font-size: var(--fs-4); font-weight: 700; letter-spacing: -.005em; }
+.game-card.add .game-name { font-size: var(--fs-3); color: var(--fg); }
+.game-card .game-genre { order: -1; font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+                         letter-spacing: .1em; color: var(--accent); }
+.game-card .game-facts { margin-top: auto; font-size: var(--fs-1); color: var(--muted); }
+.game-card.add .game-facts { margin-top: 0; }
 header .game-switch { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Unit runs and save notes: over the foot of the window, scrolling in themselves, so
    nothing above them moves. The page is padded by the tray's height while it shows. */
@@ -262,8 +298,10 @@ header .game-switch { max-width: 240px; overflow: hidden; text-overflow: ellipsi
 .ingame-row .field label { font-size: 10px; }
 .ingame-row .field input { padding: 2px 5px; font-size: 11px; }
 .ingame-row .row2 { gap: 5px; }
-header .picker { display: inline-flex; align-items: center; gap: 6px; }
-header .picker span { font-size: 9.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+header .picker { display: inline-flex; align-items: center; gap: 8px; margin-left: 4px; }
+header .picker span { font-size: 10.5px; font-weight: 700; color: var(--muted);
+                      text-transform: uppercase; letter-spacing: .08em; }
+header .picker select { font-weight: 600; }
 .unit-settings { margin-top: 10px; display: grid; gap: 4px; }
 .unit-settings .row2 { flex-wrap: wrap; align-items: center; }
 .keybind { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
@@ -586,14 +624,18 @@ body.dragging-key .palette.drop-over { outline: none; }
 .finding b { display: block; font-size: 10.5px; letter-spacing: .03em; }
 .pill { font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 99px;
         border: 1px solid var(--line); line-height: 1.5; }
-.save-status { font-size: var(--fs-1); color: var(--muted); white-space: nowrap; }
-.save-status.pending { font-style: italic; }
-.pill.ok { color: var(--ok); border-color: var(--ok); }
+.save-status { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-1);
+               color: var(--muted); white-space: nowrap; padding: 0 4px; }
+.save-status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
+.save-status.pending::before { background: var(--warn); }
+.pill.ok { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 50%, transparent);
+           background: color-mix(in srgb, var(--ok) 10%, var(--panel)); }
 /* Something saving has left for the owner to do. A button, so it is dressed as one. */
-.pill.todo { background: none; color: var(--accent); border-color: var(--accent); cursor: pointer;
-             font: inherit; font-size: 10.5px; white-space: nowrap; }
-.pill.todo:hover { background: var(--accent); color: var(--bg); }
-.pill.bad { color: var(--error); border-color: var(--error); }
+.pill.todo { background: var(--accent-soft); color: var(--accent); border-color: var(--accent);
+             cursor: pointer; font: inherit; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.pill.todo:hover { background: var(--accent); color: var(--accent-fg); }
+.pill.bad { color: var(--error); border-color: color-mix(in srgb, var(--error) 55%, transparent);
+            background: color-mix(in srgb, var(--error) 10%, var(--panel)); }
 .muted { color: var(--muted); }
 .empty-state { color: var(--muted); font-size: 12px; padding: 14px; text-align: center; border: 1px dashed var(--line); border-radius: 10px; }
 code { font-family: var(--mono); font-size: 11.5px; background: var(--sunken);
