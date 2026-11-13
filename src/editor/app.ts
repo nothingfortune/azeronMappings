@@ -27,7 +27,12 @@ import {
   statusWords,
   takenAxesCarried,
 } from "./pedals-model.js";
-import { WHEEL_DIRECTIONS, XBOX_SLOT_CONTROLS, describeDirection } from "../lib/binding.js";
+import {
+  WHEEL_DIRECTIONS,
+  XBOX_SLOT_CONTROLS,
+  describeDirection,
+  resolveSlot,
+} from "../lib/binding.js";
 import type { BindingChange } from "../lib/actionfile.js";
 import { ueKeyFor } from "../lib/ingame.js";
 import {
@@ -415,6 +420,11 @@ function deviceSendField(spec: PositionSpec, slot: Slot, onChange: () => void): 
     if (kind === "xinput" && name !== undefined) spec[slot] = { xinput: name };
     else if (kind === "wheel" && name !== undefined) spec[slot] = { wheel: name };
     else return;
+    // A key that came in from an export may carry its type codes in raw.types, which the
+    // compiler writes over what it derives: this press's code follows the new binding, and
+    // the others' (codes nothing derives) are kept.
+    const types = spec.raw?.types;
+    if (types !== undefined) types[SLOTS.indexOf(slot)] = resolveSlot(spec[slot], null)[0];
     onChange();
   });
   return select;

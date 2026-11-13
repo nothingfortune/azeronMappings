@@ -883,6 +883,20 @@ describe("the inspector in plain words", () => {
     );
     send.value = "xinput:A";
     send.dispatchEvent(new Event("change"));
+    // index_3 came in from an export with its codes in raw.types; the tap's follows.
+    const index3 = [...document.querySelectorAll<HTMLButtonElement>(".key")].find(
+      (key) => key.dataset.position === "index_3",
+    );
+    index3?.click();
+    const index3Send = document.querySelector<HTMLSelectElement>("select[data-device-send=tap]");
+    if (!index3Send) throw new Error("no send select");
+    index3Send.value = "xinput:B";
+    index3Send.dispatchEvent(new Event("change"));
+    expect(
+      [...document.querySelectorAll(".finding")].some((finding) =>
+        finding.textContent.includes("raw-types-stale"),
+      ),
+    ).toBe(false);
     const updated = [...document.querySelectorAll<HTMLButtonElement>(".key")].find(
       (key) => key.dataset.position === "pinky_1",
     );

@@ -18,6 +18,7 @@ import {
   wheelFields,
 } from "../../../src/lib/binding.js";
 import { compileProfile } from "../../../src/lib/compile.js";
+import { removeKey } from "../../../src/lib/object.js";
 import { decompile } from "../../../src/lib/decompile.js";
 import { loadProfile, loadTemplate } from "../../../src/lib/io.js";
 import { Game } from "../../../src/lib/model.js";
@@ -463,6 +464,22 @@ describe("a layout that sends Xbox output and keys together", () => {
     });
     expect(found).toHaveLength(1);
     expect(found[0]?.level).toBe("warning");
+  });
+
+  it("counts a stick with directions and no mode as the keys it sends", async () => {
+    const found = await lintWith((positions) => {
+      positions.pinky_1 = { tap: { xinput: "A" } };
+      // Every key but the stick sends Xbox output; the stick sends keys, with no `mode:`.
+      for (const [name, spec] of Object.entries(positions)) {
+        if (name === "stick") {
+          delete spec.mode;
+          delete spec.raw;
+        } else if (name !== "pinky_1") {
+          removeKey(positions, name);
+        }
+      }
+    });
+    expect(found).toHaveLength(1);
   });
 
   it("is not warned of when the layout sends only keys", async () => {

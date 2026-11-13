@@ -979,8 +979,11 @@ function outputKinds(profile: Profile): { pad: string[]; keyboard: string[] } {
   const pad: string[] = [];
   const keyboard: string[] = [];
   for (const [position, spec] of Object.entries(profile.positions)) {
-    if (spec.mode !== undefined) {
-      if (spec.mode === "xbox") pad.push(position);
+    // A stick by the device map, with the compiler's default mode: one with directions and
+    // no `mode:` is a keyboard stick.
+    if (profile.device.isStick(position)) {
+      const mode = spec.mode ?? "keyboard";
+      if (mode === "xbox") pad.push(position);
       else if (spec.mode === "mouse" || Object.keys(spec.directions ?? {}).length > 0)
         keyboard.push(position);
       continue;
