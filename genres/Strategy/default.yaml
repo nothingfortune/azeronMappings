@@ -9,8 +9,6 @@ profile:
   unit: left
   set: Strategy-default
 
-lint:
-  require_keyboard_stick: true
 
 positions:
   stick:

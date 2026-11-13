@@ -203,7 +203,6 @@ export function gameConfig(options: ScaffoldOptions): GameConfig & { export_to?:
     slug: options.slug,
     genre: options.genre,
     template: options.template,
-    lint: { require_keyboard_stick: true },
   };
   if (options.exportTo) config.export_to = options.exportTo;
   return config;

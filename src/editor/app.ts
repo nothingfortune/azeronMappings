@@ -27,7 +27,12 @@ import {
   statusWords,
   takenAxesCarried,
 } from "./pedals-model.js";
-import { describeDirection } from "../lib/binding.js";
+import {
+  WHEEL_DIRECTIONS,
+  XBOX_SLOT_CONTROLS,
+  describeDirection,
+  resolveSlot,
+} from "../lib/binding.js";
 import type { BindingChange } from "../lib/actionfile.js";
 import { ueKeyFor } from "../lib/ingame.js";
 import {
@@ -314,9 +319,127 @@ function roleOf(actions: ActionSet, spec: PositionSpec | undefined): string | nu
   return ROLE_TAGS.find((tag) => tags.has(tag)) ?? null;
 }
 
+/**
+ * Every way a stick's mode changes goes through here: the Stick sends picker, an action
+ * dropped on a direction, a stick mode applied to the pair.
+ */
+function setStickMode(spec: PositionSpec, mode: string): void {
+  spec.mode = mode;
+  // An Xbox stick or the pointer sends no keys: its directions would be drawn on the board
+  // and checked as keys that send nothing. Undo brings them back.
+  if (mode !== "keyboard") removeKey(spec, "directions");
+  // A mode the stick came in with from an export rides in raw.types and would be written
+  // over the one chosen here.
+  const head = spec.raw?.types?.[0];
+  if (head !== undefined && Object.values(STICK_MODE_CODES).includes(head)) {
+    removeKey(spec, "raw");
+  }
+}
+
+const STICK_MODE_NAMES: Readonly<Record<string, string>> = {
+  keyboard: "Keys (its four directions)",
+  xbox: "Xbox stick",
+  mouse: "Mouse pointer",
+};
+
+/**
+ * What a stick sends: keys, an Xbox stick, or the pointer. A game whose checks require a
+ * keyboard stick (Everspace 2, constraint 1) shows the others, disabled, with why.
+ */
+function stickModeField(spec: PositionSpec): HTMLElement {
+  const keyboardOnly = currentGame().lintConfig.require_keyboard_stick === true;
+  const current = spec.mode ?? "keyboard";
+  const select = el("select", { "data-stick-mode": "select" });
+  for (const mode of new Set([current, ...Object.keys(STICK_MODE_CODES)])) {
+    const known = mode in STICK_MODE_CODES;
+    const barred = keyboardOnly && mode !== "keyboard";
+    const name = STICK_MODE_NAMES[mode] ?? mode;
+    const option = el("option", { value: mode }, [
+      !known ? `${name} -- not one the units take` : barred ? `${name} -- not in this game` : name,
+    ]);
+    if (mode === current) option.setAttribute("selected", "selected");
+    if (!known || (barred && mode !== current)) option.setAttribute("disabled", "disabled");
+    select.append(option);
+  }
+  select.addEventListener("change", () => {
+    setStickMode(spec, select.value);
+    render();
+  });
+  const field = el("div", { class: "stick-mode" }, [
+    el("div", { class: "field" }, [el("label", {}, ["Stick sends"]), select]),
+  ]);
+  if (keyboardOnly) {
+    field.append(
+      el("div", { class: "note" }, [
+        "This game's checks keep its sticks on keys: in Everspace 2 an Xbox stick made the " +
+          "game stutter, and the pointer spins the ship.",
+      ]),
+    );
+  }
+  if (current === "mouse") {
+    const speed = el("input", {
+      type: "number",
+      min: "1",
+      max: "20",
+      step: "1",
+      value: String(spec.mouse_sensitivity ?? 5),
+      "data-stick-mode": "speed",
+    });
+    speed.addEventListener("change", () => {
+      const value = Number(speed.value);
+      if (!Number.isInteger(value) || value < 1 || value > 255) return;
+      // Kept even at the app's default: the template may hold another speed, and only a
+      // value the profile gives is written over it.
+      spec.mouse_sensitivity = value;
+      render();
+    });
+    field.append(
+      el("div", { class: "field" }, [
+        el("label", {}, ["Pointer speed (lower is faster; the app's default is 5)"]),
+        speed,
+      ]),
+    );
+  }
+  return field;
+}
+
+/** The Xbox buttons and triggers, and scroll, a key's press can send instead of an action. */
+function deviceSendField(spec: PositionSpec, slot: Slot, onChange: () => void): HTMLElement {
+  const select = el("select", { "data-device-send": slot });
+  select.append(el("option", { value: "" }, ["— or send instead —"]));
+  const pad = el("optgroup", { label: "Xbox button or trigger" });
+  for (const control of XBOX_SLOT_CONTROLS) {
+    pad.append(el("option", { value: `xinput:${control}` }, [`Xbox ${control}`]));
+  }
+  select.append(pad);
+  if (slot === "tap") {
+    const wheel = el("optgroup", { label: "Scroll" });
+    for (const direction of Object.keys(WHEEL_DIRECTIONS)) {
+      wheel.append(el("option", { value: `wheel:${direction}` }, [`Scroll ${direction}`]));
+    }
+    select.append(wheel);
+  }
+  const value = spec[slot];
+  if (typeof value === "object" && value !== null) {
+    if ("xinput" in value && value.xinput) select.value = `xinput:${value.xinput}`;
+    if ("wheel" in value && value.wheel) select.value = `wheel:${value.wheel}`;
+  }
+  select.addEventListener("change", () => {
+    const [kind, name] = select.value.split(":");
+    if (kind === "xinput" && name !== undefined) spec[slot] = { xinput: name };
+    else if (kind === "wheel" && name !== undefined) spec[slot] = { wheel: name };
+    else return;
+    syncKeptType(spec, slot, null);
+    onChange();
+  });
+  return select;
+}
+
 function describeSlotValue(actions: ActionSet, value: PositionSpec[Slot]): string | null {
   if (value === null || value === undefined) return null;
   if (typeof value === "string") return actions.label(value);
+  if ("xinput" in value && value.xinput) return `Xbox ${value.xinput}`;
+  if ("wheel" in value && value.wheel) return `Scroll ${value.wheel}`;
   if ("mouse" in value && value.mouse) return `mouse ${value.mouse}`;
   if ("key" in value && value.key) return value.key;
   if ("meta" in value && value.meta) return value.meta;
@@ -424,6 +547,25 @@ function wireSpec(spec: PositionSpec | undefined): void {
 }
 
 /** Put an action on one slot of a key, and name the key after it when the slot is the tap. */
+/**
+ * A key that came in from an export may carry its type codes in raw.types, which the
+ * compiler writes over what it derives. Whenever a press gets a new binding, its code
+ * follows it; the other presses' codes (ones nothing derives) are kept.
+ */
+function syncKeptType(
+  spec: PositionSpec,
+  slot: Slot,
+  actions: Record<string, ActionSpec> | null,
+): void {
+  const types = spec.raw?.types;
+  if (types === undefined) return;
+  try {
+    types[SLOTS.indexOf(slot)] = resolveSlot(spec[slot], actions)[0];
+  } catch {
+    // A binding that cannot be resolved is the checks' to report, not this one's.
+  }
+}
+
 function assignAction(slug: string, position: string, slot: Slot, actionId: string): void {
   if (profileFor(slug).device.isStick(position)) return;
   const spec = (workingData(slug).positions[position] ??= {});
@@ -435,6 +577,8 @@ function assignAction(slug: string, position: string, slot: Slot, actionId: stri
   // shipped profile already has a label on every position.
   if (slot === "tap") spec.label = actionSetFor(currentGame()).label(actionId);
   wire(actionId);
+  // After wiring, which may have just given the action its key.
+  syncKeptType(spec, slot, editableActions());
 }
 
 /** An action dropped on a key goes on its tap, and the key becomes the selected one. */
@@ -475,6 +619,10 @@ function dropActionOnDirection(
   actionId: string,
 ): void {
   const spec = (workingData(slug).positions[position] ??= { mode: "keyboard" });
+  // A direction is a key the stick sends: dropping an action on one asks for keys, so a
+  // stick that was an Xbox stick or the pointer goes back to keys, rather than showing an
+  // action it would not send.
+  if ((spec.mode ?? "keyboard") !== "keyboard") setStickMode(spec, "keyboard");
   spec.directions ??= {};
   spec.directions[direction] = actionId;
   wire(actionId);
@@ -1088,6 +1236,12 @@ function renderStickModes(): HTMLElement | null {
         [right, "right"],
       ] as const) {
         const data = workingData(slug);
+        // A stick mode is four pairs of keys: a stick that was an Xbox stick or the pointer
+        // goes back to keys first.
+        const before = data.positions.stick;
+        if (before !== undefined && (before.mode ?? "keyboard") !== "keyboard") {
+          setStickMode(before, "keyboard");
+        }
         data.positions.stick = applyMode(data.positions.stick, set, mode, hand, carry);
         wireSpec(data.positions.stick);
       }
@@ -1525,34 +1679,18 @@ function renderInspector(): HTMLElement {
   });
   panel.append(el("div", { class: "field" }, [el("label", {}, ["Label"]), labelInput]));
 
-  // Sticks send keys. Only a stick set to something else, which the units cannot be given,
-  // is offered the choice, to put it back.
-  if (isStick && spec.mode !== undefined && spec.mode !== "keyboard") {
-    const modeSelect = el("select", {});
-    const current = spec.mode;
-    for (const mode of new Set([current, ...Object.keys(STICK_MODE_CODES)])) {
-      const encodable = mode in STICK_MODE_CODES;
-      const option = el("option", { value: mode }, [
-        encodable ? mode : `${mode} -- not allowed, pick keyboard`,
-      ]);
-      if (mode === current) option.setAttribute("selected", "selected");
-      if (!encodable) option.setAttribute("disabled", "disabled");
-      modeSelect.append(option);
-    }
-    modeSelect.addEventListener("change", () => {
-      spec.mode = modeSelect.value;
-      // The pointer speed only means something in mouse mode; it goes with it.
-      if (spec.mode !== "mouse") delete spec.mouse_sensitivity;
-      render();
-    });
+  if (isStick) panel.append(stickModeField(spec));
+  if (isStick && (spec.mode ?? "keyboard") !== "keyboard") {
     panel.append(
-      el("div", { class: "field" }, [el("label", {}, ["Stick sends"]), modeSelect]),
       el("div", { class: "note" }, [
-        "This stick is set to send something the units cannot be given. Choose keyboard.",
+        spec.mode === "mouse"
+          ? "The stick moves the pointer; it sends no keys, so it has no directions to set."
+          : spec.mode === "xbox"
+            ? "The stick is an Xbox stick; it sends no keys, so it has no directions to set."
+            : "This stick is in a mode the units cannot be given. Choose another above.",
       ]),
     );
-  }
-  if (isStick) {
+  } else if (isStick) {
     const directionFields = el("div", { class: "field-grid" });
     for (const direction of STICK_DIRECTIONS) {
       const select = el("select", {});
@@ -1595,10 +1733,13 @@ function renderInspector(): HTMLElement {
       });
       const wrap = el("div", { class: "field slot" }, [el("label", {}, [SLOT_NAMES[slot]]), pick]);
       if (armed) wrap.setAttribute("data-active", "true");
+      // An Xbox button or scroll is sent by the unit itself, not an action of the game's.
+      wrap.append(deviceSendField(spec, slot, render));
       if (current !== null) {
         const clear = el("button", { class: "btn small", type: "button", title: "Clear" }, ["×"]);
         clear.addEventListener("click", () => {
           removeKey(spec, slot);
+          syncKeptType(spec, slot, null);
           if (slot === "tap") removeKey(spec, "label");
           // Nothing left on any slot means nothing on the key: drop it, so it reads as
           // unbound and the compiler blanks it, rather than keeping an empty entry.

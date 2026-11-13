@@ -10,8 +10,6 @@ profile:
   unit: left
   set: Action-default
 
-lint:
-  require_keyboard_stick: true
 
 positions:
   stick:

@@ -18,6 +18,7 @@ import {
   wheelFields,
 } from "../../../src/lib/binding.js";
 import { compileProfile } from "../../../src/lib/compile.js";
+import { removeKey } from "../../../src/lib/object.js";
 import { decompile } from "../../../src/lib/decompile.js";
 import { loadProfile, loadTemplate } from "../../../src/lib/io.js";
 import { Game } from "../../../src/lib/model.js";
@@ -443,5 +444,45 @@ describe("writing them to a unit and reading the slot back", () => {
       session.writeProfile({ slot: 2, name: "ES2 akimbo", profile, unknownPins: [0, 28, 29] }),
     ).rejects.toThrow(/cannot be read back/);
     expect(fake.received).toHaveLength(0);
+  });
+});
+
+describe("a layout that sends Xbox output and keys together", () => {
+  async function lintWith(edit: (positions: Record<string, PositionSpec>) => void) {
+    const { lintGame } = await import("../../../src/lib/lint.js");
+    const game = new Game("games/SpaceSims/everspace");
+    const profile = loadProfile("games/SpaceSims/everspace/profiles/single-v5.yaml", game);
+    const data = structuredClone(profile.data);
+    edit(data.positions);
+    const edited = new Profile(data, profile.device, { path: profile.path, game });
+    return lintGame(game, [edited]).live.filter((finding) => finding.rule === "mixed-input");
+  }
+
+  it("is warned of once, since many games flip between pad and keyboard", async () => {
+    const found = await lintWith((positions) => {
+      positions.pinky_1 = { tap: { xinput: "A" } };
+    });
+    expect(found).toHaveLength(1);
+    expect(found[0]?.level).toBe("warning");
+  });
+
+  it("counts a stick with directions and no mode as the keys it sends", async () => {
+    const found = await lintWith((positions) => {
+      positions.pinky_1 = { tap: { xinput: "A" } };
+      // Every key but the stick sends Xbox output; the stick sends keys, with no `mode:`.
+      for (const [name, spec] of Object.entries(positions)) {
+        if (name === "stick") {
+          delete spec.mode;
+          delete spec.raw;
+        } else if (name !== "pinky_1") {
+          removeKey(positions, name);
+        }
+      }
+    });
+    expect(found).toHaveLength(1);
+  });
+
+  it("is not warned of when the layout sends only keys", async () => {
+    expect(await lintWith(() => undefined)).toEqual([]);
   });
 });

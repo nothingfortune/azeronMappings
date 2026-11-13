@@ -15,5 +15,3 @@ ingame_format: elite-binds
 ingame_config: "${LOCALAPPDATA}/Frontier Developments/Elite Dangerous/Options/Bindings/Custom.4.1.binds"
 ingame_preset: "${steam:Elite Dangerous}/Products/elite-dangerous-odyssey-64/ControlSchemes/KeyboardMouseOnly.binds"
 
-lint:
-  require_keyboard_stick: true

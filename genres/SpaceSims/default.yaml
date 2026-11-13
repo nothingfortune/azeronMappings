@@ -15,8 +15,6 @@ profile:
   unit: left
   set: SpaceSims-default
 
-lint:
-  require_keyboard_stick: true
 
 positions:
   # Flight axes on the stick, in keyboard mode -- never gamepad mode (constraint 1).
