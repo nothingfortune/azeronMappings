@@ -98,7 +98,7 @@ test.describe("a game started from an export", () => {
 
     // What is missing, and what to do about it, in the owner's words.
     const note = page.locator(".game-file");
-    await expect(note).toContainText("not told its keys automatically");
+    await expect(note).toContainText("keeps its own keys");
     await expect(note).toContainText("controls screen");
     await expect(note).not.toContainText("ingame_config");
     await shot(page, "03-ingame-new-game");
@@ -152,7 +152,7 @@ test.describe("a game started from an export", () => {
     await page.locator("header .game-switch").click();
     await page.locator(".game-card", { hasText: NAME }).click();
     await tab(page, "Setup");
-    await expect(page.locator(".game-file")).toContainText("not told its keys automatically");
+    await expect(page.locator(".game-file")).toContainText("keeps its own keys");
     await expect(page.getByRole("button", { name: "Update the game's keys…" })).toHaveCount(0);
     await shot(page, "05-setup-not-connected");
   });
