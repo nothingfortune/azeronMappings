@@ -58,6 +58,12 @@ export interface ActionSpec {
    */
   xbox?: string;
   /**
+   * The key or mouse button a game usually puts this action on for a keyboard and mouse
+   * (`KeyW`, `ShiftLeft`, `MouseLeft`): the genre's suggestion for `kbm`, as `xbox` is for
+   * `pad`. Never sent, and never written into a game unless copied into `kbm`.
+   */
+  keyboard?: string;
+  /**
    * What the action is on for someone playing on a keyboard and mouse: a key with any
    * modifiers (`ControlLeft+KeyR`), a modifier alone, or a mouse token (`MouseRight`,
    * `WheelUp`). See bindings.ts. Never sent by a unit; the compiler does not read it.

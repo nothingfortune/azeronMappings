@@ -49,6 +49,7 @@ import { hitName, matchSent } from "../lib/keytester.js";
 import type { UnitPresses } from "../lib/keytester.js";
 import type { ExpectedPress, Sent } from "../lib/checkunit.js";
 import { layoutModes, liveTogether, playsAction } from "../lib/modes.js";
+import { usualBindings } from "../lib/usual.js";
 import { bindingLabel, isModifier, keyLabel } from "../lib/keys.js";
 import { ActionSet, Device, Profile } from "../lib/model-core.js";
 import { isFileName, slugFromName } from "../lib/scaffold.js";
@@ -5305,6 +5306,10 @@ function kbmField(id: string, spec: ActionSpec): HTMLElement {
     if (capturing) event.preventDefault();
   });
   const parts: HTMLElement[] = [el("span", { class: "bind-kind" }, ["Keyboard"]), chip];
+  // The key games usually put this on, as the controller field shows its button.
+  if (!capturing && spec.kbm === undefined && spec.keyboard !== undefined) {
+    parts.push(el("span", { class: "bind-hint" }, [`usually ${kbmLabel(spec.keyboard)}`]));
+  }
   if (capturing) {
     const cancel = el("button", { class: "btn small", type: "button" }, ["Cancel"]);
     cancel.addEventListener("click", () => {
@@ -5694,6 +5699,44 @@ function actionTagField(id: string, spec: ActionSpec): HTMLElement {
   return row;
 }
 
+/**
+ * The genre's usual keyboard keys and controller buttons, in one click, for every action that
+ * has neither yet: a place to start, changed below like any other binding, kept by Save.
+ */
+function usualBindingsField(game: EditorGame): HTMLElement {
+  const usual = usualBindings(editableActions(), liveTogether(currentSets(game)));
+  const count = Object.keys(usual).length;
+  const fill = el("button", { class: "btn small", type: "button", "data-usual": "fill" }, [
+    "Fill in the usual bindings",
+  ]);
+  if (count === 0) {
+    fill.setAttribute("disabled", "disabled");
+    fill.title = "Every action with a usual key or button is already on one.";
+  } else {
+    fill.title =
+      `Give ${String(count)} action(s) the keyboard key and controller button games of ` +
+      "this kind usually use. Bindings you have set stay as they are.";
+  }
+  fill.addEventListener("click", () => {
+    const actions = editableActions();
+    // Worked out again on the click: the page may have changed since it was drawn.
+    for (const [id, binding] of Object.entries(
+      usualBindings(actions, liveTogether(currentSets(game))),
+    )) {
+      const spec = actions[id];
+      if (spec === undefined) continue;
+      if (binding.kbm !== undefined) spec.kbm = binding.kbm;
+      if (binding.pad !== undefined) spec.pad = binding.pad;
+    }
+    render();
+  });
+  return el("div", { class: "note usual-note" }, [
+    "Playing on a keyboard and mouse, or a controller? Start from the keys and buttons games " +
+      "like this usually use, then change any below. ",
+    fill,
+  ]);
+}
+
 function renderInGame(): HTMLElement {
   const game = currentGame();
   const actions = actionSetFor(game);
@@ -5743,6 +5786,8 @@ function renderInGame(): HTMLElement {
       ]),
     );
   }
+
+  panel.append(usualBindingsField(game));
 
   // The same bindings drawn on a keyboard, a mouse and a controller.
   // Only the actions the layout plays, as the list below shows them: an action of a mode

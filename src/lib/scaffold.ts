@@ -178,6 +178,8 @@ export function actionsYaml(
     if (spec.meta) fields.push(`meta: ${spec.meta}`);
     if (spec.mouse) fields.push(`mouse: ${spec.mouse}`);
     if (spec.provided_by === null) fields.push("provided_by: null");
+    if (spec.kbm) fields.push(`kbm: ${yamlScalar(spec.kbm)}`);
+    if (spec.pad) fields.push(`pad: ${yamlScalar(spec.pad)}`);
     return `  ${`${id}:`.padEnd(width + 1)} {${fields.join(", ")}}`;
   });
   // No actions of its own (a game started with nothing placed) is an empty mapping: a bare

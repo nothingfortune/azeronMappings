@@ -6,6 +6,11 @@
 # `xbox:` is the Xbox pad control a game usually puts the action on. It is never sent:
 # it is where the controller-style layout places the action (layouts.yaml, src/lib/xbox.ts).
 #
+# `keyboard:` is the key or mouse button a game usually puts the action on for someone on a
+# keyboard and mouse. Like `xbox:` it is a suggestion, never sent and never written into a
+# game by itself: a new game starts with both as its own `kbm:` and `pad:`, and the In-game
+# tab's Fill in the usual bindings copies them into a game that has none.
+#
 # A plane has four control axes -- throttle, pitch, roll and yaw -- against a ship's six,
 # so these are the four a DJI-style stick mode puts on two sticks (stick-modes.yaml).
 # Nothing is `provided_by: mouse`: a pair of keypads flies with no mouse at all, so firing
@@ -17,33 +22,33 @@ genre: Flight
 
 actions:
   # --- flight: the four axes -----------------------------------------------------
-  throttle_up:    {label: Accelerate,     xbox: LeftStickUp, tags: [movement, required]}
-  throttle_down:  {label: Decelerate,     xbox: LeftStickDown, tags: [movement, required]}
-  pitch_up:       {label: Pitch up,       xbox: RightStickDown, tags: [movement, required],
+  throttle_up:    {label: Accelerate, keyboard: ShiftLeft, xbox: LeftStickUp, tags: [movement, required]}
+  throttle_down:  {label: Decelerate, keyboard: ControlLeft, xbox: LeftStickDown, tags: [movement, required]}
+  pitch_up:       {label: Pitch up, keyboard: KeyS, xbox: RightStickDown, tags: [movement, required],
                    note: "Nose up. A stick pulled back, in the aircraft convention."}
-  pitch_down:     {label: Pitch down,     xbox: RightStickUp, tags: [movement, required],
+  pitch_down:     {label: Pitch down, keyboard: KeyW, xbox: RightStickUp, tags: [movement, required],
                    note: "Nose down. A stick pushed forward."}
-  roll_left:      {label: Roll left,      xbox: RightStickLeft, tags: [movement, required]}
-  roll_right:     {label: Roll right,     xbox: RightStickRight, tags: [movement, required]}
-  yaw_left:       {label: Yaw left,       xbox: LeftStickLeft, tags: [movement]}
-  yaw_right:      {label: Yaw right,      xbox: LeftStickRight, tags: [movement]}
+  roll_left:      {label: Roll left, keyboard: KeyA, xbox: RightStickLeft, tags: [movement, required]}
+  roll_right:     {label: Roll right, keyboard: KeyD, xbox: RightStickRight, tags: [movement, required]}
+  yaw_left:       {label: Yaw left, keyboard: KeyQ, xbox: LeftStickLeft, tags: [movement]}
+  yaw_right:      {label: Yaw right, keyboard: KeyE, xbox: LeftStickRight, tags: [movement]}
 
   # --- weapons -------------------------------------------------------------------
-  fire_gun:       {label: Fire gun,       xbox: RT, tags: [combat, required]}
-  fire_missile:   {label: Fire missile,   xbox: RB, tags: [combat, required]}
-  weapon_change:  {label: Change weapon,  xbox: Y, tags: [combat]}
-  target_change:  {label: Change target,  xbox: X, tags: [combat, required]}
-  flare:          {label: Flare,          xbox: LB, tags: [combat],
+  fire_gun:       {label: Fire gun, keyboard: Space, xbox: RT, tags: [combat, required]}
+  fire_missile:   {label: Fire missile, keyboard: KeyF, xbox: RB, tags: [combat, required]}
+  weapon_change:  {label: Change weapon, keyboard: KeyR, xbox: Y, tags: [combat]}
+  target_change:  {label: Change target, keyboard: KeyT, xbox: X, tags: [combat, required]}
+  flare:          {label: Flare, keyboard: KeyX, xbox: LB, tags: [combat],
                    note: "A countermeasure is pressed in a hurry. Tap only -- constraint 4."}
 
   # --- view ----------------------------------------------------------------------
-  view_change:    {label: Change view,    xbox: A, tags: [utility]}
-  camera_up:      {label: Look up,        xbox: DpadUp, tags: [utility]}
-  camera_down:    {label: Look down,      xbox: DpadDown, tags: [utility]}
-  camera_left:    {label: Look left,      xbox: DpadLeft, tags: [utility]}
-  camera_right:   {label: Look right,     xbox: DpadRight, tags: [utility]}
-  radar_map:      {label: Radar map,      xbox: View, tags: [utility]}
+  view_change:    {label: Change view, keyboard: KeyV, xbox: A, tags: [utility]}
+  camera_up:      {label: Look up, keyboard: KeyI, xbox: DpadUp, tags: [utility]}
+  camera_down:    {label: Look down, keyboard: KeyK, xbox: DpadDown, tags: [utility]}
+  camera_left:    {label: Look left, keyboard: KeyJ, xbox: DpadLeft, tags: [utility]}
+  camera_right:   {label: Look right, keyboard: KeyL, xbox: DpadRight, tags: [utility]}
+  radar_map:      {label: Radar map, keyboard: KeyM, xbox: View, tags: [utility]}
 
   # --- menus ---------------------------------------------------------------------
-  menu_main:      {label: Pause,          xbox: Menu, tags: [menu],
+  menu_main:      {label: Pause, keyboard: Escape, xbox: Menu, tags: [menu],
                    note: "Constraint 5 -- this is Escape. Keep it off anything mashable."}

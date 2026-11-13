@@ -6,6 +6,14 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Added
 
+- **Usual keyboard and controller bindings to start from.** Every genre (shooters, space
+  sims, flight) says which keyboard key or mouse button each action is usually on
+  (`keyboard:`), as it already said which pad control (`xbox:`). A new game starts with both
+  as its own bindings -- WASD, Space, R to reload, the mouse to fire; the left stick, A, RT
+  -- and the Azeron layout from the genre as before. A game that has them already gets
+  them from the In-game tab's Fill in the usual bindings, which leaves any binding set by
+  hand alone and skips one that would put two actions on a key, a key the units send
+  included. The keyboard field shows the usual key beside it, as the controller one does.
 - **Choosing a game is the first step, from a gallery.** A first visit opens on every
   game as a card -- its genre, layouts, units and actions -- and one to add a game; the
   header's game drop-down is now a button naming the open game, which goes back to them.

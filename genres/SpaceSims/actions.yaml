@@ -7,6 +7,11 @@
 # `xbox:` is the Xbox pad control a game usually puts the action on. It is never sent:
 # it is where the controller-style layout places the action (layouts.yaml, src/lib/xbox.ts).
 #
+# `keyboard:` is the key or mouse button a game usually puts the action on for someone on a
+# keyboard and mouse. Like `xbox:` it is a suggestion, never sent and never written into a
+# game by itself: a new game starts with both as its own `kbm:` and `pad:`, and the In-game
+# tab's Fill in the usual bindings copies them into a game that has none.
+#
 # `required` means you cannot play without it: the checks complain while no control carries
 # it. Kept to that on purpose -- moving, firing, boost, the two drives and interact -- and
 # not what one layout happened to have, which is what it used to be: every device and
@@ -23,21 +28,21 @@ actions:
   # assumed to be covered by the pointer, because whether the pointer turns the ship or
   # only aims is a question of the game, and the answer decides the layout, not the
   # vocabulary.
-  throttle_up:        {label: Thrust forward,     xbox: LeftStickUp, tags: [movement, required]}
-  throttle_down:      {label: Thrust backward,    xbox: LeftStickDown, tags: [movement, required]}
-  strafe_left:        {label: Strafe left,        xbox: LeftStickLeft, tags: [movement, required]}
-  strafe_right:       {label: Strafe right,       xbox: LeftStickRight, tags: [movement, required]}
-  hover_up:           {label: Vertical thrust up,   xbox: DpadUp, tags: [movement]}
-  hover_down:         {label: Vertical thrust down, xbox: DpadDown, tags: [movement]}
+  throttle_up:        {label: Thrust forward, keyboard: KeyW, xbox: LeftStickUp, tags: [movement, required]}
+  throttle_down:      {label: Thrust backward, keyboard: KeyS, xbox: LeftStickDown, tags: [movement, required]}
+  strafe_left:        {label: Strafe left, keyboard: KeyA, xbox: LeftStickLeft, tags: [movement, required]}
+  strafe_right:       {label: Strafe right, keyboard: KeyD, xbox: LeftStickRight, tags: [movement, required]}
+  hover_up:           {label: Vertical thrust up, keyboard: Space, xbox: DpadUp, tags: [movement]}
+  hover_down:         {label: Vertical thrust down, keyboard: ControlLeft, xbox: DpadDown, tags: [movement]}
   pitch_up:           {label: Pitch up,           xbox: RightStickUp, tags: [movement]}
   pitch_down:         {label: Pitch down,         xbox: RightStickDown, tags: [movement]}
   yaw_left:           {label: Yaw left,           xbox: RightStickLeft, tags: [movement]}
   yaw_right:          {label: Yaw right,          xbox: RightStickRight, tags: [movement]}
-  roll_left:          {label: Roll left,          xbox: DpadLeft, tags: [movement]}
-  roll_right:         {label: Roll right,         xbox: DpadRight, tags: [movement]}
-  boost:              {label: Boost,              xbox: LS, tags: [movement, required],
+  roll_left:          {label: Roll left, keyboard: KeyQ, xbox: DpadLeft, tags: [movement]}
+  roll_right:         {label: Roll right, keyboard: KeyE, xbox: DpadRight, tags: [movement]}
+  boost:              {label: Boost, keyboard: ShiftLeft, xbox: LS, tags: [movement, required],
                        note: "Must never latch -- constraint 6."}
-  inertia_dampeners:  {label: Inertia dampeners,  xbox: B, tags: [movement],
+  inertia_dampeners:  {label: Inertia dampeners, keyboard: KeyZ, xbox: B, tags: [movement],
                        note: "A toggle, and it decides whether thrust holds a speed or coasts."}
 
   # A mouse moves the pointer. Not keys -- listed so the coverage check knows
@@ -46,68 +51,68 @@ actions:
   pointer_y:          {label: Pointer up/down,    provided_by: mouse,  axis: mouse_y, tags: [movement]}
 
   # --- travel -------------------------------------------------------------------
-  cruise:             {label: Travel drive,      tags: [travel, required]}
-  supralight:         {label: Jump / supralight drive, tags: [travel, required]}
+  cruise:             {label: Travel drive, keyboard: KeyC, tags: [travel, required]}
+  supralight:         {label: Jump / supralight drive, keyboard: KeyJ, tags: [travel, required]}
 
   # --- weapons ------------------------------------------------------------------
-  fire_primary:       {label: Fire primary,      xbox: RT, tags: [combat]}
-  fire_secondary:     {label: Fire secondary,    xbox: LT, tags: [combat]}
-  next_primary:       {label: Next primary,      xbox: Y, tags: [combat]}
+  fire_primary:       {label: Fire primary, keyboard: MouseLeft, xbox: RT, tags: [combat]}
+  fire_secondary:     {label: Fire secondary, keyboard: MouseRight, xbox: LT, tags: [combat]}
+  next_primary:       {label: Next primary, keyboard: WheelUp, xbox: Y, tags: [combat]}
   previous_primary:   {label: Previous primary,  tags: [combat]}
-  equip_primary_1:    {label: Equip primary 1,   tags: [combat]}
-  equip_primary_2:    {label: Equip primary 2,   tags: [combat]}
-  equip_primary_3:    {label: Equip primary 3,   tags: [combat]}
-  next_secondary:     {label: Next secondary,    xbox: X, tags: [combat]}
+  equip_primary_1:    {label: Equip primary 1, keyboard: Digit1, tags: [combat]}
+  equip_primary_2:    {label: Equip primary 2, keyboard: Digit2, tags: [combat]}
+  equip_primary_3:    {label: Equip primary 3, keyboard: Digit3, tags: [combat]}
+  next_secondary:     {label: Next secondary, keyboard: WheelDown, xbox: X, tags: [combat]}
   previous_secondary: {label: Previous secondary, tags: [combat]}
-  secondary_1:        {label: Equip secondary 1, tags: [combat]}
-  secondary_2:        {label: Equip secondary 2, tags: [combat]}
-  secondary_3:        {label: Equip secondary 3, tags: [combat]}
-  ultimate:           {label: Ultimate,          tags: [combat]}
+  secondary_1:        {label: Equip secondary 1, keyboard: Digit4, tags: [combat]}
+  secondary_2:        {label: Equip secondary 2, keyboard: Digit5, tags: [combat]}
+  secondary_3:        {label: Equip secondary 3, keyboard: Digit6, tags: [combat]}
+  ultimate:           {label: Ultimate, keyboard: KeyG, tags: [combat]}
 
   # --- targeting ----------------------------------------------------------------
-  lock_target:        {label: Lock target,       xbox: RS, tags: [combat]}
+  lock_target:        {label: Lock target, keyboard: KeyT, xbox: RS, tags: [combat]}
   # Not `required`: lock_target already targets, and no layout has ever bound this -- the
   # id used to mean equip secondary 1, while the game's NextTarget sat unbound throughout.
-  next_target:        {label: Next target,       xbox: RB, tags: [combat]}
+  next_target:        {label: Next target, keyboard: KeyR, xbox: RB, tags: [combat]}
   previous_target:    {label: Previous target,   tags: [combat]}
   lock_nearest_target: {label: Lock nearest target, tags: [combat]}
 
   # --- devices and consumables --------------------------------------------------
-  device_1:           {label: Device 1,          tags: [combat]}
-  device_2:           {label: Device 2,          tags: [combat]}
-  device_3:           {label: Device 3,          tags: [combat]}
-  device_4:           {label: Device 4,          tags: [combat]}
+  device_1:           {label: Device 1, keyboard: Digit7, tags: [combat]}
+  device_2:           {label: Device 2, keyboard: Digit8, tags: [combat]}
+  device_3:           {label: Device 3, keyboard: Digit9, tags: [combat]}
+  device_4:           {label: Device 4, keyboard: Digit0, tags: [combat]}
   use_device_hold:    {label: Device wheel (hold), xbox: LB, tags: [combat]}
-  consume_1:          {label: Consumable 1,      tags: [combat]}
-  consume_2:          {label: Consumable 2,      tags: [combat]}
-  consume_3:          {label: Consumable 3,      tags: [combat]}
-  consume_4:          {label: Consumable 4,      tags: [combat]}
+  consume_1:          {label: Consumable 1, keyboard: F1, tags: [combat]}
+  consume_2:          {label: Consumable 2, keyboard: F2, tags: [combat]}
+  consume_3:          {label: Consumable 3, keyboard: F3, tags: [combat]}
+  consume_4:          {label: Consumable 4, keyboard: F4, tags: [combat]}
   use_consumable_hold: {label: Consumable wheel (hold), tags: [combat]}
 
   # --- utility ------------------------------------------------------------------
-  interact:           {label: Interact,          xbox: A, tags: [utility, required]}
+  interact:           {label: Interact, keyboard: KeyF, xbox: A, tags: [utility, required]}
   fling:              {label: Fling objects,     tags: [utility]}
-  view_ship:          {label: Switch camera,     tags: [utility]}
-  free_look:          {label: Free look (toggle), tags: [utility]}
-  headlight:          {label: Headlight,         tags: [utility]}
-  place_marker:       {label: Place marker,      tags: [utility]}
-  toggle_hud:         {label: Toggle HUD,        tags: [utility]}
+  view_ship:          {label: Switch camera, keyboard: KeyV, tags: [utility]}
+  free_look:          {label: Free look (toggle), keyboard: AltLeft, tags: [utility]}
+  headlight:          {label: Headlight, keyboard: KeyL, tags: [utility]}
+  place_marker:       {label: Place marker, keyboard: MouseMiddle, tags: [utility]}
+  toggle_hud:         {label: Toggle HUD, keyboard: KeyH, tags: [utility]}
 
   # --- menus --------------------------------------------------------------------
   # System actions are tagged as menus so `menu-with-combat` keeps them off a key that
   # gets mashed: a quick load in a fight loses the fight.
-  menu_tab:           {label: Menu,              xbox: Menu, tags: [menu]}
-  escape_menu:        {label: Escape menu,       tags: [menu],
+  menu_tab:           {label: Menu, keyboard: Tab, xbox: Menu, tags: [menu]}
+  escape_menu:        {label: Escape menu, keyboard: Escape, tags: [menu],
                        note: "Constraint 5 -- never on a key that gets mashed in combat."}
-  pause:              {label: Pause,             tags: [menu]}
+  pause:              {label: Pause, keyboard: KeyP, tags: [menu]}
   ship_menu:          {label: Ship,              tags: [menu]}
-  inventory:          {label: Inventory,         tags: [menu]}
-  missions:           {label: Missions,          tags: [menu]}
-  map:                {label: Map,               xbox: View, tags: [menu]}
+  inventory:          {label: Inventory, keyboard: KeyI, tags: [menu]}
+  missions:           {label: Missions, keyboard: KeyO, tags: [menu]}
+  map:                {label: Map, keyboard: KeyM, xbox: View, tags: [menu]}
   crafting:           {label: Crafting,          tags: [menu]}
   data_logs:          {label: Data / logs,       tags: [menu]}
   perks:              {label: Perks,             tags: [menu]}
   photo_mode:         {label: Photo mode,        tags: [menu]}
-  quick_save:         {label: Quick save,        tags: [menu]}
-  quick_load:         {label: Quick load,        tags: [menu]}
+  quick_save:         {label: Quick save, keyboard: F5, tags: [menu]}
+  quick_load:         {label: Quick load, keyboard: F9, tags: [menu]}
   load_recent_save:   {label: Load most recent save, tags: [menu]}

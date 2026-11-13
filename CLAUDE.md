@@ -159,6 +159,13 @@ Three inputs meet in the compiler, and are kept separate:
    pad through the browser's Gamepad API; the In-game tab captures both. The compiler
    never reads them, so they cannot change a compiled layout. `kbm-collision` and
    `pad-collision` warn on two live actions sharing one.
+   A genre's vocabulary suggests both: `xbox:` the pad control and `keyboard:` the key a
+   game usually uses. They are never sent or written into a game by themselves (`extends:`
+   would hand them to every game, and `kbm`/`pad` reach the game's file); `usualBindings`
+   (`src/lib/usual.ts`) copies them into `kbm`/`pad` -- for every action of a new game in
+   `startGame`, and on the In-game tab's Fill in the usual bindings -- only where the action
+   has none, never onto a binding another live action holds (a key a unit sends included)
+   and never from `WIRE_POOL`, so a usual key cannot meet a wired one.
    `azeron import` is the other way in, from an export: it stores the export in `templates/`,
    seeds an action per distinct key it sends (named after the key, since an export
    cannot say what a key does in game), and decompiles the profile. `export_to` in
