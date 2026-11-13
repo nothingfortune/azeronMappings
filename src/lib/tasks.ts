@@ -710,10 +710,20 @@ export function startGame(request: StartGameRequest): StartGameResult {
   const placed = [...new Set(layouts.flatMap(actionsPlaced))].sort(
     (a, b) => required(a) - required(b),
   );
+  // A stick direction sends a plain key: an action on one cannot take Shift or a mouse button.
+  const onStick = new Set(
+    layouts.flatMap((data) =>
+      Object.values(data.positions).flatMap((spec) =>
+        Object.values(spec.directions ?? {}).filter(
+          (value): value is string => typeof value === "string",
+        ),
+      ),
+    ),
+  );
   for (const id of placed) {
     // A new game has no binding file the repo can write, so each control sends the key the
     // game already listens for, and only what a unit cannot send that way takes the pool.
-    const fromGame = wireFromGame(vocabulary, id);
+    const fromGame = wireFromGame(vocabulary, id, undefined, onStick.has(id));
     if (fromGame !== null) {
       keys[id] = { ...keys[id], ...fromGame };
       continue;

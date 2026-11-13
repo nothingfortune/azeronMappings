@@ -240,3 +240,18 @@ describe("wiring from the game's own key", () => {
     expect(wireFromGame(actions, "shoot", live)).toEqual({ key: "KeyF" });
   });
 });
+
+describe("wiring from the game's own key, for a stick direction", () => {
+  it("takes only a plain key: a stick cannot send a modifier, a chord or a button", () => {
+    const actions: Record<string, ActionSpec> = {
+      forward: { kbm: "KeyW" },
+      throttle: { kbm: "ShiftLeft" },
+      crouch: { kbm: "ControlLeft+KeyC" },
+      fire: { kbm: "MouseLeft" },
+    };
+    expect(wireFromGame(actions, "forward", undefined, true)).toEqual({ key: "KeyW" });
+    expect(wireFromGame(actions, "throttle", undefined, true)).toBeNull();
+    expect(wireFromGame(actions, "crouch", undefined, true)).toBeNull();
+    expect(wireFromGame(actions, "fire", undefined, true)).toBeNull();
+  });
+});

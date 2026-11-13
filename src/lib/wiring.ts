@@ -191,11 +191,14 @@ export function wireFromGame(
   actions: Record<string, ActionSpec>,
   id: string,
   live: LiveTogether = () => true,
+  /** The action is on a stick direction, which sends a plain key and nothing else. */
+  onStick = false,
 ): UnitSend | null {
   const spec = actions[id];
   if (!needsWire(spec) || spec === undefined) return null;
   const send = unitSendFor(spec.kbm);
   if (send === null) return null;
+  if (onStick && (send.key === undefined || send.meta !== undefined)) return null;
   const taken = Object.entries(actions).some(
     ([other, otherSpec]) =>
       other !== id && actionsLiveTogether(live, spec, otherSpec) && sameSend(send, otherSpec),

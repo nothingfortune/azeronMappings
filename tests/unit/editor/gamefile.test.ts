@@ -265,9 +265,9 @@ describe("the keys a game keeps for itself", () => {
   it("are put on the units in one click for actions sent on another key", async () => {
     const calls = served();
     document.body.innerHTML = '<div id="app"></div>';
-    // Headlight is sent on B; the game has it on Space. Free look is not on the units.
-    // Boost is on W in the game, where Thrust forward already is: it keeps its key.
-    start(withKbm(false, { headlight: "Space", boost: "KeyW" }));
+    // Thrust forward is sent on W; the game has it on Space. Boost is on S in the game,
+    // where Thrust backward already is: it keeps its key.
+    start(withKbm(false, { throttle_up: "Space", boost: "KeyS" }));
     tab("In-game");
     expect(document.querySelector(".game-keys")?.textContent).toContain("1 action(s)");
     document.querySelector<HTMLButtonElement>("[data-game-keys]")?.click();
@@ -275,9 +275,41 @@ describe("the keys a game keeps for itself", () => {
       "1 action(s) now send the game's own key",
     );
     expect(document.querySelector("[data-game-keys]")).toBeNull();
+    // Boost, and every action with no Keyboard binding, is still on a key the game is not
+    // known to have it on, and the tab says so rather than claiming they all agree.
+    expect(document.querySelector(".game-keys-left")?.textContent).toContain(
+      "are not sent on a key the game is known to use",
+    );
     const changes = await saved(calls);
-    expect(changes.headlight).toMatchObject({ key: "Space" });
+    expect(changes.throttle_up).toMatchObject({ key: "Space" });
     expect(changes.boost).toBeUndefined();
+  });
+
+  it("are not claimed for an action a unit cannot send on the game's key", () => {
+    served();
+    document.body.innerHTML = '<div id="app"></div>';
+    // The fixture's actions have no Keyboard binding: give every one what it sends, and
+    // Thrust backward the wheel, which no unit can send.
+    const payload = unconnected();
+    const mouse: Record<string, string> = {
+      left: "MouseLeft",
+      middle: "MouseMiddle",
+      right: "MouseRight",
+    };
+    for (const spec of Object.values(payload.games[0]?.actions.actions ?? {})) {
+      if (typeof spec.mouse === "string") spec.kbm = mouse[spec.mouse] ?? "";
+      else if (typeof spec.key === "string") {
+        spec.kbm = typeof spec.meta === "string" ? `${spec.meta}+${spec.key}` : spec.key;
+      } else if (typeof spec.meta === "string") spec.kbm = spec.meta;
+    }
+    const back = payload.games[0]?.actions.actions?.throttle_down;
+    if (back) back.kbm = "WheelUp";
+    start(payload);
+    tab("In-game");
+    const text = document.querySelector(".game-keys")?.textContent ?? "";
+    expect(text).not.toContain("Every action the units send is on the game's own key");
+    expect(document.querySelector(".game-keys-left")?.textContent).toContain("Thrust backward");
+    expect(document.querySelector(".game-keys-left")?.textContent).toMatch(/^1 action/);
   });
 
   it("are not offered for a game that is told its keys", () => {
