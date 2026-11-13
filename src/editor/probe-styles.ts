@@ -17,7 +17,7 @@ export const PROBE_CSS = `
 .probe .btn.on { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
 .probe .prompt { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; border-radius: var(--r-lg);
                  padding: 16px 20px; color: var(--accent-fg); box-shadow: var(--shadow-2);
-                 background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 78%, var(--bg))); }
+                 background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 82%, var(--fg))); }
 .probe .prompt b { font-size: var(--fs-5); font-weight: 700; letter-spacing: -.01em; }
 .probe .prompt .muted { color: inherit; opacity: .8; }
 .probe .prompt .bad { background: var(--bad); color: #fff; padding: 2px 8px; border-radius: 6px; }
