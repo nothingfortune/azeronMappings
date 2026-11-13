@@ -10,6 +10,7 @@ import { chooseGame } from "../../helpers/editor.js";
 
 import { start } from "../../../src/editor/app.js";
 import { buildPayload } from "../../../src/lib/editor/payload.js";
+import { WIRE_POOL } from "../../../src/lib/wiring.js";
 import type { EditorPayload } from "../../../src/types/editor.js";
 
 const PAYLOAD = buildPayload();
@@ -78,12 +79,12 @@ describe("a game whose own settings file is not connected", () => {
     const note = document.querySelector(".game-file");
     expect(note).not.toBeNull();
     const text = note?.textContent ?? "";
-    expect(text).toContain("is not told its keys automatically");
+    expect(text).toContain("keeps its own keys");
+    expect(text).toContain("the keys the game already uses");
     expect([...(note?.querySelectorAll("li") ?? [])]).toHaveLength(3);
     // In the owner's terms, not the file's.
     expect(text).not.toContain("ingame_config");
     expect(text).not.toContain("game.yaml");
-    expect(text).toContain("controls screen");
     expect(text).not.toContain("developer work");
     // And it does not promise what it cannot do.
     expect(document.querySelector(".panel .note")?.textContent).not.toContain("offers to update");
@@ -93,9 +94,7 @@ describe("a game whose own settings file is not connected", () => {
     tab("Setup");
     expect(buttons()).not.toContain("Update the game's keys…");
     expect(buttons()).not.toContain("Compare with the game's keys");
-    expect(document.querySelector(".game-file")?.textContent).toContain(
-      "not told its keys automatically",
-    );
+    expect(document.querySelector(".game-file")?.textContent).toContain("keeps its own keys");
   });
 
   it("does not offer to update the game after saving a key, and the menu item says why", async () => {
@@ -208,5 +207,116 @@ describe("a game whose file is Elite's bindings", () => {
     expect(PAYLOAD.games.find((game) => game.slug === "everspace")?.ingameFile?.format).toBe(
       "unreal-ini",
     );
+  });
+});
+
+describe("the keys a game keeps for itself", () => {
+  const withKbm = (connected: boolean, kbm: Record<string, string>): EditorPayload => {
+    const payload = connected ? structuredClone(PAYLOAD) : unconnected();
+    const actions = payload.games[0]?.actions.actions ?? {};
+    for (const [id, value] of Object.entries(kbm)) {
+      const spec = actions[id];
+      if (spec) spec.kbm = value;
+    }
+    return payload;
+  };
+
+  /** Put an action on the first empty key, from the chooser. */
+  const placeOnEmpty = (label: string): void => {
+    document.querySelector<HTMLElement>(".hand .key.empty")?.click();
+    [...document.querySelectorAll<HTMLButtonElement>(".picker-item")]
+      .find((node) => node.querySelector("b")?.textContent === label)
+      ?.click();
+  };
+
+  async function saved(
+    calls: { path: string; body: unknown }[],
+  ): Promise<Record<string, Record<string, unknown>>> {
+    [...document.querySelectorAll<HTMLButtonElement>("header button")]
+      .find((button) => button.textContent === "Save")
+      ?.click();
+    await vi.waitFor(() => {
+      expect(calls.some((call) => call.path === "/api/actions")).toBe(true);
+    });
+    const body = calls.find((call) => call.path === "/api/actions")?.body as {
+      changes: Record<string, Record<string, unknown>>;
+    };
+    return body.changes;
+  }
+
+  it("are what a control sends when the game's settings cannot be written", async () => {
+    const calls = served();
+    document.body.innerHTML = '<div id="app"></div>';
+    start(withKbm(false, { free_look: "Enter" }));
+    placeOnEmpty("Free look (toggle)");
+    expect((await saved(calls)).free_look).toMatchObject({ key: "Enter" });
+  });
+
+  it("are not used when the game is told its keys: those come from the pool", async () => {
+    const calls = served();
+    document.body.innerHTML = '<div id="app"></div>';
+    start(withKbm(true, { free_look: "Enter" }));
+    placeOnEmpty("Free look (toggle)");
+    const key = (await saved(calls)).free_look?.key;
+    expect(key).not.toBe("Enter");
+    expect(WIRE_POOL).toContain(key);
+  });
+
+  it("are put on the units in one click for actions sent on another key", async () => {
+    const calls = served();
+    document.body.innerHTML = '<div id="app"></div>';
+    // Thrust forward is sent on W; the game has it on Space. Boost is on S in the game,
+    // where Thrust backward already is: it keeps its key.
+    start(withKbm(false, { throttle_up: "Space", boost: "KeyS" }));
+    tab("In-game");
+    expect(document.querySelector(".game-keys")?.textContent).toContain("1 action(s)");
+    document.querySelector<HTMLButtonElement>("[data-game-keys]")?.click();
+    expect(document.querySelector(".save-note")?.textContent).toContain(
+      "1 action(s) now send the game's own key",
+    );
+    expect(document.querySelector("[data-game-keys]")).toBeNull();
+    // Boost, and every action with no Keyboard binding, is still on a key the game is not
+    // known to have it on, and the tab says so rather than claiming they all agree.
+    expect(document.querySelector(".game-keys-left")?.textContent).toContain(
+      "are not sent on a key the game is known to use",
+    );
+    const changes = await saved(calls);
+    expect(changes.throttle_up).toMatchObject({ key: "Space" });
+    expect(changes.boost).toBeUndefined();
+  });
+
+  it("are not claimed for an action a unit cannot send on the game's key", () => {
+    served();
+    document.body.innerHTML = '<div id="app"></div>';
+    // The fixture's actions have no Keyboard binding: give every one what it sends, and
+    // Thrust backward the wheel, which no unit can send.
+    const payload = unconnected();
+    const mouse: Record<string, string> = {
+      left: "MouseLeft",
+      middle: "MouseMiddle",
+      right: "MouseRight",
+    };
+    for (const spec of Object.values(payload.games[0]?.actions.actions ?? {})) {
+      if (typeof spec.mouse === "string") spec.kbm = mouse[spec.mouse] ?? "";
+      else if (typeof spec.key === "string") {
+        spec.kbm = typeof spec.meta === "string" ? `${spec.meta}+${spec.key}` : spec.key;
+      } else if (typeof spec.meta === "string") spec.kbm = spec.meta;
+    }
+    const back = payload.games[0]?.actions.actions?.throttle_down;
+    if (back) back.kbm = "WheelUp";
+    start(payload);
+    tab("In-game");
+    const text = document.querySelector(".game-keys")?.textContent ?? "";
+    expect(text).not.toContain("Every action the units send is on the game's own key");
+    expect(document.querySelector(".game-keys-left")?.textContent).toContain("Thrust backward");
+    expect(document.querySelector(".game-keys-left")?.textContent).toMatch(/^1 action/);
+  });
+
+  it("are not offered for a game that is told its keys", () => {
+    served();
+    document.body.innerHTML = '<div id="app"></div>';
+    start(withKbm(true, { headlight: "Space" }));
+    tab("In-game");
+    expect(document.querySelector("[data-game-keys]")).toBeNull();
   });
 });

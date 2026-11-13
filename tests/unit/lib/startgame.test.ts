@@ -43,6 +43,7 @@ import { loadProfileData } from "../../../src/lib/io.js";
 import { lintGame } from "../../../src/lib/lint.js";
 import { Game, Genre } from "../../../src/lib/model.js";
 import { ScaffoldError } from "../../../src/lib/scaffold.js";
+import { WIRE_POOL } from "../../../src/lib/wiring.js";
 import {
   acknowledgeFinding,
   addDiscoveredControls,
@@ -533,6 +534,10 @@ describe("startGame", () => {
     );
     const style = ["everything:", "  label: Everything", "  left: default", "  right:", ...right];
     writeFileSync(layouts, `${before}\n${style.join("\n")}\n`, "utf8");
+    // With no usual keyboard keys to send, every control takes a key from the pool.
+    const vocabulary = repoPath("genres/SpaceSims/actions.yaml");
+    const words = readFileSync(vocabulary, "utf8");
+    writeFileSync(vocabulary, words.replace(/ keyboard: [A-Za-z0-9]+,/g, ""), "utf8");
     let result: ReturnType<typeof startGame>;
     try {
       result = startGame({
@@ -545,6 +550,7 @@ describe("startGame", () => {
       });
     } finally {
       writeFileSync(layouts, before, "utf8");
+      writeFileSync(vocabulary, words, "utf8");
     }
     expect(result.leftOff.length).toBeGreaterThan(0);
     const both = ["left", "right"].map((unit) =>
@@ -555,6 +561,23 @@ describe("startGame", () => {
       const action = entry.split(": ")[1] ?? "";
       expect(placed).not.toContain(`"${action}"`);
     }
+  });
+
+  it("sends the game's usual keys, so a new game needs nothing changed in it", () => {
+    const result = startGame({
+      name: "ZZ Gun",
+      slug: "zzGun",
+      genre: "FPS",
+      devices: ["cyborg2-left"],
+      set: "v1",
+    });
+    const actions = new Game(`games/FPS/${result.slug}`).actions.actions;
+    expect(actions.move_forward).toMatchObject({ key: "KeyW", kbm: "KeyW" });
+    expect(actions.sprint).toMatchObject({ meta: "ShiftLeft", kbm: "ShiftLeft" });
+    expect(actions.reload).toMatchObject({ key: "KeyR" });
+    // The wheel is not something a unit can send: that one takes a key from the pool.
+    expect(actions.weapon_next?.kbm).toBe("WheelDown");
+    expect(WIRE_POOL).toContain(actions.weapon_next?.key);
   });
 
   it("gives required actions their keys before optional ones", () => {
