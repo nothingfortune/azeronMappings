@@ -13,8 +13,11 @@ import {
   freeKey,
   needsWire,
   sendsSomething,
+  unitSendFor,
   wireAction,
+  wireFromGame,
 } from "../../../src/lib/wiring.js";
+import { liveTogether } from "../../../src/lib/modes.js";
 import type { ActionSpec } from "../../../src/types/profile.js";
 import { LIVE_SET } from "../../helpers/fixtures.js";
 
@@ -179,5 +182,61 @@ describe("a control whose action has no key", () => {
     });
     expect(rules(wired)).not.toContain("action-sends-nothing");
     expect(rules(wired)).not.toContain("key-collision");
+  });
+});
+
+describe("a keyboard binding, as a unit would send it", () => {
+  it("is a key, a modifier, one modifier with a key, or a mouse button", () => {
+    expect(unitSendFor("KeyR")).toEqual({ key: "KeyR" });
+    expect(unitSendFor("ShiftLeft")).toEqual({ meta: "ShiftLeft" });
+    expect(unitSendFor("ControlLeft+KeyR")).toEqual({ meta: "ControlLeft", key: "KeyR" });
+    expect(unitSendFor("MouseLeft")).toEqual({ mouse: "left" });
+    expect(unitSendFor("MouseRight")).toEqual({ mouse: "right" });
+  });
+
+  it("is nothing a unit cannot send: the wheel, the side buttons, two modifiers", () => {
+    expect(unitSendFor("WheelUp")).toBeNull();
+    expect(unitSendFor("Mouse4")).toBeNull();
+    expect(unitSendFor("ControlLeft+ShiftLeft+KeyR")).toBeNull();
+    expect(unitSendFor("ShiftLeft+MouseLeft")).toBeNull();
+    expect(unitSendFor(undefined)).toBeNull();
+    expect(unitSendFor("Nope")).toBeNull();
+  });
+});
+
+describe("wiring from the game's own key", () => {
+  it("sends the key the game already has the action on", () => {
+    const actions: Record<string, ActionSpec> = {
+      reload: { kbm: "KeyR" },
+      sprint: { kbm: "ShiftLeft" },
+      fire: { kbm: "MouseLeft" },
+    };
+    expect(wireFromGame(actions, "reload")).toEqual({ key: "KeyR" });
+    expect(wireFromGame(actions, "sprint")).toEqual({ meta: "ShiftLeft" });
+    expect(wireFromGame(actions, "fire")).toEqual({ mouse: "left" });
+    expect(actions.reload).toEqual({ kbm: "KeyR", key: "KeyR" });
+  });
+
+  it("leaves the pool to an action whose key a unit cannot send or another sends", () => {
+    const actions: Record<string, ActionSpec> = {
+      next: { kbm: "WheelDown" },
+      headlight: { key: "KeyL" },
+      flashlight: { kbm: "KeyL" },
+      bare: {},
+    };
+    expect(wireFromGame(actions, "next")).toBeNull();
+    expect(wireFromGame(actions, "flashlight")).toBeNull();
+    expect(wireFromGame(actions, "bare")).toBeNull();
+    expect(wireFromGame(actions, "headlight")).toBeNull();
+    expect(actions.flashlight).toEqual({ kbm: "KeyL" });
+  });
+
+  it("lets two actions share a key when they are never live together", () => {
+    const live = liveTogether({ sets: { a: { modes: ["ship"] }, b: { modes: ["foot"] } } });
+    const actions: Record<string, ActionSpec> = {
+      fire: { key: "KeyF", mode: "ship" },
+      shoot: { kbm: "KeyF", mode: "foot" },
+    };
+    expect(wireFromGame(actions, "shoot", live)).toEqual({ key: "KeyF" });
   });
 });

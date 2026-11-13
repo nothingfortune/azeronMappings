@@ -9,10 +9,19 @@
  * re-dealt: the compiled layouts, the golden fixture and the game's own file all depend on
  * an action keeping the key it has.
  *
+ * Two ways to pick one. A game whose binding file the repo writes (Everspace 2, Elite) gets
+ * a key from the pool below and is told it. A game whose file cannot be written gets the
+ * key the game already listens for -- the action's keyboard binding, `kbm` -- so nothing
+ * has to be changed in the game (`wireFromGame`); the pool is the fallback when that
+ * binding is not one a unit can send or another action already sends it.
+ *
  * Node-free, because the editor imports it.
  */
 
 import type { ActionSpec } from "../types/profile.js";
+import { isMouseToken, parseKbm } from "./controls.js";
+import { ANALOG_KEYCODES, isModifier } from "./keys.js";
+import { actionsLiveTogether, type LiveTogether } from "./modes.js";
 
 /**
  * Keys the editor may hand out, most out of the way first.
@@ -131,4 +140,67 @@ export function wireAction(
   if (key === null) return null;
   actions[id] = { ...spec, key };
   return key;
+}
+
+/** What a unit sends for an action: a key, a modifier, both, or a mouse button. */
+export interface UnitSend {
+  key?: string;
+  meta?: string;
+  mouse?: string;
+}
+
+const UNIT_MOUSE: Readonly<Record<string, string>> = {
+  MouseLeft: "left",
+  MouseMiddle: "middle",
+  MouseRight: "right",
+};
+
+/**
+ * A keyboard-and-mouse binding as a unit would send it, or null when a unit cannot: two
+ * modifiers held, the wheel, the side buttons, or a modifier with a mouse button.
+ */
+export function unitSendFor(kbm: unknown): UnitSend | null {
+  const parsed = parseKbm(kbm);
+  if (parsed === null || parsed.modifiers.length > 1) return null;
+  const [modifier] = parsed.modifiers;
+  const { input } = parsed;
+  if (isMouseToken(input)) {
+    const mouse = UNIT_MOUSE[input];
+    return mouse === undefined || modifier !== undefined ? null : { mouse };
+  }
+  if (isModifier(input)) return modifier === undefined ? { meta: input } : null;
+  // A key a stick direction could send as well as a button: the keycodes the app knows.
+  if (!(input in ANALOG_KEYCODES)) return null;
+  return modifier === undefined ? { key: input } : { meta: modifier, key: input };
+}
+
+/** Whether two sends would reach the game as the same press. */
+function sameSend(a: UnitSend, b: ActionSpec): boolean {
+  if (a.mouse !== undefined) return b.mouse === a.mouse;
+  if (a.key !== undefined) return b.key === a.key && (b.meta ?? undefined) === a.meta;
+  return b.meta === a.meta && (b.key === undefined || b.key === null);
+}
+
+/**
+ * Give `id` the key the game already has it on, its `kbm`, when it has no key and a unit can
+ * send that binding and no other action live with it sends the same. Returns what it was
+ * given, or null -- and then the caller falls back to the pool. `actions` is changed in
+ * place.
+ */
+export function wireFromGame(
+  actions: Record<string, ActionSpec>,
+  id: string,
+  live: LiveTogether = () => true,
+): UnitSend | null {
+  const spec = actions[id];
+  if (!needsWire(spec) || spec === undefined) return null;
+  const send = unitSendFor(spec.kbm);
+  if (send === null) return null;
+  const taken = Object.entries(actions).some(
+    ([other, otherSpec]) =>
+      other !== id && actionsLiveTogether(live, spec, otherSpec) && sameSend(send, otherSpec),
+  );
+  if (taken) return null;
+  actions[id] = { ...spec, ...send };
+  return send;
 }
