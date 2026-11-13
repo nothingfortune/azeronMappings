@@ -89,6 +89,8 @@ const header = (text: string): HTMLButtonElement | undefined =>
   [...document.querySelectorAll<HTMLButtonElement>("header button")].find(
     (node) => node.textContent === text,
   );
+const status = (): string | null =>
+  document.querySelector("header .save-status")?.textContent ?? null;
 const undoButton = (): HTMLButtonElement => {
   const found = document.querySelector<HTMLButtonElement>("[data-undo]");
   if (!found) throw new Error("no undo button");
@@ -118,14 +120,17 @@ describe("an edit on the served page", () => {
     mount();
     place(emptyKey());
     expect(calls).toEqual([]);
-    expect(header("Save")).toBeDefined();
+    // Nothing to press: the header says where saving has got to, and has no Save button.
+    expect(status()).toBe("Saving…");
+    expect(header("Save")).toBeUndefined();
 
     await vi.advanceTimersByTimeAsync(799);
     expect(calls).toEqual([]);
     await vi.advanceTimersByTimeAsync(1);
     expect(calls.map((call) => call.path)).toEqual(["/api/save"]);
     expect(String(calls[0]?.body.path)).toMatch(/profiles\/.*left.*\.yaml$/);
-    expect(header("Saved")).toBeDefined();
+    expect(status()).toBe("Saved");
+    expect(header("Saved")).toBeUndefined();
     expect(document.querySelector(".save-report")).toBeNull();
     expect(document.querySelector(".save-note")).toBeNull();
   });
@@ -189,6 +194,9 @@ describe("an edit on the served page", () => {
     expect(document.querySelector(".save-note")?.textContent).toContain("not saved");
     await vi.advanceTimersByTimeAsync(5000);
     expect(calls.length).toBe(1);
+    // It is not tried again on its own, so the header offers to try it again by hand.
+    expect(status()).toBeNull();
+    expect(header("Retry save")).toBeDefined();
     // Another edit is another state, and worth another try.
     place(position, "Toggle HUD");
     await vi.advanceTimersByTimeAsync(800);
@@ -204,6 +212,7 @@ describe("an edit on the served page", () => {
     await vi.advanceTimersByTimeAsync(3000);
     expect(calls).toEqual([]);
     expect(header("Save")).toBeDefined();
+    expect(status()).toBeNull();
     mount();
     expect(menuItem("Turn autosave on")).toBeDefined();
   });
