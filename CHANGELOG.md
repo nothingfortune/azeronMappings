@@ -4,6 +4,14 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ## Unreleased
 
+### Changed
+
+- **The editor is quieter.** A check broken on each direction of one stick, or each press of
+  one key, is one entry with the rest folded under "N more like this"; the header and the
+  Checks tab count it once. The In-game tab's explanations are folded under "How this page
+  works" with its two buttons in one row above the actions, which used to start below the
+  fold. The key panel, empty until a key is picked, says what can be done instead.
+
 ### Added
 
 - **Xbox buttons, triggers, sticks, scroll and the stick as a mouse, on the unit itself.**
