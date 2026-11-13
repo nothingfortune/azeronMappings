@@ -141,8 +141,8 @@ test.describe("the served editor", () => {
   test.describe("the theme", () => {
     // The page follows the OS until it is told otherwise. The first click on a dark OS used
     // to set "dark" on a page that was already dark, so nothing changed.
-    const DARK_BG = "rgb(16, 19, 23)";
-    const LIGHT_BG = "rgb(244, 246, 248)";
+    const DARK_BG = "rgb(13, 16, 21)";
+    const LIGHT_BG = "rgb(238, 241, 245)";
     const background = (page: Page): Promise<string> =>
       page.evaluate(() => getComputedStyle(document.body).backgroundColor);
     const choose = async (page: Page, theme: "light" | "dark"): Promise<void> => {
@@ -188,8 +188,8 @@ test.describe("the served editor", () => {
           const style = getComputedStyle(node);
           return [style.backgroundColor, style.color];
         });
-      expect(panel[0]).toBe("rgb(26, 30, 37)");
-      expect(panel[1]).toBe("rgb(232, 235, 240)");
+      expect(panel[0]).toBe("rgb(21, 25, 32)");
+      expect(panel[1]).toBe("rgb(233, 237, 243)");
       await context.close();
     });
   });
