@@ -46,6 +46,10 @@ Every profile change, and why. `playtests.md` records what each layout felt like
 
 ### Changed
 
+- **The project is relayMatrix.** The repo is `nothingfortune/relayMatrix` (renamed from
+  `azeronMappings`; GitHub redirects the old address) and the editor is called relayMatrix:
+  one place for Azeron, keyboard-and-mouse and Xbox controller layouts. The CLI is still
+  `azeron`. `docs/plans/feature-roadmap.md` says what comes next and where each part runs.
 - **No Save button while autosave is on.** The header says Saving… or Saved instead; a
   save that fails shows Retry save, and turning autosave off in the menu brings Save back.
 - **The press test is a utility, at the far right of the header**, out of the tabs used day

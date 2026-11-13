@@ -4689,7 +4689,7 @@ function exportJson(slug: string): void {
 
 function renderHeader(): HTMLElement {
   const header = el("header");
-  header.append(el("h1", {}, ["Azeron profile editor"]));
+  header.append(el("h1", {}, ["relayMatrix"]));
 
   // The game is chosen from the gallery, the first step; this says which, and goes back.
   const gameButton = el(

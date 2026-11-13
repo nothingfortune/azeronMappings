@@ -1,6 +1,7 @@
-# azeronMappings
+# relayMatrix
 
-Azeron Cyborg II layouts as code. A layout says which **game action** each **control** on a
+One place for controller and key-binding layouts: Azeron keypads, keyboard and mouse, and
+Xbox controllers, for every game you play. Azeron Cyborg II layouts as code. A layout says which **game action** each **control** on a
 pair of keypads does; this repo writes it onto the units over USB, checks it against what
 has already gone wrong in play, and, for the games it knows, writes the game's own key
 bindings to match — so a layout is changed in one place.
@@ -13,8 +14,8 @@ Azeron app is needed for any of it.
 You need Node 22 or newer and Git, and Chrome or Edge.
 
 ```sh
-git clone https://github.com/nothingfortune/azeronMappings
-cd azeronMappings
+git clone https://github.com/nothingfortune/relayMatrix
+cd relayMatrix
 npm install
 npm start
 ```
