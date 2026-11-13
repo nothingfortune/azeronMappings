@@ -8,18 +8,18 @@ editor looks, never what it does: no class, id or `data-*` is renamed or removed
 Defined once each in `LIGHT` and `DARK`; print re-applies `LIGHT`, so every themed token lives
 inside those two strings. Dark is the main theme.
 
-| Token                      | Dark      | Light     | Use                                        |
-| -------------------------- | --------- | --------- | ------------------------------------------ |
-| `--bg`                     | `#0d1015` | `#eef1f5` | the page                                   |
-| `--panel`                  | `#151920` | `#ffffff` | panels, the header, cards                  |
-| `--raised`                 | `#1c212a` | `#ffffff` | buttons, chips, anything that is pressed   |
-| `--sunken`                 | `#0f1218` | `#e7ebf0` | text boxes, wells, the thumb groups        |
-| `--hover`                  | `#232a35` | `#f1f4f8` | a raised surface under the pointer         |
-| `--fg` / `--muted`         | `#e9edf3` / `#98a2b3` | `#12161c` / `#566070` | text, secondary text |
-| `--line` / `--line-strong` | `#272e39` / `#3a4352` | `#d6dce4` / `#b6c0cc` | borders; hover borders |
-| `--accent` / `--accent-fg` | `#4fb3ff` / `#061320` | `#0b74b8` / `#ffffff` | primary action, selection, focus |
-| `--key-top` / `--key-bottom` | `#252b36` / `#1c212a` | `#ffffff` / `#f0f3f7` | the keycap's face |
-| `--shadow-1..3`            |           |           | resting, lifted (menus, cards on hover), modal |
+| Token                        | Dark                  | Light                 | Use                                            |
+| ---------------------------- | --------------------- | --------------------- | ---------------------------------------------- |
+| `--bg`                       | `#0d1015`             | `#eef1f5`             | the page                                       |
+| `--panel`                    | `#151920`             | `#ffffff`             | panels, the header, cards                      |
+| `--raised`                   | `#1c212a`             | `#ffffff`             | buttons, chips, anything that is pressed       |
+| `--sunken`                   | `#0f1218`             | `#e7ebf0`             | text boxes, wells, the thumb groups            |
+| `--hover`                    | `#232a35`             | `#f1f4f8`             | a raised surface under the pointer             |
+| `--fg` / `--muted`           | `#e9edf3` / `#98a2b3` | `#12161c` / `#566070` | text, secondary text                           |
+| `--line` / `--line-strong`   | `#272e39` / `#3a4352` | `#d6dce4` / `#b6c0cc` | borders; hover borders                         |
+| `--accent` / `--accent-fg`   | `#4fb3ff` / `#061320` | `#0b74b8` / `#ffffff` | primary action, selection, focus               |
+| `--key-top` / `--key-bottom` | `#252b36` / `#1c212a` | `#ffffff` / `#f0f3f7` | the keycap's face                              |
+| `--shadow-1..3`              |                       |                       | resting, lifted (menus, cards on hover), modal |
 
 Roles (`--combat`, `--movement`, `--menu`, `--travel`, `--utility`) and states (`--error`,
 `--warn`, `--ok`) are eight distinct hues: coral, mint, violet, amber, slate; crimson, yellow,
@@ -43,14 +43,14 @@ A keycap on a plate. The hand is the plate (a panel with an inner shade); each k
 along its top, so it reads as raised. The role is a 3px stripe down its left edge, as before.
 Position label 10px muted, action name 11-12px 600.
 
-| State     | Look                                                                 |
-| --------- | -------------------------------------------------------------------- |
-| hover     | border `--line-strong`, face one step lighter                         |
-| selected  | 2px accent outline offset 2px, accent-tinted face                     |
+| State     | Look                                                                      |
+| --------- | ------------------------------------------------------------------------- |
+| hover     | border `--line-strong`, face one step lighter                             |
+| selected  | 2px accent outline offset 2px, accent-tinted face                         |
 | empty     | no face, dashed border, label muted; on hover the dashed border is accent |
-| drag-over | solid accent outline and an accent-tinted face                        |
-| focus     | the focus ring (2px accent outline)                                   |
-| stale     | inset warn ring and the "≠ unit" tag, as before                       |
+| drag-over | solid accent outline and an accent-tinted face                            |
+| focus     | the focus ring (2px accent outline)                                       |
+| stale     | inset warn ring and the "≠ unit" tag, as before                           |
 
 The stick is a dial: four direction cells around a round knob with a ring of eight ticks.
 
