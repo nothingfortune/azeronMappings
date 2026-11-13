@@ -45,7 +45,7 @@ ${options.bundle}
 
 export function renderEditorHtml(payload: EditorPayload, bundle: string, served = false): string {
   return renderPage({
-    title: "Azeron profile editor",
+    title: "relayMatrix",
     globalName: "AZERON_PAYLOAD",
     payload,
     bundle,

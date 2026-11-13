@@ -4,6 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
+**relayMatrix** (the GitHub repo `nothingfortune/relayMatrix`, renamed from
+`azeronMappings` on 2026-11-13; the CLI is still `azeron`): a one-stop shop for controller
+and key-binding layouts -- Azeron keypads, keyboard and mouse, and Xbox controllers.
+
 Azeron Cyborg II keypad profiles as code: profiles authored in YAML that maps a physical
 position to a game action, compiled into the Azeron app's import JSON, linted against
 constraints learned from real play sessions, and versioned so any past version is
